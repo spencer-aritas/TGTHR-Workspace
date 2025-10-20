@@ -119,8 +119,21 @@ async def create_quick_person_account(payload: PersonAccountPayload):
         
         # Try to sync to Salesforce if online
         try:
+            from ..api.sync import get_device_user
+            from ..models.db import SessionLocal
+            
+            # Get device user context
+            user_context = {"userId": None, "sfUserId": None}
+            if payload.deviceId:
+                db_session = SessionLocal()
+                try:
+                    user_context = get_device_user(payload.deviceId, db_session)
+                finally:
+                    db_session.close()
+            
             person_data = payload.dict()
             person_data["uuid"] = local_id
+            person_data["createdByUserId"] = user_context.get("sfUserId")
             sf_id = create_person_account(person_data)
             
             # Update with Salesforce ID
@@ -184,6 +197,17 @@ async def submit_outreach_encounter(payload: OutreachEncounterPayload):
         # Try to sync to Salesforce ProgramEnrollmentService if online
         try:
             from ..salesforce.sf_client import ingest_encounter
+            from ..api.sync import get_device_user
+            from ..models.db import SessionLocal
+            
+            # Get device user context
+            user_context = {"userId": None, "sfUserId": None}
+            if payload.deviceId:
+                db_session = SessionLocal()
+                try:
+                    user_context = get_device_user(payload.deviceId, db_session)
+                finally:
+                    db_session.close()
             
             # Call Apex class ProgramEnrollmentService.ingestEncounter
             apex_payload = {
@@ -195,7 +219,8 @@ async def submit_outreach_encounter(payload: OutreachEncounterPayload):
                 "endUtc": payload.encounterDate,
                 "pos": "27",  # Default POS
                 "isCrisis": payload.followUpNeeded,
-                "notes": payload.notes
+                "notes": payload.notes,
+                "createdByUserId": user_context.get("sfUserId")
             }
             
             result = ingest_encounter(apex_payload)
