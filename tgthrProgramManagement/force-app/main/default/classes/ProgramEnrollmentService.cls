@@ -33,7 +33,6 @@ global with sharing class ProgramEnrollmentService {
         accountSObj.put('RecordTypeId', Schema.SObjectType.Account.getRecordTypeInfosByName().get('Person Account').getRecordTypeId());
         accountSObj.put('FirstName', e.firstName != null ? e.firstName : 'Unknown');
         accountSObj.put('LastName', e.lastName != null ? e.lastName : '(Unknown)');
-        accountSObj.put('IsPersonAccount', true);
         
         // Add additional person account fields from payload
         if (rawData.containsKey('email') && rawData.get('email') != null) {

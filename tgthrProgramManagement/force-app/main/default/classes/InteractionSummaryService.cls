@@ -313,6 +313,7 @@ public with sharing class InteractionSummaryService {
                 'ParentId',
                 'ParentInteractionId',
                 'RelatedInteractionId',
+                'RelatedRecordId',
                 'Parent_Interaction__c',
                 'Related_Interaction__c'
               };

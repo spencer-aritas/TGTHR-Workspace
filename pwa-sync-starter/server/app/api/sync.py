@@ -335,6 +335,44 @@ def run_full_sync():
         logger.error(f"Full sync failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class DeviceRegistration(BaseModel):
+    deviceId: str
+    userId: str
+    sfUserId: str
+
+@router.post('/register-device')
+def register_device(data: DeviceRegistration, db: Session = Depends(get_db)):
+    """Register a device with user context for proper CreatedBy tracking"""
+    try:
+        from ..models.db import get_db as get_sqlite_db
+        sqlite_db = get_sqlite_db()
+        
+        # Create device_registrations table if it doesn't exist
+        sqlite_db.execute("""
+            CREATE TABLE IF NOT EXISTS device_registrations (
+                device_id TEXT PRIMARY KEY,
+                user_id TEXT,
+                sf_user_id TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Insert or update device registration
+        sqlite_db.execute("""
+            INSERT OR REPLACE INTO device_registrations (device_id, user_id, sf_user_id)
+            VALUES (?, ?, ?)
+        """, (data.deviceId, data.userId, data.sfUserId))
+        
+        sqlite_db.commit()
+        sqlite_db.close()
+        
+        logger.info(f"Registered device {data.deviceId} for user {data.sfUserId}")
+        return {"success": True, "message": "Device registered successfully"}
+        
+    except Exception as e:
+        logger.error(f"Device registration failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 sf_router = APIRouter(prefix="/sf", tags=["sf"])
 
 @sf_router.get("/whoami")
