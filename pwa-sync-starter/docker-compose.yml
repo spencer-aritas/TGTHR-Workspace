@@ -20,6 +20,12 @@ services:
       - API_ORIGINS=https://outreachintake.aritasconsulting.com
       - DATABASE_URL=sqlite:///app/data/server.db
       - ENVIRONMENT=production
+      - SALESFORCE_LOGIN_URL=https://login.salesforce.com
+      - SALESFORCE_CLIENT_ID=
+      - SALESFORCE_CLIENT_SECRET=
+      - SALESFORCE_USERNAME=
+      - SALESFORCE_PASSWORD=
+      - SALESFORCE_SECURITY_TOKEN=
     ports:
       - "8001:8000"
     volumes:
