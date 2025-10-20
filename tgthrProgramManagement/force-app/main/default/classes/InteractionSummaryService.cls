@@ -272,6 +272,9 @@ public with sharing class InteractionSummaryService {
       System.debug('Setting Name field with value: ' + title);
       newInteraction.put('Name', title);
 
+      // Set POS field to default outreach location
+      newInteraction.put('POS__c', '27');
+
       // Use the user-provided values for purpose and notes
       if (String.isNotBlank(purpose)) {
         newInteraction.put('InteractionPurpose', purpose);
