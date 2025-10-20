@@ -42,15 +42,24 @@ if ($PWA) {
     switch ($Environment) {
         "dev" { 
             Write-Host "Deploying to dev EC2..." 
-            # rsync -avz --delete web/dist/ user@dev-server:/var/www/tgthr-pwa/
+            docker build -t tgthr-pwa-web ./web
+            docker save tgthr-pwa-web | gzip > tgthr-pwa-web.tar.gz
+            # scp tgthr-pwa-web.tar.gz user@dev-server:/tmp/
+            # ssh user@dev-server "cd /var/www/tgthr && docker load < /tmp/tgthr-pwa-web.tar.gz && docker-compose up -d"
         }
         "staging" { 
             Write-Host "Deploying to staging EC2..." 
-            # rsync -avz --delete web/dist/ user@staging-server:/var/www/tgthr-pwa/
+            docker build -t tgthr-pwa-web ./web
+            docker save tgthr-pwa-web | gzip > tgthr-pwa-web.tar.gz
+            # scp tgthr-pwa-web.tar.gz user@staging-server:/tmp/
+            # ssh user@staging-server "cd /var/www/tgthr && docker load < /tmp/tgthr-pwa-web.tar.gz && docker-compose up -d"
         }
         "prod" { 
             Write-Host "Deploying to prod EC2..." 
-            # rsync -avz --delete web/dist/ user@prod-server:/var/www/tgthr-pwa/
+            docker build -t tgthr-pwa-web ./web
+            docker save tgthr-pwa-web | gzip > tgthr-pwa-web.tar.gz
+            # scp tgthr-pwa-web.tar.gz user@prod-server:/tmp/
+            # ssh user@prod-server "cd /var/www/tgthr && docker load < /tmp/tgthr-pwa-web.tar.gz && docker-compose up -d"
         }
     }
     
