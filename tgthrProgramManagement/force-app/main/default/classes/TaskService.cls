@@ -36,4 +36,28 @@ public with sharing class TaskService {
         insert taskSObj;
         return taskSObj.Id;
     }
+    
+    public static Id createValidationTask(Id disbursementId, String encounterUuid, String notes, String pos, Boolean isCrisis, Datetime startUtc, Datetime endUtc, String createdByUserId) {
+        SObject taskSObj = (SObject) Type.forName('Task').newInstance();
+        taskSObj.put('Subject', 'Validate Benefit Disbursement for Billing');
+        taskSObj.put('WhatId', disbursementId);
+        taskSObj.put('CallObject', encounterUuid);
+        taskSObj.put('ActivityDate', Date.today());
+        taskSObj.put('Status', 'Not Started');
+        taskSObj.put('Priority', 'Normal');
+        taskSObj.put('Description', 
+            (notes != null ? notes + '\n' : '') +
+            'POS: ' + (pos != null ? pos : '27') +
+            ' | Crisis: ' + String.valueOf(isCrisis) +
+            ' | Start: ' + String.valueOf(startUtc) +
+            ' | End: ' + String.valueOf(endUtc)
+        );
+        
+        if (String.isNotBlank(createdByUserId)) {
+            taskSObj.put('OwnerId', createdByUserId);
+        }
+        
+        insert taskSObj;
+        return taskSObj.Id;
+    }
 }
