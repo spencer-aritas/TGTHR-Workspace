@@ -1,0 +1,53 @@
+<template>
+  <lightning-card>
+    <div class="program-census-board">
+      <!-- Dynamic program tabs -->
+      <div class="slds-grid slds-gutters_small slds-var-m-bottom_medium">
+        <template for:each={programTabs} for:item="tab">
+          <div key={tab.id} class="slds-col">
+            <template if:true={tab.active}>
+              <button
+                onclick={handleProgramTabClick}
+                class="program-header active"
+                data-idx={tab.idx}
+              >
+                <span class="slds-grid slds-grid_vertical-align-center">
+                  <lightning-icon
+                    icon-name="standard:home"
+                    size="small"
+                    alternative-text="Program"
+                    class="slds-var-m-right_small"
+                  ></lightning-icon>
+                  <h2 class="slds-text-heading_medium program-header-title">
+                    {tab.name}
+                  </h2>
+                </span>
+              </button>
+            </template>
+            <template if:false={tab.active}>
+              <button
+                onclick={handleProgramTabClick}
+                class="program-header inactive"
+                data-idx={tab.idx}
+              >
+                <span class="slds-grid slds-grid_vertical-align-center">
+                  <lightning-icon
+                    icon-name="standard:home"
+                    size="small"
+                    alternative-text="Program"
+                    class="slds-var-m-right_small"
+                  ></lightning-icon>
+                  <h2 class="slds-text-heading_medium program-header-title">
+                    {tab.name}
+                  </h2>
+                </span>
+              </button>
+            </template>
+          </div>
+        </template>
+      </div>
+      <!-- Active program content (id-first) -->
+      <c-program-census-grid program-id={programId}></c-program-census-grid>
+    </div>
+  </lightning-card>
+</template>

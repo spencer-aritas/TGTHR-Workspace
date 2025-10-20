@@ -1,0 +1,2 @@
+# Ignore all JS backups in this folder to prevent lint noise
+*.js

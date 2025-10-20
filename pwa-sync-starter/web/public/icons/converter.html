@@ -1,0 +1,45 @@
+<!-- Simple HTML to convert SVG to PNG -->
+<!DOCTYPE html>
+<html>
+<head><title>Icon Converter</title></head>
+<body>
+<canvas id="canvas192" width="192" height="192"></canvas>
+<canvas id="canvas512" width="512" height="512"></canvas>
+<script>
+// Create 192x192 PNG
+const canvas192 = document.getElementById('canvas192');
+const ctx192 = canvas192.getContext('2d');
+ctx192.fillStyle = '#1976d2';
+ctx192.fillRect(0, 0, 192, 192);
+ctx192.fillStyle = 'white';
+ctx192.font = 'bold 120px Arial';
+ctx192.textAlign = 'center';
+ctx192.fillText('T', 96, 130);
+
+// Create 512x512 PNG  
+const canvas512 = document.getElementById('canvas512');
+const ctx512 = canvas512.getContext('2d');
+ctx512.fillStyle = '#1976d2';
+ctx512.fillRect(0, 0, 512, 512);
+ctx512.fillStyle = 'white';
+ctx512.font = 'bold 320px Arial';
+ctx512.textAlign = 'center';
+ctx512.fillText('T', 256, 350);
+
+// Download links
+setTimeout(() => {
+  const link192 = document.createElement('a');
+  link192.download = 'icon-192.png';
+  link192.href = canvas192.toDataURL();
+  document.body.appendChild(link192);
+  
+  const link512 = document.createElement('a');
+  link512.download = 'icon-512.png';
+  link512.href = canvas512.toDataURL();
+  document.body.appendChild(link512);
+  
+  console.log('Right-click the canvases and "Save image as..." to get PNG files');
+}, 100);
+</script>
+</body>
+</html>

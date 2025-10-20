@@ -1,0 +1,21 @@
+﻿Benefit Type Name,Type,Category,ProcessType,UnitOfMeasureId
+Housing,Service,Housing,ProgramManagement,0hERT0000000ptm2AA
+Education,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA
+Employment,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA
+Social/Emotional,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA
+Case Management,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA
+Basic Needs,Goods,Material Support,ProgramManagement,0hERT0000000ptt2AA
+Meal,Goods,Material Support,ProgramManagement,0hERT0000000ptl2AA
+Social/Emotional,Service,Clinical,ProgramManagement,0hERT0000000pto2AA
+Education Referral,Service,Clinical,ProgramManagement,0hERT0000000pto2AA
+Physical Health Referral,Service,Clinical,ProgramManagement,0hERT0000000pto2AA
+Housing Navigation,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA
+Goal Setting,Service,Clinical,ProgramManagement,0hERT0000000pto2AA
+Group Session,Service,Clinical,ProgramManagement,0hERT0000000pto2AA
+Community Outing,Service,Clinical,ProgramManagement,0hERT0000000pto2AA
+Family Reunification,Service,Clinical,ProgramManagement,0hERT0000000ptp2AA
+Care Coordination,Service,Clinical,ProgramManagement,0hERT0000000ptp2AA
+Transportation Assistance,Monetary,Material Support,ProgramManagement,0hERT0000000ptu2AA
+Police Intervention,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA
+Clinical Counseling,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA
+Peer Clinical,Service,Case Management,ProgramManagement,0hERT0000000ptp2AA

@@ -1,0 +1,38 @@
+
+# Node
+node_modules
+dist
+*.log
+web/dev-dist/
+web/dist/
+
+# Python
+__pycache__/
+.venv/
+
+# Database files
+*.db
+*.duckdb
+*.sqlite
+*.sqlite3
+data/
+server/data/
+server/*.db
+server/app/*.db
+
+# Temporary files
+*.tmp
+*.temp
+*.pid
+*.lock
+
+# Environment & Auth
+.env
+.env.*
+jwt_private.key
+
+# Misc
+.DS_Store
+
+# Backup directories
+backup_*/

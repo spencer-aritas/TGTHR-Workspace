@@ -1,0 +1,119 @@
+/* CSS for Program Census Board */
+:host {
+    --slds-c-badge-color-background: var(--program-accent, #cccccc);
+    --slds-c-badge-text-color: white;
+    --slds-c-badge-icon-color-foreground: var(--program-color, #333333);
+}
+
+/* Default theme for missing Program_Theme__mdt records */
+:host {
+    --program-color: #b71c1c; /* Red: maintenance/needs attention */
+    --program-accent: #f8bbd0; /* Light pink accent */
+    --slds-c-badge-color-background: var(--program-accent, #f8bbd0);
+    --slds-c-badge-text-color: #222; /* Black for visibility on light backgrounds */
+    --slds-c-badge-icon-color-foreground: var(--program-color, #b71c1c);
+}
+
+/* Standard theme fallback for any program */
+:host(.standard-theme) {
+    --program-color: #4f6bbd; /* Brand blue */
+    --program-accent: #2D9CDB; /* Brand accent */
+    --slds-c-badge-color-background: var(--program-accent, #2D9CDB);
+    --slds-c-badge-text-color: white;
+    --slds-c-badge-icon-color-foreground: var(--program-color, #4f6bbd);
+}
+
+.program-census-board {
+    padding: 1rem;
+}
+
+/* Side-by-side program headers */
+.program-header {
+    background-color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 2px solid transparent;
+    border-left: 4px solid var(--program-color, #cccccc);
+    color: var(--program-color, #333333);
+}
+
+.program-header.active {
+    background: linear-gradient(135deg, var(--program-color, #cccccc) 0%, var(--program-accent, #eeeeee) 100%);
+    color: white;
+    border-left: 4px solid var(--program-color, #cccccc);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.program-header.inactive {
+    opacity: 0.7;
+    background-color: #f8f9fa;
+}
+
+.program-header.inactive:hover {
+    opacity: 1;
+    background-color: var(--program-accent, #f0f4fa);
+    transform: translateY(-1px);
+}
+
+.program-header-title {
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.01em;
+}
+
+/* 1440 Pine styling */
+
+/* Dynamic theme styling using CSS variables set by LWC */
+.program-header {
+    border-left: 4px solid var(--program-color, #cccccc);
+    color: var(--program-color, #333333);
+}
+
+.program-header.active {
+    background: linear-gradient(135deg, var(--program-color, #cccccc) 0%, var(--program-accent, #eeeeee) 100%);
+    color: white;
+    border-left: 4px solid var(--program-color, #cccccc);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.program-header.inactive {
+    opacity: 0.7;
+    background-color: #f8f9fa;
+}
+
+.program-header.inactive:hover {
+    opacity: 1;
+    background-color: var(--program-accent, #f0f4fa);
+    transform: translateY(-1px);
+}
+
+/* Eliminate extra padding in card when there's no header */
+:host .slds-card__body {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Optionally, add a CSS class for maintenance state */
+.maintenance-theme {
+    border-left: 4px solid var(--program-color);
+    background: repeating-linear-gradient(135deg, var(--program-accent), var(--program-color) 10px);
+    color: var(--program-color);
+    font-weight: bold;
+    font-style: italic;
+}
+/* Fix program tab spacing - justify left for fewer tabs */
+.slds-grid.slds-gutters_small .slds-col {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* Ensure program headers have consistent minimum width */
+.program-header {
+  min-width: 200px;
+  width: auto;
+}

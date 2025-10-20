@@ -1,0 +1,2261 @@
+import { LightningElement, track, api } from 'lwc';
+import recent from '@salesforce/apex/InteractionSummaryService.recent';
+import thread from '@salesforce/apex/InteractionSummaryService.thread';
+import recentIncidents from '@salesforce/apex/InteractionSummaryService.recentIncidents';
+import markAddressed from '@salesforce/apex/InteractionSummaryService.markAddressed';
+// Import the method that creates interactions directly as a workaround
+import createInteractionDirectly from '@salesforce/apex/InteractionSummaryService.createInteractionDirectly';
+
+// IMPLEMENTATION GUIDE: To create the direct Apex method, add this to InteractionSummaryService.cls:
+/*
+@AuraEnabled
+public static String createInteractionDirectly(String accountId, String programId, String relatedRecordId) {
+    try {
+        // Create a new interaction record
+        Interaction_Summary__c newInteraction = new Interaction_Summary__c();
+        newInteraction.Account__c = accountId;
+        newInteraction.Program__c = programId;
+        
+        // Add any other fields needed
+        // newInteraction.Field_Name__c = value;
+        
+        // If relatedRecordId is provided, query the related record to copy fields
+        if (String.isNotBlank(relatedRecordId)) {
+            Interaction_Summary__c related = [
+                SELECT Id, MeetingNotes__c, InteractionPurpose__c
+                FROM Interaction_Summary__c
+                WHERE Id = :relatedRecordId
+                LIMIT 1
+            ];
+            
+            if (related != null) {
+                // Copy fields as needed
+                // newInteraction.Field_Name__c = related.Field_Name__c;
+            }
+        }
+        
+        // Insert the record
+        insert newInteraction;
+        
+        // Return the ID of the created record
+        return newInteraction.Id;
+    } catch (Exception e) {
+        throw new AuraHandledException('Error creating interaction: ' + e.getMessage());
+    }
+}
+*/
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+export default class InteractionSummaryBoard extends LightningElement {
+  @track rowsAll = [];
+  @track rowsNest = [];
+  @track selected = null;
+  @track convo = [];
+  @track incidents = [];
+  @track openModal = false;
+  @track selectedRowIds = [];
+  @track interactionPurpose = '';
+  @track meetingNotes = '';
+  @track interactionDate = '';
+  @track notifyCaseManager = false;
+  
+  // Define available formats for the rich text editor
+  richTextFormats = [
+    'font', 'size', 'bold', 'italic', 'underline', 
+    'strike', 'list', 'indent', 'align', 'link', 
+    'clean', 'table', 'header', 'color'
+  ];
+  
+  // Pagination properties for convo
+  @track convoCurrentPage = 1;
+  @track convoPageSize = 10;
+  @track convoTotalPages = 0;
+  @track convoTotalRecords = 0;
+  @track convoDisplayedRecords = [];
+  
+  // Pagination properties for incidents
+  @track incidentsCurrentPage = 1;
+  @track incidentsPageSize = 10;
+  @track incidentsTotalPages = 0;
+  @track incidentsTotalRecords = 0;
+  @track incidentsDisplayedRecords = [];
+  @track isLoading = true;
+  @track sortField = 'Date_of_Interaction__c'; // Default sort field
+  @track sortDirection = 'desc'; // Default sort direction (newest first)
+  @track activeTab = 'all'; // Track the active tab to force re-rendering
+  
+  lastAccountId = null;
+  cacheBuster = Date.now(); // Used to bust cache
+
+  // Modal dialog API name
+  modalName = 'Log_Interaction';
+
+  // No columns definition needed for standard HTML table
+
+  // Helper to debug the data structure
+  debugDataFields() {
+    if (this.rowsAll && this.rowsAll.length > 0) {
+      const firstRow = this.rowsAll[0];
+      console.log('Sample row object keys:', Object.keys(firstRow));
+      console.log('Date field value:', firstRow.Date_of_Interaction__c);
+      console.log('Date field type:', typeof firstRow.Date_of_Interaction__c);
+      
+      // If we're getting data from Apex, log the raw data structure
+      console.log('Raw date field format example:', 
+                 JSON.stringify(firstRow.Date_of_Interaction__c));
+    }
+    
+    if (this.rowsNest && this.rowsNest.length > 0) {
+      const firstRow = this.rowsNest[0];
+      console.log('Nest 56 sample row date field:', firstRow.Date_of_Interaction__c);
+    }
+  }
+
+  async connectedCallback() { 
+    this.isLoading = true;
+    try {
+      console.log('Component connected, loading tabs');
+      await this.loadTabs();
+      
+      // Debug the date fields
+      this.debugDataFields();
+      
+      // Apply initial sorting
+      this.rowsAll = this.sortData(this.rowsAll, this.sortField, this.sortDirection);
+      this.rowsNest = this.sortData(this.rowsNest, this.sortField, this.sortDirection);
+      
+      // Initialize the active tab to ensure it's fully interactive from the start
+      // Use a slight delay to ensure DOM has rendered
+      setTimeout(() => {
+        console.log('Initial tab activation:', this.activeTab);
+        this.initializeActiveTab();
+        this.updateSortIndicators();
+      }, 100);
+    } catch (error) {
+      console.error('Error in connectedCallback:', error);
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error loading data',
+        message: error.message || 'Unknown error occurred while loading data',
+        variant: 'error'
+      }));
+    } finally {
+      this.isLoading = false;
+      console.log('Loading complete');
+    }
+  }
+  
+  renderedCallback() {
+    console.log('Component rendered, activeTab:', this.activeTab);
+    console.log('1440 Pine rows:', this.rowsAll ? this.rowsAll.length : 0);
+    console.log('Nest 56 rows:', this.rowsNest ? this.rowsNest.length : 0);
+    
+    // ENHANCED: Check if activeTab is valid
+    if (!this.activeTab || (this.activeTab !== 'all' && this.activeTab !== 'nest')) {
+      console.log('Invalid activeTab value, defaulting to all');
+      this.activeTab = 'all';
+    }
+    
+    // Ensure correct tab is active in the DOM - enhanced with multiple checks
+    const tabset = this.template.querySelector('lightning-tabset');
+    if (tabset) {
+      // Check if tabset's active value matches our tracking
+      if (tabset.activeValue !== this.activeTab) {
+        console.log('Fixing mismatch: tabset activeValue is', tabset.activeValue, 'but component activeTab is', this.activeTab);
+        tabset.activeValue = this.activeTab;
+      }
+    }
+    
+    // Force the active tab to be shown by directly manipulating attributes and classes
+    const allTab = this.template.querySelector('lightning-tab[value="all"]');
+    const nestTab = this.template.querySelector('lightning-tab[value="nest"]');
+    
+    if (allTab && nestTab) {
+      // Set aria-selected based on active tab
+      allTab.setAttribute('aria-selected', this.activeTab === 'all' ? 'true' : 'false');
+      nestTab.setAttribute('aria-selected', this.activeTab === 'nest' ? 'true' : 'false');
+      
+      // ENHANCEMENT: Also update classes for maximum compatibility
+      if (this.activeTab === 'all') {
+        allTab.classList.remove('slds-hide');
+        allTab.classList.add('slds-show');
+      } else {
+        nestTab.classList.remove('slds-hide');
+        nestTab.classList.add('slds-show');
+      }
+      
+      // ENHANCEMENT: Check for content panels and ensure they are properly shown/hidden
+      const allContentId = allTab.getAttribute('aria-controls');
+      const nestContentId = nestTab.getAttribute('aria-controls');
+      
+      if (allContentId && nestContentId) {
+        const allContent = this.template.querySelector(`#${allContentId}`);
+        const nestContent = this.template.querySelector(`#${nestContentId}`);
+        
+        if (allContent && nestContent) {
+          // Ensure the correct panel is visible
+          if (this.activeTab === 'all') {
+            allContent.classList.remove('slds-hide');
+            allContent.classList.add('slds-show');
+            nestContent.classList.add('slds-hide');
+            nestContent.classList.remove('slds-show');
+          } else {
+            nestContent.classList.remove('slds-hide');
+            nestContent.classList.add('slds-show');
+            allContent.classList.add('slds-hide');
+            allContent.classList.remove('slds-show');
+          }
+        }
+      }
+    }
+    
+    // Check if tables are present in the DOM
+    const allTabTable = this.template.querySelector('lightning-tab[value="all"] table');
+    const nestTabTable = this.template.querySelector('lightning-tab[value="nest"] table');
+    
+    console.log('1440 Pine table found:', allTabTable ? 'yes' : 'no');
+    console.log('Nest 56 table found:', nestTabTable ? 'yes' : 'no');
+    console.log('Current active tab:', this.activeTab);
+    console.log('Is Nest active:', this.isNest);
+    console.log('Is All active:', this.isAll);
+    
+    // Double-check that all row click handlers are attached
+    const activeTabElement = this.template.querySelector(`lightning-tab[value="${this.activeTab}"]`);
+    if (activeTabElement) {
+      const rowsInActiveTab = activeTabElement.querySelectorAll('tr[data-id]');
+      console.log(`Total rows found in ${this.activeTab} tab:`, rowsInActiveTab.length);
+    }
+    
+    // Log which tab is visually active for debugging
+    const visibleActiveTabElement = this.template.querySelector('lightning-tab[aria-selected="true"]');
+    if (visibleActiveTabElement) {
+      console.log('Visually active tab value:', visibleActiveTabElement.value);
+      
+      // If visual state doesn't match our data, correct it
+      if (visibleActiveTabElement.value !== this.activeTab) {
+        console.log('Correcting mismatch between visual tab and data');
+        visibleActiveTabElement.setAttribute('aria-selected', 'false');
+        const correctTab = this.template.querySelector(`lightning-tab[value="${this.activeTab}"]`);
+        if (correctTab) {
+          correctTab.setAttribute('aria-selected', 'true');
+        }
+      }
+    }
+    
+    // Update sort indicators - apply a guard to prevent stack overflow
+    if (!this._updatingSortIndicators) {
+      try {
+        this._updatingSortIndicators = true;
+        this.updateSortIndicators();
+      } finally {
+        this._updatingSortIndicators = false;
+      }
+    }
+    
+    // Highlight selected row if any
+    if (this.selectedRowIds && this.selectedRowIds.length > 0) {
+      const selectedId = this.selectedRowIds[0];
+      // Only look in the active tab
+      const activeTabContent = this.template.querySelector(`lightning-tab[value="${this.activeTab}"]`);
+      if (activeTabContent) {
+        const selectedRow = activeTabContent.querySelector(`tr[data-id="${selectedId}"]`);
+        if (selectedRow) {
+          // Remove selection from all rows in this tab
+          activeTabContent.querySelectorAll('tr[data-id]').forEach(row => {
+            row.classList.remove('slds-is-selected');
+          });
+          // Add selection to current row
+          selectedRow.classList.add('slds-is-selected');
+        } else {
+          console.log('Selected row not found in active tab. ID:', selectedId);
+        }
+      }
+    }
+  }
+
+  async loadTabs() {
+    const daysBack = 90;
+
+    try {
+      // Fetch data for each program
+      console.log('Fetching data for 1440 Pine');
+      const all = await recent({ daysBack, maxRows: 1000, programName: '1440 Pine' });
+      console.log('Data fetched for 1440 Pine:', all);
+      console.log('1440 Pine data type:', typeof all);
+      console.log('1440 Pine data structure:', all && Array.isArray(all) ? 'Array' : 'Not Array');
+      
+      // Inspect the first record and specifically look for date fields
+      if (all && all[0]) {
+        const firstRecord = all[0];
+        console.log('1440 Pine first record ID:', firstRecord.Id);
+        console.log('1440 Pine first record date field exists:', 'Date_of_Interaction__c' in firstRecord);
+        console.log('1440 Pine first record date value:', firstRecord.Date_of_Interaction__c);
+        console.log('1440 Pine first record date type:', typeof firstRecord.Date_of_Interaction__c);
+        
+        // Log the full record for inspection
+        console.log('1440 Pine first record full data:', JSON.stringify(firstRecord));
+      } else {
+        console.log('No records found for 1440 Pine');
+      }
+
+      console.log('Fetching data for Nest 56');
+      const nest = await recent({ daysBack, maxRows: 1000, programName: 'Nest 56' });
+      console.log('Data fetched for Nest 56:', nest);
+      console.log('Nest 56 data type:', typeof nest);
+      console.log('Nest 56 data structure:', nest && Array.isArray(nest) ? 'Array' : 'Not Array');
+      
+      // Inspect the first record and specifically look for date fields
+      if (nest && nest[0]) {
+        const firstRecord = nest[0];
+        console.log('Nest 56 first record ID:', firstRecord.Id);
+        console.log('Nest 56 first record date field exists:', 'Date_of_Interaction__c' in firstRecord);
+        console.log('Nest 56 first record date value:', firstRecord.Date_of_Interaction__c);
+        console.log('Nest 56 first record date type:', typeof firstRecord.Date_of_Interaction__c);
+        
+        // Log the full record for inspection
+        console.log('Nest 56 first record full data:', JSON.stringify(firstRecord));
+      } else {
+        console.log('No records found for Nest 56');
+      }
+
+    // Debug the EXACT structure of the first record to find field names
+    if (all && all.length > 0) {
+      const firstRec = all[0];
+      console.log('DEBUG - First 1440 Pine record raw structure:', JSON.stringify(firstRec));
+      console.log('DEBUG - First 1440 Pine record keys:', Object.keys(firstRec).join(', '));
+      
+      // Check specifically for Program field - what is its name?
+      Object.keys(firstRec).forEach(key => {
+        if (key.toLowerCase().includes('program')) {
+          console.log(`DEBUG - Found program field: ${key} = ${firstRec[key]}`);
+        }
+      });
+    }
+    
+    if (nest && nest.length > 0) {
+      const firstRec = nest[0];
+      console.log('DEBUG - First Nest 56 record raw structure:', JSON.stringify(firstRec));
+      console.log('DEBUG - First Nest 56 record keys:', Object.keys(firstRec).join(', '));
+      
+      // Check specifically for Program field - what is its name?
+      Object.keys(firstRec).forEach(key => {
+        if (key.toLowerCase().includes('program')) {
+          console.log(`DEBUG - Found program field: ${key} = ${firstRec[key]}`);
+        }
+      });
+    }
+    
+    // Map rows for each tab
+    console.log('Mapping rows for 1440 Pine');
+    this.rowsAll = this.mapRows(all);
+    console.log('Mapped rows for 1440 Pine:', this.rowsAll);
+    console.log('1440 Pine rows length:', this.rowsAll.length);
+
+    console.log('Mapping rows for Nest 56');
+    this.rowsNest = this.mapRows(nest);
+    console.log('Mapped rows for Nest 56:', this.rowsNest);
+    console.log('Nest 56 rows length:', this.rowsNest.length);
+
+    console.log('Active tab:', this.activeTab);
+
+    await this.autoselectFirstWithParticipant();   // <- no toast on load
+    } catch (error) {
+      console.error('Error in loadTabs:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+  }
+
+  // Helper function to safely format dates
+  safeFormatDate(dateValue) {
+    if (!dateValue) return '';
+    
+    try {
+      // Handle Proxy objects by converting to string first if needed
+      let dateStr = dateValue;
+      if (typeof dateValue === 'object' && dateValue !== null) {
+        try {
+          // Try to get the ISO string format from the date object
+          if (dateValue instanceof Date) {
+            dateStr = dateValue.toISOString();
+          } else if (dateValue.toString) {
+            // For proxy objects, convert to string
+            dateStr = dateValue.toString();
+          }
+        } catch (proxyError) {
+          console.log('Could not convert date proxy to string:', proxyError.message);
+          return '';
+        }
+      }
+      
+      // Now parse the string format
+      let dateObj;
+      
+      // If it's a string with a T (ISO format)
+      if (typeof dateStr === 'string' && dateStr.includes('T')) {
+        dateObj = new Date(dateStr);
+      }
+      // If it's a YYYY-MM-DD string
+      else if (typeof dateStr === 'string' && dateStr.includes('-')) {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          dateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+        }
+      }
+      // If it's MM/DD/YYYY format
+      else if (typeof dateStr === 'string' && dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          dateObj = new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1]));
+        }
+      }
+      // Fallback to standard date parsing
+      else {
+        dateObj = new Date(dateStr);
+      }
+      
+      // Validate and format the date
+      if (dateObj && !isNaN(dateObj.getTime())) {
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        return {
+          formatted: `${month}/${day}/${year}`,
+          dateObj: dateObj
+        };
+      } else {
+        // If we can't parse it, return the original string
+        return {
+          formatted: typeof dateStr === 'string' ? dateStr : '',
+          dateObj: null
+        };
+      }
+    } catch (error) {
+      console.log('Safe date format error:', error.message);
+      return {
+        formatted: '',
+        dateObj: null
+      };
+    }
+  }
+
+  mapRows(data) {
+    console.log('Raw data passed to mapRows:', data);
+    if (!data) {
+      console.warn('No data passed to mapRows');
+      return [];
+    }
+    if (!Array.isArray(data)) {
+      console.warn('Data passed to mapRows is not an array:', typeof data);
+      return [];
+    }
+    
+    try {
+      // Create a simple array first to ensure we have valid rows
+      const mappedRows = [];
+      
+      for (let i = 0; i < data.length; i++) {
+        try {
+          const r = data[i];
+          
+          // Extract the data safely with more defensive coding
+          const needsAttention = r.Notify_Case_Manager__c === true;
+          const accountId = r.AccountId || '';
+          const accountName = (r.Account && typeof r.Account === 'object' && r.Account.Name) ? 
+            r.Account.Name : '(no participant)';
+          const createdByName = (r.CreatedBy && typeof r.CreatedBy === 'object' && r.CreatedBy.Name) ? 
+            r.CreatedBy.Name : '';
+          const meetingNotes = r.MeetingNotes || '';
+          
+          // Use our safe date formatter
+          const dateResult = this.safeFormatDate(r.Date_of_Interaction__c);
+          const interactionDate = dateResult.formatted;
+          
+          // Build the row object with all required properties for our HTML table
+          const rowObj = {
+            Id: r.Id || ('temp-id-' + i),  // Ensure we always have an ID for the key attribute
+            AccountId: accountId,
+            Account_Name: accountName,
+            CreatedBy_Name: createdByName,
+            MeetingNotes: meetingNotes,
+            Date_of_Interaction__c: interactionDate,
+            // Use Program__c as the primary field since that's what the backend uses
+            Program__c: r.Program__c || null,
+            // Keep ProgramId for backward compatibility with any code that might use it
+            ProgramId: r.Program__c || null,
+            // Store the raw date object for sorting if available
+            _dateObj: dateResult.dateObj,
+            notesCellClass: needsAttention ? 'needs-attn-soft' : ''
+          };
+          
+          // Enhanced debugging for program IDs
+          if (i === 0) {
+            console.log('First row program field:', {
+              'r.Program__c': r.Program__c,
+              'rowObj.Program__c': rowObj.Program__c
+            });
+          }
+          
+          mappedRows.push(rowObj);
+        } catch (rowError) {
+          console.error('Error mapping row at index ' + i + ':', rowError);
+          // Add an error row to provide visual feedback
+          mappedRows.push({
+            Id: 'error-' + i,
+            AccountId: '',
+            Account_Name: 'Error processing row',
+            CreatedBy_Name: '',
+            MeetingNotes: 'There was an error processing this record',
+            notesCellClass: 'error-row'
+          });
+        }
+      }
+      
+      console.log('Total mapped rows:', mappedRows.length);
+      if (mappedRows.length > 0) {
+        console.log('First mapped row:', JSON.stringify(mappedRows[0]));
+      }
+      
+      return mappedRows;
+    } catch (error) {
+      console.error('Error in mapRows:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      return [];
+    }
+  }
+
+  autoselectFirst = async () => {
+    // Get the appropriate rows array based on the active tab
+    const rows = this.activeTab === 'nest' ? this.rowsNest : this.rowsAll;
+    
+    if (rows && rows.length > 0) {
+      // Select the first row
+      this.selected = rows[0];
+      this.selectedRowIds = [rows[0].Id];
+      
+      // Load the right panel data
+      await this.loadRight(this.selected.AccountId);
+      
+      // Make sure the selected row is visually highlighted
+      setTimeout(() => {
+        const rowSelector = `tr[data-id="${rows[0].Id}"]`;
+        const selectedRow = this.template.querySelector(rowSelector);
+        
+        if (selectedRow) {
+          // Remove selection from all rows
+          this.template.querySelectorAll('tr[data-id]').forEach(row => {
+            row.classList.remove('slds-is-selected');
+          });
+          // Add selection to current row
+          selectedRow.classList.add('slds-is-selected');
+        }
+      }, 50);
+    } else {
+      // No rows to select
+      this.selected = null;
+      this.selectedRowIds = [];
+      this.convo = [];
+      this.incidents = [];
+    }
+  };
+
+  // Tab change is now handled by handleTabChange method
+
+  async autoselectFirstWithParticipant() {
+      // Get the appropriate rows array based on the active tab
+      const rows = this.activeTab === 'nest' ? this.rowsNest : this.rowsAll;
+      console.log('In autoselectFirstWithParticipant, active tab:', this.activeTab, 'rows length:', rows ? rows.length : 0);
+      
+      const first = rows.find(r => !!r.AccountId);
+      if (!first) {
+        this.selected = null;
+        this.selectedRowIds = [];
+        this.convo = [];
+        this.incidents = [];
+        return;
+      }
+      
+      console.log('Found first row with participant:', first.Id, first.Account_Name);
+      this.selected = first;
+      this.selectedRowIds = [first.Id];
+      
+      // Load the right panel data
+      await this.loadRight(first.AccountId, /*quiet*/ true);
+      
+      // Make sure the selected row is visually highlighted
+      setTimeout(() => {
+        // Find the row in the DOM using just the ID
+        const rowSelector = `tr[data-id="${first.Id}"]`;
+        const selectedRow = this.template.querySelector(rowSelector);
+        
+        if (selectedRow) {
+          console.log('Found participant row to highlight');
+          // Remove selection from all rows
+          this.template.querySelectorAll('tr[data-id]').forEach(row => {
+            row.classList.remove('slds-is-selected');
+          });
+          // Add selection to current row
+          selectedRow.classList.add('slds-is-selected');
+        } else {
+          console.log('Could not find participant row in DOM with ID:', first.Id);
+        }
+      }, 100); // Increased timeout for DOM to stabilize
+    }
+
+  async loadRight(accountId, quiet = false) {
+    if (!accountId) {
+      if (!quiet) {
+        this.dispatchEvent(new ShowToastEvent({
+          title: 'No participant on this interaction',
+          message: 'Select an interaction that has a participant to see related history.',
+          variant: 'warning'
+        }));
+      }
+      this.convo = [];
+      this.incidents = [];
+      return;
+    }
+    
+    const [t, inc] = await Promise.all([
+      thread({ accountId, maxRows: 100 }), // Get up to 100 records for Interaction History
+      recentIncidents({ accountId, maxRows: 100 }) // Get up to 100 records for Incident Reports
+    ]);
+    
+    // Debug the structure of the first thread record
+    if (t && t.length > 0) {
+      console.log('THREAD DEBUG - First record raw:', JSON.stringify(t[0]));
+      console.log('THREAD DEBUG - First record keys:', Object.keys(t[0]).join(', '));
+      
+      // Check for program-related fields
+      Object.keys(t[0]).forEach(key => {
+        if (key.toLowerCase().includes('program')) {
+          console.log(`THREAD DEBUG - Found program field: ${key} = ${t[0][key]}`);
+        }
+      });
+    }
+    
+    // Map the conversation data
+    this.convo = t.map(r => {
+      // Format date consistently for conversation items
+      let formattedDate = '';
+      
+      // Safely format the date with robust error handling
+      const safeFormatDate = (dateValue) => {
+        if (!dateValue) return '';
+        
+        try {
+          // Handle Proxy objects by converting to string first if needed
+          let dateStr = dateValue;
+          if (typeof dateValue === 'object' && dateValue !== null) {
+            try {
+              // Try to get the ISO string format from the date object
+              if (dateValue instanceof Date) {
+                dateStr = dateValue.toISOString();
+              } else if (dateValue.toString) {
+                // For proxy objects, convert to string
+                dateStr = dateValue.toString();
+              }
+            } catch (proxyError) {
+              console.log('Could not convert date proxy to string:', proxyError.message);
+              return '';
+            }
+          }
+          
+          // Now parse the string format
+          let dateObj;
+          
+          // If it's a string with a T (ISO format)
+          if (typeof dateStr === 'string' && dateStr.includes('T')) {
+            dateObj = new Date(dateStr);
+          }
+          // If it's a YYYY-MM-DD string
+          else if (typeof dateStr === 'string' && dateStr.includes('-')) {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+              dateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+            }
+          }
+          // If it's MM/DD/YYYY format
+          else if (typeof dateStr === 'string' && dateStr.includes('/')) {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+              dateObj = new Date(parseInt(parts[2]), parseInt(parts[0])-1, parseInt(parts[1]));
+            }
+          }
+          // Fallback to standard date parsing
+          else {
+            dateObj = new Date(dateStr);
+          }
+          
+          // Validate and format the date
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const year = dateObj.getFullYear();
+            return `${month}/${day}/${year}`;
+          } else {
+            // If we can't parse it, return the original string
+            return typeof dateStr === 'string' ? dateStr : '';
+          }
+        } catch (error) {
+          console.log('Safe date format error:', error.message);
+          return '';
+        }
+      };
+      
+      // Apply our safe date formatting function
+      formattedDate = safeFormatDate(r.Date_of_Interaction__c);
+      
+      // Extract Program ID from the standard field name - based on Apex this should be Program__c
+      const programId = r.Program__c || (r.Program__r ? r.Program__r.Id : null);
+      
+      // Detailed logging for program ID extraction from this record
+      if (r.Id) {
+        console.log(`THREAD DEBUG - Record ${r.Id} program fields:`, {
+          'Program__c': r.Program__c,
+          'Program__r': r.Program__r ? `Id: ${r.Program__r.Id}, Name: ${r.Program__r.Name}` : 'undefined',
+          'Final programId': programId
+        });
+      }
+      
+      return {
+        Id: r.Id,
+        Date_of_Interaction__c: formattedDate,
+        InteractionPurpose: r.InteractionPurpose || '',
+        MeetingNotes: r.MeetingNotes || '',
+        CreatedBy_Name: r.CreatedBy ? r.CreatedBy.Name : '',
+        Notify_Case_Manager__c: r.Notify_Case_Manager__c || false,
+        noteClass: r.Notify_Case_Manager__c ? 'note note-attn' : 'note',
+        AccountId: r.AccountId || accountId,
+        ProgramId: programId,
+        Program__c: programId // Adding both fields to ensure one is available
+      };
+    });
+    
+    // Log the first record in the conversation data to check if we have program IDs
+    if (this.convo.length > 0) {
+      console.log('First record in convo:', JSON.stringify({
+        id: this.convo[0].Id,
+        accountId: this.convo[0].AccountId,
+        programId: this.convo[0].ProgramId || 'not available'
+      }));
+    }
+    
+    // After data is loaded, wait for the DOM to render and then insert the notes content
+    setTimeout(() => this.insertNotesContent(), 50);
+    
+    // Set up pagination for conversation data
+    this.convoTotalRecords = this.convo.length;
+    this.convoTotalPages = Math.ceil(this.convoTotalRecords / this.convoPageSize);
+    this.convoCurrentPage = 1;
+    this.updateConvoPagination();
+    
+    // Map the incidents data
+    this.incidents = inc.map(x => ({
+      Id: x.Id,
+      date: x.IncidentDate != null ? x.IncidentDate : x.CreatedDate,
+      title: x.Subject,
+      body: x.Description,
+      staff: x.CreatedBy != null ? x.CreatedBy.Name : null
+    }));
+    
+    // Set up pagination for incidents data
+    this.incidentsTotalRecords = this.incidents.length;
+    this.incidentsTotalPages = Math.ceil(this.incidentsTotalRecords / this.incidentsPageSize);
+    this.incidentsCurrentPage = 1;
+    this.updateIncidentsPagination();
+  }
+
+  async handleRowClick(event) {
+      // Make sure we're not clicking on a header
+      if (event.target.closest('th')) {
+        return;
+      }
+      
+      // Get the closest tr element from the event path
+      const tr = event.currentTarget;
+      if (!tr) return;
+      
+      const id = tr.dataset.id;
+      if (!id) return;
+      
+      console.log('Row clicked, ID:', id);
+      
+      // Immediately log which rows array we are searching in
+      console.log('Searching in rowsNest:', JSON.stringify(this.rowsNest.map(r => r.Id).slice(0, 3) + '...'));
+      console.log('Searching in rowsAll:', JSON.stringify(this.rowsAll.map(r => r.Id).slice(0, 3) + '...'));
+      
+      // Find the row data directly from both arrays - more reliable than tab detection
+      let row = this.rowsNest.find(r => r.Id === id);
+      let fromNest = !!row;
+      
+      if (!row) {
+        row = this.rowsAll.find(r => r.Id === id);
+        if (!row) {
+          console.log('Row data not found in either array for ID:', id);
+          // Log the first few IDs in each array for debugging
+          console.log('First few Nest 56 IDs:', this.rowsNest.slice(0, 5).map(r => r.Id));
+          console.log('First few 1440 Pine IDs:', this.rowsAll.slice(0, 5).map(r => r.Id));
+          return;
+        }
+      }
+      
+      console.log('Found row:', row.Id, 'in', fromNest ? 'Nest 56' : '1440 Pine', 'array');
+      
+      // Make sure activeTab is set correctly based on which array the row was found in
+      if (fromNest && this.activeTab !== 'nest') {
+        console.log('Updating active tab to nest');
+        this.activeTab = 'nest';
+      } else if (!fromNest && this.activeTab !== 'all') {
+        console.log('Updating active tab to all');
+        this.activeTab = 'all';
+      }
+      
+      // Clear any previous selections and highlight the current row
+      const allRows = this.template.querySelectorAll('tr[data-id]');
+      allRows.forEach(row => row.classList.remove('slds-is-selected'));
+      tr.classList.add('slds-is-selected');
+      
+      // Update the selected row and load the related data
+      this.selected = row;
+      this.selectedRowIds = [row.Id];
+      console.log('Selected row:', row.Id, row.Account_Name);
+      await this.loadRight(row.AccountId);
+    }
+
+  async handleMarkAddressed() {
+    if (!this.selected || !this.selected.Id) {
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Select an interaction',
+        message: 'Pick an interaction before marking it addressed.',
+        variant: 'warning'
+      }));
+      return;
+    }
+
+    const interactionId = this.selected.Id;
+
+    try {
+      await markAddressed({ interactionId });
+
+      const stripAttentionClass = row =>
+        row.Id === interactionId ? { ...row, notesCellClass: '' } : row;
+
+      if (Array.isArray(this.rowsAll) && this.rowsAll.length) {
+        this.rowsAll = this.rowsAll.map(stripAttentionClass);
+      }
+
+      if (Array.isArray(this.rowsNest) && this.rowsNest.length) {
+        this.rowsNest = this.rowsNest.map(stripAttentionClass);
+      }
+
+      if (this.selected && this.selected.Id === interactionId) {
+        this.selected = { ...this.selected, notesCellClass: '' };
+      }
+
+      if (Array.isArray(this.convo) && this.convo.length) {
+        this.convo = this.convo.map(note =>
+          note.Id === interactionId ? { ...note, noteClass: 'note' } : note
+        );
+      }
+
+      const selectedRowElement = this.template.querySelector(`tr[data-id="${interactionId}"]`);
+      if (selectedRowElement) {
+        selectedRowElement.classList.remove('needs-attn-soft');
+      }
+
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Flag cleared',
+        message: 'Interaction marked as addressed.',
+        variant: 'success'
+      }));
+    } catch (error) {
+      console.error('Error marking interaction addressed:', error);
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error clearing flag',
+        message: error?.body?.message || error?.message || 'Unable to mark interaction as addressed.',
+        variant: 'error'
+      }));
+    }
+  }
+
+  // We now use handleRowClick instead
+  // Handles data change on tab change
+  handleTabChange(e) {
+    const val = e.detail.value;       
+    
+    // Update activeTab immediately
+    console.log('Tab changing from', this.activeTab, 'to', val);
+    
+    // Force a proper re-render when tab changes
+    if (this.activeTab !== val) {
+      // Store old tab to hide it
+      const oldTab = this.activeTab;
+      
+      // Set new active tab
+      this.activeTab = val;
+      
+      // Force UI update with a loading indicator
+      this.isLoading = true;
+      
+      // Clear any previous selections since we're changing tabs
+      this.selected = null;
+      this.selectedRowIds = [];
+      
+      // ENHANCEMENT: Start with updating the tabset directly which is more reliable
+      const tabset = this.template.querySelector('lightning-tabset');
+      if (tabset) {
+        console.log('Updating tabset activeValue to:', val);
+        tabset.activeValue = val;
+      }
+      
+      // Get all tabs for more thorough activation process
+      const tabs = this.template.querySelectorAll('lightning-tab');
+      tabs.forEach(tab => {
+        const isActive = tab.value === val;
+        // Use both aria-selected and SLDS classes for maximum compatibility
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        
+        // Also update class-based visibility (some LWC versions rely more on this)
+        if (isActive) {
+          tab.classList.remove('slds-hide');
+          tab.classList.add('slds-show');
+        }
+      });
+      
+      // Directly manipulate the tab elements for more reliable switching
+      const oldTabElement = this.template.querySelector(`lightning-tab[value="${oldTab}"]`);
+      const newTabElement = this.template.querySelector(`lightning-tab[value="${val}"]`);
+      
+      if (oldTabElement) {
+        oldTabElement.setAttribute('aria-selected', 'false');
+      }
+      
+      if (newTabElement) {
+        newTabElement.setAttribute('aria-selected', 'true');
+      }
+      
+      // ENHANCEMENT: Also directly toggle the tab content panels
+      const oldContentId = oldTabElement?.getAttribute('aria-controls');
+      const newContentId = newTabElement?.getAttribute('aria-controls');
+      
+      if (oldContentId) {
+        const oldContent = this.template.querySelector(`#${oldContentId}`);
+        if (oldContent) {
+          oldContent.classList.add('slds-hide');
+          oldContent.classList.remove('slds-show');
+        }
+      }
+      
+      if (newContentId) {
+        const newContent = this.template.querySelector(`#${newContentId}`);
+        if (newContent) {
+          newContent.classList.remove('slds-hide');
+          newContent.classList.add('slds-show');
+        }
+      }
+      
+      // Use Promise.resolve to ensure the tab switch happens in the next microtask
+      Promise.resolve().then(() => {
+        // Update the UI to reflect the tab change - but don't call both methods to avoid recursion
+        // Just initialize the tab - we'll handle sort indicators in renderedCallback
+        this.initializeActiveTab();
+        
+        // Turn off loading after a brief moment
+        setTimeout(() => {
+          this.isLoading = false;
+          
+          // Auto-select the first row in the new tab
+          this.autoselectFirst();
+        }, 50);
+      });
+    }
+  }
+  
+  // Additional handler specifically for tab activation events
+  handleTabActive(e) {
+    const tabValue = e.target.value;
+    console.log('Tab active event fired:', tabValue);
+    
+    // IMPORTANT: Update component state to match the DOM event
+    if (this.activeTab !== tabValue) {
+      console.log('Syncing activeTab from DOM event:', tabValue);
+      this.activeTab = tabValue;
+    }
+    
+    // Force initialization of the interactive elements in the tab
+    this.initializeActiveTab();
+    
+    // Wait for the DOM to update before trying to select a row
+    setTimeout(() => {
+      // Auto-select the first row to keep the right-hand pane in sync
+      this.autoselectFirst();
+    }, 50); // Reduced timeout for faster response
+  }
+
+  get isAll()  { 
+    console.log('isAll getter called, activeTab:', this.activeTab);
+    return this.activeTab === 'all'; 
+  }
+  
+  get isNest() {
+    console.log('isNest getter called, activeTab:', this.activeTab);
+    return this.activeTab === 'nest';
+  }
+  
+  get pageSizeOptions() {
+    return [
+      { label: '10', value: '10' },
+      { label: '25', value: '25' },
+      { label: '50', value: '50' },
+      { label: '100', value: '100' }
+    ];
+  }
+
+  // Initialize the newly activated tab to ensure it's fully interactive
+  initializeActiveTab() {
+    console.log('Initializing active tab:', this.activeTab);
+    
+    // First ensure the tabset knows which tab is active
+    const tabset = this.template.querySelector('lightning-tabset');
+    if (tabset) {
+      tabset.activeValue = this.activeTab;
+    }
+    
+    // DIRECT APPROACH: Update tab elements manually
+    const allTab = this.template.querySelector('lightning-tab[value="all"]');
+    const nestTab = this.template.querySelector('lightning-tab[value="nest"]');
+    
+    if (allTab && nestTab) {
+      // Set the active state based on current activeTab value
+      if (this.activeTab === 'all') {
+        allTab.setAttribute('aria-selected', 'true');
+        nestTab.setAttribute('aria-selected', 'false');
+        console.log('Initialized 1440 Pine tab');
+      } else {
+        allTab.setAttribute('aria-selected', 'false');
+        nestTab.setAttribute('aria-selected', 'true');
+        console.log('Initialized Nest 56 tab');
+      }
+    }
+    
+    // Find the active tab panel using data-id
+    let activeTabPanel;
+    
+    if (this.activeTab === 'all') {
+      activeTabPanel = this.template.querySelector('[data-id="all-panel"]');
+    } else {
+      activeTabPanel = this.template.querySelector('[data-id="nest-panel"]');
+    }
+    
+    // If we found a panel, initialize its interactive elements
+    if (activeTabPanel) {
+      // Make the panel visible
+      const parentTab = activeTabPanel.closest('lightning-tab');
+      if (parentTab) {
+        parentTab.classList.remove('slds-hide');
+        parentTab.classList.add('slds-show');
+      }
+      
+      // Find sortable headers in this panel
+      const headers = activeTabPanel.parentElement.querySelectorAll('th.sortable-header');
+      console.log('Found', headers.length, 'sortable headers in active tab panel');
+      
+      // Make sure the headers are properly set up
+      if (headers && headers.length > 0) {
+        headers.forEach(header => {
+          // Add a visual indicator that the header is clickable
+          header.style.cursor = 'pointer';
+        });
+      }
+    } else {
+      console.log('Could not find active tab panel');
+    }
+    
+    // DO NOT call updateSortIndicators here to avoid recursion
+    
+    // Ensure the tab content is properly rendered with fresh array references
+    // This triggers reactivity without causing a full re-render
+    if (this.activeTab === 'all' && this.rowsAll && this.rowsAll.length) {
+      this.rowsAll = [...this.rowsAll];
+    } else if (this.activeTab === 'nest' && this.rowsNest && this.rowsNest.length) {
+      this.rowsNest = [...this.rowsNest];
+    }
+  }
+
+  // Sort the data by the given field and direction
+  sortData(array, field, direction) {
+    // Return a sorted copy of the array
+    const clonedData = [...array];
+    
+    return clonedData.sort((a, b) => {
+      // Handle special cases for date fields
+      if (field === 'Date_of_Interaction__c') {
+        // First try to use the pre-parsed _dateObj if it exists (created in mapRows)
+        if (a._dateObj && b._dateObj) {
+          return direction === 'asc' ? a._dateObj - b._dateObj : b._dateObj - a._dateObj;
+        }
+        
+        // Try to parse dates more robustly
+        let dateA, dateB;
+        
+        // Function to safely parse a date in multiple formats
+        const parseDate = (dateValue) => {
+          if (!dateValue) return new Date(0); // Default for empty values
+          
+          // If it's already a Date object
+          if (dateValue instanceof Date) return dateValue;
+          
+          // If it's a string in MM/DD/YYYY format
+          if (typeof dateValue === 'string' && dateValue.includes('/')) {
+            const parts = dateValue.split('/');
+            if (parts.length === 3) {
+              // Parse as MM/DD/YYYY
+              const date = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+              return date;
+            }
+          }
+          
+          // Try to match YYYY-MM-DD format in the string
+          if (typeof dateValue === 'string') {
+            const match = dateValue.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (match) {
+              const date = new Date(parseInt(match[1]), parseInt(match[2])-1, parseInt(match[3]));
+              return date;
+            }
+          }
+          
+          // Try standard date parsing as last resort
+          const parsed = new Date(dateValue);
+          if (!isNaN(parsed.getTime())) {
+            return parsed;
+          }
+          
+          // Return a default date if parsing fails
+          return new Date(0);
+        };
+        
+        dateA = parseDate(a[field]);
+        dateB = parseDate(b[field]);
+        
+        // Log the parsed dates
+        console.log('Parsed dates for sorting:', 
+                    dateA.toISOString(), '(', a[field], ')', 
+                    'vs', 
+                    dateB.toISOString(), '(', b[field], ')');
+        
+        // Sort numerically - compare timestamps
+        return direction === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+      
+      // For other fields, do string comparison
+      const valueA = a[field] ? a[field].toString().toLowerCase() : '';
+      const valueB = b[field] ? b[field].toString().toLowerCase() : '';
+      
+      return direction === 'asc' ? 
+        valueA.localeCompare(valueB) : 
+        valueB.localeCompare(valueA);
+    });
+  }
+  
+  // Handle column header click for sorting
+  handleSort(event) {
+    const { field } = event.currentTarget.dataset;
+    
+    // Toggle sort direction if clicking the same field
+    if (this.sortField === field) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      // Default to descending for dates (newest first)
+      this.sortDirection = field === 'Date_of_Interaction__c' ? 'desc' : 'asc';
+    }
+    
+    // Only sort the active tab's data
+    if (this.activeTab === 'all') {
+      this.rowsAll = this.sortData(this.rowsAll, this.sortField, this.sortDirection);
+    } else if (this.activeTab === 'nest') {
+      this.rowsNest = this.sortData(this.rowsNest, this.sortField, this.sortDirection);
+    }
+    
+    // Update visual indicators for sort direction
+    this.updateSortIndicators();
+  }
+  
+  // Update sort indicators in the UI
+  updateSortIndicators() {
+    // SIMPLIFIED APPROACH: Get the tab content panel directly rather than the tab itself
+    // This is more reliable because we can work directly with the DOM elements that contain our tables
+    let activeTabPanel;
+    
+    // First try to get the panel by data-id - more reliable way to find our content
+    if (this.activeTab === 'all') {
+      activeTabPanel = this.template.querySelector('[data-id="all-panel"]');
+      if (!activeTabPanel) {
+        // Fall back to any element that contains the 1440 Pine table
+        activeTabPanel = this.template.querySelector('.slds-tabs_default__content');
+      }
+    } else if (this.activeTab === 'nest') {
+      activeTabPanel = this.template.querySelector('[data-id="nest-panel"]');
+      if (!activeTabPanel) {
+        // Fall back to second tab panel
+        const panels = this.template.querySelectorAll('.slds-tabs_default__content');
+        if (panels.length > 1) {
+          activeTabPanel = panels[1];
+        }
+      }
+    }
+    
+    // If we still don't have a panel, try to find any visible panel
+    if (!activeTabPanel) {
+      activeTabPanel = this.template.querySelector('.slds-tabs_default__content:not(.slds-hide)');
+    }
+    
+    // Last resort - just get any panel and hope it's the right one
+    if (!activeTabPanel) {
+      activeTabPanel = this.template.querySelector('.slds-tabs_default__content');
+    }
+    
+    if (!activeTabPanel) {
+      // No tab panel found, can't update sort indicators
+      return;
+    }
+    
+    // First, remove all existing sort indicators ONLY in the active tab panel
+    const headers = activeTabPanel.querySelectorAll('th[data-field]');
+    
+    headers.forEach(header => {
+      // Remove class that may affect styling
+      header.classList.remove('slds-has-button-menu_fixed', 'slds-is-sorted-asc', 'slds-is-sorted-desc');
+      
+      // Remove existing sort icons
+      const existingIcon = header.querySelector('.sort-icon');
+      if (existingIcon) {
+        existingIcon.remove();
+      }
+    });
+    
+    // Add sort indicator to the active sort column ONLY in the active tab panel
+    const activeHeader = activeTabPanel.querySelector(`th[data-field="${this.sortField}"]`);
+    if (activeHeader) {
+      // Add SLDS sorting classes
+      activeHeader.classList.add(
+        'slds-has-button-menu_fixed',
+        this.sortDirection === 'asc' ? 'slds-is-sorted-asc' : 'slds-is-sorted-desc'
+      );
+      
+      // Find the div inside the header to append the icon
+      const headerDiv = activeHeader.querySelector('.slds-truncate');
+      if (headerDiv) {
+        // Create the sort icon element
+        const iconName = this.sortDirection === 'asc' ? 'utility:arrowup' : 'utility:arrowdown';
+        const sortIcon = document.createElement('lightning-icon');
+        sortIcon.classList.add('sort-icon');
+        sortIcon.setAttribute('icon-name', iconName);
+        sortIcon.setAttribute('size', 'xx-small');
+        sortIcon.setAttribute('alternative-text', this.sortDirection === 'asc' ? 'Ascending' : 'Descending');
+        
+        // Create a container for the icon to control positioning
+        const iconContainer = document.createElement('span');
+        iconContainer.classList.add('slds-icon_container', 'slds-m-left_xx-small');
+        iconContainer.appendChild(sortIcon);
+        
+        // Clear any extra text nodes that might be causing spacing issues
+        while (headerDiv.childNodes.length > 1) {
+          const lastChild = headerDiv.lastChild;
+          if (lastChild.nodeType === 3 || lastChild.classList?.contains('sort-icon') || lastChild.classList?.contains('slds-icon_container')) {
+            headerDiv.removeChild(lastChild);
+          } else {
+            break;
+          }
+        }
+        
+        // Add the icon container to the header div
+        headerDiv.appendChild(iconContainer);
+      }
+    }
+  }
+
+  // Open the modal dialog to create a follow-up interaction
+  openModal = (event) => {
+    // Hard-coded program IDs as fallbacks
+    const PROGRAM_ID_1440_PINE = '01t6g000008JciyAAC'; 
+    const PROGRAM_ID_NEST_56 = '01t6g000008JcizAAC';
+    
+    // Set today's date as default for the date picker
+    this.interactionDate = new Date().toISOString().split('T')[0];
+    
+    // Get data from button click
+    let accountId = null;
+    let programId = null;
+    let interactionId = null;
+    
+    if (event && event.currentTarget) {
+      // Get directly from button attributes
+      interactionId = event.currentTarget.dataset.recordid;
+      accountId = event.currentTarget.dataset.accountid;
+      programId = event.currentTarget.dataset.programid;
+      
+      // If we couldn't get the program ID from the dataset, try finding the record
+      if (!programId && interactionId) {
+        // Try to find in the main data arrays
+        let record = null;
+        
+        // First check the active tab's rows
+        const rows = this.activeTab === 'nest' ? this.rowsNest : this.rowsAll;
+        record = rows.find(r => r.Id === interactionId);
+        
+        // If not found, check conversation history
+        if (!record && this.convo && this.convo.length) {
+          record = this.convo.find(r => r.Id === interactionId);
+        }
+        
+        // If we found a record, use its program ID - Program__c is the confirmed field name
+        if (record) {
+          // Use Program__c as the primary field name since that's what Apex is using
+          programId = record.Program__c;
+        }
+      }
+    } 
+    else if (this.selected && this.selected.AccountId) {
+      // Fallback to selected row
+      accountId = this.selected.AccountId;
+      programId = this.selected.Program__c;  // Always use Program__c as the primary field
+    }
+    else {
+      // Show error toast
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'No participant selected',
+        message: 'Select an interaction to follow up on.',
+        variant: 'warning'
+      }));
+      return;
+    }
+    
+    // If programId is still not set, use hard-coded fallbacks
+    if (!programId) {
+      programId = (this.activeTab === 'all') ? PROGRAM_ID_1440_PINE : PROGRAM_ID_NEST_56;
+    }
+    
+    // If no account ID is available, don't proceed
+    if (!accountId) {
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error',
+        message: 'Missing account ID. Cannot open modal.',
+        variant: 'error'
+      }));
+      return;
+    }
+
+    // Ensure we have a program ID (use the appropriate default if not provided)
+    if (!programId) {
+      programId = this.activeTab === 'all' ? 
+        PROGRAM_ID_1440_PINE : PROGRAM_ID_NEST_56;
+    }
+    
+    // Clear the current interaction first to avoid any stale data
+    this.currentInteraction = null;
+    
+    // Force a small delay to ensure Flow component is ready
+    setTimeout(() => {
+      // Validate IDs first - Salesforce IDs should be 15 or 18 characters
+      if (accountId && (accountId.length !== 15 && accountId.length !== 18)) {
+        console.error('Invalid Account ID format:', accountId);
+        
+        // Show an error toast
+        this.dispatchEvent(new ShowToastEvent({
+          title: 'Error',
+          message: 'Invalid Account ID format. Please try again.',
+          variant: 'error'
+        }));
+        return;
+      }
+      
+      if (programId && (programId.length !== 15 && programId.length !== 18)) {
+        console.error('Invalid Program ID format:', programId);
+        
+        // Show an error toast
+        this.dispatchEvent(new ShowToastEvent({
+          title: 'Error',
+          message: 'Invalid Program ID format. Please try again.',
+          variant: 'error'
+        }));
+        return;
+      }
+      
+      // Store values for direct Apex call
+      this.currentInteraction = {
+        accountId: String(accountId),
+        programId: String(programId),
+        relatedRecordId: interactionId ? String(interactionId) : ''
+      };
+      
+      // Store for reselection
+      this.lastAccountId = accountId;
+      
+      // Open the modal
+      this.openModal = true;
+    }, 0);
+  };
+
+  // Get program ID for a specific interaction - enhanced version
+  getProgramIdForInteraction(recordId) {
+    // Hard-coded program IDs as reliable fallbacks
+    const PROGRAM_ID_1440_PINE = '01t6g000008JciyAAC';
+    const PROGRAM_ID_NEST_56 = '01t6g000008JcizAAC';
+    
+    // Default to the active tab's program ID
+    const defaultProgramId = this.activeTab === 'all' ? PROGRAM_ID_1440_PINE : PROGRAM_ID_NEST_56;
+    
+    // If no recordId provided, return the default
+    if (!recordId) {
+      return defaultProgramId;
+    }
+    
+    // Try to find the specific record in conversation history
+    if (this.convo && this.convo.length) {
+      const matchingRecord = this.convo.find(item => item.Id === recordId);
+      if (matchingRecord) {
+        // If we found a matching record, try to get its program ID
+        const programId = matchingRecord.ProgramId || matchingRecord.Program__c;
+        if (programId) {
+          return programId;
+        }
+      }
+    }
+    
+    // If no match found or no program ID in the record, return default
+    return defaultProgramId;
+  }
+
+  // Get program ID for a specific interaction from the conversation history
+  getProgramIdForSpecificInteraction(recordId) {
+    // If no recordId provided, return null
+    if (!recordId) {
+      return null;
+    }
+    
+    // Try to find the specific record in conversation history
+    if (this.convo && this.convo.length) {
+      const matchingRecord = this.convo.find(item => item.Id === recordId);
+      if (matchingRecord) {
+        // If we found a matching record, get its program ID
+        return matchingRecord.ProgramId || matchingRecord.Program__c;
+      }
+    }
+    
+    // If no match found
+    return null;
+  }
+      
+      // Log what the flow component actually received (if accessible)
+      if (flowComponent) {
+        
+        // Try to access the internal state if possible
+        try {
+          const inputVars = flowComponent.inputVariables;
+          
+        } catch (err) {
+          
+        }
+        
+        // ENHANCED: Attempt to inspect the flow component's internal structure
+        
+        
+        // ENHANCED: Check for any available API methods that might help
+        console.log('FLOW DEBUG - Flow component methods:', 
+                    Object.getOwnPropertyNames(Object.getPrototypeOf(flowComponent))
+                    .filter(item => typeof flowComponent[item] === 'function'));
+      }
+      
+      // Store current interaction data for reference
+      this._currentData = {
+        accountId: this.currentInteraction?.accountId,
+        programId: this.currentInteraction?.programId,
+        relatedRecordId: this.currentInteraction?.relatedRecordId
+      };
+      
+      
+      // ENHANCED: Generate a URL that could be used as a workaround for testing
+      try {
+        const baseUrl = window.location.origin;
+        // The URL format below could be used to manually launch the flow with parameters
+        const flowUrl = `${baseUrl}/flow/New_Interaction_Summary?` +
+                       `accountId=${encodeURIComponent(this._originalInputValues.accountId)}&` +
+                       `programId=${encodeURIComponent(this._originalInputValues.programId)}&` + 
+                       `relatedRecordId=${encodeURIComponent(this._originalInputValues.relatedRecordId || '')}`;
+        
+      } catch (urlErr) {
+        console.error('FLOW DEBUG - Error creating test URL:', urlErr);
+      }
+      
+      // ENHANCED: Check if Flow definition exists in the org
+      try {
+        // This would be nice but we can't make direct API calls from LWC
+        // Could be implemented as an @AuraEnabled method in your Apex controller
+        
+      } catch (err) {
+        console.error('FLOW DEBUG - Error checking Flow:', err);
+      }
+    }
+    else if (e.detail.status === 'FINISHED_SCREEN' || e.detail.status === 'FINISHED') {
+      
+      
+      // ENHANCED: Try to access the flow runtime to see if there are details we're missing
+      const flowComponent = this.template.querySelector('lightning-flow');
+      if (flowComponent) {
+        
+        // Log internal state if available
+        if (flowComponent._flowRuntime) {
+          
+        }
+      }
+      
+      // Check for any output variables
+      if (e.detail.outputVariables) {
+        
+        
+        // ENHANCED: Log complete details about each output variable
+        e.detail.outputVariables.forEach((variable, index) => {
+          console.log(`FLOW DEBUG - Output variable #${index + 1}:`, {
+            name: variable.name,
+            dataType: variable.dataType,
+            value: variable.value,
+            isNull: variable.value === null,
+            isUndefined: variable.value === undefined,
+            objectType: variable.objectType,
+            flowName: variable.flowName,
+            isCollection: variable.isCollection,
+            valueType: typeof variable.value
+          });
+        });
+        
+        // Compare output variables with original input values
+        if (this._originalInputValues) {
+          
+          
+          const outputMap = {};
+          e.detail.outputVariables.forEach(variable => {
+            outputMap[variable.name] = variable.value;
+          });
+          
+          console.log('FLOW DEBUG - accountId: original =', this._originalInputValues.accountId, 
+                      'output =', outputMap['flowAccountId']);
+          console.log('FLOW DEBUG - programId: original =', this._originalInputValues.programId, 
+                      'output =', outputMap['flowProgramId']);
+          console.log('FLOW DEBUG - relatedRecordId: original =', this._originalInputValues.relatedRecordId, 
+                      'output =', outputMap['flowRelatedRecordId']);
+          
+          // Check for the created record ID
+          if (outputMap['recordId']) {
+            
+          } else {
+            
+          }
+          
+          // ENHANCED: Check if any values were modified but not set to null - updated for new variable names
+          const anyValueChanged = 
+            outputMap['flowAccountId'] && outputMap['flowAccountId'] !== this._originalInputValues.accountId ||
+            outputMap['flowProgramId'] && outputMap['flowProgramId'] !== this._originalInputValues.programId ||
+            outputMap['flowRelatedRecordId'] && outputMap['flowRelatedRecordId'] !== this._originalInputValues.relatedRecordId;
+          
+          if (anyValueChanged) {
+            
+          }
+          
+          // Provide a clear diagnostic message
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          // ENHANCED: Alternative approach suggestion
+          
+          
+          
+          
+          
+        }
+      } else {
+        
+        
+        
+      }
+      
+      // Close the modal first
+      this.openModal = false;
+      
+      // Add a small delay to ensure the modal is closed before refreshing
+      setTimeout(async () => {
+        try {
+          // Refresh data to show the new interaction
+          await this.refreshAndReselect();
+          
+          // Show success toast to confirm completion
+          this.dispatchEvent(new ShowToastEvent({
+            title: 'Success',
+            message: 'Follow-up interaction created successfully',
+            variant: 'success'
+          }));
+        } catch (error) {
+          // Show error toast with more details
+          this.dispatchEvent(new ShowToastEvent({
+            title: 'Warning',
+            message: 'Follow-up was created, but there was an error refreshing the data. Please refresh the page.',
+            variant: 'warning'
+          }));
+        }
+      }, 500); // Increased timeout for better reliability
+    } else if (e.detail.status === 'ERROR') {
+      // Detailed logging for Flow errors
+      console.error('FLOW DEBUG - Flow error:', e.detail);
+      console.error('FLOW DEBUG - Error message:', e.detail.errorMessage);
+      
+      // Handle flow errors with more specific messaging
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Flow Error',
+        message: e.detail.errorMessage || 'There was an error in the flow. Please try again.',
+        variant: 'error'
+      }));
+    }
+  }
+
+  // Close button also refreshes
+  async closeModal() {
+    this.openModal = false;
+    this.resetModalFields();
+    await this.refreshAndReselect();
+  }
+  
+  // Reset modal form fields
+  resetModalFields() {
+    this.interactionPurpose = '';
+    this.meetingNotes = '';
+    this.interactionDate = new Date().toISOString().split('T')[0]; // Default to today's date
+    this.notifyCaseManager = false; // Reset notify flag
+  }
+  
+  // Handle purpose selection change
+  handlePurposeChange(event) {
+    this.interactionPurpose = event.detail.value;
+  }
+  
+  // Handle notes input change
+  handleNotesChange(event) {
+    this.meetingNotes = event.detail.value;
+  }
+  
+  // Handle date field change
+  handleDateChange(event) {
+    this.interactionDate = event.target.value;
+  }
+  
+  // Handle any field change (generic handler)
+  handleFieldChange(event) {
+    const fieldName = event.target.name;
+    
+    if (fieldName === 'interaction-date') {
+      this.interactionDate = event.target.value;
+    } else if (fieldName === 'interaction-purpose') {
+      this.interactionPurpose = event.target.value;
+    } else if (fieldName === 'meeting-notes') {
+      this.meetingNotes = event.target.value;
+    } else if (fieldName === 'notify-case-manager') {
+      this.notifyCaseManager = event.target.checked;
+    }
+  }
+  
+  // Handle rich text change
+  handleRichTextChange(event) {
+    // Standard lightning-input-rich-text provides the value directly in event.target.value
+    this.meetingNotes = event.target.value;
+  }
+  
+  // Purpose options for the dropdown - only active values
+  get purposeOptions() {
+    return [
+      { label: 'Select an option...', value: '' },
+      { label: 'Clinical Notes', value: 'Clinical Notes' },
+      { label: 'Case Notes', value: 'Case Notes' },
+      { label: 'Follow-up', value: 'Follow-up' },
+      { label: 'Check-in', value: 'Communication Log' },
+      { label: 'Case Management', value: 'Case Management' },
+      { label: 'Crisis Intervention', value: 'Crisis Intervention' },
+      { label: 'Resource Connection', value: 'Resource Connection' },
+      { label: 'Housing Support', value: 'Housing Support' },
+      { label: 'Medical Referral', value: 'Medical Referral' },
+      { label: 'Mental Health Support', value: 'Mental Health Support' }
+      //{ label: 'Other', value: 'Other' }
+    ];
+  }
+  
+  // ADDED FOR TROUBLESHOOTING: Alternative approach to launch the flow
+  launchFlowAlternative() {
+    if (!this.currentInteraction) {
+      console.error('No current interaction data available');
+      return;
+    }
+    
+    try {
+      // Generate a URL to launch the flow directly - this is for testing purposes
+      const baseUrl = window.location.origin;
+      const flowUrl = `${baseUrl}/flow/New_Interaction_Summary?` +
+                     `flowAccountId=${encodeURIComponent(this.currentInteraction.accountId)}&` +
+                     `flowProgramId=${encodeURIComponent(this.currentInteraction.programId)}&` + 
+                     `flowRelatedRecordId=${encodeURIComponent(this.currentInteraction.relatedRecordId || '')}`;
+      
+      
+      // Open the flow URL in a new window/tab for testing
+      window.open(flowUrl, '_blank');
+      
+      // Close the modal since we're using an alternative approach
+      this.openModal = false;
+    } catch (error) {
+      console.error('Error launching flow alternative:', error);
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error',
+        message: 'Could not launch alternative flow approach: ' + error.message,
+        variant: 'error'
+      }));
+    }
+  }
+  
+  // Try running the flow with variables that don't have the var_ prefix
+  tryWithoutVarPrefix() {
+    if (!this.currentInteraction) {
+      console.error('No current interaction data available');
+      return;
+    }
+    
+    try {
+      // Test if the Flow is looking for variables without the var_ prefix
+      
+      
+      // Store the original input method
+      const originalPrepareMethod = this.prepareFlowInputs;
+      
+      // Temporarily replace the input preparation method
+      this.prepareFlowInputs = this.prepareFlowInputsAlternative;
+      
+      // Force a refresh of the flow component
+      const flowComponent = this.template.querySelector('lightning-flow');
+      if (flowComponent) {
+        // Log what we're doing
+        
+        
+        // Create a new flow with the alternative inputs
+        const flowContainer = flowComponent.parentElement;
+        if (flowContainer) {
+          // Remove the existing flow component
+          flowContainer.removeChild(flowComponent);
+          
+          // Create a new flow component
+          const newFlowComponent = document.createElement('lightning-flow');
+          newFlowComponent.setAttribute('flow-api-name', 'New_Interaction_Summary');
+          newFlowComponent.setAttribute('finish-behavior', 'NONE');
+          newFlowComponent.setAttribute('run-mode', 'SYSTEM_MODE');
+          
+          // Set the event handler
+          newFlowComponent.addEventListener('statuschange', this.handleFlowStatus.bind(this));
+          
+          // Set input variables directly
+          const alternativeInputs = this.prepareFlowInputsAlternative();
+          newFlowComponent.inputVariables = alternativeInputs;
+          
+          // Add it to the DOM
+          flowContainer.appendChild(newFlowComponent);
+          
+          
+        } else {
+          console.error('Could not find flow container');
+        }
+      } else {
+        console.error('Could not find flow component');
+      }
+      
+      // Restore the original method after a delay
+      setTimeout(() => {
+        this.prepareFlowInputs = originalPrepareMethod;
+        
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Error testing without var_ prefix:', error);
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error',
+        message: 'Could not test with alternative variable names: ' + error.message,
+        variant: 'error'
+      }));
+      
+      // Ensure we restore the original method
+      this.prepareFlowInputs = this.originalPrepareMethod;
+    }
+  }
+  
+  // Direct Apex method to bypass Flow entirely
+  async createRecordDirectly() {
+    if (!this.currentInteraction) {
+      console.error('No current interaction data available');
+      return;
+    }
+    
+    // Validate required fields
+    if (!this.interactionPurpose) {
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error',
+        message: 'Please select an Interaction Purpose',
+        variant: 'error'
+      }));
+      return;
+    }
+    
+    // Check for empty meeting notes and handle HTML content properly
+    if (!this.meetingNotes || this.meetingNotes.replace(/<[^>]*>/g, '').trim() === '') {
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error',
+        message: 'Please enter Meeting Notes',
+        variant: 'error'
+      }));
+      return;
+    }
+    
+    if (!this.interactionDate) {
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error',
+        message: 'Please select an Interaction Date',
+        variant: 'error'
+      }));
+      return;
+    }
+    
+    try {
+      console.log('APEX DEBUG - Creating interaction record directly through Apex');
+      console.log('APEX DEBUG - Parameters:', JSON.stringify({
+        ...this.currentInteraction,
+        interactionPurpose: this.interactionPurpose,
+        meetingNotes: this.meetingNotes,
+        interactionDate: this.interactionDate
+      }));
+      
+      // Clean up any reference texts in meeting notes
+      let cleanedNotes = this.meetingNotes;
+      if (cleanedNotes) {
+        // Remove any reference texts that might have been added automatically
+        const referenceMarker = '--- Reference to original interaction ---';
+        if (cleanedNotes.includes(referenceMarker)) {
+          cleanedNotes = cleanedNotes.split(referenceMarker)[0].trim();
+        }
+      }
+      
+      // Skip redundant validation for the rich text component since we already checked above
+      
+      // Call the Apex method directly with the user inputs
+      const recordId = await createInteractionDirectly({
+        accountId: this.currentInteraction.accountId,
+        programId: this.currentInteraction.programId,
+        relatedRecordId: this.currentInteraction.relatedRecordId,
+        notes: cleanedNotes, // Send cleaned notes without the reference text
+        purpose: this.interactionPurpose,
+        interactionDate: this.interactionDate,
+        notifyCaseManager: this.notifyCaseManager // Pass the notify flag
+      });
+      
+      console.log('APEX DEBUG - Record created successfully with ID:', recordId);
+      
+      // Close the modal
+      this.openModal = false;
+      
+      // Reset the form fields
+      this.resetModalFields();
+      
+      // Show loading spinner
+      this.isLoading = true;
+      
+      // Refresh the data - refreshAndReselect will handle turning off the loading indicator
+      await this.refreshAndReselect();
+      
+      // Show success toast
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Success',
+        message: 'Follow-up interaction created successfully',
+        variant: 'success'
+      }));
+    } catch (error) {
+      console.error('APEX DEBUG - Error creating record directly:', error);
+      
+      // Show error toast
+      // Log the complete error for better debugging
+      console.error('APEX DEBUG - Complete error object:', JSON.stringify(error));
+      
+      // Turn off loading spinner if there was an error
+      this.isLoading = false;
+      
+      // Extract error message from different possible locations in the error object
+      let errorMsg = 'Unknown error';
+      if (error.body && error.body.message) {
+        errorMsg = error.body.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      } else if (typeof error === 'string') {
+        errorMsg = error;
+      }
+      
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error',
+        message: 'Could not create record: ' + errorMsg,
+        variant: 'error'
+      }));
+    }
+  }
+  
+  // Helper method to prepare flow inputs directly without using getters
+  prepareFlowInputs() {
+    console.log('FLOW DEBUG - prepareFlowInputs called with currentInteraction:', 
+                this.currentInteraction ? JSON.stringify(this.currentInteraction) : 'null');
+    
+    if (!this.currentInteraction) {
+      
+      return [];
+    }
+    
+    // Hard-coded program IDs as fallbacks
+    const PROGRAM_ID_1440_PINE = '01t6g000008JciyAAC'; 
+    const PROGRAM_ID_NEST_56 = '01t6g000008JcizAAC';
+    
+    // Get values, ensuring they are strings
+    let accountId = (this.currentInteraction.accountId || '').toString();
+    
+    // Extra logging for program ID
+    
+    
+    // Use programId from current interaction - this comes from the button's data-programid attribute
+    // which is getting the Program__c field value
+    let programId = ((this.currentInteraction.programId || 
+                    (this.activeTab === 'all' ? PROGRAM_ID_1440_PINE : PROGRAM_ID_NEST_56)) || '').toString();
+    let relatedRecordId = (this.currentInteraction.relatedRecordId || '').toString(); // Changed from recordId to relatedRecordId
+                    
+    // Add comprehensive validation of the ID formats
+    const validateSalesforceId = (id, name) => {
+      if (!id) {
+        
+        return false;
+      }
+      
+      if (id.length !== 15 && id.length !== 18) {
+        
+        return false;
+      }
+      
+      // Basic pattern check for Salesforce ID
+      const idPattern = /^[a-zA-Z0-9]{15}([a-zA-Z0-9]{3})?$/;
+      if (!idPattern.test(id)) {
+        
+        return false;
+      }
+      
+      return true;
+    };
+    
+    // Validate all IDs and log results
+    const accountIdValid = validateSalesforceId(accountId, 'AccountId');
+    const programIdValid = validateSalesforceId(programId, 'ProgramId');
+    const relatedRecordIdValid = relatedRecordId ? validateSalesforceId(relatedRecordId, 'RelatedRecordId') : true;
+    
+    
+    
+    // If any ID is invalid, try to correct common issues
+    // Note: This is just for enhanced debugging - we'll continue with the original values
+    
+    // Force correct ID formats - Salesforce IDs have specific lengths
+    // Account IDs should be 18 characters
+    if (accountId && accountId.length !== 18 && accountId.length !== 15) {
+      console.error('Account ID has incorrect length:', accountId);
+    }
+    
+    // Program IDs should also be 18 characters
+    if (programId && programId.length !== 18 && programId.length !== 15) {
+      console.error('Program ID has incorrect length:', programId);
+    }
+    
+    // Log what we're passing to the Flow - UPDATED to use new Flow variable names
+    console.log('Direct Flow Inputs Prepared:', {
+      flowAccountId: accountId,
+      flowProgramId: programId, 
+      flowRelatedRecordId: relatedRecordId
+    });
+    
+    // UPDATED: Generate the final input variables array with new variable names
+    const flowInputs = [
+      { name: 'flowAccountId', type: 'String', value: accountId },
+      { name: 'flowProgramId', type: 'String', value: programId },
+      { name: 'flowRelatedRecordId', type: 'String', value: relatedRecordId ? relatedRecordId : null }
+    ];
+    
+    // Log detailed format of each variable to help diagnose Flow issues
+    flowInputs.forEach(input => {
+      
+    });
+    
+    return flowInputs;
+  }
+
+  // Reload both tabs and reselect the participant we were on
+  async refreshAndReselect() {
+    try {
+      console.log('Refreshing data and reselecting participant with ID:', this.lastAccountId);
+      
+      // Store the account ID we want to keep selected
+      const keep = this.lastAccountId;
+      
+      // Clear the cache buster to ensure fresh data
+      this.cacheBuster = Date.now();
+      console.log('Setting cache buster to:', this.cacheBuster);
+      
+      // Show loading indicator
+      this.isLoading = true;
+      
+      // Load fresh data for both tabs
+      await this.loadTabs();
+      
+      // If we don't have an account ID to preserve, just finish
+      if (!keep) {
+        console.log('No account ID to preserve, ending refresh');
+        this.isLoading = false;
+        return;
+      }
+      
+      console.log('Looking for participant with Account ID:', keep, 'in active tab:', this.activeTab);
+      
+      // Get the appropriate pool of records based on active tab
+      const pool = this.activeTab === 'nest' ? this.rowsNest : this.rowsAll;
+      
+      // Find the matching record by Account ID
+      const match = pool.find(r => r.AccountId === keep);
+      
+      if (match) {
+        console.log('Found matching record:', match.Id, match.Account_Name);
+        
+        // Update selection state
+        this.selected = match;
+        this.selectedRowIds = [match.Id];
+        
+        // Reload the right panel data
+        await this.loadRight(match.AccountId, /*quiet*/ true);
+        
+        // Wait for DOM to update, then highlight the selected row
+        setTimeout(() => {
+          const selectedRow = this.template.querySelector(`tr[data-id="${match.Id}"]`);
+          if (selectedRow) {
+            console.log('Found row in DOM, applying selection');
+            const allRows = this.template.querySelectorAll('tr[data-id]');
+            allRows.forEach(row => row.classList.remove('slds-is-selected'));
+            selectedRow.classList.add('slds-is-selected');
+            
+            // Scroll the row into view if needed
+            try {
+              selectedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (scrollError) {
+              console.warn('Error scrolling to selected row:', scrollError);
+            }
+          } else {
+            console.warn('Could not find selected row in DOM with ID:', match.Id);
+          }
+        }, 100); // Increased timeout to ensure DOM has updated
+      } else {
+        console.log('Could not find participant with Account ID:', keep);
+        // If we can't find the original record, select the first one
+        this.autoselectFirst();
+      }
+    } catch (error) {
+      console.error('Error in refreshAndReselect:', error);
+      
+      // Show error toast
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error Refreshing Data',
+        message: error.message || 'An error occurred while refreshing data',
+        variant: 'error'
+      }));
+    } finally {
+      // Always turn off loading indicator
+      this.isLoading = false;
+    }
+  }
+
+  insertNotesContent() {
+    if (this.convoDisplayedRecords && this.convoDisplayedRecords.length) {
+      this.convoDisplayedRecords.forEach(note => {
+        const noteContent = note.MeetingNotes;
+        if (noteContent) {
+          // Find the div for this note by its data-id
+          const container = this.template.querySelector(`.note-content[data-id="${note.Id}"]`);
+          if (container) {
+            // Insert the HTML directly
+            container.innerHTML = noteContent;
+          }
+        }
+      });
+    }
+  }
+  
+  // Pagination methods for Interaction History
+  updateConvoPagination() {
+    const start = (this.convoCurrentPage - 1) * this.convoPageSize;
+    const end = Math.min(start + this.convoPageSize, this.convoTotalRecords);
+    this.convoDisplayedRecords = this.convo.slice(start, end);
+    
+    // After updating the displayed records, insert the notes content
+    setTimeout(() => this.insertNotesContent(), 50);
+  }
+  
+  handleConvoPreviousPage() {
+    if (this.convoCurrentPage > 1) {
+      this.convoCurrentPage--;
+      this.updateConvoPagination();
+    }
+  }
+  
+  handleConvoNextPage() {
+    if (this.convoCurrentPage < this.convoTotalPages) {
+      this.convoCurrentPage++;
+      this.updateConvoPagination();
+    }
+  }
+  
+  handleConvoFirstPage() {
+    this.convoCurrentPage = 1;
+    this.updateConvoPagination();
+  }
+  
+  handleConvoLastPage() {
+    this.convoCurrentPage = this.convoTotalPages;
+    this.updateConvoPagination();
+  }
+  
+  handleConvoPageSizeChange(event) {
+    const newSize = parseInt(event.detail.value, 10);
+    this.convoPageSize = newSize;
+    this.convoCurrentPage = 1; // Reset to first page
+    this.convoTotalPages = Math.ceil(this.convoTotalRecords / this.convoPageSize);
+    this.updateConvoPagination();
+  }
+  
+  // Pagination methods for Incidents
+  updateIncidentsPagination() {
+    const start = (this.incidentsCurrentPage - 1) * this.incidentsPageSize;
+    const end = Math.min(start + this.incidentsPageSize, this.incidentsTotalRecords);
+    this.incidentsDisplayedRecords = this.incidents.slice(start, end);
+  }
+  
+  handleIncidentsPreviousPage() {
+    if (this.incidentsCurrentPage > 1) {
+      this.incidentsCurrentPage--;
+      this.updateIncidentsPagination();
+    }
+  }
+  
+  handleIncidentsNextPage() {
+    if (this.incidentsCurrentPage < this.incidentsTotalPages) {
+      this.incidentsCurrentPage++;
+      this.updateIncidentsPagination();
+    }
+  }
+  
+  handleIncidentsFirstPage() {
+    this.incidentsCurrentPage = 1;
+    this.updateIncidentsPagination();
+  }
+  
+  handleIncidentsLastPage() {
+    this.incidentsCurrentPage = this.incidentsTotalPages;
+    this.updateIncidentsPagination();
+  }
+  
+  handleIncidentsPageSizeChange(event) {
+    const newSize = parseInt(event.detail.value, 10);
+    this.incidentsPageSize = newSize;
+    this.incidentsCurrentPage = 1; // Reset to first page
+    this.incidentsTotalPages = Math.ceil(this.incidentsTotalRecords / this.incidentsPageSize);
+    this.updateIncidentsPagination();
+  }
+  
+  // Computed properties for pagination
+  get convoStartPosition() {
+    return Math.min(((this.convoCurrentPage - 1) * this.convoPageSize) + 1, this.convoTotalRecords);
+  }
+  
+  get convoEndPosition() {
+    return Math.min(this.convoStartPosition + this.convoPageSize - 1, this.convoTotalRecords);
+  }
+  
+  get incidentsStartPosition() {
+    return Math.min(((this.incidentsCurrentPage - 1) * this.incidentsPageSize) + 1, this.incidentsTotalRecords);
+  }
+  
+  get incidentsEndPosition() {
+    return Math.min(this.incidentsStartPosition + this.incidentsPageSize - 1, this.incidentsTotalRecords);
+  }
+  
+  get isConvoFirstPage() {
+    return this.convoCurrentPage <= 1;
+  }
+  
+  get isConvoLastPage() {
+    return this.convoCurrentPage >= this.convoTotalPages;
+  }
+  
+  get isIncidentsFirstPage() {
+    return this.incidentsCurrentPage <= 1;
+  }
+  
+  get isIncidentsLastPage() {
+    return this.incidentsCurrentPage >= this.incidentsTotalPages;
+  }
+  
+  // Navigate to record in a new tab
+  navigateToRecord(event) {
+    event.stopPropagation(); // Prevent parent click events from firing
+    const recordId = event.currentTarget.dataset.recordid;
+    if (recordId) {
+      window.open(`/${recordId}`, '_blank');
+    }
+  }
+  
+  // Handler for "New" button click in headers
+  openNewInteractionModal() {
+    // Set today's date as default
+    this.interactionDate = new Date().toISOString().split('T')[0];
+    
+    // Reset form fields
+    this.resetModalFields();
+    
+    // Get participant and program info from selected record
+    if (this.selected && this.selected.AccountId) {
+      const accountId = this.selected.AccountId;
+      const programId = this.selected.Program__c;
+      
+      // Set up current interaction object
+      this.currentInteraction = {
+        accountId: accountId,
+        programId: programId,
+        relatedRecordId: '' // No related record since this is a new interaction, not a follow-up
+      };
+      
+      // Open the modal
+      this.openModal = true;
+    } else {
+      // Show error if no participant is selected
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'No participant selected',
+        message: 'Select a participant first to create a new interaction.',
+        variant: 'warning'
+      }));
+    }
+  }
+}

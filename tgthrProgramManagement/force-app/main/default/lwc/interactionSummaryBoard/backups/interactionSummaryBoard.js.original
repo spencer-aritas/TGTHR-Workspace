@@ -1,0 +1,987 @@
+import { LightningElement, track } from 'lwc';
+import recent from '@salesforce/apex/InteractionSummaryService.recent';
+import thread from '@salesforce/apex/InteractionSummaryService.thread';
+import recentIncidents from '@salesforce/apex/InteractionSummaryService.recentIncidents';
+import markAddressed from '@salesforce/apex/InteractionSummaryService.markAddressed';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+export default class InteractionSummaryBoard extends LightningElement {
+  @track rowsAll = [];
+  @track rowsNest = [];
+  @track selected = null;
+  @track convo = [];
+  @track incidents = [];
+  @track openFlow = false;
+  @track selectedRowIds = [];
+  @track isLoading = true;
+  @track sortField = 'Date_of_Interaction__c'; // Default sort field
+  @track sortDirection = 'desc'; // Default sort direction (newest first)
+  activeTab = 'all';
+  lastAccountId = null;
+  cacheBuster = Date.now(); // Used to bust cache
+
+  flowApiName = 'New_Interaction_Summary';
+
+  // No columns definition needed for standard HTML table
+
+  // Helper to debug the data structure
+  debugDataFields() {
+    if (this.rowsAll && this.rowsAll.length > 0) {
+      const firstRow = this.rowsAll[0];
+      console.log('Sample row object keys:', Object.keys(firstRow));
+      console.log('Date field value:', firstRow.Date_of_Interaction__c);
+      console.log('Date field type:', typeof firstRow.Date_of_Interaction__c);
+      
+      // If we're getting data from Apex, log the raw data structure
+      console.log('Raw date field format example:', 
+                 JSON.stringify(firstRow.Date_of_Interaction__c));
+    }
+    
+    if (this.rowsNest && this.rowsNest.length > 0) {
+      const firstRow = this.rowsNest[0];
+      console.log('Nest 56 sample row date field:', firstRow.Date_of_Interaction__c);
+    }
+  }
+
+  async connectedCallback() { 
+    this.isLoading = true;
+    try {
+      console.log('Component connected, loading tabs');
+      await this.loadTabs();
+      
+      // Debug the date fields
+      this.debugDataFields();
+      
+      // Apply initial sorting
+      this.rowsAll = this.sortData(this.rowsAll, this.sortField, this.sortDirection);
+      this.rowsNest = this.sortData(this.rowsNest, this.sortField, this.sortDirection);
+      
+      // Initialize the active tab to ensure it's fully interactive from the start
+      // Use a slight delay to ensure DOM has rendered
+      setTimeout(() => {
+        console.log('Initial tab activation:', this.activeTab);
+        this.initializeActiveTab();
+        this.updateSortIndicators();
+      }, 100);
+    } catch (error) {
+      console.error('Error in connectedCallback:', error);
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error loading data',
+        message: error.message || 'Unknown error occurred while loading data',
+        variant: 'error'
+      }));
+    } finally {
+      this.isLoading = false;
+      console.log('Loading complete');
+    }
+  }
+  
+  renderedCallback() {
+    console.log('Component rendered, activeTab:', this.activeTab);
+    console.log('1440 Pine rows:', this.rowsAll ? this.rowsAll.length : 0);
+    console.log('Nest 56 rows:', this.rowsNest ? this.rowsNest.length : 0);
+    
+    // Check if tables are present in the DOM
+    const allTabTable = this.template.querySelector('lightning-tab[value="all"] table');
+    const nestTabTable = this.template.querySelector('lightning-tab[value="nest"] table');
+    
+    console.log('1440 Pine table found:', allTabTable ? 'yes' : 'no');
+    console.log('Nest 56 table found:', nestTabTable ? 'yes' : 'no');
+    console.log('Current active tab:', this.activeTab);
+    console.log('Is Nest active:', this.isNest);
+    console.log('Is All active:', this.isAll);
+    
+    // Double-check that all row click handlers are attached
+    const allRows = this.template.querySelectorAll('tr[data-id]');
+    console.log('Total rows with data-id found in DOM:', allRows.length);
+    
+    // Log which tab is visually active for debugging
+    const activeTabElement = this.template.querySelector('lightning-tab[aria-selected="true"]');
+    if (activeTabElement) {
+      console.log('Visually active tab value:', activeTabElement.value);
+    }
+    
+    // Update sort indicators
+    this.updateSortIndicators();
+    
+    // Highlight selected row if any
+    if (this.selectedRowIds && this.selectedRowIds.length > 0) {
+      const selectedId = this.selectedRowIds[0];
+      const selectedRow = this.template.querySelector(`tr[data-id="${selectedId}"]`);
+      if (selectedRow) {
+        // Remove selection from all rows
+        this.template.querySelectorAll('tr[data-id]').forEach(row => {
+          row.classList.remove('slds-is-selected');
+        });
+        // Add selection to current row
+        selectedRow.classList.add('slds-is-selected');
+      } else {
+        console.log('Selected row not found in DOM. ID:', selectedId);
+      }
+    }
+  }
+
+  async loadTabs() {
+    const daysBack = 90;
+
+    try {
+      // Fetch data for each program
+      console.log('Fetching data for 1440 Pine');
+      const all = await recent({ daysBack, maxRows: 1000, programName: '1440 Pine' });
+      console.log('Data fetched for 1440 Pine:', all);
+      console.log('1440 Pine data type:', typeof all);
+      console.log('1440 Pine data structure:', all && Array.isArray(all) ? 'Array' : 'Not Array');
+      
+      // Inspect the first record and specifically look for date fields
+      if (all && all[0]) {
+        const firstRecord = all[0];
+        console.log('1440 Pine first record ID:', firstRecord.Id);
+        console.log('1440 Pine first record date field exists:', 'Date_of_Interaction__c' in firstRecord);
+        console.log('1440 Pine first record date value:', firstRecord.Date_of_Interaction__c);
+        console.log('1440 Pine first record date type:', typeof firstRecord.Date_of_Interaction__c);
+        
+        // Log the full record for inspection
+        console.log('1440 Pine first record full data:', JSON.stringify(firstRecord));
+      } else {
+        console.log('No records found for 1440 Pine');
+      }
+
+      console.log('Fetching data for Nest 56');
+      const nest = await recent({ daysBack, maxRows: 1000, programName: 'Nest 56' });
+      console.log('Data fetched for Nest 56:', nest);
+      console.log('Nest 56 data type:', typeof nest);
+      console.log('Nest 56 data structure:', nest && Array.isArray(nest) ? 'Array' : 'Not Array');
+      
+      // Inspect the first record and specifically look for date fields
+      if (nest && nest[0]) {
+        const firstRecord = nest[0];
+        console.log('Nest 56 first record ID:', firstRecord.Id);
+        console.log('Nest 56 first record date field exists:', 'Date_of_Interaction__c' in firstRecord);
+        console.log('Nest 56 first record date value:', firstRecord.Date_of_Interaction__c);
+        console.log('Nest 56 first record date type:', typeof firstRecord.Date_of_Interaction__c);
+        
+        // Log the full record for inspection
+        console.log('Nest 56 first record full data:', JSON.stringify(firstRecord));
+      } else {
+        console.log('No records found for Nest 56');
+      }
+
+    // Map rows for each tab
+    console.log('Mapping rows for 1440 Pine');
+    this.rowsAll = this.mapRows(all);
+    console.log('Mapped rows for 1440 Pine:', this.rowsAll);
+    console.log('1440 Pine rows length:', this.rowsAll.length);
+
+    console.log('Mapping rows for Nest 56');
+    this.rowsNest = this.mapRows(nest);
+    console.log('Mapped rows for Nest 56:', this.rowsNest);
+    console.log('Nest 56 rows length:', this.rowsNest.length);
+
+    console.log('Active tab:', this.activeTab);
+
+    await this.autoselectFirstWithParticipant();   // <- no toast on load
+    } catch (error) {
+      console.error('Error in loadTabs:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+  }
+
+  mapRows(data) {
+    console.log('Raw data passed to mapRows:', data);
+    if (!data) {
+      console.warn('No data passed to mapRows');
+      return [];
+    }
+    if (!Array.isArray(data)) {
+      console.warn('Data passed to mapRows is not an array:', typeof data);
+      return [];
+    }
+    
+    try {
+      // Create a simple array first to ensure we have valid rows
+      const mappedRows = [];
+      
+      for (let i = 0; i < data.length; i++) {
+        try {
+          const r = data[i];
+          
+          // Extract the data safely with more defensive coding
+          const needsAttention = r.Notify_Case_Manager__c === true;
+          const accountId = r.AccountId || '';
+          const accountName = (r.Account && typeof r.Account === 'object' && r.Account.Name) ? 
+            r.Account.Name : '(no participant)';
+          const createdByName = (r.CreatedBy && typeof r.CreatedBy === 'object' && r.CreatedBy.Name) ? 
+            r.CreatedBy.Name : '';
+          const meetingNotes = r.MeetingNotes || '';
+          
+          // Extract date and format it properly
+          let interactionDate = '';
+          
+          // Simple logging of the row data with the date
+          console.log('Row with date:', r.Id, r.Date_of_Interaction__c);
+          
+          if (r.Date_of_Interaction__c) {
+            try {
+              // Salesforce returns Date fields in ISO format string from Apex
+              // Use a simpler and more direct approach
+              const dateValue = r.Date_of_Interaction__c;
+              
+              // Check if we have a date value and what format it's in
+              console.log('Date value type:', typeof dateValue);
+              
+              // Create a date object using the appropriate method
+              let dateObj;
+              
+              if (typeof dateValue === 'string') {
+                // For ISO string format - most common from Apex
+                dateObj = new Date(dateValue);
+                console.log('Parsed date from string:', dateObj);
+              } else if (typeof dateValue === 'object' && dateValue !== null) {
+                // It might already be a Date object
+                dateObj = dateValue;
+                console.log('Using existing date object');
+              } else if (typeof dateValue === 'number') {
+                // Timestamp number
+                dateObj = new Date(dateValue);
+                console.log('Parsed date from timestamp:', dateObj);
+              }
+              
+              // Validate the date object
+              if (dateObj && !isNaN(dateObj.getTime())) {
+                // Format as MM/DD/YYYY using toLocaleDateString()
+                // This is more reliable than manual formatting
+                interactionDate = dateObj.toLocaleDateString();
+                console.log('Formatted date:', interactionDate);
+                
+                // Store the raw date object for sorting
+                r._dateObj = dateObj;
+              } else {
+                // Fallback: try to extract the date portion if it's a string
+                if (typeof dateValue === 'string') {
+                  // Extract just the date portion if it has a time component
+                  const datePart = dateValue.split('T')[0];
+                  if (datePart && datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    // Convert YYYY-MM-DD to MM/DD/YYYY
+                    const parts = datePart.split('-');
+                    interactionDate = `${parseInt(parts[1])}/${parseInt(parts[2])}/${parts[0]}`;
+                    console.log('Formatted date from string parts:', interactionDate);
+                    
+                    // Also create a date object for sorting
+                    r._dateObj = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+                  } else {
+                    interactionDate = dateValue;
+                  }
+                } else {
+                  // Last resort: use the raw value
+                  interactionDate = String(dateValue);
+                }
+              }
+            } catch (error) {
+              console.error('Error formatting date:', error);
+              // Use the raw value as fallback
+              interactionDate = String(r.Date_of_Interaction__c);
+            }
+          } else {
+            console.log('No date value for row:', r.Id);
+            interactionDate = '';
+          }
+          
+          // Add a debug log to see the raw date field
+          console.log('Raw interaction date for row', r.Id, ':', r.Date_of_Interaction__c);
+          console.log('Formatted date value:', interactionDate);
+          
+          // Build the row object with all required properties for our HTML table
+          const rowObj = {
+            Id: r.Id || ('temp-id-' + i),  // Ensure we always have an ID for the key attribute
+            AccountId: accountId,
+            Account_Name: accountName,
+            CreatedBy_Name: createdByName,
+            MeetingNotes: meetingNotes,
+            Date_of_Interaction__c: interactionDate,
+            // Store the raw date object for sorting if available
+            _dateObj: r._dateObj || null,
+            notesCellClass: needsAttention ? 'needs-attn-soft' : ''
+          };
+          
+          mappedRows.push(rowObj);
+        } catch (rowError) {
+          console.error('Error mapping row at index ' + i + ':', rowError);
+          // Add an error row to provide visual feedback
+          mappedRows.push({
+            Id: 'error-' + i,
+            AccountId: '',
+            Account_Name: 'Error processing row',
+            CreatedBy_Name: '',
+            MeetingNotes: 'There was an error processing this record',
+            notesCellClass: 'error-row'
+          });
+        }
+      }
+      
+      console.log('Total mapped rows:', mappedRows.length);
+      if (mappedRows.length > 0) {
+        console.log('First mapped row:', JSON.stringify(mappedRows[0]));
+      }
+      
+      return mappedRows;
+    } catch (error) {
+      console.error('Error in mapRows:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+      return [];
+    }
+  }
+
+  autoselectFirst = async () => {
+    // Get the appropriate rows array based on the active tab
+    const rows = this.activeTab === 'nest' ? this.rowsNest : this.rowsAll;
+    console.log('In autoselectFirst, active tab:', this.activeTab, 'rows length:', rows ? rows.length : 0);
+    
+    // Add sanity check logging
+    console.log('rowsAll length:', this.rowsAll.length);
+    console.log('rowsNest length:', this.rowsNest.length);
+    
+    if (rows && rows.length > 0) {
+      this.selected = rows[0];
+      this.selectedRowIds = [rows[0].Id];
+      console.log('Selected row:', this.selected.Id, this.selected.Account_Name);
+      await this.loadRight(this.selected.AccountId);
+      
+      // Make sure the selected row is visually highlighted
+      setTimeout(() => {
+        // Get the ID of the first row in the active tab's data
+        const activeTabId = this.activeTab;
+        const firstRowId = rows[0].Id;
+        
+        // Look for the row in the DOM using just the ID, without specifying which tab
+        const rowSelector = `tr[data-id="${firstRowId}"]`;
+        const selectedRow = this.template.querySelector(rowSelector);
+        
+        console.log('Looking for row with selector:', rowSelector);
+        console.log('Row found in DOM:', selectedRow ? 'yes' : 'no');
+        
+        if (selectedRow) {
+          console.log('Found row to highlight in DOM');
+          // Remove selection from all rows
+          this.template.querySelectorAll('tr[data-id]').forEach(row => {
+            row.classList.remove('slds-is-selected');
+          });
+          // Add selection to current row
+          selectedRow.classList.add('slds-is-selected');
+        } else {
+          // If the row isn't found, we'll log the DOM structure to help debug
+          console.log('Could not find row with ID', firstRowId, 'in the DOM');
+          const allRows = this.template.querySelectorAll('tr[data-id]');
+          console.log('Found', allRows.length, 'rows in DOM with data-id attribute');
+          if (allRows.length > 0) {
+            console.log('First few row IDs in DOM:', 
+              Array.from(allRows).slice(0, 5).map(r => r.dataset.id).join(', '));
+          }
+        }
+      }, 100); // Increased timeout for DOM to stabilize
+    } else {
+      console.log('No rows available to select');
+      this.selected = null;
+      this.selectedRowIds = [];
+      this.convo = [];
+      this.incidents = [];
+    }
+  };
+
+  // Tab change is now handled by handleTabChange method
+
+  async autoselectFirstWithParticipant() {
+      // Get the appropriate rows array based on the active tab
+      const rows = this.activeTab === 'nest' ? this.rowsNest : this.rowsAll;
+      console.log('In autoselectFirstWithParticipant, active tab:', this.activeTab, 'rows length:', rows ? rows.length : 0);
+      
+      const first = rows.find(r => !!r.AccountId);
+      if (!first) {
+        this.selected = null;
+        this.selectedRowIds = [];
+        this.convo = [];
+        this.incidents = [];
+        return;
+      }
+      
+      console.log('Found first row with participant:', first.Id, first.Account_Name);
+      this.selected = first;
+      this.selectedRowIds = [first.Id];
+      
+      // Load the right panel data
+      await this.loadRight(first.AccountId, /*quiet*/ true);
+      
+      // Make sure the selected row is visually highlighted
+      setTimeout(() => {
+        // Find the row in the DOM using just the ID
+        const rowSelector = `tr[data-id="${first.Id}"]`;
+        const selectedRow = this.template.querySelector(rowSelector);
+        
+        if (selectedRow) {
+          console.log('Found participant row to highlight');
+          // Remove selection from all rows
+          this.template.querySelectorAll('tr[data-id]').forEach(row => {
+            row.classList.remove('slds-is-selected');
+          });
+          // Add selection to current row
+          selectedRow.classList.add('slds-is-selected');
+        } else {
+          console.log('Could not find participant row in DOM with ID:', first.Id);
+        }
+      }, 100); // Increased timeout for DOM to stabilize
+    }
+
+  async loadRight(accountId, quiet = false) {
+    if (!accountId) {
+      if (!quiet) {
+        this.dispatchEvent(new ShowToastEvent({
+          title: 'No participant on this interaction',
+          message: 'Select an interaction that has a participant to see related history.',
+          variant: 'warning'
+        }));
+      }
+      this.convo = [];
+      this.incidents = [];
+      return;
+    }
+    const [t, inc] = await Promise.all([
+      thread({ accountId, maxRows: 50 }),
+      recentIncidents({ accountId, maxRows: 20 })
+    ]);
+    this.convo = t.map(r => ({
+      Id: r.Id,
+      Date_of_Interaction__c: r.Date_of_Interaction__c,
+      InteractionPurpose: r.InteractionPurpose,
+      MeetingNotes: r.MeetingNotes,
+      CreatedBy_Name: r.CreatedBy ? r.CreatedBy.Name : null,
+      Notify_Case_Manager__c: r.Notify_Case_Manager__c,
+      noteClass: r.Notify_Case_Manager__c ? 'note note-attn' : 'note'
+    }));
+    this.incidents = inc.map(x => ({
+      Id: x.Id,
+      date: x.IncidentDate != null ? x.IncidentDate : x.CreatedDate,
+      title: x.Subject,
+      body: x.Description,
+      staff: x.CreatedBy != null ? x.CreatedBy.Name : null
+    }));
+  }
+
+  async handleRowClick(event) {
+      // Make sure we're not clicking on a header
+      if (event.target.closest('th')) {
+        return;
+      }
+      
+      // Get the closest tr element from the event path
+      const tr = event.currentTarget;
+      if (!tr) return;
+      
+      const id = tr.dataset.id;
+      if (!id) return;
+      
+      console.log('Row clicked, ID:', id);
+      
+      // Immediately log which rows array we are searching in
+      console.log('Searching in rowsNest:', JSON.stringify(this.rowsNest.map(r => r.Id).slice(0, 3) + '...'));
+      console.log('Searching in rowsAll:', JSON.stringify(this.rowsAll.map(r => r.Id).slice(0, 3) + '...'));
+      
+      // Find the row data directly from both arrays - more reliable than tab detection
+      let row = this.rowsNest.find(r => r.Id === id);
+      let fromNest = !!row;
+      
+      if (!row) {
+        row = this.rowsAll.find(r => r.Id === id);
+        if (!row) {
+          console.log('Row data not found in either array for ID:', id);
+          // Log the first few IDs in each array for debugging
+          console.log('First few Nest 56 IDs:', this.rowsNest.slice(0, 5).map(r => r.Id));
+          console.log('First few 1440 Pine IDs:', this.rowsAll.slice(0, 5).map(r => r.Id));
+          return;
+        }
+      }
+      
+      console.log('Found row:', row.Id, 'in', fromNest ? 'Nest 56' : '1440 Pine', 'array');
+      
+      // Make sure activeTab is set correctly based on which array the row was found in
+      if (fromNest && this.activeTab !== 'nest') {
+        console.log('Updating active tab to nest');
+        this.activeTab = 'nest';
+      } else if (!fromNest && this.activeTab !== 'all') {
+        console.log('Updating active tab to all');
+        this.activeTab = 'all';
+      }
+      
+      // Clear any previous selections and highlight the current row
+      const allRows = this.template.querySelectorAll('tr[data-id]');
+      allRows.forEach(row => row.classList.remove('slds-is-selected'));
+      tr.classList.add('slds-is-selected');
+      
+      // Update the selected row and load the related data
+      this.selected = row;
+      this.selectedRowIds = [row.Id];
+      console.log('Selected row:', row.Id, row.Account_Name);
+      await this.loadRight(row.AccountId);
+    }
+
+  async handleMarkAddressed() {
+    if (!this.selected || !this.selected.Id) {
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Select an interaction',
+        message: 'Pick an interaction before marking it addressed.',
+        variant: 'warning'
+      }));
+      return;
+    }
+
+    const interactionId = this.selected.Id;
+
+    try {
+      await markAddressed({ interactionId });
+
+      const stripAttentionClass = row =>
+        row.Id === interactionId ? { ...row, notesCellClass: '' } : row;
+
+      if (Array.isArray(this.rowsAll) && this.rowsAll.length) {
+        this.rowsAll = this.rowsAll.map(stripAttentionClass);
+      }
+
+      if (Array.isArray(this.rowsNest) && this.rowsNest.length) {
+        this.rowsNest = this.rowsNest.map(stripAttentionClass);
+      }
+
+      if (this.selected && this.selected.Id === interactionId) {
+        this.selected = { ...this.selected, notesCellClass: '' };
+      }
+
+      if (Array.isArray(this.convo) && this.convo.length) {
+        this.convo = this.convo.map(note =>
+          note.Id === interactionId ? { ...note, noteClass: 'note' } : note
+        );
+      }
+
+      const selectedRowElement = this.template.querySelector(`tr[data-id="${interactionId}"]`);
+      if (selectedRowElement) {
+        selectedRowElement.classList.remove('needs-attn-soft');
+      }
+
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Flag cleared',
+        message: 'Interaction marked as addressed.',
+        variant: 'success'
+      }));
+    } catch (error) {
+      console.error('Error marking interaction addressed:', error);
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Error clearing flag',
+        message: error?.body?.message || error?.message || 'Unable to mark interaction as addressed.',
+        variant: 'error'
+      }));
+    }
+  }
+
+  // We now use handleRowClick instead
+  //Handles data change on tab change
+  handleTabChange(e) {
+    const val = e.detail.value;       
+    
+    // Store the previous tab value
+    const previousTab = this.activeTab;
+    
+    // Update activeTab immediately
+    this.activeTab = val;
+    console.log('Tab changed from', previousTab, 'to', val);
+    
+    // Use Promise.resolve to ensure immediate tab activation through microtask queue
+    Promise.resolve().then(() => {
+      // Force re-rendering by triggering a reactive property update
+      this.isLoading = true;
+      
+      // Log information about the current tab
+      if (val === 'nest') {
+        console.log('Switching to Nest 56 tab with', this.rowsNest.length, 'rows');
+        console.log('First few Nest row IDs:', this.rowsNest.slice(0, 3).map(r => r.Id).join(', '));
+      } else {
+        console.log('Switching to 1440 Pine tab with', this.rowsAll.length, 'rows');
+        console.log('First few All row IDs:', this.rowsAll.slice(0, 3).map(r => r.Id).join(', '));
+      }
+      
+      // Immediately turn off loading to trigger re-render
+      this.isLoading = false;
+      
+      // Clear any previous selections since we're changing tabs
+      this.selected = null;
+      this.selectedRowIds = [];
+      
+      // Initialize the active tab to ensure interactivity
+      this.initializeActiveTab();
+      
+      // When changing tabs, update the sort indicators for the new tab
+      this.updateSortIndicators();
+    });
+  }
+  
+  // Additional handler specifically for tab activation events
+  handleTabActive(e) {
+    console.log('Tab active event fired:', e.target.value);
+    // Force initialization of the interactive elements in the tab
+    this.initializeActiveTab();
+    
+    // Wait for the DOM to update before trying to select a row
+    setTimeout(() => {
+      // Check which tab is visually active according to DOM
+      const activeTabElement = this.template.querySelector('lightning-tab[aria-selected="true"]');
+      if (activeTabElement) {
+        console.log('Visually active tab value:', activeTabElement.value);
+        
+        // Make sure our internal state matches the UI
+        if (this.activeTab !== activeTabElement.value) {
+          console.log('Correcting active tab from', this.activeTab, 'to', activeTabElement.value);
+          this.activeTab = activeTabElement.value;
+        }
+      }
+      
+      // Initialize the newly activated tab
+      this.initializeActiveTab();
+      
+      // Count visible rows in the DOM
+      const allRowsInDOM = this.template.querySelectorAll('tr[data-id]');
+      console.log('Total rows with data-id found in DOM:', allRowsInDOM.length);
+      
+      if (allRowsInDOM.length > 0) {
+        console.log('First few row IDs in DOM:', 
+          Array.from(allRowsInDOM).slice(0, 3).map(r => r.dataset.id).join(', '));
+      }
+      
+      // Debug the active tab state
+      console.log('Active tab after timeout:', this.activeTab);
+      console.log('Is Nest active:', this.isNest);
+      console.log('Is All active:', this.isAll);
+      
+      // Auto-select the first row to keep the right-hand pane in sync
+      this.autoselectFirst();
+    }, 100); // Reduced timeout for faster response
+  }
+
+  get isAll()  { 
+    console.log('isAll getter called, activeTab:', this.activeTab);
+    return this.activeTab === 'all'; 
+  }
+  
+  get isNest() { 
+    console.log('isNest getter called, activeTab:', this.activeTab);
+    return this.activeTab === 'nest'; 
+  }
+  
+  // Initialize the newly activated tab to ensure it's fully interactive
+  initializeActiveTab() {
+    console.log('Initializing active tab:', this.activeTab);
+    
+    // Find all sortable headers in the current tab
+    let headers;
+    
+    // Target the specific tab's headers based on active tab
+    if (this.activeTab === 'nest') {
+        // Target the Nest 56 tab headers
+        const nestTab = this.template.querySelector('lightning-tab[value="nest"]');
+        if (nestTab) {
+            headers = nestTab.querySelectorAll('th.sortable-header');
+            console.log('Found', headers.length, 'sortable headers in Nest 56 tab');
+        }
+    } else {
+        // Target the 1440 Pine tab headers
+        const allTab = this.template.querySelector('lightning-tab[value="all"]');
+        if (allTab) {
+            headers = allTab.querySelectorAll('th.sortable-header');
+            console.log('Found', headers.length, 'sortable headers in 1440 Pine tab');
+        }
+    }
+    
+    // If no specific tab headers found, try getting all headers
+    if (!headers || headers.length === 0) {
+        headers = this.template.querySelectorAll('th.sortable-header');
+        console.log('Using fallback: Found', headers.length, 'sortable headers across all tabs');
+    }
+    
+    if (headers && headers.length > 0) {
+        // Make sure the headers are properly initialized
+        headers.forEach(header => {
+            const field = header.dataset.field;
+            console.log('Initializing header for field:', field);
+            
+            // Ensure event listeners are properly attached
+            header.addEventListener('click', this.handleSort.bind(this));
+            
+            // Add a visual indicator that the header is clickable
+            header.style.cursor = 'pointer';
+        });
+        
+        // Highlight headers to show they're interactive
+        headers.forEach(header => {
+            header.classList.add('sortable-header-active');
+            setTimeout(() => {
+                header.classList.remove('sortable-header-active');
+            }, 300);
+        });
+    }
+    
+    // Make sure the sort indicators are correctly displayed for this tab
+    this.updateSortIndicators();
+    
+    // Ensure the tab content is properly rendered
+    if (this.activeTab === 'all') {
+        // Force a reactive update by creating a new array reference
+        if (this.rowsAll && this.rowsAll.length) {
+            console.log('Refreshing 1440 Pine tab data');
+            this.rowsAll = [...this.rowsAll];
+        }
+    } else if (this.activeTab === 'nest') {
+        // Force a reactive update by creating a new array reference
+        if (this.rowsNest && this.rowsNest.length) {
+            console.log('Refreshing Nest 56 tab data');
+            this.rowsNest = [...this.rowsNest];
+        }
+    }
+  }
+
+  // Sort the data by the given field and direction
+  sortData(array, field, direction) {
+    // Return a sorted copy of the array
+    const clonedData = [...array];
+    
+    if (array.length > 0) {
+      // Log the first few records to help debug
+      console.log('First record before sort:', JSON.stringify({
+        id: clonedData[0].Id,
+        date: clonedData[0].Date_of_Interaction__c,
+        dateType: typeof clonedData[0].Date_of_Interaction__c,
+        hasDateObj: clonedData[0]._dateObj ? 'yes' : 'no'
+      }));
+    }
+    
+    return clonedData.sort((a, b) => {
+      // Handle special cases for date fields
+      if (field === 'Date_of_Interaction__c') {
+        // Log sorting information for debugging
+        console.log('Sorting dates:', a[field], 'vs', b[field]);
+        
+        // First try to use the pre-parsed _dateObj if it exists (created in mapRows)
+        if (a._dateObj && b._dateObj) {
+          console.log('Using cached date objects for sorting');
+          return direction === 'asc' ? a._dateObj - b._dateObj : b._dateObj - a._dateObj;
+        }
+        
+        // Try to parse dates more robustly
+        let dateA, dateB;
+        
+        // Function to safely parse a date in multiple formats
+        const parseDate = (dateValue) => {
+          if (!dateValue) return new Date(0); // Default for empty values
+          
+          // If it's already a Date object
+          if (dateValue instanceof Date) return dateValue;
+          
+          // If it's a string in MM/DD/YYYY format
+          if (typeof dateValue === 'string' && dateValue.includes('/')) {
+            const parts = dateValue.split('/');
+            if (parts.length === 3) {
+              // Parse as MM/DD/YYYY
+              const date = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+              console.log(`Parsed ${dateValue} as ${date.toISOString()}`);
+              return date;
+            }
+          }
+          
+          // Try to match YYYY-MM-DD format in the string
+          if (typeof dateValue === 'string') {
+            const match = dateValue.match(/(\d{4})-(\d{2})-(\d{2})/);
+            if (match) {
+              const date = new Date(parseInt(match[1]), parseInt(match[2])-1, parseInt(match[3]));
+              console.log(`Parsed ISO format ${dateValue} as ${date.toISOString()}`);
+              return date;
+            }
+          }
+          
+          // Try standard date parsing as last resort
+          const parsed = new Date(dateValue);
+          if (!isNaN(parsed.getTime())) {
+            console.log(`Standard parsed ${dateValue} as ${parsed.toISOString()}`);
+            return parsed;
+          }
+          
+          console.warn(`Failed to parse date value: ${dateValue}`);
+          return new Date(0);
+        };
+        
+        dateA = parseDate(a[field]);
+        dateB = parseDate(b[field]);
+        
+        // Log the parsed dates
+        console.log('Parsed dates for sorting:', 
+                    dateA.toISOString(), '(', a[field], ')', 
+                    'vs', 
+                    dateB.toISOString(), '(', b[field], ')');
+        
+        // Sort numerically - compare timestamps
+        return direction === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+      
+      // For other fields, do string comparison
+      const valueA = a[field] ? a[field].toString().toLowerCase() : '';
+      const valueB = b[field] ? b[field].toString().toLowerCase() : '';
+      
+      return direction === 'asc' ? 
+        valueA.localeCompare(valueB) : 
+        valueB.localeCompare(valueA);
+    });
+  }
+  
+  // Handle column header click for sorting
+  handleSort(event) {
+    const { field } = event.currentTarget.dataset;
+    
+    // Toggle sort direction if clicking the same field
+    if (this.sortField === field) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      // Default to descending for dates (newest first)
+      this.sortDirection = field === 'Date_of_Interaction__c' ? 'desc' : 'asc';
+    }
+    
+    console.log(`Sorting by ${this.sortField} in ${this.sortDirection} order for active tab: ${this.activeTab}`);
+    
+    // Only sort the active tab's data
+    if (this.activeTab === 'all') {
+      console.log('Sorting 1440 Pine data');
+      this.rowsAll = this.sortData(this.rowsAll, this.sortField, this.sortDirection);
+    } else if (this.activeTab === 'nest') {
+      console.log('Sorting Nest 56 data');
+      this.rowsNest = this.sortData(this.rowsNest, this.sortField, this.sortDirection);
+    }
+    
+    // Update visual indicators for sort direction
+    this.updateSortIndicators();
+  }
+  
+  // Update sort indicators in the UI
+  updateSortIndicators() {
+    console.log('Updating sort indicators for field:', this.sortField, 'direction:', this.sortDirection);
+    
+    // First, remove all existing sort indicators
+    const headers = this.template.querySelectorAll('th[data-field]');
+    headers.forEach(header => {
+      // Remove class that may affect styling
+      header.classList.remove('slds-has-button-menu_fixed', 'slds-is-sorted-asc', 'slds-is-sorted-desc');
+      
+      // Remove existing sort icons
+      const existingIcon = header.querySelector('.sort-icon');
+      if (existingIcon) {
+        existingIcon.remove();
+      }
+    });
+    
+    // Add sort indicator to the active sort column
+    const activeHeader = this.template.querySelector(`th[data-field="${this.sortField}"]`);
+    if (activeHeader) {
+      // Add SLDS sorting classes
+      activeHeader.classList.add(
+        'slds-has-button-menu_fixed',
+        this.sortDirection === 'asc' ? 'slds-is-sorted-asc' : 'slds-is-sorted-desc'
+      );
+      
+      // Find the div inside the header to append the icon
+      const headerDiv = activeHeader.querySelector('.slds-truncate');
+      if (headerDiv) {
+        // Create the sort icon element
+        const iconName = this.sortDirection === 'asc' ? 'utility:arrowup' : 'utility:arrowdown';
+        const sortIcon = document.createElement('lightning-icon');
+        sortIcon.classList.add('sort-icon');
+        sortIcon.setAttribute('icon-name', iconName);
+        sortIcon.setAttribute('size', 'xx-small');
+        sortIcon.setAttribute('alternative-text', this.sortDirection === 'asc' ? 'Ascending' : 'Descending');
+        
+        // Create a container for the icon to control positioning
+        const iconContainer = document.createElement('span');
+        iconContainer.classList.add('slds-icon_container', 'slds-m-left_xx-small');
+        iconContainer.appendChild(sortIcon);
+        
+        // Clear any extra text nodes that might be causing spacing issues
+        while (headerDiv.childNodes.length > 1) {
+          const lastChild = headerDiv.lastChild;
+          if (lastChild.nodeType === 3 || lastChild.classList?.contains('sort-icon') || lastChild.classList?.contains('slds-icon_container')) {
+            headerDiv.removeChild(lastChild);
+          } else {
+            break;
+          }
+        }
+        
+        // Add the icon container to the header div
+        headerDiv.appendChild(iconContainer);
+        
+        console.log('Added sort icon to header:', headerDiv.textContent.trim());
+      }
+    }
+  }
+
+  // Header Follow Up enforce participant and remember who
+  openFlowModal = () => {
+    if (!this.selected || !this.selected.AccountId) {
+      this.dispatchEvent(new ShowToastEvent({
+        title: 'Pick a participant row',
+        message: 'Select an interaction that has a participant before following up.',
+        variant: 'warning'
+      }));
+      return;
+    }
+    this.lastAccountId = this.selected.AccountId;   // <- remember for reselection
+    this.openFlow = true;
+  };
+
+  // We now use handleRowClick and the Follow Up button instead
+
+  get flowInputs() {
+    if (!this.selected) return [];
+    return [
+      { name: 'var_AccountId', type: 'String', value: this.selected.AccountId }
+    ];
+  }
+
+  // Refresh & reselection after Flow completes
+  async handleFlowStatus(e) {
+    if (e.detail.status === 'FINISHED_SCREEN') {
+      this.openFlow = false;
+      await this.refreshAndReselect();
+    }
+  }
+
+  // Close button also refreshes
+  async closeModal() {
+    this.openFlow = false;
+    await this.refreshAndReselect();
+  }
+
+  // Reload both tabs and reselect the participant we were on
+  async refreshAndReselect() {
+    const keep = this.lastAccountId;
+    await this.loadTabs();
+    if (!keep) return;
+    const pool = this.activeTab === 'nest' ? this.rowsNest : this.rowsAll;
+    const match = pool.find(r => r.AccountId === keep);
+    if (match) {
+      this.selected = match;
+      this.selectedRowIds = [match.Id];
+      await this.loadRight(match.AccountId, /*quiet*/ true);
+      
+      // Wait for DOM to update, then highlight the selected row
+      setTimeout(() => {
+        const selectedRow = this.template.querySelector(`tr[data-id="${match.Id}"]`);
+        if (selectedRow) {
+          const allRows = this.template.querySelectorAll('tr[data-id]');
+          allRows.forEach(row => row.classList.remove('slds-is-selected'));
+          selectedRow.classList.add('slds-is-selected');
+        }
+      }, 50);
+    }
+  }
+}

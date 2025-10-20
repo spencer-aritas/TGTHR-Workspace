@@ -1,0 +1,971 @@
+.table-wrap { 
+  max-height: 300px; /* Reduced height to prevent overlapping conversation */
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative; /* Positioning context */
+  z-index: 1; /* Base z-index */
+  margin-bottom: 20px; /* Add space after table */
+  border-bottom: 1px solid #e5e5e5; /* Clear visual separator */
+  width: 100%; /* Ensure full width */
+  display: block; /* Force block display */
+  clear: both; /* Clear any floating elements */
+}  /* bigger list with its own scrollbar */
+
+/* Important fix for stacking context issues */
+.table-wrap .slds-table {
+  position: static;
+  overflow: visible;
+}
+
+.table-wrap .slds-table tr, 
+.table-wrap .slds-table td {
+  position: static;
+  overflow: visible;
+}
+
+.slds-table {
+  table-layout: fixed; /* Fixed table layout for better control */
+  width: 100%; /* Full width */
+  margin-bottom: 0; /* Remove default margin */
+  border-collapse: collapse; /* Proper border collapse */
+}
+
+/* Style the table header with a gradient */
+.slds-table thead th {
+  background: linear-gradient(to bottom, #f4f6f9, #eef1f6);
+  color: #16325c;
+  font-weight: 600;
+  border-bottom: 2px solid #d8dde6;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.slds-table th:first-child,
+.slds-table td:first-child {
+  width: 110px; /* Increased width for date column */
+  min-width: 110px; /* Ensure minimum width */
+  padding-left: 0.25rem; /* Reduce left padding */
+}
+
+.slds-table th:nth-child(2),
+.slds-table td:nth-child(2) {
+  width: 20%; /* Slightly reduced participant column width */
+}
+
+.slds-table th:nth-child(3),
+.slds-table td:nth-child(3) {
+  width: 12%; /* Reduced staff column width */
+}
+
+.slds-table td {
+  cursor: pointer;
+  position: relative; /* Ensure cells have position context */
+  overflow: hidden; /* Prevent overflow */
+  text-overflow: ellipsis; /* Show ellipsis for overflow */
+  padding: 0.25rem 0.5rem; /* Reduced cell padding for better space utilization */
+}
+
+.slds-table tr:hover > td {
+  background-color: #f3f2f2;
+}
+
+.slds-table tr.slds-is-selected > td {
+  background-color: #f1f8fc;
+  box-shadow: 0 0 0 1px #0070d2 inset;
+}
+
+/* Class for rows needing attention */
+.slds-table tr.needs-attn-soft > td {
+  background: #fffdf2;
+}
+
+/* Error row styling */
+.slds-table tr.error-row > td {
+  color: #c23934;
+}
+
+/* Sortable column header styles */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.sortable-header:hover {
+  background-color: #f3f3f3;
+}
+
+.sortable-header-active {
+  transition: background-color 0.3s ease;
+  background-color: #f3f3f3;
+}
+
+.tab-container {
+  min-height: 400px;
+}
+
+.tabset-container {
+  min-height: 400px;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.sortable-header .slds-truncate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* This will push the sort icon to the right */
+  height: 2rem;
+  position: relative; /* To help with absolute positioning of the icon */
+}
+
+/* Make space for the icon so text doesn't jump when icon is added */
+.sortable-header .slds-truncate::after {
+  content: '';
+  width: 1rem;
+  display: inline-block;
+}
+
+.sort-icon {
+  display: inline-block;
+  margin-left: 0.25rem;
+}
+
+/* Additional styles for the sorting header states */
+.slds-is-sorted-asc .slds-truncate,
+.slds-is-sorted-desc .slds-truncate {
+  font-weight: bold;
+}
+
+/* Make sure the icon container has proper spacing */
+.slds-icon_container {
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Style adjustments for richHoverCell integration */
+.slds-table td.rich-note-cell {
+  width: 40%;
+  max-width: 40%;
+  overflow: visible !important; /* Allow hover popover to be visible */
+  position: relative; /* For positioning the popup */
+  padding: 0.25rem 0.5rem; /* Reduced padding for better hover area */
+  z-index: 1; /* Ensure it's above other elements */
+  white-space: normal; /* Allow wrapping */
+  text-overflow: ellipsis; /* Show ellipsis for overflow */
+  background-color: #f8fcff; /* Light blue background for note cells */
+  border-left: 1px solid #e5eef7; /* Subtle border */
+}
+
+.rich-cell-container {
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  overflow: visible !important; /* Critical for hover popups */
+  min-height: 2.5rem; /* Give some room for rich text */
+}
+
+.slds-table td c-rich-hover-cell {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  position: relative; /* Changed to relative for proper positioning */
+}
+
+/* Ensure popups in tables are positioned correctly and only show on hover */
+.slds-table td c-rich-hover-cell .rt {
+  position: relative;
+}
+
+.slds-table td c-rich-hover-cell .pop {
+  position: absolute;
+  left: 100%;
+  top: -20px;
+  width: 300px;
+  max-width: 300px;
+  z-index: 9000;
+  display: none;
+}
+
+.slds-table td c-rich-hover-cell .rt.open .pop {
+  display: block;
+}
+
+/* Make rich text hover cell integration nicer */
+.thread c-rich-hover-cell {
+  display: block;
+  width: 100%;
+  position: relative;
+  z-index: 50; /* Higher z-index to ensure hover works */
+}
+
+/* Ensure thread hovers work properly */
+.thread .rt {
+  position: relative;
+  overflow: visible !important;
+  z-index: 50;
+}
+
+.thread .pop {
+  z-index: 9999;
+  position: absolute;
+}
+
+/* Additional styles for table hover cells */
+.table-hover-cell {
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 5; /* Higher than surrounding content but lower than popups */
+}
+
+/* Make sure table overflow only applies to Y-axis */
+.table-wrap {
+  overflow-x: visible !important;
+  z-index: 1;
+}
+
+/* Add clear separation between table and conversation */
+.conversation-section {
+  position: relative;
+  z-index: 5; /* Higher z-index to appear above table */
+  background: linear-gradient(to bottom, #ffffff, #f9fcff);
+  border-top: 2px solid var(--lwc-colorBorder, #e5e5e5);
+  margin-top: 1rem;
+  clear: both; /* Clear floating elements */
+  padding-top: 0.5rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+}
+
+.thread {
+  border-top: 1px solid var(--lwc-colorBorderFaint, #f3f3f3); 
+  padding-top: 0.25rem; 
+  position: relative;
+  z-index: 5; /* Increased to ensure hovers work */
+  background: white; /* Ensure it has a solid background */
+  overflow: visible !important; /* Allow hovers to be visible */
+  clear: both; /* Clear any floats */
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Date column styling */
+.slds-table th:first-child, .slds-table td:first-child {
+  max-width: 110px;
+  min-width: 110px;
+  white-space: nowrap; /* Prevent date from wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread { border-top: 1px solid var(--lwc-colorBorder, #e5e5e5); padding-top: .75rem; margin-top: .5rem; }
+.thread-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 0.5rem; 
+  padding: 0.75rem 1rem; 
+  background: linear-gradient(to right, #0070d2, #1589ee);
+  border: 1px solid #0070d2;
+  border-radius: 4px;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: subtle-glow 3s infinite alternate;
+}
+
+.conversation-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.conversation-title h3, 
+.thread-header .slds-text-heading_small {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.participant-name {
+  font-weight: 600;
+  color: rgb(1, 118, 211);
+  font-size: 1rem;
+  margin-left: 0.25rem;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-up-btn {
+  margin-left: 1rem;
+  --sds-c-button-brand-color-background: #00396b;
+  --sds-c-button-brand-color-background-hover: #004d8c;
+  --sds-c-button-text-color: white;
+  font-size: 0.75rem;
+  --sds-c-button-radius-border: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.follow-up-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.new-interaction-btn,
+.new-incident-btn {
+  --sds-c-button-neutral-color-background: rgba(255, 255, 255, 0.95);
+  --sds-c-button-neutral-color-border: rgba(255, 255, 255, 0.95);
+  --sds-c-button-text-color: #0070d2;
+  --sds-c-button-neutral-color-background-hover: #ffffff;
+  --sds-c-button-neutral-color-border-hover: #ffffff;
+  --sds-c-icon-color-foreground-default: #0070d2;
+  font-weight: 600;
+}
+
+.action-buttons {
+  margin-left: auto;
+}
+
+.needs-attn-soft { background: #fffdf2; }
+.notify-hidden .slds-button_icon { visibility: hidden; }
+.thread > article {
+  padding: 0 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.note { 
+  border-radius: .25rem; 
+  margin-bottom: 1rem; 
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.note.note-attn { 
+  background: #fffdf2; 
+  border-left: 3px solid #ffb75d;
+  box-shadow: 0 2px 5px rgba(255, 183, 93, 0.2);
+}
+
+.note-content {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  padding: 0.75rem;
+  background-color: #f8fcff; /* Light blue background */
+  border-radius: 0 0 4px 4px;
+  border-left: 1px solid #e0e5ee;
+  border-right: 1px solid #e0e5ee;
+  border-bottom: 1px solid #e0e5ee;
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.02);
+  color: #16325c; /* Darker text for better readability */
+}
+
+.note-content p {
+  margin-bottom: 0.5rem;
+  color: #16325c;
+}
+
+.note-content p:last-child {
+  margin-bottom: 0;
+}
+
+.note-content .title {
+  font-weight: 600;
+  color: #006699;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.note-content .body {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background-color: #fff;
+  border-radius: 0.25rem;
+}
+
+/* Rich text formatting for note-content */
+.note-content ul {
+  margin-left: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+  list-style-position: outside !important;
+  padding-left: 0 !important;
+  list-style-type: disc !important; /* Always use disc bullets for unordered lists */
+  padding-inline-start: 2em !important; /* Standard padding for lists */
+}
+
+.note-content ol {
+  margin-left: 1.5rem !important;
+  margin-bottom: 0.75rem !important;
+  list-style-position: outside !important;
+  padding-left: 0 !important;
+  list-style-type: decimal !important; /* Always use decimal for ordered lists */
+  padding-inline-start: 2em !important; /* Standard padding for lists */
+}
+
+.note-content li {
+  margin-bottom: 0.5rem !important;
+  display: list-item !important;
+  line-height: 1.5 !important;
+  position: relative !important; /* Ensure position context for pseudo-element removal */
+  list-style-position: outside !important;
+  list-style-type: inherit !important; /* Inherit from parent list */
+}
+
+/* Aggressive removal of all pseudo-element bullets */
+.note-content li::before,
+.note-content li:before,
+.note-content li .marker,
+.note-content li:marker,
+.note-content li::marker,
+.note-content li marker,
+.note-content li *::before,
+.note-content li *:before {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Special class to override :before bullets */
+.no-before-bullet::before,
+li.no-before-bullet::before,
+.note-content li.no-before-bullet::before,
+[data-no-bullet="true"]::before {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Target specific element types ONLY in the table cells and note-content */
+.rich-note-cell marker,
+.rich-note-cell :marker,
+.rich-note-cell ::marker,
+.rich-note-cell li::before,
+.rich-note-cell li::marker,
+.rich-note-cell li:marker,
+.note-content marker,
+.note-content :marker,
+.note-content ::marker,
+.note-content li::before {
+  display: none !important;
+  content: none !important;
+  visibility: hidden !important;
+}
+
+/* Only target SLDS bullets within the specific areas we care about */
+.rich-note-cell [class*="slds"] li::before,
+.rich-note-cell li[class*="slds"]::before,
+.note-content [class*="slds"] li::before,
+.note-content li[class*="slds"]::before,
+.note-content li.slds-has-bullets::before,
+.note-content .slds-has-bullets li::before {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Clean list item styling - ensure this element has no bullets */
+.clean-list-item {
+  display: inline-block !important;
+  position: relative !important;
+}
+
+.clean-list-item::before,
+.clean-list-item::after,
+.clean-list-item:before,
+.clean-list-item:after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+}
+
+.note-meta {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.note-meta { 
+  display: flex; 
+  flex-wrap: wrap;
+  gap: .75rem; 
+  font-size: .75rem; 
+  font-weight: 500;
+  color: #5f738a; 
+  margin-bottom: 0;
+  background: linear-gradient(to right, #f9f9f9, #f5f8fa);
+  padding: 12px 15px;
+  border-radius: 4px 4px 0 0;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e0e5ee;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Container for the date and staff information to ensure consistent alignment */
+.staff-info-container {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.note-meta .date {
+  font-weight: 700;
+  color: #0070d2;
+  font-size: 0.875rem;
+  background: rgba(0, 112, 210, 0.08);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.note-meta .staff {
+  font-weight: 600;
+  color: #006699;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+}
+
+.record-link {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.record-link:hover {
+  transform: scale(1.2);
+  --sds-c-icon-color-foreground-default: #0070d2;
+}
+
+/* Add pointer cursor to record link */
+lightning-icon.record-link svg {
+  cursor: pointer;
+}
+.card { 
+  border: 1px solid #ecebea; 
+  border-radius: .25rem; 
+  padding: .75rem; 
+  margin: .75rem 0; 
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card .note-meta {
+  background-color: #f5f8fa;
+}
+
+.card .title { 
+  font-weight: 600; 
+  margin: .5rem 0;
+  color: #006699;
+  font-size: 1rem;
+}
+
+.card .body { 
+  padding-bottom: 0.5rem; 
+  font-size: 0.875rem;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.incidents-header {
+  margin-top: 1.5rem;
+  background: linear-gradient(to right, #0070d2, #1589ee);
+  border: 1px solid #0070d2;
+}
+
+/* Pagination styling */
+.pagination-controls {
+  background: linear-gradient(to right, #f9f9f9, #f5f7fa);
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #e0e5ee;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.page-size-selector {
+  width: 5rem;
+  display: inline-block;
+}
+
+.slds-badge_lightest {
+  background-color: #ffffff;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  border: 1px solid #e0e5ee;
+  font-weight: 600;
+  color: #16325c;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.pagination-controls lightning-button-group {
+  margin: 0 0.25rem;
+}
+
+/* Ensure pagination buttons are properly spaced */
+.pagination-controls .slds-button {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  --sds-c-button-neutral-color-background: #ffffff;
+  --sds-c-button-neutral-color-border: #d8dde6;
+  --sds-c-button-neutral-color-background-hover: #f4f6f9;
+  --sds-c-button-text-color: #16325c;
+  font-weight: 500;
+}
+
+/* Make the record count stand out */
+.slds-text-body_small {
+  color: #54698d;
+  font-weight: 500;
+}
+
+/* Enhanced modal styling */
+.slds-modal__header {
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+  border-bottom: 2px solid #dddbda;
+  background: #f9f9f9;
+  padding: 0.75rem;
+}
+
+.header-icon {
+  --sds-c-icon-color-background: #0070d2;
+  --sds-c-icon-color-foreground: white;
+}
+
+/* Enhanced card styling for the modal */
+.slds-modal__content .slds-card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 0.75rem;
+  border: 1px solid #f3f3f3;
+}
+
+.slds-modal__content .slds-card__header {
+  padding: 0.5rem 0.75rem;
+  background: #f9f9f9;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+.slds-modal__content .slds-card__body {
+  padding: 0.5rem 0.75rem;
+}
+
+.slds-modal__content .slds-form-element {
+  margin-bottom: 0.75rem;
+}
+
+.slds-modal__footer {
+  border-top: 1px solid #f3f3f3;
+  background: #f9f9f9;
+  border-bottom-left-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+/* Ensure modal text is readable */
+.slds-modal__content {
+  color: #16325c;
+}
+
+.slds-modal__content .slds-form-element__label {
+  color: #3e3e3c;
+}
+
+.slds-modal__content .slds-form-element__static {
+  color: #16325c;
+}
+
+/* Ensure all headings in the modal are readable */
+.slds-modal h1, 
+.slds-modal h2, 
+.slds-modal h3, 
+.slds-modal h4, 
+.slds-modal h5, 
+.slds-modal h6,
+.slds-modal .slds-text-heading_small,
+.slds-modal .slds-text-heading_medium,
+.slds-modal .slds-text-heading_large {
+  color: #16325c;
+}
+
+/* Spinner container styles */
+.spinner-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 9050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Style the section headers */
+.slds-section__title.slds-theme_shade {
+  background: #f3f3f3;
+  border: 1px solid #e0e5ee;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  color: #16325c;
+}
+
+/* Rich text editor styling */
+.rich-text-container {
+  border: 1px solid #d8dde6;
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+  min-height: 80px;
+  background-color: white;
+}
+
+.rich-text-container:focus-within {
+  border-color: #1589ee;
+  box-shadow: 0 0 3px #0070d2;
+}
+
+.rich-text-toolbar {
+  display: flex;
+  padding: 0.125rem;
+  border-bottom: 1px solid #f3f3f3;
+  background: #f9f9f9;
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+}
+
+.rich-text-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 0.125rem;
+  border: 1px solid transparent;
+  background: transparent;
+  margin-right: 0.125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rich-text-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: #d8dde6;
+}
+
+.rich-text-button.active {
+  background-color: rgba(0, 112, 210, 0.1);
+  border-color: #0070d2;
+}
+
+.rich-text-content {
+  padding: 0.375rem;
+  min-height: 60px;
+  outline: none;
+}
+
+/* Styling for bullet lists in rich text */
+.rich-text-content ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-content ul li {
+  margin-bottom: 0.125rem;
+}
+
+/* Info box styling */
+.slds-box.slds-theme_info {
+  background-color: #f8fcff;
+  border-color: #d8e6f3;
+  color: #16325c;
+}
+
+.slds-box.slds-theme_info p {
+  color: #16325c;
+}
+
+/* Button styling */
+.slds-modal__footer .slds-button_brand {
+  --sds-c-button-brand-color-background: #006699;
+  --sds-c-button-brand-color-background-hover: #004466;
+}
+
+/* Highlight animation for newly created or refreshed rows */
+@keyframes highlight-pulse {
+  0% { 
+    background-color: rgba(0, 112, 210, 0.1); 
+  }
+  50% { 
+    background-color: rgba(0, 112, 210, 0.2); 
+  }
+  100% { 
+    background-color: #f1f8fc; 
+  }
+}
+
+/* Subtle glow animation for header elements */
+@keyframes subtle-glow {
+  0% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  100% {
+    box-shadow: 0 3px 10px rgba(0, 112, 210, 0.3);
+  }
+}
+
+.highlight-animation > td {
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+/* Enhanced spinner visibility */
+.spinner-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 9050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.spinner-container lightning-spinner {
+  transform: scale(1.5);
+}
+
+/* Sidebar boxes styling */
+.slds-box_small.slds-theme_default {
+  border: 1px solid #e0e5ee;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: white;
+  border-radius: 4px;
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.slds-box_small.slds-theme_default:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.slds-box_small .slds-text-heading_small {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  border-radius: 3px;
+}
+
+.slds-theme_shade {
+  background: linear-gradient(to right, #f2f6fa, #f5f7fa);
+  color: #16325c;
+  border-bottom: 1px solid #d8dde6;
+  margin: -0.75rem -0.75rem 0.75rem -0.75rem;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+  font-weight: 600;
+  padding: 0.75rem;
+}
+
+/* Sidebar table styling */
+.slds-box_small .slds-table {
+  font-size: 0.875rem;
+}
+
+.slds-box_small .slds-table thead th {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background: #f9f9f9;
+  color: #54698d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.slds-box_small .slds-table td {
+  padding: 0.35rem 0.5rem;
+}
+
+.slds-box_small .slds-table td a {
+  color: #0070d2;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.slds-box_small .slds-table td a:hover {
+  text-decoration: underline;
+}
+
+.slds-box_small .slds-table tr:hover > td {
+  background-color: #f8fcff;
+}
+
+/* Adjust table layout for sidebar tables */
+.slds-size_4-of-12 .slds-table {
+  table-layout: fixed;
+}
+
+.slds-size_4-of-12 .slds-table th:first-child,
+.slds-size_4-of-12 .slds-table td:first-child {
+  width: 65%;
+}
+
+.slds-size_4-of-12 .slds-table th:nth-child(2),
+.slds-size_4-of-12 .slds-table td:nth-child(2) {
+  width: 35%;
+}
+
+/* Main participant table styling */
+.slds-col.slds-size_8-of-12 .slds-text-heading_small {
+  padding: 0.75rem 1rem;
+  color: #16325c;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border-bottom: 2px solid #f3f3f3;
+  margin-bottom: 1rem;
+  background: linear-gradient(to right, #f7f9fc, #ffffff);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 48em) {
+  .slds-modal__container {
+    width: 95%;
+    max-width: 95%;
+  }
+  
+  .slds-grid.slds-gutters {
+    display: block;
+  }
+  
+  .slds-col.slds-size_1-of-2,
+  .slds-col.slds-size_8-of-12,
+  .slds-col.slds-size_4-of-12 {
+    width: 100%;
+  }
+  
+  .slds-box_small.slds-theme_default {
+    margin-top: 1rem;
+  }
+}

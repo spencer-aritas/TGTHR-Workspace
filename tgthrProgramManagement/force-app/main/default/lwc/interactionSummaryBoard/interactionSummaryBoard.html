@@ -1,0 +1,538 @@
+<template>
+  <lightning-card>
+    <h1 slot="title" class="slds-text-heading_medium slds-p-left_small">
+      <span class="slds-icon_container slds-icon-standard-note slds-m-right_small">
+        <lightning-icon icon-name="standard:note" size="small"></lightning-icon>
+      </span>
+      Meeting Notes (Last 90 Days)
+    </h1>
+    
+  <template if:true={isLoading}>
+    <div class="spinner-container">
+      <lightning-spinner alternative-text="Loading" size="large" variant="brand"></lightning-spinner>
+    </div>
+  </template>
+  
+  <lightning-tabset active-value={activeTab} ontabchange={handleTabChange} variant="scoped" class="tabset-container">
+    <lightning-tab label="1440 Pine" value="all" onactive={handleTabActive}>
+      <!-- Removed Log Interaction button from here -->
+      
+      <!-- Main content area - full width now that sidebar cards are removed -->
+      <div class="slds-p-around_x-small">
+        <h3 class="slds-text-heading_small slds-p-bottom_small">Participants</h3>
+        <template if:true={rowsAll.length}>
+          <div class="slds-scrollable_y table-wrap">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+              <thead>
+                <tr class="slds-line-height_reset">
+                  <th scope="col" data-field="Date_of_Interaction__c" onclick={handleSort} class="sortable-header">
+                    <div class="slds-truncate">
+                      <span>Date</span>
+                      <!-- Icon will be inserted here by JS -->
+                    </div>
+                  </th>
+                  <th scope="col" data-field="Account_Name" onclick={handleSort} class="sortable-header">
+                    <div class="slds-truncate">
+                      <span>Participant</span>
+                      <!-- Icon will be inserted here by JS -->
+                    </div>
+                  </th>
+                  <th scope="col" data-field="CreatedBy_Name" onclick={handleSort} class="sortable-header">
+                    <div class="slds-truncate">
+                      <span>Staff</span>
+                      <!-- Icon will be inserted here by JS -->
+                    </div>
+                  </th>
+                  <th scope="col"><div class="slds-truncate">Notes</div></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template for:each={rowsAll} for:item="row">
+                  <tr key={row.Id} data-id={row.Id} onclick={handleRowClick} class={row.notesCellClass}>
+                    <td>
+                      <div class="slds-truncate">{row.Date_of_Interaction__c}</div>
+                    </td>
+                    <td>
+                      <div class="slds-truncate">{row.Account_Name}</div>
+                    </td>
+                    <td>
+                      <div class="slds-truncate">{row.CreatedBy_Name}</div>
+                    </td>
+                    <td class="rich-note-cell">
+                      <div class="rich-cell-container slds-is-relative">
+                        <c-rich-hover-cell value={row.MeetingNotes} class-name="table-hover-cell"></c-rich-hover-cell>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+        <template if:false={rowsAll.length}>
+          <div class="slds-p-around_medium slds-text-align_center">No records found for 1440 Pine</div>
+        </template>
+      </div>
+    </lightning-tab>
+
+    <lightning-tab label="Nest 56" value="nest" onactive={handleTabActive}>
+      <!-- Removed Log Interaction button from here -->
+      
+      <!-- Main content area - full width now that sidebar cards are removed -->
+      <div class="slds-p-around_x-small">
+        <h3 class="slds-text-heading_small slds-p-bottom_small">Participants</h3>
+        <template if:true={rowsNest.length}>
+          <div class="slds-scrollable_y table-wrap">
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+              <thead>
+                <tr class="slds-line-height_reset">
+                  <th scope="col" data-field="Date_of_Interaction__c" onclick={handleSort} class="sortable-header">
+                    <div class="slds-truncate">
+                      <span>Date</span>
+                      <!-- Icon will be inserted here by JS -->
+                    </div>
+                  </th>
+                  <th scope="col" data-field="Account_Name" onclick={handleSort} class="sortable-header">
+                    <div class="slds-truncate">
+                      <span>Participant</span>
+                      <!-- Icon will be inserted here by JS -->
+                    </div>
+                  </th>
+                  <th scope="col" data-field="CreatedBy_Name" onclick={handleSort} class="sortable-header">
+                    <div class="slds-truncate">
+                      <span>Staff</span>
+                      <!-- Icon will be inserted here by JS -->
+                    </div>
+                  </th>
+                  <th scope="col"><div class="slds-truncate">Notes</div></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template for:each={rowsNest} for:item="row">
+                  <tr key={row.Id} data-id={row.Id} onclick={handleRowClick} class={row.notesCellClass}>
+                    <td>
+                      <div class="slds-truncate">{row.Date_of_Interaction__c}</div>
+                    </td>
+                    <td>
+                      <div class="slds-truncate">{row.Account_Name}</div>
+                    </td>
+                    <td>
+                      <div class="slds-truncate">{row.CreatedBy_Name}</div>
+                    </td>
+                    <td class="rich-note-cell">
+                      <div class="rich-cell-container slds-is-relative">
+                        <c-rich-hover-cell value={row.MeetingNotes} class-name="table-hover-cell"></c-rich-hover-cell>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </template>
+        <template if:false={rowsNest.length}>
+          <div class="slds-p-around_medium slds-text-align_center">No records found for Nest 56</div>
+        </template>
+      </div>
+    </lightning-tab>
+  </lightning-tabset>
+
+    <template if:true={selected}>
+      <div class="slds-m-top_medium slds-p-top_medium conversation-section">
+      <div class="thread">
+        <div class="thread-header">
+          <div class="conversation-title">
+            <h3 class="slds-text-heading_small slds-m-right_x-small">
+              Interaction History with {selected.Account_Name}
+            </h3>
+          </div>
+          <div class="action-buttons">
+            <lightning-button 
+              variant="neutral" 
+              label="New" 
+              icon-name="utility:add" 
+              class="new-interaction-btn" 
+              onclick={openNewInteractionModal}>
+            </lightning-button>
+          </div>
+        </div>
+
+        <!-- Interaction History Pagination Controls (Top) -->
+        <div class="pagination-controls slds-p-vertical_x-small">
+          <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+            <div class="slds-col slds-size_1-of-2">
+              <span class="slds-text-body_small">
+                Showing {convoStartPosition} to {convoEndPosition} of {convoTotalRecords} records
+              </span>
+            </div>
+            <div class="slds-col slds-size_1-of-2 slds-text-align_right">
+              <lightning-combobox
+                name="convoPageSize"
+                label="Records per page"
+                value={convoPageSize}
+                options={pageSizeOptions}
+                variant="label-hidden"
+                class="page-size-selector"
+                onchange={handleConvoPageSizeChange}>
+              </lightning-combobox>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Interactions -->
+        <template for:each={convoDisplayedRecords} for:item="n">
+          <article key={n.Id} class={n.noteClass}>
+            <div class="note-meta">
+              <div class="staff-info-container">
+                <span class="date">{n.Date_of_Interaction__c}</span>
+                <span class="staff">
+                  {n.CreatedBy_Name}
+                  <lightning-icon 
+                    icon-name="utility:new_window" 
+                    size="xx-small" 
+                    class="record-link slds-m-left_xx-small"
+                    alternative-text="Open record" 
+                    title="Open record in a new tab"
+                    data-recordid={n.Id}
+                    onclick={navigateToRecord}>
+                  </lightning-icon>
+                </span>
+                <template if:true={n.Notify_Case_Manager__c}>
+                  <lightning-icon icon-name="utility:warning" size="x-small" class="warn"></lightning-icon>
+                </template>
+              </div>
+              <div class="action-buttons">
+                <lightning-button 
+                  variant="brand" 
+                  label="Follow Up" 
+                  class="follow-up-btn" 
+                  data-recordid={n.Id}
+                  data-accountid={n.AccountId}
+                  data-programid={n.Program__c}
+                  onclick={openFollowUpModal}>
+                </lightning-button>
+              </div>
+            </div>
+            <div class="note-content" lwc:dom="manual" data-id={n.Id}></div>
+          </article>
+        </template>
+        
+        <!-- Interaction History Pagination Controls (Bottom) -->
+        <div class="pagination-controls slds-p-vertical_small">
+          <div class="slds-grid slds-grid_vertical-align-center">
+            <div class="slds-col">
+              <lightning-button-group>
+                <lightning-button 
+                  label="First" 
+                  icon-name="utility:jump_to_left" 
+                  onclick={handleConvoFirstPage}
+                  disabled={isConvoFirstPage}>
+                </lightning-button>
+                <lightning-button 
+                  label="Previous" 
+                  icon-name="utility:chevronleft" 
+                  onclick={handleConvoPreviousPage}
+                  disabled={isConvoFirstPage}>
+                </lightning-button>
+              </lightning-button-group>
+            </div>
+            <div class="slds-col slds-text-align_center">
+              <span class="slds-badge slds-badge_lightest">
+                Page {convoCurrentPage} of {convoTotalPages}
+              </span>
+            </div>
+            <div class="slds-col slds-text-align_right">
+              <lightning-button-group>
+                <lightning-button 
+                  label="Next" 
+                  icon-name="utility:chevronright" 
+                  icon-position="right"
+                  onclick={handleConvoNextPage}
+                  disabled={isConvoLastPage}>
+                </lightning-button>
+                <lightning-button 
+                  label="Last" 
+                  icon-name="utility:jump_to_right" 
+                  icon-position="right"
+                  onclick={handleConvoLastPage}
+                  disabled={isConvoLastPage}>
+                </lightning-button>
+              </lightning-button-group>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incidents (keep growing this section with other related cards later) -->
+        <template if:true={incidents.length}>
+          <div class="thread-header incidents-header">
+            <div class="conversation-title">
+              <h3 class="slds-text-heading_small">Incident Report History for {selected.Account_Name}</h3>
+            </div>
+            <div class="action-buttons">
+              <lightning-button 
+                variant="neutral" 
+                label="New" 
+                icon-name="utility:add" 
+                class="new-incident-btn" 
+                onclick={openNewInteractionModal}>
+              </lightning-button>
+            </div>
+          </div>
+          
+          <!-- Incident Reports Pagination Controls (Top) -->
+          <div class="pagination-controls slds-p-vertical_x-small">
+            <div class="slds-grid slds-grid_vertical-align-center slds-grid_align-spread">
+              <div class="slds-col slds-size_1-of-2">
+                <span class="slds-text-body_small">
+                  Showing {incidentsStartPosition} to {incidentsEndPosition} of {incidentsTotalRecords} records
+                </span>
+              </div>
+              <div class="slds-col slds-size_1-of-2 slds-text-align_right">
+                <lightning-combobox
+                  name="incidentsPageSize"
+                  label="Records per page"
+                  value={incidentsPageSize}
+                  options={pageSizeOptions}
+                  variant="label-hidden"
+                  class="page-size-selector"
+                  onchange={handleIncidentsPageSizeChange}>
+                </lightning-combobox>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Incident Reports List -->
+          <template for:each={incidentsDisplayedRecords} for:item="i">
+            <article key={i.Id} class="note">
+              <div class="note-meta">
+                <div class="staff-info-container">
+                  <span class="date">{i.date}</span>
+                  <span class="staff">
+                    {i.staff}
+                    <lightning-icon 
+                      icon-name="utility:new_window" 
+                      size="xx-small" 
+                      class="record-link slds-m-left_xx-small"
+                      alternative-text="Open record" 
+                      title="Open record in a new tab"
+                      data-recordid={i.Id}
+                      onclick={navigateToRecord}>
+                    </lightning-icon>
+                  </span>
+                </div>
+                <!-- Add an empty action-buttons div to maintain consistent layout -->
+                <div class="action-buttons">
+                  <!-- No buttons needed, just for alignment -->
+                </div>
+              </div>
+              <div class="note-content">
+                <div class="title slds-text-heading_small slds-m-bottom_xx-small">{i.title}</div>
+                <div class="body">{i.body}</div>
+              </div>
+            </article>
+          </template>
+          
+          <!-- Incident Reports Pagination Controls (Bottom) -->
+          <div class="pagination-controls slds-p-vertical_small">
+            <div class="slds-grid slds-grid_vertical-align-center">
+              <div class="slds-col">
+                <lightning-button-group>
+                  <lightning-button 
+                    label="First" 
+                    icon-name="utility:jump_to_left" 
+                    onclick={handleIncidentsFirstPage}
+                    disabled={isIncidentsFirstPage}>
+                  </lightning-button>
+                  <lightning-button 
+                    label="Previous" 
+                    icon-name="utility:chevronleft" 
+                    onclick={handleIncidentsPreviousPage}
+                    disabled={isIncidentsFirstPage}>
+                  </lightning-button>
+                </lightning-button-group>
+              </div>
+              <div class="slds-col slds-text-align_center">
+                <span class="slds-badge slds-badge_lightest">
+                  Page {incidentsCurrentPage} of {incidentsTotalPages}
+                </span>
+              </div>
+              <div class="slds-col slds-text-align_right">
+                <lightning-button-group>
+                  <lightning-button 
+                    label="Next" 
+                    icon-name="utility:chevronright" 
+                    icon-position="right"
+                    onclick={handleIncidentsNextPage}
+                    disabled={isIncidentsLastPage}>
+                  </lightning-button>
+                  <lightning-button 
+                    label="Last" 
+                    icon-name="utility:jump_to_right" 
+                    icon-position="right"
+                    onclick={handleIncidentsLastPage}
+                    disabled={isIncidentsLastPage}>
+                  </lightning-button>
+                </lightning-button-group>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+      </div>
+    </template>
+
+    <!-- Interaction modal -->
+    <template if:true={openModal}>
+      <section role="dialog" tabindex="-1" aria-modal="true" class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeModal}>
+              <lightning-icon icon-name="utility:close" size="small" alternative-text="Close"></lightning-icon>
+              <span class="slds-assistive-text">Close</span>
+            </button>
+            <div class="slds-media slds-media_center">
+              <div class="slds-media__figure">
+                <lightning-icon icon-name="standard:note" size="small" alternative-text="Interaction" class="header-icon"></lightning-icon>
+              </div>
+              <div class="slds-media__body">
+                <h2 class="slds-text-heading_medium slds-m-top_xx-small" style="color: #16325c;">Log Interaction</h2>
+              </div>
+            </div>
+          </header>
+          <div class="slds-modal__content slds-p-around_small">
+            <!-- Participant and Program Information Card -->
+            <div class="slds-card slds-m-bottom_medium">
+              <div class="slds-card__header slds-grid">
+                <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                  <div class="slds-media__figure">
+                    <lightning-icon icon-name="standard:person_account" size="small"></lightning-icon>
+                  </div>
+                  <div class="slds-media__body">
+                    <h2 class="slds-card__header-title" style="color: #16325c;">
+                      <span>Participant Information</span>
+                    </h2>
+                  </div>
+                </header>
+              </div>
+              <div class="slds-card__body slds-card__body_inner">
+                <template if:true={currentInteraction}>
+                  <div class="slds-grid slds-gutters">
+                    <div class="slds-col slds-size_1-of-2">
+                      <div class="slds-form-element">
+                        <span class="slds-form-element__label">Participant</span>
+                        <div class="slds-form-element__static slds-text-heading_small">{selected.Account_Name}</div>
+                      </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                      <div class="slds-form-element">
+                        <span class="slds-form-element__label">Program</span>
+                        <div class="slds-form-element__static slds-text-heading_small">
+                          <template if:true={isAll}>1440 Pine</template>
+                          <template if:false={isAll}>Nest 56</template>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+            
+            <!-- User input fields in a clean form layout -->
+            <div class="slds-form slds-form_stacked slds-p-around_x-small slds-card">
+              <div class="slds-section slds-is-open">
+                <h3 class="slds-section__title slds-theme_shade slds-p-around_xx-small">
+                  <span class="slds-truncate" title="Interaction Details">Interaction Details</span>
+                </h3>
+                
+                <div class="slds-section__content">
+                  <!-- Date of Interaction -->
+                  <div class="slds-form-element slds-m-bottom_x-small">
+                    <label class="slds-form-element__label" for="interaction-date">
+                      <abbr class="slds-required" title="required">*</abbr>
+                      Date of Interaction
+                    </label>
+                    <div class="slds-form-element__control">
+                      <lightning-input 
+                        type="date" 
+                        name="interaction-date" 
+                        label="Date of Interaction"
+                        value={interactionDate}
+                        onchange={handleFieldChange}
+                        variant="label-hidden"
+                        required>
+                      </lightning-input>
+                    </div>
+                  </div>
+                  
+                  <!-- Interaction Purpose -->
+                  <div class="slds-form-element slds-m-bottom_x-small">
+                    <label class="slds-form-element__label" for="interaction-purpose">
+                      <abbr class="slds-required" title="required">*</abbr>
+                      Interaction Purpose
+                    </label>
+                    <div class="slds-form-element__control">
+                      <lightning-combobox
+                        name="interaction-purpose"
+                        label="Interaction Purpose"
+                        value={interactionPurpose}
+                        options={purposeOptions}
+                        onchange={handleFieldChange}
+                        variant="label-hidden"
+                        class="purpose-combobox"
+                        required>
+                      </lightning-combobox>
+                    </div>
+                  </div>
+                  
+                  <!-- Meeting Notes (Rich Text) -->
+                  <div class="slds-form-element">
+                    <label class="slds-form-element__label" for="meeting-notes">Meeting Notes</label>
+                    <div class="slds-form-element__control">
+                      <lightning-input-rich-text
+                        name="meeting-notes"
+                        value={meetingNotes}
+                        onchange={handleRichTextChange}
+                        placeholder="Enter meeting notes here..."
+                        formats={richTextFormats}
+                        label-visible="false"
+                        required>
+                      </lightning-input-rich-text>
+                    </div>
+                  </div>
+                  
+                  <!-- Notify Case Manager checkbox -->
+                  <div class="slds-form-element slds-m-top_medium">
+                    <div class="slds-form-element__control">
+                      <div class="slds-checkbox">
+                        <lightning-input 
+                          type="checkbox"
+                          label="Flag for case manager attention"
+                          name="notify-case-manager"
+                          checked={notifyCaseManager}
+                          onchange={handleFieldChange}>
+                        </lightning-input>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <footer class="slds-modal__footer slds-grid slds-grid_align-spread">
+            <div>
+              <lightning-button variant="brand" 
+                                label="Log Interaction" 
+                                onclick={createRecordDirectly}
+                                class="slds-m-right_x-small"
+                                title="Creates interaction record"></lightning-button>
+            </div>
+            <div>
+              <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
+            </div>
+          </footer>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+  </lightning-card>
+</template>

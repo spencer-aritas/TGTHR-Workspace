@@ -1,0 +1,223 @@
+<template>
+  <div class="board-container">
+    <!-- Top toolbar -->
+    <div class="slds-m-bottom_small">
+      <lightning-button label="Refresh" onclick={loadData} class="slds-m-right_x-small"></lightning-button>
+      <lightning-button label="Open Flow" onclick={openFlow} disabled={!selected} variant="brand"></lightning-button>
+    </div>
+    
+    <!-- Main content area with tabs -->
+    <lightning-tabset active-value={activeTab} ontabchange={handleTabChange} variant="scoped" class="tab-container">
+      <lightning-tab label="1440 Pine" value="all" onactive={handleTabActive}>
+        <div class="slds-p-around_x-small slds-border_bottom">
+          <div>Count: {rowsAll.length}</div>
+          <div class="slds-text-body_small slds-text-color_weak">Active tab: {isAll}</div>
+        </div>
+        <div class="table-container">
+          <!-- Table for All data -->
+          <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+            <thead>
+              <tr class="slds-line-height_reset">
+                <th class="sortable-header" data-field="Account_Name" onclick={handleSort}>
+                  Account Name
+                </th>
+                <th class="sortable-header" data-field="Property" onclick={handleSort}>
+                  Property
+                </th>
+                <th class="sortable-header" data-field="Primary_Name" onclick={handleSort}>
+                  Resident
+                </th>
+                <th class="sortable-header" data-field="Phone" onclick={handleSort}>
+                  Phone
+                </th>
+                <th class="sortable-header" data-field="Email" onclick={handleSort}>
+                  Email
+                </th>
+                <th class="sortable-header" data-field="Activity_Date" onclick={handleSort}>
+                  Interaction Date
+                </th>
+                <th class="sortable-header" data-field="Type" onclick={handleSort}>
+                  Type
+                </th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template if:true={isAll}>
+                <template if:true={rowsAll.length}>
+                  <template for:each={rowsAll} for:item="row">
+                    <tr key={row.Id} data-id={row.Id} class={row.rowClass} onclick={handleRowClick}>
+                      <td>{row.Account_Name}</td>
+                      <td>{row.Property}</td>
+                      <td>{row.Primary_Name}</td>
+                      <td>{row.Phone}</td>
+                      <td>{row.Email}</td>
+                      <td>
+                        <lightning-formatted-date-time value={row.Activity_Date} year="numeric" month="short" day="2-digit" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                      </td>
+                      <td>{row.Type}</td>
+                      <td>
+                        <lightning-button label="View" variant="brand" data-id={row.Id} onclick={handleRowClick}></lightning-button>
+                      </td>
+                    </tr>
+                  </template>
+                </template>
+                <template if:false={rowsAll.length}>
+                  <tr>
+                    <td colspan="8" class="slds-text-align_center">No data available</td>
+                  </tr>
+                </template>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </lightning-tab>
+      
+      <lightning-tab label="Nest 56" value="nest" onactive={handleTabActive}>
+        <div class="slds-p-around_x-small slds-border_bottom">
+          <div>Count: {rowsNest.length}</div>
+          <div class="slds-text-body_small slds-text-color_weak">Active tab: {isNest}</div>
+        </div>
+        <div class="table-container">
+          <!-- Table for Nest data -->
+          <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+            <thead>
+              <tr class="slds-line-height_reset">
+                <th class="sortable-header" data-field="Account_Name" onclick={handleSort}>
+                  Account Name
+                </th>
+                <th class="sortable-header" data-field="Property" onclick={handleSort}>
+                  Property
+                </th>
+                <th class="sortable-header" data-field="Primary_Name" onclick={handleSort}>
+                  Resident
+                </th>
+                <th class="sortable-header" data-field="Phone" onclick={handleSort}>
+                  Phone
+                </th>
+                <th class="sortable-header" data-field="Email" onclick={handleSort}>
+                  Email
+                </th>
+                <th class="sortable-header" data-field="Activity_Date" onclick={handleSort}>
+                  Interaction Date
+                </th>
+                <th class="sortable-header" data-field="Type" onclick={handleSort}>
+                  Type
+                </th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template if:true={isNest}>
+                <template if:true={rowsNest.length}>
+                  <template for:each={rowsNest} for:item="row">
+                    <tr key={row.Id} data-id={row.Id} class={row.rowClass} onclick={handleRowClick}>
+                      <td>{row.Account_Name}</td>
+                      <td>{row.Property}</td>
+                      <td>{row.Primary_Name}</td>
+                      <td>{row.Phone}</td>
+                      <td>{row.Email}</td>
+                      <td>
+                        <lightning-formatted-date-time value={row.Activity_Date} year="numeric" month="short" day="2-digit" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+                      </td>
+                      <td>{row.Type}</td>
+                      <td>
+                        <lightning-button label="View" variant="brand" data-id={row.Id} onclick={handleRowClick}></lightning-button>
+                      </td>
+                    </tr>
+                  </template>
+                </template>
+                <template if:false={rowsNest.length}>
+                  <tr>
+                    <td colspan="8" class="slds-text-align_center">No data available</td>
+                  </tr>
+                </template>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </lightning-tab>
+    </lightning-tabset>
+    
+    <!-- Right panel for selected record details -->
+    <div if:true={selected} class="slds-m-top_medium slds-p-around_medium slds-border_top right-panel">
+      <div class="slds-grid slds-grid_align-spread">
+        <h2 class="slds-text-heading_medium">{selected.Account_Name}</h2>
+        <lightning-button-group>
+          <lightning-button label="Edit" variant="neutral"></lightning-button>
+          <lightning-button label="Delete" variant="destructive"></lightning-button>
+        </lightning-button-group>
+      </div>
+      
+      <template if:true={isRightLoading}>
+        <div class="spinner-container">
+          <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </div>
+      </template>
+      
+      <template if:false={isRightLoading}>
+        <template if:true={rightData}>
+          <div class="slds-m-top_small">
+            <dl class="slds-dl_horizontal">
+              <dt class="slds-dl_horizontal__label slds-p-horizontal_small">Property:</dt>
+              <dd class="slds-dl_horizontal__detail">{selected.Property}</dd>
+              <dt class="slds-dl_horizontal__label slds-p-horizontal_small">Resident:</dt>
+              <dd class="slds-dl_horizontal__detail">{selected.Primary_Name}</dd>
+              <dt class="slds-dl_horizontal__label slds-p-horizontal_small">Phone:</dt>
+              <dd class="slds-dl_horizontal__detail">{selected.Phone}</dd>
+              <dt class="slds-dl_horizontal__label slds-p-horizontal_small">Email:</dt>
+              <dd class="slds-dl_horizontal__detail">{selected.Email}</dd>
+              <dt class="slds-dl_horizontal__label slds-p-horizontal_small">Interaction Date:</dt>
+              <dd class="slds-dl_horizontal__detail">
+                <lightning-formatted-date-time value={selected.Activity_Date} year="numeric" month="short" day="2-digit" hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
+              </dd>
+              <dt class="slds-dl_horizontal__label slds-p-horizontal_small">Type:</dt>
+              <dd class="slds-dl_horizontal__detail">{selected.Type}</dd>
+            </dl>
+          </div>
+        </template>
+      </template>
+    </div>
+    
+    <!-- Toast message -->
+    <template if:true={showToast}>
+      <div class="slds-notify_container slds-is-relative">
+        <div class={toastClass}>
+          <span class="slds-assistive-text">{toastVariant}</span>
+          <div class="slds-notify__content">
+            <h2 class="slds-text-heading_small">{toastMessage}</h2>
+          </div>
+          <div class="slds-notify__close">
+            <lightning-button-icon icon-name="utility:close" size="small" variant="bare" onclick={closeToast}></lightning-button-icon>
+          </div>
+        </div>
+      </div>
+    </template>
+    
+    <!-- Flow modal -->
+    <template if:true={isFlowOpen}>
+      <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_medium">
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <h2 class="slds-text-heading_medium slds-hyphenate">Flow</h2>
+            <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" onclick={closeModal}>
+              <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+              <span class="slds-assistive-text">Close</span>
+            </button>
+          </header>
+          <div class="slds-modal__content slds-p-around_medium">
+            <lightning-flow flow-api-name="My_Flow_API_Name" flow-input-variables={flowInputs} onstatuschange={handleFlowStatus}></lightning-flow>
+          </div>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+    
+    <!-- Loading spinner -->
+    <template if:true={isLoading}>
+      <div class="slds-is-relative spinner-container">
+        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+      </div>
+    </template>
+  </div>
+</template>

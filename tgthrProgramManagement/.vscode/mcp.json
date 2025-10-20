@@ -1,0 +1,17 @@
+{
+	"servers": {
+		"salesforce": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"@salesforce/mcp",
+				"--orgs",
+				"benefits",
+				"--toolsets",
+				"all"
+			]
+		}
+	},
+	"inputs": []
+}

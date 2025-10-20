@@ -1,0 +1,19 @@
+# Combined .gitignore for PWA + Salesforce
+
+# PWA
+pwa-sync-starter/web/node_modules/
+pwa-sync-starter/web/dist/
+pwa-sync-starter/web/.env.local
+pwa-sync-starter/server/data/
+pwa-sync-starter/server/.env
+pwa-sync-starter/server/__pycache__/
+
+# Salesforce
+tgthrProgramManagement/.sf/
+tgthrProgramManagement/.sfdx/
+tgthrProgramManagement/node_modules/
+
+# Shared
+*.log
+.DS_Store
+.vscode/settings.json

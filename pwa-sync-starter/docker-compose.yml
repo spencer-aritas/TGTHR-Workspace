@@ -1,0 +1,39 @@
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+
+  api:
+    build: ./server
+    env_file:
+      - ./server/.env
+    environment:
+      - TZ=America/Denver
+      - API_ORIGINS=https://outreachintake.aritasconsulting.com
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./server:/app
+      
+  web:
+    build: ./web
+    environment:
+      - VITE_API_BASE=/api
+      - VITE_HOST=0.0.0.0
+      - VITE_ALLOWED_HOSTS=outreachintake.aritasconsulting.com
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:
