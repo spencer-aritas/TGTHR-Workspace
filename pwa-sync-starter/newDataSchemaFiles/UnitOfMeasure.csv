@@ -1,0 +1,12 @@
+﻿Name,Description,Type,Unit Code
+Bed Night,A night of housing.,Number,NIGHT
+Session,Time spent with a participant in a constructive manor,Period,SESSION
+Case Mgmt Hour,An hour of Case Management Activities,Period,CMHOUR
+Voucher,Passes with no monetary value,Number,VOUCHER
+Meal,A meal of food,Number,MEAL
+Referral,The participant was directed to services outside of TGTHR,Number,REF
+Group Hour,"An hour of group time, measured by Participant",Period,GHOUR
+Pass,"Any voucher, coupon or pass with monetary value",Currency Unit,CU
+Kit,"One tangible kit (hygiene kit, winter kit) given to a participant.",Number,KIT
+Completion,One successful completion of a defined service pathway/class.,Number,COMPLETION
+Interaction ,Time spent with or behalf of a Participant that falls putside everyday Case Management,Period,INTER

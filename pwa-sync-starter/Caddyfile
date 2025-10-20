@@ -1,0 +1,13 @@
+outreachintake.aritasconsulting.com {
+	# Caddy automatically gets Let's Encrypt certificate
+	
+	# Proxy API requests to backend
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	
+	# Serve frontend
+	handle {
+		reverse_proxy web:5173
+	}
+}

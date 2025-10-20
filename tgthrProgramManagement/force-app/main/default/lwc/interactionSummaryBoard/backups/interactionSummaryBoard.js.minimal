@@ -1,0 +1,97 @@
+import { LightningElement, track } from 'lwc';
+import recent from '@salesforce/apex/InteractionSummaryService.recent';
+import thread from '@salesforce/apex/InteractionSummaryService.thread';
+import recentIncidents from '@salesforce/apex/InteractionSummaryService.recentIncidents';
+import markAddressed from '@salesforce/apex/InteractionSummaryService.markAddressed';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+export default class InteractionSummaryBoard extends LightningElement {
+    @track rowsAll = [];
+    @track rowsNest = [];
+    @track selected = null;
+    @track convo = [];
+    @track incidents = [];
+    @track openFlow = false;
+    @track selectedRowIds = [];
+    @track isLoading = true;
+    @track sortField = 'Date_of_Interaction__c';
+    @track sortDirection = 'desc';
+    activeTab = 'all';
+    lastAccountId = null;
+    cacheBuster = Date.now();
+    
+    connectedCallback() {
+        this.loadData();
+    }
+    
+    // Fixed version of handleTabActive with properly enclosed setTimeout
+    handleTabActive(e) {
+        console.log('Tab active event fired:', e.target.value);
+        // Force initialization of the interactive elements in the tab
+        this.initializeActiveTab();
+        
+        // Wait for the DOM to update before trying to select a row
+        setTimeout(() => {
+            // Check which tab is visually active according to DOM
+            const activeTabElement = this.template.querySelector('lightning-tab[aria-selected="true"]');
+            if (activeTabElement) {
+                console.log('Visually active tab value:', activeTabElement.value);
+                
+                // Make sure our internal state matches the UI
+                if (this.activeTab !== activeTabElement.value) {
+                    console.log('Correcting active tab from', this.activeTab, 'to', activeTabElement.value);
+                    this.activeTab = activeTabElement.value;
+                }
+            }
+            
+            // Initialize the newly activated tab
+            this.initializeActiveTab();
+            
+            // Count visible rows in the DOM
+            const allRowsInDOM = this.template.querySelectorAll('tr[data-id]');
+            console.log('Total rows with data-id found in DOM:', allRowsInDOM.length);
+            
+            if (allRowsInDOM.length > 0) {
+                console.log('First few row IDs in DOM:', 
+                    Array.from(allRowsInDOM).slice(0, 3).map(r => r.dataset.id).join(', '));
+            }
+            
+            // Debug the active tab state
+            console.log('Active tab after timeout:', this.activeTab);
+            console.log('Is Nest active:', this.isNest);
+            console.log('Is All active:', this.isAll);
+            
+            // Auto-select the first row to keep the right-hand pane in sync
+            this.autoselectFirst();
+        }, 50);
+    }
+    
+    // Placeholder for initializeActiveTab
+    initializeActiveTab() {
+        // Implementation would go here
+    }
+    
+    // Placeholder for autoselectFirst
+    autoselectFirst() {
+        // Implementation would go here
+    }
+    
+    // Placeholder for updateSortIndicators
+    updateSortIndicators() {
+        // Implementation would go here
+    }
+    
+    // Placeholder getters for tab state
+    get isNest() {
+        return this.activeTab === 'nest';
+    }
+    
+    get isAll() {
+        return this.activeTab === 'all';
+    }
+    
+    // Placeholder for loadData
+    loadData() {
+        // Implementation would go here
+    }
+}

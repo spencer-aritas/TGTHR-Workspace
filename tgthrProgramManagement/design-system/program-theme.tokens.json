@@ -1,0 +1,10 @@
+{
+  "programs": {
+    "1440 Pine": { "colorHex": "#0E7C86", "accentHex": "#E2F4F6", "iconName": "utility:home" },
+    "Nest 56":   { "colorHex": "#8058F6", "accentHex": "#EFE8FF", "iconName": "utility:user" }
+  },
+  "rules": {
+    "banner": { "height": "6px", "radius": "6px" },
+    "pill":   { "fontWeight": 600, "fontSize": "0.75rem" }
+  }
+}

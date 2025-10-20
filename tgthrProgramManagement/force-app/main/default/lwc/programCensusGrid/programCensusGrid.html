@@ -1,0 +1,579 @@
+<template>
+  <div class={programClass}>
+    <!-- Modal for missing benefit assignments -->
+    <template if:true={showAssignmentModal}>
+      <section
+        role="dialog"
+        tabindex="-1"
+        aria-labelledby="modal-heading-01"
+        aria-modal="true"
+        aria-describedby="modal-content-id-1"
+        class="slds-modal slds-fade-in-open"
+      >
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <button
+              class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+              title="Close"
+              onclick={closeAssignmentModal}
+            >
+              <lightning-icon
+                icon-name="utility:close"
+                size="small"
+              ></lightning-icon>
+              <span class="slds-assistive-text">Close</span>
+            </button>
+            <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
+              Missing Benefit Assignments
+            </h2>
+          </header>
+          <div
+            class="slds-modal__content slds-p-around_medium"
+            id="modal-content-id-1"
+          >
+            <p class="slds-var-m-bottom_small">
+              The following participants don't have the "{benefitName}" benefit
+              assigned. Select which participants should get a benefit
+              assignment before proceeding:
+            </p>
+            <template
+              for:each={missingAssignmentParticipants}
+              for:item="participant"
+            >
+              <div key={participant.id} class="slds-var-m-bottom_xx-small">
+                <lightning-input
+                  type="checkbox"
+                  label={participant.name}
+                  checked={participant.selected}
+                  data-id={participant.id}
+                  onchange={handleParticipantSelection}
+                ></lightning-input>
+              </div>
+            </template>
+          </div>
+          <footer class="slds-modal__footer">
+            <button
+              class="slds-button slds-button_neutral"
+              onclick={closeAssignmentModal}
+            >
+              Cancel
+            </button>
+            <button
+              class="slds-button slds-button_brand"
+              onclick={createSelectedAssignments}
+            >
+              Create Assignments & Proceed
+            </button>
+          </footer>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Modal for clinical details -->
+    <template if:true={showClinicalModal}>
+      <section
+        role="dialog"
+        tabindex="-1"
+        aria-labelledby="clinical-modal-heading"
+        aria-modal="true"
+        aria-describedby="clinical-modal-content"
+        class="slds-modal slds-fade-in-open"
+      >
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <button
+              class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+              title="Close"
+              onclick={closeClinicalModal}
+            >
+              <lightning-icon
+                icon-name="utility:close"
+                size="small"
+              ></lightning-icon>
+              <span class="slds-assistive-text">Close</span>
+            </button>
+            <h2
+              id="clinical-modal-heading"
+              class="slds-modal__title slds-hyphenate"
+            >
+              Clinical Benefit Details
+            </h2>
+          </header>
+          <div
+            class="slds-modal__content slds-p-around_medium"
+            id="clinical-modal-content"
+          >
+            <template if:true={showClinicalNoteChoice}>
+              <div class="slds-form slds-form_stacked slds-p-bottom_medium">
+                <div class="slds-form-element slds-m-bottom_medium">
+                  <div class="slds-form-element__control">
+                    <lightning-radio-group
+                      name="clinicalNoteOption"
+                      label="How would you like to enter case notes?"
+                      options={clinicalNoteOptions}
+                      value={clinicalNoteOption}
+                      onchange={handleClinicalNoteOptionChange}
+                      type="radio"
+                    ></lightning-radio-group>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Single Case Notes Input -->
+            <template if:true={showSingleCaseNotesInput}>
+              <div class="slds-form slds-form_stacked slds-p-bottom_medium">
+                <div class="slds-form-element slds-m-bottom_medium">
+                  <label class="slds-form-element__label" for="singleCaseNotes"
+                    >Case Notes</label
+                  >
+                  <div class="slds-form-element__control">
+                    <lightning-textarea
+                      id="singleCaseNotes"
+                      value={singleCaseNotes}
+                      onchange={handleSingleCaseNotesChange}
+                      rows="4"
+                      placeholder="Enter case notes for all participants"
+                    ></lightning-textarea>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <!-- Individual Case Notes Inputs -->
+            <template if:true={showIndividualCaseNotesInputs}>
+              <div class="slds-form slds-form_stacked slds-p-bottom_medium">
+                <div class="slds-form-element slds-m-bottom_medium">
+                  <template
+                    for:each={individualCaseNotes}
+                    for:item="participantNote"
+                  >
+                    <div
+                      key={participantNote.id}
+                      class="slds-form-element slds-p-bottom_small"
+                    >
+                      <label
+                        class="slds-form-element__label"
+                        for="caseNotes-{participantNote.id}"
+                        >{participantNote.name}</label
+                      >
+                      <div class="slds-form-element__control">
+                        <lightning-textarea
+                          id="caseNotes-{participantNote.id}"
+                          value={participantNote.caseNotes}
+                          onchange={handleIndividualCaseNotesChange}
+                          data-id={participantNote.id}
+                          rows="3"
+                          placeholder="Enter case notes"
+                        ></lightning-textarea>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- Start/End Date-Time (compound) -->
+            <fieldset class="slds-form-element slds-form-element_compound slds-m-bottom_large">
+              <legend class="slds-form-element__legend slds-form-element__label">
+                Start and End (local)
+              </legend>
+
+              <div class="slds-form-element__control">
+                <div class="slds-form-element__row">
+                  <!-- Start Date-Time -->
+                  <div class="slds-size_1-of-2">
+                    <div class="slds-form-element">
+                      <label class="slds-form-element__label" for="clinicalStartDateTime">
+                        Start (local)
+                      </label>
+                      <div class="slds-form-element__control">
+                        <lightning-input
+                          id="clinicalStartDateTime"
+                          type="datetime-local"
+                          value={modalStartDateTime}
+                          onchange={handleModalStartDateTimeChange}
+                        ></lightning-input>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- End Date-Time -->
+                  <div class="slds-size_1-of-2">
+                    <div class="slds-form-element">
+                      <label class="slds-form-element__label" for="clinicalEndDateTime">
+                        End (local)
+                      </label>
+                      <div class="slds-form-element__control">
+                        <lightning-input
+                          id="clinicalEndDateTime"
+                          type="datetime-local"
+                          value={modalEndDateTime}
+                          onchange={handleModalEndDateTimeChange}
+                        ></lightning-input>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+          <footer class="slds-modal__footer">
+            <button
+              class="slds-button slds-button_neutral"
+              onclick={closeClinicalModal}
+            >
+              Cancel
+            </button>
+            <button
+              class="slds-button slds-button_brand"
+              onclick={confirmClinicalDetails}
+            >
+              Confirm
+            </button>
+          </footer>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Optimized control row - more compact and space-efficient -->
+    <div class="slds-var-mb-medium">
+      <div class="slds-box slds-box_x-small slds-theme_default">
+        <div class="slds-grid slds-gutters_x-small slds-grid_vertical-align-end">
+          <div class="slds-col slds-no-flex">
+            <lightning-combobox
+              label="Benefit Type"
+              value={eventType}
+              options={eventTypeOptions}
+              onchange={handleEventTypeChange}
+              size="small"
+            >
+            </lightning-combobox>
+          </div>
+          <div class="slds-col slds-no-flex">
+            <lightning-combobox
+              label="Benefit"
+              value={benefitId}
+              options={benefitOptions}
+              onchange={handleBenefitChange}
+              disabled={benefitDisabled}
+              placeholder={benefitPlaceholder}
+              size="small"
+            >
+            </lightning-combobox>
+          </div>
+          <div class="slds-col slds-no-flex">
+            <lightning-input
+              type="date"
+              label="Service Date"
+              value={serviceDate}
+              onchange={handleDate}
+              size="small"
+            ></lightning-input>
+          </div>
+          <div class="slds-col slds-no-flex">
+            <lightning-input
+              type="number"
+              label="Qty"
+              value={quantity}
+              min="1"
+              step="1"
+              onchange={handleQty}
+              size="small"
+            ></lightning-input>
+          </div>
+          <div class="slds-col slds-no-flex">
+            <lightning-button
+              variant="brand"
+              label={disburseLabel}
+              onclick={handleDisburse}
+              disabled={disburseDisabled}
+              size="small"
+            ></lightning-button>
+          </div>
+          <div class="slds-col slds-no-flex">
+            <lightning-button
+              class="slds-m-left_x-small"
+              variant="brand"
+              label="Quick Food Pantry Log"
+              onclick={handleQuickFoodPantryLog}
+              disabled={quickFoodPantryDisabled}
+            ></lightning-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content with sidebar layout - balanced happy medium -->
+    <div class="slds-grid slds-gutters">
+      <!-- Main data table (8/12 width) - optimal balance for content visibility -->
+      <div class="slds-col slds-size_8-of-12">
+        <div class="slds-grid slds-grid_vertical">
+          <div class="slds-col">
+            <div class="slds-box slds-box_small slds-theme_default sidebar-box slds-var-m-top_medium">
+              <h3 class="slds-text-heading_small slds-p-bottom_small slds-p-around_x-small sidebar-header">
+                <lightning-icon
+                  icon-name="standard:groups"
+                  size="small"
+                  alternative-text="Enrolled Participants"
+                ></lightning-icon>
+                <template if:true={programName}>
+                  <span class="slds-var-p-left_small">Enrolled Participants for {programName}</span>
+                </template>
+                <template if:false={programName}>
+                  <span class="slds-var-p-left_small">Enrolled Participants</span>
+                </template>
+              </h3>
+              <div class="table-container">
+              <lightning-datatable
+              key-field="accountId"
+              data={rows}
+              columns={columns}
+              max-row-selection="500"
+              onrowselection={handleSelection}
+              onrowaction={handleRowAction}
+              hide-checkbox-column={hideCheckboxes}
+              enable-infinite-loading={enableInfiniteLoading}
+              resize-column-disabled="false"
+              min-column-width="100"
+              default-sort-direction="asc"
+              sorted-by="residentName"
+              sorted-direction="asc"
+              onsave={handleCellChange}
+            >
+              </lightning-datatable>
+              </div>
+            </div>
+          </div>
+
+          <template if:true={isLoading}>
+            <div class="slds-is-relative slds-m-around_medium">
+              <lightning-spinner
+                alternative-text="Loading"
+                size="medium"
+              ></lightning-spinner>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Sidebar area (4/12 width) - happy medium for information display -->
+      <div class="slds-col slds-size_4-of-12">
+        <!-- Monthly Engagement Calendar -->
+        <div class="slds-box slds-box_small slds-theme_default sidebar-box slds-var-m-top_medium">
+          <h3
+            class="slds-text-heading_small slds-p-bottom_small slds-p-around_x-small sidebar-header"
+          >
+            <lightning-icon
+              icon-name="standard:event"
+              size="small"
+              alternative-text="Weekly Engagements"
+            ></lightning-icon>
+            <span class="slds-var-p-left_small"
+              >Weekly Engagement Calendar</span
+            >
+          </h3>
+          <!-- Weekly Calendar Navigation - more compact -->
+          <div class="slds-grid slds-p-bottom_x-small">
+            <div class="slds-col slds-no-flex">
+              <lightning-button-group>
+                <lightning-button
+                  icon-name="utility:chevronleft"
+                  onclick={handlePreviousWeek}
+                  size="small"
+                ></lightning-button>
+                <lightning-button
+                  label="This Week"
+                  onclick={handleCurrentWeek}
+                  size="small"
+                ></lightning-button>
+                <lightning-button
+                  icon-name="utility:chevronright"
+                  onclick={handleNextWeek}
+                  size="small"
+                ></lightning-button>
+              </lightning-button-group>
+            </div>
+            <div class="slds-col slds-size_4-of-12">
+              <div
+                class="slds-text-body_small slds-text-align_right calendar-date-range"
+                style="font-size: 0.7rem; margin-top: 0.3rem"
+              >
+                {dateRangeLabel}
+              </div>
+            </div>
+          </div>
+
+          <!-- Engagement List -->
+          <template if:true={recentEngagements.length}>
+            <div class="engagement-list slds-scrollable_y">
+              <ul class="slds-has-dividers_bottom-space">
+                <template for:each={recentEngagements} for:item="engagement">
+                  <li key={engagement.id} class="slds-item engagement-item">
+                    <div
+                      class="calendar-entry"
+                      onclick={handleEngagementClick}
+                      data-id={engagement.id}
+                    >
+                      <div class="calendar-entry__date">
+                        <div class="calendar-entry__day">
+                          {engagement.dayName}
+                        </div>
+                        <div class="calendar-entry__badge">
+                          <span>{engagement.dayOfMonth}</span>
+                        </div>
+                      </div>
+                      <div class="calendar-entry__details">
+                        <div
+                          class="calendar-entry__resident slds-truncate"
+                          title={engagement.residentName}
+                        >
+                          {engagement.residentName}
+                        </div>
+                        <div
+                          class="calendar-entry__type slds-truncate"
+                          title={engagement.benefitTypeName}
+                        >
+                          {engagement.benefitTypeName}
+                        </div>
+                        <div
+                          class="calendar-entry__benefit slds-truncate"
+                          title={engagement.benefitName}
+                        >
+                          {engagement.benefitName}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </template>
+              </ul>
+            </div>
+          </template>
+          <template if:false={recentEngagements.length}>
+            <div class="slds-p-around_medium slds-text-align_center">
+              No recent engagements found
+            </div>
+          </template>
+        </div>
+
+        <!-- Program Enrollments "Awaiting Intake" table -->
+        <div
+          class="slds-box slds-box_small slds-theme_default sidebar-box slds-m-top_small"
+        >
+          <h3
+            class="slds-text-heading_small slds-p-bottom_small slds-p-around_x-small sidebar-header"
+          >
+            <lightning-icon
+              icon-name="standard:household"
+              size="small"
+              alternative-text="Awaiting Intake"
+            ></lightning-icon>
+            <span class="slds-var-p-left_small">Awaiting Intake</span>
+          </h3>
+          <template if:true={awaitingIntakeRows.length}>
+            <table
+              class="slds-table slds-table_cell-buffer slds-table_bordered slds-max-medium-table_stacked"
+            >
+              <thead>
+                <tr class="slds-line-height_reset">
+                  <th scope="col">
+                    <div class="slds-truncate">Name</div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate">Start Date</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <template for:each={awaitingIntakeRows} for:item="enrollment">
+                  <tr
+                    key={enrollment.accountId}
+                    onclick={handleEnrollmentClick}
+                    data-id={enrollment.enrollmentId}
+                  >
+                    <td>
+                      <div class="slds-truncate">
+                        <a
+                          href={enrollment.residentLink}
+                          target="_blank"
+                          >{enrollment.residentName}</a
+                        >
+                      </div>
+                    </td>
+                    <td>
+                      <div class="slds-truncate">{enrollment.startDate}</div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </template>
+          <template if:false={awaitingIntakeRows.length}>
+            <div class="slds-p-around_medium slds-text-align_center">
+              No pending intake enrollments
+            </div>
+          </template>
+        </div>
+
+        <!-- Program Enrollments "Pending Exit" table -->
+        <div class="slds-box slds-box_small slds-theme_default sidebar-box">
+          <h3
+            class="slds-text-heading_small slds-p-bottom_small slds-p-around_x-small sidebar-header"
+          >
+            <lightning-icon
+              icon-name="standard:timeline"
+              size="small"
+              alternative-text="Pending Exit"
+            ></lightning-icon>
+            <span class="slds-var-p-left_small">Pending Exit</span>
+          </h3>
+          <template if:true={pendingExitRows.length}>
+            <table
+              class="slds-table slds-table_cell-buffer slds-table_bordered slds-max-medium-table_stacked"
+            >
+              <thead>
+                <tr class="slds-line-height_reset">
+                  <th scope="col">
+                    <div class="slds-truncate">Name</div>
+                  </th>
+                  <th scope="col">
+                    <div class="slds-truncate">Status</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <template for:each={pendingExitRows} for:item="enrollment">
+                  <tr
+                    key={enrollment.accountId}
+                    onclick={handleExitRowClick}
+                    data-id={enrollment.accountId}
+                  >
+                    <td>
+                      <div class="slds-truncate">
+                        <a
+                          onclick={handleEnrollmentClick}
+                          data-id={enrollment.accountId}
+                          >{enrollment.residentName}</a
+                        >
+                      </div>
+                    </td>
+                    <td>
+                      <div class="slds-truncate">{enrollment.status}</div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </template>
+          <template if:false={pendingExitRows.length}>
+            <div class="slds-p-around_medium slds-text-align_center">
+              No pending exit enrollments
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

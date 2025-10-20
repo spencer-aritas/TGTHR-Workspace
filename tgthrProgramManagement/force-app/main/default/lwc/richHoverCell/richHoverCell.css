@@ -1,0 +1,213 @@
+/* Make the cell the anchor for the popover */
+.rt { 
+  position: relative;
+  overflow: visible !important;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer; /* Indicate hoverable content */
+  z-index: 5; /* Ensure it's above other elements */
+}
+
+/* Tidy 2-line preview */
+/* In table cells - use truncated preview */
+.table-hover-cell .clip {
+  display: block;
+  max-height: 3.6em; /* Increased to allow for 3 lines with bullets */
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  font-size: .85rem;
+  color: #333;
+  padding: 2px 0;
+}
+
+/* Support rich text formatting in table cells */
+.table-hover-cell .clip b,
+.table-hover-cell .clip strong {
+  font-weight: bold;
+}
+
+.table-hover-cell .clip i,
+.table-hover-cell .clip em {
+  font-style: italic;
+}
+
+/* Improved list styling in table cells */
+.table-hover-cell .clip ul {
+  list-style-type: disc;
+  margin: 0 0 0.25rem 1.5rem;
+  padding: 0;
+  overflow: visible;
+}
+
+.table-hover-cell .clip ol {
+  list-style-type: decimal;
+  margin: 0 0 0.25rem 1.5rem;
+  padding: 0;
+  overflow: visible;
+}
+
+.table-hover-cell .clip li {
+  display: list-item;
+  margin-bottom: 0.1rem;
+  list-style-position: outside;
+}
+
+/* Remove forced bullets to avoid doubling with native list-style */
+/* .table-hover-cell .clip ul > li::before {
+  content: "•";
+  position: absolute;
+  left: -1em;
+  color: #333;
+} */
+
+.table-hover-cell .clip a {
+  color: #0070d2;
+  text-decoration: underline;
+}
+
+/* In conversation - show more content */
+.clip {
+  display: block;
+  max-height: none;
+  line-height: 1.4;
+  overflow: visible;
+  white-space: normal;
+  font-size: .9rem;
+  color: #333;
+  padding: 2px 0;
+  background-color: transparent;
+}
+
+/* Make the cell the anchor for hover detection */
+:host {
+  isolation: isolate;
+}
+
+/* The popup element is created in JS directly in the document body */
+/* No need for popup styles in component CSS - they're set inline */
+
+/* Add styles for rich text content in the popup */
+:global(.rich-hover-popup ul) {
+  list-style-type: disc !important;
+  margin-left: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+:global(.rich-hover-popup ol) {
+  list-style-type: decimal !important;
+  margin-left: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+:global(.rich-hover-popup li) {
+  margin-bottom: 0.25rem !important;
+}
+
+:global(.rich-hover-popup p) {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Show popup on hover with fade effect */
+.rt:hover .pop {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Special handling for tables */
+:host(.in-table) .pop {
+  left: -20px; /* Position to the left in tables */
+  top: 20px; /* Position below the cell */
+  z-index: 9999999; /* Super high z-index */
+  background-color: white !important;
+  color: #333 !important;
+}
+
+:host(.in-table) .pop .slds-popover__body {
+  background-color: white !important;
+  color: #333 !important;
+}
+
+:host(.in-table) .rich-text-popup {
+  color: #333 !important;
+  font-weight: normal;
+}
+
+/* Fix nubbin background */
+.slds-popover.slds-nubbin_left:before,
+.slds-popover.slds-nubbin_left:after {
+  background-color: white !important;
+}
+
+.slds-popover {
+  background-color: white !important;
+}
+
+/* Make sure the hover works even when the mouse moves to the popup */
+.pop:hover {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Responsive positioning for tables and smaller containers */
+@media (max-width: 1200px) {
+  .pop {
+    left: auto; /* Reset left positioning */
+    right: 8px; /* Position from right edge instead */
+    top: auto; /* Reset top positioning */
+    bottom: calc(100% + 8px); /* Position above the container */
+  }
+  /* Change nubbin direction for top positioning */
+  .pop.slds-nubbin_left {
+    transform: translateX(-50%); /* Center horizontally */
+  }
+}
+.pop .slds-rich-text-editor__output p { 
+  margin: .25rem 0; 
+  color: #333 !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
+
+/* Fix horizontal overflow handling in popups */
+.pop .slds-rich-text-editor__output {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  color: #333 !important;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.pop .slds-popover__body {
+  background-color: white !important;
+  padding: 0.75rem !important;
+  color: #333 !important;
+}
+
+/* Ensure images don't overflow the popup */
+.pop .slds-rich-text-editor__output img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Extreme overrides to ensure visibility */
+.pop lightning-formatted-rich-text,
+.pop .slds-rich-text-editor__output,
+.pop lightning-formatted-rich-text div,
+.pop lightning-formatted-rich-text span,
+.pop lightning-formatted-rich-text p {
+  color: #333 !important;
+  background-color: white !important;
+}
+
+.pop .slds-rich-text-editor__output a {
+  color: #0070d2 !important;
+}

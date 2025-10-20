@@ -1,0 +1,79 @@
+.rich-text-container {
+    border: 1px solid #d8dde6;
+    border-radius: 0.25rem;
+    overflow: hidden;
+    background-color: white;
+}
+
+.rich-text-container:focus-within {
+    border-color: #1589ee;
+    box-shadow: 0 0 3px #0070d2;
+}
+
+.rich-text-container.slds-has-error {
+    border-color: #c23934;
+    box-shadow: 0 0 3px #c23934;
+}
+
+.rich-text-toolbar {
+    display: flex;
+    padding: 0.25rem;
+    border-bottom: 1px solid #f3f3f3;
+    background: #f9f9f9;
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
+}
+
+.rich-text-button {
+    width: 32px;
+    height: 32px;
+    border-radius: 0.125rem;
+    border: 1px solid transparent;
+    background: transparent;
+    margin-right: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rich-text-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: #d8dde6;
+}
+
+.rich-text-button.active {
+    background-color: rgba(0, 112, 210, 0.1);
+    border-color: #0070d2;
+}
+
+.rich-text-content {
+    padding: 0.5rem;
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+    outline: none;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.rich-text-content:empty:before {
+    content: attr(data-placeholder);
+    color: #dddbda;
+    font-style: italic;
+}
+
+/* Styling for bullet lists */
+.rich-text-content ul {
+    list-style-type: disc;
+    margin-left: 1.5rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+    padding-left: 0.5rem;
+}
+
+.rich-text-content ul li {
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+    display: list-item;
+}

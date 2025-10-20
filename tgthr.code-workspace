@@ -1,0 +1,48 @@
+{
+  "folders": [
+    { "path": "tgthrProgramManagement" },
+    { "path": "pwa-sync-starter" }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.venv": true,
+      "**/__pycache__": true,
+      "**/node_modules": true
+    },
+    "xml.preferences.showSchemaDocumentationType": "none"
+  },
+  "launch": {
+    "configurations": []
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "API: dev (FastAPI)",
+        "type": "shell",
+        "options": { "cwd": "${workspaceFolder: pwa-sync-starter}" },
+        "command": "uvicorn server.app.main:app --reload --host 0.0.0.0 --port 8000",
+        "problemMatcher": []
+      },
+      {
+        "label": "PWA: dev",
+        "type": "shell",
+        "options": { "cwd": "${workspaceFolder: pwa-sync-starter}" },
+        "command": "npm run dev",
+        "problemMatcher": []
+      },
+      {
+        "label": "SF: test (apex)",
+        "type": "shell",
+        "options": { "cwd": "${workspaceFolder: tgthrProgramManagement}" },
+        "command": "sf apex run test --code-coverage --result-format human",
+        "problemMatcher": []
+      },
+      {
+        "label": "Start all (API + PWA)",
+        "dependsOn": ["API: dev (FastAPI)", "PWA: dev"],
+        "dependsOrder": "parallel"
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+Benefit Name,Unit of Measurement,Benefit Type Name,Benefit Type,BenefitCategory,Unit of Measure Id,BenefitTypeId,BenefitStatus,Program Id,Program Name,IsActive,EndDateTime,StartDateTime
+Housing,Bed Night,Housing,Service,Housing,0hERT0000000ptm2AA,0jhRT0000000PhZYAU,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Education Support,Session,Education,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhaYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Financial Education and Navigation,Session,Education,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhaYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Employment Support,Session,Employment,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhbYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Mental Health Support,Session,Social/Emotional,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Legal Support,Session,Education,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhaYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Public Benefits Support,Session,Education,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhaYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Vital Document Support,Session,Education,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhaYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Parenting Support,Session,Social/Emotional,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Substance Use Support,Session,Social/Emotional,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Conflict Resolution Support,Session,Social/Emotional,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Emotional Processing,Session,Social/Emotional,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Community Resource Navigation,Session,Social/Emotional,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Case Management Meeting,Case Mgmt Hour,Case Management,Service,Case Management,0hERT0000000ptp2AA,0jhRT0000000PhdYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Point Store Access,Voucher,Basic Needs,Goods,Case Management,0hERT0000000ptw2AA,0jhRT0000000PheYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Food Pantry Access - Onsite,Voucher,Basic Needs,Goods,Case Management,0hERT0000000ptw2AA,0jhRT0000000PheYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Meal Provided,Meal,Basic Needs,Goods,Material Suppport,0hERT0000000ptl2AA,0jhRT0000000PheYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+"Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",Session,Police Intervention,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhqYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Mental Health,Referral,Social/Emotional,Service,Clinical,0hERT0000000pts2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Education,Referral,Education,Service,Clinical,0hERT0000000pts2AA,0jhRT0000000PhaYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Physical Health,Referral,Medical,Service,Clinical,0hERT0000000pts2AA,0jhRT0000000PhiYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Other supports,Referral,Social/Emotional,Service,Clinical,0hERT0000000pts2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Pre-Lease Violation Support,Session,Housing Navigation,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Lease Violation Meeting,Session,Housing Navigation,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Tenant Retention Plan,Session,Housing Navigation,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Rental Assistance with Budget,Session,Housing Navigation,Monetary,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Eviction/ Mutual Rescission Support,Session,Housing Navigation,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Housekeeping,Session,Housing Navigation,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Voucher Support,Session,Housing Navigation,Goods,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Move Out Assistance,Session,Housing Navigation,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhjYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Initial Planning Meeting,Session,Care Coordination,Service,Clinical,0hERT0000000pto2AA,0jhRT0000000PhoYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Updates and Progress,Session,Care Coordination,Service,Clinical,0hERT0000000pto2AA,0jhRT0000000PhoYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Community Engagement,Group Hour,Community Outing,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhmYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Life Skills,Group Hour,Basic Needs,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PheYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+GED,Group Hour,Education,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhaYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+"Wellness, Mental Health, Mindfulness and Meditation.",Group Hour,Social/Emotional,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Resident Advisory Council,Group Hour,Group Session,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhlYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Peer Support,Group Hour,Group Session,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhlYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Therapeutic,Group Hour,Peer Clinical,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhsYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Prosocial,Group Hour,Community Outing,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhmYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Physical/Mental Wellness,Group Hour,Community Outing,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhmYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Food Access,Group Hour,Community Outing,Service,Clinical,0hERT0000000ptq2AA,0jhRT0000000PhmYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Individual Support,Session,Community Outing,Service,Clinical,0hERT0000000pto2AA,0jhRT0000000PhmYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Family Reunification Support,Session,Social/Emotional,Service,Clinical,0hERT0000000pto2AA,0jhRT0000000PhcYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+External Professional Team,Referral,Case Management,Service,Clinical,0hERT0000000pts2AA,0jhRT0000000PhdYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Care Coordination- External Medical Provider,Referral,Case Management,Service,Clinical,0hERT0000000pts2AA,0jhRT0000000PhdYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+External Therapy Provider,Referral,Case Management,Service,Clinical,0hERT0000000pts2AA,0jhRT0000000PhdYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+"Medical, Legal, or Employment",Session,Care Coordination,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhoYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Bus pass,Pass,Transportation Assistance,Monetary,Case Management,0hERT0000000ptu2AA,0jhRT0000000PhpYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Police Interaction- General Support,Session,Police Intervention,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhqYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Police Interaction- Arrest,Session,Police Intervention,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhqYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+BIPOC Support,Session,Clinical Counseling,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhrYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+LGBTQIA Support,Session,Clinical Counseling,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhrYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Peer Support,Session,Peer Clinical,Service,Case Management,0hERT0000000pto2AA,0jhRT0000000PhsYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Individual Session,Case Mgmt Hour,Clinical Counseling,Service,Case Management,0hERT0000000ptp2AA,0jhRT0000000PhrYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Substance Use Support,Case Mgmt Hour,Clinical Counseling,Service,Case Management,0hERT0000000ptp2AA,0jhRT0000000PhrYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01
+Group Support,Group Hour,Peer Clinical,Service,Case Management,0hERT0000000ptq2AA,0jhRT0000000PhsYAE,Active,11WVY000000GC6r2AG,1440 Pine,TRUE,2026-09-30,2025-10-01

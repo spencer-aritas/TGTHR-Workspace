@@ -1,0 +1,97 @@
+.table-wrap { 
+  max-height: 420px; 
+  overflow-y: auto;
+}  /* bigger list with its own scrollbar */
+
+.slds-table td {
+  cursor: pointer;
+}
+
+.slds-table tr:hover > td {
+  background-color: #f3f2f2;
+}
+
+.slds-table tr.slds-is-selected > td {
+  background-color: #f1f8fc;
+  box-shadow: 0 0 0 1px #0070d2 inset;
+}
+
+/* Class for rows needing attention */
+.slds-table tr.needs-attn-soft > td {
+  background: #fffdf2;
+}
+
+/* Error row styling */
+.slds-table tr.error-row > td {
+  color: #c23934;
+}
+
+/* Sortable column header styles */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.sortable-header:hover {
+  background-color: #f3f3f3;
+}
+
+.sortable-header-active {
+  transition: background-color 0.3s ease;
+  background-color: #f3f3f3;
+}
+
+.tab-container {
+  min-height: 400px;
+}
+
+.sortable-header .slds-truncate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* This will push the sort icon to the right */
+  height: 2rem;
+  position: relative; /* To help with absolute positioning of the icon */
+}
+
+/* Make space for the icon so text doesn't jump when icon is added */
+.sortable-header .slds-truncate::after {
+  content: '';
+  width: 1rem;
+  display: inline-block;
+}
+
+.sort-icon {
+  display: inline-block;
+  margin-left: 0.25rem;
+}
+
+/* Additional styles for the sorting header states */
+.slds-is-sorted-asc .slds-truncate,
+.slds-is-sorted-desc .slds-truncate {
+  font-weight: bold;
+}
+
+/* Make sure the icon container has proper spacing */
+.slds-icon_container {
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Date column styling */
+.slds-table th:first-child, .slds-table td:first-child {
+  max-width: 7.5rem;
+  min-width: 7.5rem;
+}
+
+.thread { border-top: 1px solid var(--lwc-colorBorder, #e5e5e5); padding-top: .75rem; margin-top: .5rem; }
+.thread-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+.thread-header .who { margin-left: .25rem; }
+
+.needs-attn-soft { background: #fffdf2; }
+.notify-hidden .slds-button_icon { visibility: hidden; }
+.note { border: 1px solid #ecebea; border-radius: .25rem; padding: .5rem .75rem; margin-bottom: .5rem; }
+.note.note-attn { background: #fffdf2; border-color: #f4e5c2; }
+.note-meta { display:flex; gap:.5rem; font-size: .75rem; color: #5f738a; margin-bottom: .25rem; }
+.card { border: 1px solid #ecebea; border-radius: .25rem; padding: .5rem .75rem; margin: .5rem 0; }
+.card .title { font-weight: 600; margin-bottom: .25rem; }

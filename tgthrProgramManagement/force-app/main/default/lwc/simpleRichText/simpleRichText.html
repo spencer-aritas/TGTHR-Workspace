@@ -1,0 +1,37 @@
+<template>
+    <div class={formElementClass}>
+        <template if:true={label}>
+            <label class="slds-form-element__label">
+                <template if:true={required}>
+                    <abbr class="slds-required" title="required">*</abbr>
+                </template>
+                {label}
+            </label>
+        </template>
+        
+        <div class="slds-form-element__control">
+            <div class={richTextContainerClass}>
+                <div class="rich-text-toolbar">
+                    <button type="button" class={boldButtonClass} onclick={handleBold} title="Bold">
+                        <lightning-icon icon-name="utility:bold" size="x-small"></lightning-icon>
+                    </button>
+                    <button type="button" class={italicButtonClass} onclick={handleItalic} title="Italic">
+                        <lightning-icon icon-name="utility:italic" size="x-small"></lightning-icon>
+                    </button>
+                    <button type="button" class={underlineButtonClass} onclick={handleUnderline} title="Underline">
+                        <lightning-icon icon-name="utility:underline" size="x-small"></lightning-icon>
+                    </button>
+                    <button type="button" class={bulletListButtonClass} onclick={handleBulletList} title="Bullet List">
+                        <lightning-icon icon-name="utility:list" size="x-small"></lightning-icon>
+                    </button>
+                </div>
+                <div class="rich-text-content" 
+                     onblur={handleContentChange}
+                     onkeyup={handleKeyUp}
+                     data-placeholder={placeholder}>
+                </div>
+            </div>
+            <div class="slds-form-element__help slds-hide" aria-live="assertive"></div>
+        </div>
+    </div>
+</template>
