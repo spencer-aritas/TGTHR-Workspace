@@ -2,6 +2,10 @@ public with sharing class TaskService {
     
     @AuraEnabled
     public static Id createFollowUpTask(String accountId, String encounterUuid, String notes, String pos, Boolean isCrisis, Datetime startUtc, Datetime endUtc) {
+        return createFollowUpTask(accountId, encounterUuid, notes, pos, isCrisis, startUtc, endUtc, null);
+    }
+    
+    public static Id createFollowUpTask(String accountId, String encounterUuid, String notes, String pos, Boolean isCrisis, Datetime startUtc, Datetime endUtc, String createdByUserId) {
         // Check for existing task with same CallObject (encounterUuid)
         String existingQuery = 'SELECT Id FROM Task WHERE CallObject = :encounterUuid LIMIT 1';
         List<SObject> existingTasks = Database.query(existingQuery);
@@ -23,6 +27,11 @@ public with sharing class TaskService {
             ' | Start: ' + String.valueOf(startUtc) +
             ' | End: ' + String.valueOf(endUtc)
         );
+        
+        // Set AssignedTo to the authenticated user if provided
+        if (String.isNotBlank(createdByUserId)) {
+            taskSObj.put('OwnerId', createdByUserId);
+        }
         
         insert taskSObj;
         return taskSObj.Id;
