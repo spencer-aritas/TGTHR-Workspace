@@ -714,7 +714,7 @@ public with sharing class InteractionSummaryService {
         : maxRows;
       String query =
         'SELECT Id, Name, Status, ProgramId, Program.Name, AccountId, Account.Name, ' +
-        'StartDate, EndDate, Enrollee.Name, EnrolleeId, IsActive ' +
+        'StartDate, EndDate, Enrollee.Name, EnrolleeId, IsActive ' +  //this is the line that needs updating
         'FROM ProgramEnrollment ' +
         'WHERE ProgramId = :pid ' +
         'AND (Status = \'Awaiting Intake\' OR Status = \'Pending Intake\' OR ' +
