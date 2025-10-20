@@ -6,7 +6,7 @@ public with sharing class BenefitAssignmentService {
         
         try {
             // Get all active benefits for Street Outreach Program
-            String benefitQuery = 'SELECT Id, Name, UnitOfMeasureId FROM Benefit WHERE ProgramId IN (SELECT ProgramId FROM ProgramEnrollment WHERE Id = :programEnrollmentId) AND IsActive = true';
+            String benefitQuery = 'SELECT Id, Name, UnitId FROM Benefit WHERE ProgramId IN (SELECT ProgramId FROM ProgramEnrollment WHERE Id = :programEnrollmentId) AND IsActive = true';
             List<SObject> benefits = Database.query(benefitQuery);
             
             System.debug('Found ' + benefits.size() + ' benefits for program');
@@ -21,7 +21,7 @@ public with sharing class BenefitAssignmentService {
                 ba.put('ParentRecordId', programEnrollmentId);
                 ba.put('Status', 'Enrolled');
                 ba.put('StartDateTime', Datetime.now());
-                ba.put('UnitOfMeasureId', benefit.get('UnitOfMeasureId'));
+                ba.put('UnitId', benefit.get('UnitId'));
                 
                 benefitAssignments.add(ba);
             }
