@@ -117,6 +117,7 @@ class IntakePayload(BaseModel):
 
 @router.post('/sync/PersonAccount')
 def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
+    from datetime import datetime
     data.person["uuid"] = data.localId
     
     # Get device user context
@@ -151,9 +152,34 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
             sf_id = create_person_account(data.person)
             logger.info(f"Created new Person Account for UUID {data.localId}: {sf_id}")
         
-        # Create InteractionSummary if notes are provided
-        notes = data.person.get('notes')
-        if notes and notes.strip():
+        # Create full encounter with all downstream records (Program Enrollment, InteractionSummary, Task, Benefit Assignments)
+        notes = data.person.get('notes') or 'Initial outreach contact'
+        try:
+            from ..salesforce.sf_client import ingest_encounter
+            import uuid as uuid_lib
+            encounter_uuid = str(uuid_lib.uuid4())
+            
+            # Create full encounter with defaults for Street Outreach
+            encounter_payload = {
+                "encounterUuid": encounter_uuid,
+                "personUuid": data.localId,
+                "firstName": data.person.get('firstName', 'Unknown'),
+                "lastName": data.person.get('lastName', 'Unknown'),
+                "startUtc": datetime.now().isoformat(),
+                "endUtc": datetime.now().isoformat(),
+                "pos": "27",  # Default POS - Outreach Site / Street
+                "isCrisis": False,
+                "notes": notes,
+                "createdByUserId": data.person.get('createdByUserId')
+            }
+            
+            logger.info(f"Creating full encounter for Person Account {sf_id}")
+            result = ingest_encounter(encounter_payload)
+            logger.info(f"Created full encounter {encounter_uuid}: {result}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to create full encounter: {e}")
+            # Fall back to just creating InteractionSummary
             try:
                 from ..salesforce.sf_client import call_interaction_summary_service
                 import uuid as uuid_lib
@@ -165,10 +191,9 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
                     uuid=interaction_uuid,
                     created_by_user_id=data.person.get('createdByUserId')
                 )
-                logger.info(f"Created InteractionSummary {interaction_id} for Account {sf_id}")
-            except Exception as e:
-                logger.warning(f"Failed to create InteractionSummary: {e}")
-                # Don't fail the whole request if InteractionSummary creation fails
+                logger.info(f"Created fallback InteractionSummary {interaction_id} for Account {sf_id}")
+            except Exception as e2:
+                logger.warning(f"Failed to create InteractionSummary fallback: {e2}")
             
         return {"localId": data.localId, "salesforceId": sf_id}
     except Exception as e:
