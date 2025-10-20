@@ -241,14 +241,15 @@ def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, cr
     today = datetime.now()
     formatted_date = f"{today.month:02d}/{today.day:02d}/{today.year}"
     
-    # Get current user name for title
-    staff_name = "System User"  # Default fallback
+    # Get CreatedBy user name for title (the actual staff member, not integration user)
+    staff_name = "Staff User"  # Default fallback
     if created_by_user_id:
         try:
             user = sobject_get("User", created_by_user_id)
-            staff_name = user.get('Name', 'System User')
-        except:
-            pass
+            staff_name = user.get('Name', 'Staff User')
+        except Exception as e:
+            print(f"Could not get user name for {created_by_user_id}: {e}")
+            staff_name = "Staff User"
     
     # Format title as "Participant LastName, FirstName - Date - Staff Name"
     title = f"{participant_name} - {formatted_date} - {staff_name}"
