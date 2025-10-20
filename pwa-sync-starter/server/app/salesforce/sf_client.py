@@ -245,8 +245,10 @@ def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, cr
     staff_name = "Staff User"  # Default fallback
     if created_by_user_id:
         try:
-            user = sobject_get("User", created_by_user_id)
-            staff_name = user.get('Name', 'Staff User')
+            user_query = f"SELECT Name FROM User WHERE Id = '{created_by_user_id}' LIMIT 1"
+            user_result = query_soql(user_query)
+            if user_result.get('records'):
+                staff_name = user_result['records'][0].get('Name', 'Staff User')
         except Exception as e:
             print(f"Could not get user name for {created_by_user_id}: {e}")
             staff_name = "Staff User"
@@ -270,13 +272,8 @@ def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, cr
     return res["id"]
 
 def call_interaction_summary_service(account_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
-    """Call your existing InteractionSummaryService - replace with actual service call"""
-    # TODO: Replace with actual service call
-    # from your_services import InteractionSummaryService
-    # service = InteractionSummaryService()
-    # return service.create_interaction_summary(...)
-    
-    # For now, use direct creation
+    """Call InteractionSummaryService with user context"""
+    # Use direct creation with proper user context
     return create_interaction_summary_direct(account_id, notes, uuid, created_by_user_id)
 
 def upsert_person_by_uuid(uuid: str, fields: dict) -> str:

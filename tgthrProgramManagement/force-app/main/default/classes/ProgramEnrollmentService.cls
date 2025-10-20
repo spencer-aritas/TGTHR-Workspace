@@ -131,6 +131,7 @@ global with sharing class ProgramEnrollmentService {
 
         // 5) Create InteractionSummary
         try {
+            String createdByUserId = (String) rawData.get('createdByUserId');
             String interactionId = InteractionSummaryService.createInteractionDirectly(
                 accountId,
                 programId,
@@ -147,6 +148,7 @@ global with sharing class ProgramEnrollmentService {
 
         // 6) Create follow-up Task
         try {
+            String createdByUserId = (String) rawData.get('createdByUserId');
             TaskService.createFollowUpTask(
                 accountId,
                 e.encounterUuid,
@@ -154,7 +156,8 @@ global with sharing class ProgramEnrollmentService {
                 e.pos,
                 e.isCrisis,
                 e.startUtc,
-                e.endUtc
+                e.endUtc,
+                createdByUserId
             );
             System.debug('Created follow-up task');
         } catch (Exception ex) {
