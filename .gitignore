@@ -3,16 +3,33 @@
 # PWA
 pwa-sync-starter/web/node_modules/
 pwa-sync-starter/web/dist/
+pwa-sync-starter/web/build/
 pwa-sync-starter/web/.env.local
 pwa-sync-starter/server/data/
 pwa-sync-starter/server/.env
 pwa-sync-starter/server/__pycache__/
 
+# Database files
+*.db
+*.duckdb
+*.sqlite
+*.sqlite3
+
+# Node modules everywhere
+node_modules/
+**/node_modules/
+
+# Build artifacts
+dist/
+build/
+dev-dist/
+
 # Salesforce - Exclude ALL standard library and generated files
 pwa-sync-starter/.sfdx/
 tgthrProgramManagement/.sf/
 tgthrProgramManagement/.sfdx/
-tgthrProgramManagement/node_modules/
+.sfdx/
+.sf/
 
 # Salesforce standard library (the garbage)
 **/StandardApexLibrary/
