@@ -245,13 +245,21 @@ def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, cr
     staff_name = "Staff User"  # Default fallback
     if created_by_user_id:
         try:
+            print(f"Looking up user name for ID: {created_by_user_id}")
             user_query = f"SELECT Name FROM User WHERE Id = '{created_by_user_id}' LIMIT 1"
+            print(f"User query: {user_query}")
             user_result = query_soql(user_query)
+            print(f"User query result: {user_result}")
             if user_result.get('records'):
                 staff_name = user_result['records'][0].get('Name', 'Staff User')
+                print(f"Found user name: {staff_name}")
+            else:
+                print("No user records found")
         except Exception as e:
             print(f"Could not get user name for {created_by_user_id}: {e}")
             staff_name = "Staff User"
+    else:
+        print("No created_by_user_id provided")
     
     # Format title as "Participant LastName, FirstName - Date - Staff Name"
     title = f"{participant_name} - {formatted_date} - {staff_name}"
@@ -288,7 +296,11 @@ def upsert_person_by_uuid(uuid: str, fields: dict) -> str:
 
 def query_soql(soql: str) -> dict:
     """Public helper to run a SOQL query and get the JSON response."""
-    return _query(soql)
+    try:
+        return _query(soql)
+    except Exception as e:
+        print(f"SOQL query failed: {soql} - Error: {e}")
+        raise
 def sobject_get(sobject: str, rec_id: str) -> dict:
     """GET a single sObject by Id."""
     return _sf(_api(f"/sobjects/{sobject}/{rec_id}"))
