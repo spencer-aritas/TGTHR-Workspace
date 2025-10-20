@@ -120,15 +120,34 @@ global with sharing class ProgramEnrollmentService {
             System.debug('Using existing enrollment: ' + enrollmentId);
         }
 
-        // 4) Create Benefit Assignments for Program Benefits
+        // 4) Create Benefit Assignments and Disbursements
         try {
-            createBenefitAssignments(accountId, programId, enrollmentId);
-            System.debug('Benefit assignments created successfully');
+            List<Id> disbursementIds = createBenefitAssignmentsAndDisbursements(accountId, programId, enrollmentId, e);
+            System.debug('Created ' + disbursementIds.size() + ' benefit disbursements');
+            
+            // 5) Create Tasks on BenefitDisbursements for validation
+            String createdByUserId = (String) rawData.get('createdByUserId');
+            for (Id disbursementId : disbursementIds) {
+                try {
+                    TaskService.createValidationTask(
+                        disbursementId,
+                        e.encounterUuid,
+                        e.notes,
+                        e.pos,
+                        e.isCrisis,
+                        e.startUtc,
+                        e.endUtc,
+                        createdByUserId
+                    );
+                } catch (Exception ex) {
+                    System.debug('Error creating validation task for disbursement ' + disbursementId + ': ' + ex.getMessage());
+                }
+            }
         } catch (Exception ex) {
-            System.debug('Error creating benefit assignments: ' + ex.getMessage());
+            System.debug('Error creating benefit assignments and disbursements: ' + ex.getMessage());
         }
 
-        // 5) Create InteractionSummary
+        // 6) Create InteractionSummary
         try {
             String createdByUserId = (String) rawData.get('createdByUserId');
             String interactionId = InteractionSummaryService.createInteractionDirectly(
@@ -143,24 +162,6 @@ global with sharing class ProgramEnrollmentService {
             System.debug('Created interaction: ' + interactionId);
         } catch (Exception ex) {
             System.debug('Error creating interaction: ' + ex.getMessage());
-        }
-
-        // 6) Create follow-up Task
-        try {
-            String createdByUserId = (String) rawData.get('createdByUserId');
-            TaskService.createFollowUpTask(
-                accountId,
-                e.encounterUuid,
-                e.notes,
-                e.pos,
-                e.isCrisis,
-                e.startUtc,
-                e.endUtc,
-                createdByUserId
-            );
-            System.debug('Created follow-up task');
-        } catch (Exception ex) {
-            System.debug('Error creating task: ' + ex.getMessage());
         }
 
         return JSON.serialize(new Map<String, Object>{
@@ -193,14 +194,16 @@ global with sharing class ProgramEnrollmentService {
         return e;
     }
     
-    private static void createBenefitAssignments(Id accountId, Id programId, Id enrollmentId) {
-        System.debug('Creating benefit assignments for account: ' + accountId + ', program: ' + programId);
-        // Get all active benefits for the program with UnitId
+    private static List<Id> createBenefitAssignmentsAndDisbursements(Id accountId, Id programId, Id enrollmentId, PwaEncounter e) {
+        System.debug('Creating benefit assignments and disbursements for account: ' + accountId + ', program: ' + programId);
+        List<Id> disbursementIds = new List<Id>();
+        
+        // Get all active benefits for the program
         String benefitQuery = 'SELECT Id, UnitId FROM Benefit WHERE ProgramId = :programId AND IsActive = true';
         List<SObject> benefits = Database.query(benefitQuery);
         System.debug('Found ' + benefits.size() + ' benefits for program');
         
-        if (benefits.isEmpty()) return;
+        if (benefits.isEmpty()) return disbursementIds;
         
         // Check existing assignments
         Set<Id> benefitIds = new Set<Id>();
@@ -208,19 +211,24 @@ global with sharing class ProgramEnrollmentService {
             benefitIds.add((Id) benefit.get('Id'));
         }
         
-        String existingQuery = 'SELECT BenefitId FROM BenefitAssignment WHERE EnrolleeId = :accountId AND BenefitId IN :benefitIds';
+        String existingQuery = 'SELECT Id, BenefitId FROM BenefitAssignment WHERE EnrolleeId = :accountId AND BenefitId IN :benefitIds';
         List<SObject> existingAssignments = Database.query(existingQuery);
         
-        Set<Id> existingBenefitIds = new Set<Id>();
+        Map<Id, Id> existingAssignmentsByBenefit = new Map<Id, Id>();
         for (SObject assignment : existingAssignments) {
-            existingBenefitIds.add((Id) assignment.get('BenefitId'));
+            existingAssignmentsByBenefit.put((Id) assignment.get('BenefitId'), (Id) assignment.get('Id'));
         }
         
-        // Create missing assignments
+        // Create missing assignments and disbursements
         List<SObject> assignmentsToCreate = new List<SObject>();
+        List<SObject> disbursementsToCreate = new List<SObject>();
+        
         for (SObject benefit : benefits) {
             Id benefitId = (Id) benefit.get('Id');
-            if (!existingBenefitIds.contains(benefitId)) {
+            Id assignmentId = existingAssignmentsByBenefit.get(benefitId);
+            
+            // Create assignment if missing
+            if (assignmentId == null) {
                 SObject assignment = (SObject) Type.forName('BenefitAssignment').newInstance();
                 assignment.put('EnrolleeId', accountId);
                 assignment.put('BenefitId', benefitId);
@@ -229,7 +237,6 @@ global with sharing class ProgramEnrollmentService {
                 assignment.put('Status', 'Enrolled');
                 assignment.put('StartDateTime', Datetime.now());
                 
-                // Add UnitId if available
                 Object unitId = benefit.get('UnitId');
                 if (unitId != null) {
                     assignment.put('UnitId', unitId);
@@ -239,11 +246,58 @@ global with sharing class ProgramEnrollmentService {
             }
         }
         
+        // Insert assignments first
         if (!assignmentsToCreate.isEmpty()) {
             insert assignmentsToCreate;
             System.debug('Created ' + assignmentsToCreate.size() + ' benefit assignments');
-        } else {
-            System.debug('No new benefit assignments needed');
+            
+            // Update map with new assignments
+            for (Integer i = 0; i < assignmentsToCreate.size(); i++) {
+                SObject assignment = assignmentsToCreate[i];
+                Id benefitId = (Id) assignment.get('BenefitId');
+                existingAssignmentsByBenefit.put(benefitId, (Id) assignment.get('Id'));
+            }
         }
+        
+        // Create disbursements for all benefits
+        for (SObject benefit : benefits) {
+            Id benefitId = (Id) benefit.get('Id');
+            Id assignmentId = existingAssignmentsByBenefit.get(benefitId);
+            
+            if (assignmentId != null) {
+                SObject disbursement = (SObject) Type.forName('BenefitDisbursement').newInstance();
+                disbursement.put('BenefitAssignmentId', assignmentId);
+                disbursement.put('ProgramEnrollmentId', enrollmentId);
+                disbursement.put('StartDate', Date.today());
+                disbursement.put('DisbursedQuantity', 1);
+                disbursement.put('ActualCompletionDate', e.startUtc != null ? e.startUtc : Datetime.now());
+                
+                disbursementsToCreate.add(disbursement);
+            }
+        }
+        
+        // Insert disbursements
+        if (!disbursementsToCreate.isEmpty()) {
+            insert disbursementsToCreate;
+            System.debug('Created ' + disbursementsToCreate.size() + ' benefit disbursements');
+            
+            for (SObject disbursement : disbursementsToCreate) {
+                disbursementIds.add((Id) disbursement.get('Id'));
+            }
+        }
+        
+        return disbursementIds;
+    }
+    
+    private class PwaEncounter {
+        public String encounterUuid;
+        public String personUuid;
+        public String firstName;
+        public String lastName;
+        public String pos;
+        public Boolean isCrisis;
+        public String notes;
+        public Datetime startUtc;
+        public Datetime endUtc;
     }
 }
