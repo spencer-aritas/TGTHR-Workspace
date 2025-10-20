@@ -190,6 +190,57 @@ def sync_program_intake(data: IntakePayload, db: Session = Depends(get_db)):
         })
     # For MVP/dev, succeed even without a live SF client
     return {"ok": True}
+
+class EncounterPayload(BaseModel):
+    encounterUuid: str
+    personUuid: str
+    firstName: str
+    lastName: str
+    pos: str = "27"
+    isCrisis: bool = False
+    notes: str = ""
+    startUtc: str
+    endUtc: str
+    deviceId: str = None
+
+@router.post('/sync/Encounter')
+def sync_encounter(data: EncounterPayload, db: Session = Depends(get_db)):
+    """
+    Creates full encounter with Program Enrollment, InteractionSummary, and Task
+    with proper user context for all records.
+    """
+    try:
+        # Get device user context
+        user_context = {"userId": None, "sfUserId": None}
+        if data.deviceId:
+            user_context = get_device_user(data.deviceId, db)
+        
+        # Prepare encounter data with user context
+        encounter_data = {
+            "encounterUuid": data.encounterUuid,
+            "personUuid": data.personUuid,
+            "firstName": data.firstName,
+            "lastName": data.lastName,
+            "pos": data.pos,
+            "isCrisis": data.isCrisis,
+            "notes": data.notes,
+            "startUtc": data.startUtc,
+            "endUtc": data.endUtc,
+            "createdByUserId": user_context.get("sfUserId")
+        }
+        
+        from ..salesforce.sf_client import ingest_encounter
+        result = ingest_encounter(encounter_data)
+        
+        logger.info(f"Successfully ingested encounter {data.encounterUuid}")
+        return {"success": True, "result": result}
+        
+    except Exception as e:
+        logger.error(f"Encounter ingestion failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail={
+            "message": "Failed to ingest encounter.",
+            "error": str(e)
+        })
 # Program Enrollments endpoint
 @router.get('/person/{uuid}/enrollments')
 def get_person_enrollments(uuid: str):
