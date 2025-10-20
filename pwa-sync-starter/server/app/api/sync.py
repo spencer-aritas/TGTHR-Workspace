@@ -29,15 +29,21 @@ def get_device_user(device_id: str, db: Session) -> dict:
     from ..models.db import get_db as get_sqlite_db
     sqlite_db = get_sqlite_db()
     
+    logger.info(f"Looking up device registration for: {device_id}")
     result = sqlite_db.execute("""
         SELECT user_id, sf_user_id FROM device_registrations 
         WHERE device_id = ?
     """, (device_id,)).fetchone()
     
+    logger.info(f"Device registration query result: {result}")
     sqlite_db.close()
     
     if result:
-        return {"userId": result[0], "sfUserId": result[1]}
+        user_context = {"userId": result[0], "sfUserId": result[1]}
+        logger.info(f"Returning user context: {user_context}")
+        return user_context
+    
+    logger.info("No device registration found")
     return {"userId": None, "sfUserId": None}
 
 def get_db():
@@ -115,9 +121,14 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
     
     # Get device user context
     device_id = data.person.get('deviceId')
+    logger.info(f"Device ID from request: {device_id}")
     if device_id:
         user_context = get_device_user(device_id, db)
+        logger.info(f"User context from device lookup: {user_context}")
         data.person["createdByUserId"] = user_context.get("sfUserId")
+        logger.info(f"Set createdByUserId to: {data.person.get('createdByUserId')}")
+    else:
+        logger.info("No device ID provided in request")
     
     """
     Creates/upserts a Salesforce Person Account with idempotency via UUID__c.
