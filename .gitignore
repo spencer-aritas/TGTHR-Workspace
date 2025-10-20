@@ -8,10 +8,15 @@ pwa-sync-starter/server/data/
 pwa-sync-starter/server/.env
 pwa-sync-starter/server/__pycache__/
 
-# Salesforce
+# Salesforce - Exclude ALL standard library and generated files
+pwa-sync-starter/.sfdx/
 tgthrProgramManagement/.sf/
 tgthrProgramManagement/.sfdx/
 tgthrProgramManagement/node_modules/
+
+# Salesforce standard library (the garbage)
+**/StandardApexLibrary/
+**/.sfdx/tools/
 
 # Shared
 *.log
