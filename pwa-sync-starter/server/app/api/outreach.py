@@ -202,12 +202,16 @@ async def submit_outreach_encounter(payload: OutreachEncounterPayload):
             
             # Get device user context
             user_context = {"userId": None, "sfUserId": None}
+            logger.info(f"Outreach device ID: {payload.deviceId}")
             if payload.deviceId:
                 db_session = SessionLocal()
                 try:
                     user_context = get_device_user(payload.deviceId, db_session)
+                    logger.info(f"Outreach user context: {user_context}")
                 finally:
                     db_session.close()
+            else:
+                logger.info("No device ID in outreach payload")
             
             # Call Apex class ProgramEnrollmentService.ingestEncounter
             apex_payload = {
@@ -223,7 +227,10 @@ async def submit_outreach_encounter(payload: OutreachEncounterPayload):
                 "createdByUserId": user_context.get("sfUserId")
             }
             
+            logger.info(f"Calling ingest_encounter with payload: {apex_payload}")
+            
             result = ingest_encounter(apex_payload)
+            logger.info(f"Ingest encounter result: {result}")
             
             # Mark as synced
             db = DuckClient()
