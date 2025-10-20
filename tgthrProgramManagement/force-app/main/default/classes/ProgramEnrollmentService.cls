@@ -195,8 +195,8 @@ global with sharing class ProgramEnrollmentService {
     
     private static void createBenefitAssignments(Id accountId, Id programId, Id enrollmentId) {
         System.debug('Creating benefit assignments for account: ' + accountId + ', program: ' + programId);
-        // Get all active benefits for the program
-        String benefitQuery = 'SELECT Id FROM Benefit WHERE ProgramId = :programId AND IsActive = true';
+        // Get all active benefits for the program with UnitOfMeasureId
+        String benefitQuery = 'SELECT Id, UnitOfMeasureId FROM Benefit WHERE ProgramId = :programId AND IsActive = true';
         List<SObject> benefits = Database.query(benefitQuery);
         System.debug('Found ' + benefits.size() + ' benefits for program');
         
@@ -226,8 +226,15 @@ global with sharing class ProgramEnrollmentService {
                 assignment.put('BenefitId', benefitId);
                 assignment.put('ProgramEnrollmentId', enrollmentId);
                 assignment.put('ParentRecordId', enrollmentId);
-                assignment.put('Status', 'Active');
-                assignment.put('StartDateTime', Date.today());
+                assignment.put('Status', 'Enrolled');
+                assignment.put('StartDateTime', Datetime.now());
+                
+                // Add UnitOfMeasureId if available
+                Object unitOfMeasureId = benefit.get('UnitOfMeasureId');
+                if (unitOfMeasureId != null) {
+                    assignment.put('UnitOfMeasureId', unitOfMeasureId);
+                }
+                
                 assignmentsToCreate.add(assignment);
             }
         }
