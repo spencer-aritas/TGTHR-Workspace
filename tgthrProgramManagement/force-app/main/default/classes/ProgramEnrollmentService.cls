@@ -218,6 +218,11 @@ global with sharing class ProgramEnrollmentService {
                 
                 try {
                     // Use the same pattern as programCensusGrid - call the service with individual parameters
+                    Datetime now = Datetime.now();
+                    Datetime endTime = now.addMinutes(15);
+                    String startDateTime = now.format('yyyy-MM-dd\'T\'HH:mm:ss');
+                    String endDateTime = endTime.format('yyyy-MM-dd\'T\'HH:mm:ss');
+                    
                     List<BenefitDisbursementService.DisburseResult> results = BenefitDisbursementService.createDisbursementsWithParamsExt(
                         new List<String>{ String.valueOf(accountId) },
                         String.valueOf(benefitId),
@@ -226,8 +231,8 @@ global with sharing class ProgramEnrollmentService {
                         String.valueOf(Date.today()),
                         1, // quantity
                         'Street Outreach Intake',
-                        null, // startDateTime
-                        null, // endDateTime
+                        startDateTime, // startDateTime = NOW
+                        endDateTime, // endDateTime = NOW + 15 minutes
                         null, // caseNotes
                         null, // eventType
                         null, // individualCaseNotesByParticipant
