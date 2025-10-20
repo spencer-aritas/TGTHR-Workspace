@@ -217,26 +217,12 @@ global with sharing class ProgramEnrollmentService {
                 System.debug('Processing benefit: ' + benefitId);
                 
                 try {
-                    // Use the same pattern as programCensusGrid - call the service with individual parameters
-                    Datetime now = Datetime.now();
-                    Datetime endTime = now.addMinutes(15);
-                    String startDateTime = now.format('yyyy-MM-dd\'T\'HH:mm:ss');
-                    String endDateTime = endTime.format('yyyy-MM-dd\'T\'HH:mm:ss');
-                    
-                    List<BenefitDisbursementService.DisburseResult> results = BenefitDisbursementService.createDisbursementsWithParamsExt(
-                        new List<String>{ String.valueOf(accountId) },
-                        String.valueOf(benefitId),
-                        String.valueOf(programId),
-                        null, // programName
-                        String.valueOf(Date.today()),
-                        1, // quantity
-                        'Street Outreach Intake',
-                        startDateTime, // startDateTime = NOW
-                        endDateTime, // endDateTime = NOW + 15 minutes
-                        null, // caseNotes
-                        null, // eventType
-                        null, // individualCaseNotesByParticipant
-                        false // isClinical
+                    // Create a custom disbursement since BenefitDisbursementService doesn't set the right datetime fields
+                    List<BenefitDisbursementService.DisburseResult> results = createCustomDisbursement(
+                        accountId,
+                        benefitId,
+                        programId,
+                        enrollmentId
                     );
                     
                     // Collect successful disbursement IDs
@@ -261,6 +247,66 @@ global with sharing class ProgramEnrollmentService {
         }
         
         return disbursementIds;
+    }
+    
+    private static List<BenefitDisbursementService.DisburseResult> createCustomDisbursement(Id accountId, Id benefitId, Id programId, Id enrollmentId) {
+        List<BenefitDisbursementService.DisburseResult> results = new List<BenefitDisbursementService.DisburseResult>();
+        
+        try {
+            // First ensure benefit assignment exists using the service
+            Map<String, Boolean> assignmentResults = BenefitDisbursementService.createMissingBenefitAssignments(
+                new List<String>{ String.valueOf(accountId) },
+                String.valueOf(benefitId),
+                String.valueOf(programId),
+                null
+            );
+            
+            // Get the benefit assignment
+            String assignmentQuery = 'SELECT Id FROM BenefitAssignment WHERE EnrolleeId = :accountId AND BenefitId = :benefitId LIMIT 1';
+            List<SObject> assignments = Database.query(assignmentQuery);
+            
+            if (assignments.isEmpty()) {
+                BenefitDisbursementService.DisburseResult result = new BenefitDisbursementService.DisburseResult();
+                result.accountId = accountId;
+                result.success = false;
+                result.message = 'No benefit assignment found';
+                results.add(result);
+                return results;
+            }
+            
+            Id assignmentId = (Id) assignments[0].get('Id');
+            
+            // Create disbursement with correct datetime fields
+            Datetime now = Datetime.now();
+            Datetime endTime = now.addMinutes(15);
+            
+            SObject disbursement = Schema.getGlobalDescribe().get('BenefitDisbursement').newSObject();
+            disbursement.put('BenefitAssignmentId', assignmentId);
+            disbursement.put('ProgramEnrollmentId', enrollmentId);
+            disbursement.put('StartDate', now); // StartDate = NOW (datetime field)
+            disbursement.put('EndDate', endTime); // EndDate = NOW + 15 minutes (datetime field)
+            disbursement.put('ActualCompletionDate', now); // ActualCompletionDate = NOW
+            disbursement.put('DisbursedQuantity', 1);
+            disbursement.put('Description', 'Street Outreach Intake');
+            
+            insert disbursement;
+            
+            BenefitDisbursementService.DisburseResult result = new BenefitDisbursementService.DisburseResult();
+            result.accountId = accountId;
+            result.success = true;
+            result.disbursementId = (Id) disbursement.get('Id');
+            result.message = 'Created';
+            results.add(result);
+            
+        } catch (Exception ex) {
+            BenefitDisbursementService.DisburseResult result = new BenefitDisbursementService.DisburseResult();
+            result.accountId = accountId;
+            result.success = false;
+            result.message = 'Error: ' + ex.getMessage();
+            results.add(result);
+        }
+        
+        return results;
     }
     
     
