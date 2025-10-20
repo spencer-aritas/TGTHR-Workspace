@@ -43,12 +43,15 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    allowedHosts: ['outreachintake.aritasconsulting.com', 'localhost'],
+    allowedHosts: ['outreachintake.aritasconsulting.com', 'localhost', '0.0.0.0'],
     proxy: {
       "/api": {
-        target: "http://127.0.0.1:8000",
+        target: "http://api:8000",
         changeOrigin: true
       }
+    },
+    hmr: {
+      clientPort: 5173
     }
   },
   preview: { port: 4173 }
