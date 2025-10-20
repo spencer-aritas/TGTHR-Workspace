@@ -230,12 +230,33 @@ def ingest_encounter(encounter_data: Dict[str, Any]) -> Dict[str, Any]:
     return _sf(path, method="POST", json=encounter_data)
 
 def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
-    """Direct InteractionSummary creation - use service endpoint instead"""
+    """Direct InteractionSummary creation with proper Name field"""
     from datetime import datetime
     
+    # Get account info for proper Name formatting
+    account = sobject_get("Account", account_id)
+    participant_name = f"{account.get('LastName', 'Unknown')}, {account.get('FirstName', '')}" if account.get('FirstName') else account.get('Name', 'Unknown')
+    
+    # Format date as MM/DD/YYYY
+    today = datetime.now()
+    formatted_date = f"{today.month:02d}/{today.day:02d}/{today.year}"
+    
+    # Get current user name for title
+    staff_name = "System User"  # Default fallback
+    if created_by_user_id:
+        try:
+            user = sobject_get("User", created_by_user_id)
+            staff_name = user.get('Name', 'System User')
+        except:
+            pass
+    
+    # Format title as "Participant LastName, FirstName - Date - Staff Name"
+    title = f"{participant_name} - {formatted_date} - {staff_name}"
+    
     payload = {
+        "Name": title,  # Required field!
         "AccountId": account_id,
-        "Date_of_Interaction__c": datetime.now().strftime("%Y-%m-%d"),
+        "Date_of_Interaction__c": today.strftime("%Y-%m-%d"),
         "InteractionPurpose": "Communication Log",
         "MeetingNotes": notes,
         "UUID__c": uuid
