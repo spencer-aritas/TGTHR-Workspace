@@ -22,10 +22,8 @@ services:
       - ENVIRONMENT=production
       - SALESFORCE_LOGIN_URL=https://login.salesforce.com
       - SALESFORCE_CLIENT_ID=
-      - SALESFORCE_CLIENT_SECRET=
       - SALESFORCE_USERNAME=
-      - SALESFORCE_PASSWORD=
-      - SALESFORCE_SECURITY_TOKEN=
+      - JWT_PRIVATE_KEY_PATH=/app/jwt_private.key
     ports:
       - "8001:8000"
     volumes:
