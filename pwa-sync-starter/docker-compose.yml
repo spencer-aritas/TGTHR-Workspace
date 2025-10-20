@@ -15,11 +15,11 @@ services:
 
   api:
     build: ./server
-    env_file:
-      - ./server/.env
     environment:
       - TZ=America/Denver
       - API_ORIGINS=https://outreachintake.aritasconsulting.com
+      - DATABASE_URL=sqlite:///app/data/server.db
+      - ENVIRONMENT=production
     ports:
       - "8001:8000"
     volumes:
