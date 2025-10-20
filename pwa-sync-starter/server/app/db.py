@@ -45,13 +45,17 @@ def init_schema_and_seed():
     """Create minimal tables and view if missing, and seed programs from settings."""
     from .schema import reset_database
     
+    con = None
     try:
+        # Ensure data directory exists
+        Path(settings.TGTHR_DB_PATH).parent.mkdir(parents=True, exist_ok=True)
         con = duckdb.connect(settings.TGTHR_DB_PATH)
         ensure_schema(con)
     except Exception as e:
         # If schema creation fails, reset the database
         print(f"Schema conflict detected, resetting database: {e}")
-        con.close()
+        if con:
+            con.close()
         reset_database(settings.TGTHR_DB_PATH)
         con = duckdb.connect(settings.TGTHR_DB_PATH)
     
@@ -67,7 +71,8 @@ def init_schema_and_seed():
                     VALUES (?, NULL, ?, now())
                 """, (uuid_val, name))
     finally:
-        con.close()
+        if con:
+            con.close()
 
 # Dependency for FastAPI
 
