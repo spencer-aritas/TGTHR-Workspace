@@ -273,7 +273,7 @@ public with sharing class InteractionSummaryService {
       newInteraction.put('Name', title);
 
       // Set POS field to default outreach location
-      newInteraction.put('POS__c', '27');
+      newInteraction.put('POS__c', '27 - Outreach Site / Street');
 
       // Use the user-provided values for purpose and notes
       if (String.isNotBlank(purpose)) {
