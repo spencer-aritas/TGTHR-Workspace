@@ -32,15 +32,15 @@ self.addEventListener('sync', (event) => {
 registerRoute(
   ({ url, request }) => request.method === 'POST' && url.pathname.startsWith('/api/sync/'),
   // Workbox handler: queue on network error OR non-2xx, return 202 to page
-  async ({ event }) => {
+  async ({ request }) => {
     try {
       // Try network first
-      const response = await fetch(event.request.clone())
+      const response = await fetch(request.clone())
       if (response.ok) {
         return response
       }
       // Network failed or non-2xx, queue it
-      await syncQueue.pushRequest({ request: event.request })
+      await syncQueue.pushRequest({ request })
       return new Response(JSON.stringify({ queued: true }), {
         status: 202, 
         headers: { 'Content-Type': 'application/json' }
@@ -48,7 +48,7 @@ registerRoute(
     } catch (error) {
       // Network error (offline), queue it
       console.log('Queueing request due to network error:', error)
-      await syncQueue.pushRequest({ request: event.request })
+      await syncQueue.pushRequest({ request })
       return new Response(JSON.stringify({ queued: true }), {
         status: 202,
         headers: { 'Content-Type': 'application/json' }
