@@ -9,11 +9,13 @@ import createInteractionDirectly from "@salesforce/apex/InteractionSummaryServic
 import getProgramEnrollmentsByProgramId from "@salesforce/apex/InteractionSummaryService.getProgramEnrollmentsByProgramId";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getThemeByProgramId from '@salesforce/apex/ProgramThemeService.getThemeByProgramId';
+import getActivePrograms from "@salesforce/apex/BenefitService.getActivePrograms";
 
 export default class InteractionSummaryBoard extends LightningElement {
   // No modal state in component properties - we'll use _modalOpen instead
-  @track rowsAll = [];
-  @track rowsNest = [];
+  @track programs = [];
+  @track activeTabIndex = 0;
+  @track programRows = {}; // Store rows for each program by program ID
   @track selected = null;
   @track convo = [];
   @track incidents = [];
@@ -25,10 +27,7 @@ export default class InteractionSummaryBoard extends LightningElement {
   formModified = false; // Track if the form was modified to avoid unnecessary refreshes
 
   // Program enrollments for sidebar tables
-  @track awaitingIntakeAll = [];
-  @track awaitingIntakeNest = [];
-  @track pendingExitAll = [];
-  @track pendingExitNest = [];
+  @track programEnrollments = {}; // Store enrollments for each program by program ID
 
   // Simple getter/setter to control modal state
   // Direct property access instead of getter/setter
@@ -69,7 +68,6 @@ export default class InteractionSummaryBoard extends LightningElement {
   @track incidentsTotalPages = 0;
   @track incidentsTotalRecords = 0;
   @track incidentsDisplayedRecords = [];
-  activeTab = "all";
   lastAccountId = null;
   cacheBuster = Date.now(); // Used to bust cache
 
@@ -105,11 +103,10 @@ export default class InteractionSummaryBoard extends LightningElement {
       }
     }
 
-    // Store values for direct Apex call using correct Salesforce program IDs
+    // Store values for direct Apex call using current active program ID
     this.currentInteraction = {
       accountId: this.selected.AccountId,
-      programId:
-        this.activeTab === "all" ? "11WVY000000GC6r2AG" : "11WVY000000GC3d2AG", // 1440 Pine : Nest 56
+      programId: this.currentProgramId,
       relatedRecordId: mostRecentCaseId || ""
     };
 
@@ -130,7 +127,8 @@ export default class InteractionSummaryBoard extends LightningElement {
     this.isFirstLoad = true; // Add flag to track initial load
     this.isLoading = false; // Ensure spinner is off during initial load
 
-    // Call the async initialization method
+    // Load active programs first, then initialize component
+    await this.loadActivePrograms();
     this.initializeComponent();
   }
 
@@ -141,17 +139,14 @@ export default class InteractionSummaryBoard extends LightningElement {
         // Load data without triggering additional refresh or spinner
         await this.loadTabs(true); // Pass true to indicate this is initial load
 
-        // Apply initial sorting
-        this.rowsAll = this.sortData(
-            this.rowsAll,
-            this.sortField,
-            this.sortDirection
-        );
-        this.rowsNest = this.sortData(
-            this.rowsNest,
-            this.sortField,
-            this.sortDirection
-        );
+        // Apply initial sorting to all program data
+        Object.keys(this.programRows).forEach(programId => {
+            this.programRows[programId] = this.sortData(
+                this.programRows[programId],
+                this.sortField,
+                this.sortDirection
+            );
+        });
 
         // Initialize the active tab after DOM has rendered with minimal timeout
         delay(10).then(() => {
@@ -261,6 +256,18 @@ export default class InteractionSummaryBoard extends LightningElement {
     }
   }
 
+  async loadActivePrograms() {
+    try {
+      const programs = await getActivePrograms();
+      this.programs = programs || [];
+      this.activeTabIndex = 0;
+      console.log("Active programs loaded:", this.programs);
+    } catch (error) {
+      console.error("Error loading active programs:", error);
+      this.programs = [];
+    }
+  }
+
   async loadTabs(isInitialLoad = false) {
     const daysBack = 90;
 
@@ -281,60 +288,34 @@ export default class InteractionSummaryBoard extends LightningElement {
         this.cacheBuster
       );
 
-      // Use parallel promises for efficiency - now also fetch program enrollments
-      // Use programId-first calls to avoid name-resolution races
-      const PROGRAM_1440_PINE = "11WVY000000GC6r2AG";
-      const PROGRAM_NEST_56 = "11WVY000000GC3d2AG";
+      // Load data for all active programs
+      const programPromises = this.programs.map(async (program) => {
+        const [rows, enrollments] = await Promise.all([
+          recentByProgramId({
+            daysBack,
+            maxRows: 1000,
+            programId: program.Id,
+            cacheBuster: this.cacheBuster
+          }),
+          this.loadProgramEnrollments(program.Id)
+        ]);
+        
+        return {
+          programId: program.Id,
+          rows: this.mapRows(rows),
+          enrollments
+        };
+      });
 
-      const [all, nest, enrollmentsAll, enrollmentsNest] = await Promise.all([
-        recentByProgramId({
-          daysBack,
-          maxRows: 1000,
-          programId: PROGRAM_1440_PINE,
-          cacheBuster: this.cacheBuster // Send cache buster to prevent caching
-        }),
-        recentByProgramId({
-          daysBack,
-          maxRows: 1000,
-          programId: PROGRAM_NEST_56,
-          cacheBuster: this.cacheBuster // Send cache buster to prevent caching
-        }),
-        this.loadProgramEnrollments(PROGRAM_1440_PINE), // Load enrollments for 1440 Pine by id
-        this.loadProgramEnrollments(PROGRAM_NEST_56) // Load enrollments for Nest 56 by id
-      ]);
+      const results = await Promise.all(programPromises);
+      
+      // Store results by program ID
+      results.forEach(result => {
+        this.programRows[result.programId] = result.rows;
+        this.programEnrollments[result.programId] = result.enrollments;
+      });
 
-      // Map rows for each tab
-      this.rowsAll = this.mapRows(all);
-      this.rowsNest = this.mapRows(nest);
-      console.log(
-        "Fresh data loaded: 1440 Pine rows:",
-        this.rowsAll.length,
-        "Nest 56 rows:",
-        this.rowsNest.length
-      );
-
-      // Process program enrollment data
-      if (enrollmentsAll) {
-        this.awaitingIntakeAll = enrollmentsAll.awaitingIntake || [];
-        this.pendingExitAll = enrollmentsAll.pendingExit || [];
-        console.log(
-          "1440 Pine enrollments: Awaiting Intake:",
-          this.awaitingIntakeAll.length,
-          "Pending Exit:",
-          this.pendingExitAll.length
-        );
-      }
-
-      if (enrollmentsNest) {
-        this.awaitingIntakeNest = enrollmentsNest.awaitingIntake || [];
-        this.pendingExitNest = enrollmentsNest.pendingExit || [];
-        console.log(
-          "Nest 56 enrollments: Awaiting Intake:",
-          this.awaitingIntakeNest.length,
-          "Pending Exit:",
-          this.pendingExitNest.length
-        );
-      }
+      console.log("Fresh data loaded for all programs:", this.programRows);
 
       // Auto-select first participant with data if no specific selection
       if (!this.selected && !this.lastAccountId) {
@@ -572,7 +553,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   autoselectFirst = async () => {
     // Get the appropriate rows array based on the active tab
-    const rows = this.activeTab === "nest" ? this.rowsNest : this.rowsAll;
+    const rows = this.currentRows;
 
     if (rows && rows.length > 0) {
       // Select the first row
@@ -609,7 +590,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   async autoselectFirstWithParticipant() {
     // Get the appropriate rows array based on the active tab
-    const rows = this.activeTab === "nest" ? this.rowsNest : this.rowsAll;
+    const rows = this.currentRows;
 
     const first = rows.find((r) => !!r.AccountId);
     if (!first) {
@@ -727,22 +708,10 @@ export default class InteractionSummaryBoard extends LightningElement {
     const id = tr.dataset.id;
     if (!id) return;
 
-    // Find the row data directly from both arrays - more reliable than tab detection
-    let row = this.rowsNest.find((r) => r.Id === id);
-    let fromNest = !!row;
-
+    // Find the row data from current rows
+    const row = this.currentRows.find((r) => r.Id === id);
     if (!row) {
-      row = this.rowsAll.find((r) => r.Id === id);
-      if (!row) {
-        return;
-      }
-    }
-
-    // Make sure activeTab is set correctly based on which array the row was found in
-    if (fromNest && this.activeTab !== "nest") {
-      this.activeTab = "nest";
-    } else if (!fromNest && this.activeTab !== "all") {
-      this.activeTab = "all";
+      return;
     }
 
     // Clear any previous selections and highlight the current row
@@ -778,13 +747,12 @@ export default class InteractionSummaryBoard extends LightningElement {
         return r;
       }
 
-      if (Array.isArray(this.rowsAll) && this.rowsAll.length) {
-        this.rowsAll = this.rowsAll.map(stripAttentionClass);
-      }
-
-      if (Array.isArray(this.rowsNest) && this.rowsNest.length) {
-        this.rowsNest = this.rowsNest.map(stripAttentionClass);
-      }
+      // Update all program rows
+      Object.keys(this.programRows).forEach(programId => {
+        if (Array.isArray(this.programRows[programId]) && this.programRows[programId].length) {
+          this.programRows[programId] = this.programRows[programId].map(stripAttentionClass);
+        }
+      });
 
       if (this.selected && this.selected.Id === interactionId) {
         this.selected = { ...this.selected, notesCellClass: "" };
@@ -829,10 +797,13 @@ export default class InteractionSummaryBoard extends LightningElement {
   // We now use handleRowClick instead
   // Handles data change on tab change
   handleTabChange(e) {
-    const val = e.detail.value;
-
-    // Update activeTab immediately
-    this.activeTab = val;
+    const programId = e.detail.value;
+    
+    // Find the program index
+    const programIndex = this.programs.findIndex(p => p.Id === programId);
+    if (programIndex >= 0) {
+      this.activeTabIndex = programIndex;
+    }
 
     // Force modal closed during tab change
     this._openModal = false;
@@ -847,7 +818,15 @@ export default class InteractionSummaryBoard extends LightningElement {
   }
 
   // Additional handler specifically for tab activation events
-  handleTabActive() {
+  handleTabActive(event) {
+    const programId = event.target.value;
+    
+    // Find the program index
+    const programIndex = this.programs.findIndex(p => p.Id === programId);
+    if (programIndex >= 0) {
+      this.activeTabIndex = programIndex;
+    }
+
     // Force modal closed during tab activation
     this._openModal = false;
 
@@ -873,12 +852,33 @@ export default class InteractionSummaryBoard extends LightningElement {
     });
   }
 
-  get isAll() {
-    return this.activeTab === "all";
+  get currentProgram() {
+    return this.programs[this.activeTabIndex] || null;
   }
 
-  get isNest() {
-    return this.activeTab === "nest";
+  get currentProgramId() {
+    return this.currentProgram?.Id || null;
+  }
+
+  get currentProgramName() {
+    return this.currentProgram?.Name || "";
+  }
+
+  get currentRows() {
+    return this.programRows[this.currentProgramId] || [];
+  }
+
+  get currentEnrollments() {
+    return this.programEnrollments[this.currentProgramId] || {};
+  }
+
+  get programTabs() {
+    return (this.programs || []).map((p, idx) => ({
+      id: p.Id,
+      name: p.Name,
+      active: idx === this.activeTabIndex,
+      idx
+    }));
   }
 
   // Initialize the newly activated tab to ensure it's fully interactive
@@ -903,14 +903,9 @@ export default class InteractionSummaryBoard extends LightningElement {
 
     // Ensure the tab content is properly rendered with fresh array references
     // This triggers reactivity without causing a full re-render
-    if (this.activeTab === "all" && this.rowsAll && this.rowsAll.length) {
-      this.rowsAll = [...this.rowsAll];
-    } else if (
-      this.activeTab === "nest" &&
-      this.rowsNest &&
-      this.rowsNest.length
-    ) {
-      this.rowsNest = [...this.rowsNest];
+    const currentRows = this.currentRows;
+    if (currentRows && currentRows.length) {
+      this.programRows[this.currentProgramId] = [...currentRows];
     }
   }
 
@@ -1006,16 +1001,10 @@ export default class InteractionSummaryBoard extends LightningElement {
       this.sortDirection = field === "Date_of_Interaction__c" ? "desc" : "asc";
     }
 
-    // Only sort the active tab's data
-    if (this.activeTab === "all") {
-      this.rowsAll = this.sortData(
-        this.rowsAll,
-        this.sortField,
-        this.sortDirection
-      );
-    } else if (this.activeTab === "nest") {
-      this.rowsNest = this.sortData(
-        this.rowsNest,
+    // Sort the current program's data
+    if (this.currentProgramId && this.currentRows.length > 0) {
+      this.programRows[this.currentProgramId] = this.sortData(
+        this.currentRows,
         this.sortField,
         this.sortDirection
       );
@@ -1128,9 +1117,8 @@ export default class InteractionSummaryBoard extends LightningElement {
     // Store the accountId for reselection later
     this.lastAccountId = accountId;
 
-    // Default program ID based on active tab if not provided
-    const defaultProgramId =
-      this.activeTab === "all" ? "11WVY000000GC6r2AG" : "11WVY000000GC3d2AG"; // 1440 Pine : Nest 56
+    // Default program ID based on current program if not provided
+    const defaultProgramId = this.currentProgramId;
 
     // For follow-up, the Related Record Id should be the parent Interaction record
     this.currentInteraction = {
@@ -1562,9 +1550,8 @@ export default class InteractionSummaryBoard extends LightningElement {
       return;
     }
 
-    // Get the default program ID
-    const defaultProgramId =
-      this.activeTab === "all" ? "11WVY000000GC6r2AG" : "11WVY000000GC3d2AG"; // 1440 Pine : Nest 56
+    // Get the current program ID
+    const defaultProgramId = this.currentProgramId;
 
     // Find all follow-up buttons
     const followUpButtons = this.template.querySelectorAll(".follow-up-btn");
@@ -1782,16 +1769,13 @@ export default class InteractionSummaryBoard extends LightningElement {
       // Ensure sorting by date (newest first) after refresh
       this.sortField = "Date_of_Interaction__c";
       this.sortDirection = "desc";
-      this.rowsAll = this.sortData(
-        this.rowsAll,
-        this.sortField,
-        this.sortDirection
-      );
-      this.rowsNest = this.sortData(
-        this.rowsNest,
-        this.sortField,
-        this.sortDirection
-      );
+      Object.keys(this.programRows).forEach(programId => {
+        this.programRows[programId] = this.sortData(
+          this.programRows[programId],
+          this.sortField,
+          this.sortDirection
+        );
+      });
 
       // Turn off loading indicator if we're not going to reselect anything
       if (!currentAccountId) {
@@ -1801,7 +1785,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       }
 
       // Find all records for the current account, sorted by newest first
-      const pool = this.activeTab === "nest" ? this.rowsNest : this.rowsAll;
+      const pool = this.currentRows;
       const accountRecords = pool.filter(
         (r) => r.AccountId === currentAccountId
       );

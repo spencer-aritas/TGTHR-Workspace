@@ -1,0 +1,24 @@
+<template>
+    <div class="signature-container">
+        <h3>{title}</h3>
+        <template if:true={isLibraryLoaded}>
+            <canvas class="signature-canvas"></canvas>
+            <div class="signature-controls slds-m-top_small">
+                <lightning-button 
+                    label="Clear" 
+                    onclick={handleClear}
+                    variant="neutral">
+                </lightning-button>
+                <lightning-button 
+                    label="Save Signature" 
+                    onclick={handleSave}
+                    variant="brand"
+                    disabled={isEmpty}>
+                </lightning-button>
+            </div>
+        </template>
+        <template if:false={isLibraryLoaded}>
+            <lightning-spinner alternative-text="Loading signature pad..."></lightning-spinner>
+        </template>
+    </div>
+</template>

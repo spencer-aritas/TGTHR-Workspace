@@ -47,9 +47,12 @@ export default function App() {
       <header className="slds-page-header slds-p-around_medium" style={{backgroundColor: 'white', borderBottom: '1px solid #e5e5e5'}}>
         <div className="slds-media">
           <div className="slds-media__figure">
-            <div className="slds-avatar slds-avatar_large" style={{backgroundColor: '#1976d2', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold'}}>
-              T
-            </div>
+            <img 
+              src="/icons/icon-192.png" 
+              alt="TGTHR Logo" 
+              className="slds-avatar slds-avatar_large"
+              style={{width: '48px', height: '48px', borderRadius: '4px'}}
+            />
           </div>
           <div className="slds-media__body">
             <h1 className="slds-page-header__title slds-truncate">New Client Intake</h1>
