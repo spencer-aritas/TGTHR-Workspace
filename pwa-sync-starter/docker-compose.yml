@@ -50,7 +50,7 @@ services:
       - ../tgthr-docgen:/app
       - ../tgthr-docgen/data:/app/data
     restart: unless-stopped
-    command: uvicorn api_endpoints:app --host 0.0.0.0 --port 8000
+    command: uvicorn serve:app --host 0.0.0.0 --port 8000
 
 volumes:
   caddy_data:

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
-from app.salesforce.sf_client import get_sf_client
+from app.salesforce.sf_client import _sf, _api
 import base64
 
 router = APIRouter()
@@ -15,10 +15,7 @@ async def upload_signature(
         # Read file content
         content = await file.read()
         
-        # Get Salesforce client
-        sf = get_sf_client()
-        
-        # Create ContentVersion
+        # Create ContentVersion using existing sf_client functions
         content_version_data = {
             'Title': f'Signature_{timestamp}',
             'PathOnClient': f'signature_{timestamp}.png',
@@ -26,10 +23,7 @@ async def upload_signature(
             'FirstPublishLocationId': recordId
         }
         
-        result = sf.ContentVersion.create(content_version_data)
-        
-        if not result['success']:
-            raise HTTPException(status_code=400, detail="Failed to create ContentVersion")
+        result = _sf(_api("/sobjects/ContentVersion/"), method="POST", json=content_version_data)
         
         return {
             "success": True,
