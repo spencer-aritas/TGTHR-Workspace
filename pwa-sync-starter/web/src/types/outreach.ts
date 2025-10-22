@@ -13,7 +13,6 @@ export interface OutreachEncounter {
 }
 
 export type OutreachEncounterPayload = Omit<OutreachEncounter, 'synced'> & {
-  id?: string;
   synced?: boolean;
 };
 
