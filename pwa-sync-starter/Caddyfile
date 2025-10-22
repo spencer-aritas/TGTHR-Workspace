@@ -13,6 +13,6 @@ outreachintake.aritasconsulting.com {
 	
 	# Serve frontend
 	handle {
-		reverse_proxy web:5173
+		reverse_proxy web:4173
 	}
 }
