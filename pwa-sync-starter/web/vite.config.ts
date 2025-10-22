@@ -9,12 +9,10 @@ export default defineConfig({
     react(),
     // Removed missing plugins
     VitePWA({
-      injectRegister: "auto",
       registerType: "autoUpdate",
-      strategies: "injectManifest",
-      srcDir: "src/sw",
-      filename: "sw.ts",
-      devOptions: { enabled: true, type: "module", navigateFallback: "index.html" },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      },
       manifest: {
         name: "TGTHR Offline App",
         short_name: "TGTHR",
