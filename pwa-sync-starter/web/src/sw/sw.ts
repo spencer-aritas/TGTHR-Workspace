@@ -8,7 +8,7 @@ import { Queue } from 'workbox-background-sync'
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
 
-// Take control fast
+// Take control fast - v2
 self.skipWaiting()
 clientsClaim()
 
