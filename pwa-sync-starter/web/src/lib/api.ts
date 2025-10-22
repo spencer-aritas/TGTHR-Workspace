@@ -1,4 +1,4 @@
-// Placeholder API functions
+// Direct API call - let individual components handle offline logic
 export const postSync = async (endpoint: string, payload: any) => {
   const response = await fetch(`/api${endpoint}`, {
     method: 'POST',
