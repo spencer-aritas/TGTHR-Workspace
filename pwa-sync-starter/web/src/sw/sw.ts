@@ -37,28 +37,29 @@ const syncQueue = new Queue('syncQueue', {
 registerRoute(
   ({ url, request }) => request.method === 'POST' && url.pathname.startsWith('/api/sync/'),
   // Workbox handler: queue on network error OR non-2xx, return 202 to page
-  async (ctx: any) => {
-    const ev = ctx.event as FetchEvent
+  async ({ event }) => {
     try {
-      const req = ev.request.clone()
-      const res = await fetch(req)
-      if (!res.ok) {
-        // e.g. Vite proxy returns 502 when backend is down — still queue it
-        await syncQueue.pushRequest({ request: ev.request })
-        return new Response(JSON.stringify({ queued: true, status: res.status }), {
-          status: 202, headers: { 'Content-Type': 'application/json' }
-        })
+      // Try network first
+      const response = await fetch(event.request.clone())
+      if (response.ok) {
+        return response
       }
-      return res
-    } catch {
-      // true network/offline case
-      await syncQueue.pushRequest({ request: ev.request })
+      // Network failed or non-2xx, queue it
+      await syncQueue.pushRequest({ request: event.request })
       return new Response(JSON.stringify({ queued: true }), {
-        status: 202, headers: { 'Content-Type': 'application/json' }
+        status: 202, 
+        headers: { 'Content-Type': 'application/json' }
+      })
+    } catch (error) {
+      // Network error (offline), queue it
+      console.log('Queueing request due to network error:', error)
+      await syncQueue.pushRequest({ request: event.request })
+      return new Response(JSON.stringify({ queued: true }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' }
       })
     }
-  },
-  'POST'
+  }
 )
 
 // ---- Offline navigation (SPA app shell)
