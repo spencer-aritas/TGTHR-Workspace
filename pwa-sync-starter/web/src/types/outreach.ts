@@ -12,7 +12,10 @@ export interface OutreachEncounter {
   synced?: boolean;
 }
 
-export type OutreachEncounterPayload = Omit<OutreachEncounter, 'id'|'synced'>;
+export type OutreachEncounterPayload = Omit<OutreachEncounter, 'synced'> & {
+  id?: string;
+  synced?: boolean;
+};
 
 export function newEncounterDefaults(): OutreachEncounter {
   const start = new Date();

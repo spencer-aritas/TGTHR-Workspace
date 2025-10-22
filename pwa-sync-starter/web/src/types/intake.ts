@@ -4,6 +4,8 @@ export * from '../shared/contracts/IntakeContract';
 export interface IntakeResponse {
   success: boolean;
   id: string;
+  synced?: boolean;
+  errors?: string[];
 }
 
 export interface NewClientIntakePayload {

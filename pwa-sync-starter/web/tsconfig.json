@@ -2,22 +2,20 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "WebWorker"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "moduleResolution": "Bundler",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "baseUrl": ".", 
-    "paths": {
-      "@/*": ["src/*"],
-      "@shared/*": ["../shared/*"]
-    },
-
-    "types": ["vite/client", "vite-plugin-pwa/client"]
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../shared", "src/vite-env.d.ts"]
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
