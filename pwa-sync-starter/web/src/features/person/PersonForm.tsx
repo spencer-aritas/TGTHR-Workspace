@@ -62,6 +62,22 @@ export default function PersonForm() {
     e.preventDefault();
     e.stopPropagation();
     
+    setErrs([]);
+    setMsg("");
+    setSfId(null);
+
+    // Validate first
+    const issues: string[] = [];
+    if (!form.firstName?.trim()) issues.push("First name is required");
+    if (!form.lastName?.trim()) issues.push("Last name is required");
+    if (issues.length) {
+      setErrs(issues);
+      return;
+    }
+
+    // Build payload with user info
+    const user = getCurrentUser();
+    
     if (!navigator.onLine) {
       // Simple offline storage
       const offlineData = {
@@ -78,22 +94,6 @@ export default function PersonForm() {
       setForm({});
       return;
     }
-    
-    setErrs([]);
-    setMsg("");
-    setSfId(null);
-
-    // Validate first
-    const issues: string[] = [];
-    if (!form.firstName?.trim()) issues.push("First name is required");
-    if (!form.lastName?.trim()) issues.push("Last name is required");
-    if (issues.length) {
-      setErrs(issues);
-      return;
-    }
-
-    // Build payload with user info
-    const user = getCurrentUser();
     const payload = { 
       localId: uuid(), 
       person: {
