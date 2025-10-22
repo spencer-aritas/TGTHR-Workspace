@@ -32,22 +32,25 @@ self.addEventListener('sync', (event) => {
 registerRoute(
   ({ url, request }) => request.method === 'POST' && url.pathname.startsWith('/api/sync/'),
   async ({ request }) => {
-    // Always queue first to avoid hanging
-    await syncQueue.pushRequest({ request })
+    console.log('Service Worker intercepted:', request.url)
     
-    // Try network if online
-    if (navigator.onLine) {
-      try {
-        const response = await fetch(request.clone())
-        if (response.ok) {
-          return response
-        }
-      } catch (error) {
-        console.log('Network failed, request queued:', error)
+    try {
+      // Try network first if online
+      const response = await fetch(request.clone())
+      console.log('Network response:', response.status)
+      if (response.ok) {
+        return response
       }
+      // Non-2xx response, queue it
+      await syncQueue.pushRequest({ request })
+      console.log('Request queued due to non-2xx response')
+    } catch (error) {
+      // Network error, queue it
+      console.log('Network error, queueing request:', error)
+      await syncQueue.pushRequest({ request })
     }
     
-    // Return queued response immediately
+    // Return queued response
     return new Response(JSON.stringify({ queued: true }), {
       status: 202,
       headers: { 'Content-Type': 'application/json' }
