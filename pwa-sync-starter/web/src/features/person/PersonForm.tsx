@@ -1,4 +1,4 @@
-import React, { useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 // Using crypto.randomUUID instead of uuid package
 const uuid = () => crypto.randomUUID();
 import { postSync } from "../../lib/api";
@@ -54,14 +54,12 @@ export default function PersonForm() {
   const [sfId, setSfId] = useState<string | null>(null);
   const [errs, setErrs] = useState<string[]>([]);
 
-  const update = React.useCallback(<K extends keyof Person>(k: K, v: Person[K]) => {
+  function update<K extends keyof Person>(k: K, v: Person[K]) {
     setForm((prev) => ({ ...prev, [k]: v }));
-  }, []);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    e.stopPropagation();
-    
     setErrs([]);
     setMsg("");
     setSfId(null);
@@ -77,23 +75,6 @@ export default function PersonForm() {
 
     // Build payload with user info
     const user = getCurrentUser();
-    
-    if (!navigator.onLine) {
-      // Simple offline storage
-      const offlineData = {
-        ...form,
-        timestamp: new Date().toISOString(),
-        createdBy: user?.name || 'Unknown'
-      };
-      
-      const stored = JSON.parse(localStorage.getItem('offlineClients') || '[]');
-      stored.push(offlineData);
-      localStorage.setItem('offlineClients', JSON.stringify(stored));
-      
-      setMsg("✅ Saved offline");
-      setForm({});
-      return;
-    }
     const payload = { 
       localId: uuid(), 
       person: {
@@ -106,6 +87,7 @@ export default function PersonForm() {
 
     setBusy(true);
     try {
+      // Uses Service Worker + Background Sync when offline
       const result = await postSync("/sync/PersonAccount", payload);
 
       if ("queued" in result) {
@@ -140,8 +122,6 @@ export default function PersonForm() {
               placeholder="Enter first name"
               value={form.firstName || ""}
               onChange={(e) => update("firstName", e.target.value)}
-              autoComplete="given-name"
-              inputMode="text"
             />
           </div>
         </div>
@@ -159,8 +139,6 @@ export default function PersonForm() {
               placeholder="Enter last name"
               value={form.lastName || ""}
               onChange={(e) => update("lastName", e.target.value)}
-              autoComplete="family-name"
-              inputMode="text"
             />
           </div>
         </div>
@@ -175,9 +153,7 @@ export default function PersonForm() {
               type="tel"
               placeholder="(555) 123-4567"
               value={form.phone || ""}
-              onChange={(e) => update("phone", e.target.value)}
-              autoComplete="tel"
-              inputMode="tel"
+              onChange={(e) => update("phone", e.target.value))
             />
           </div>
         </div>
@@ -192,9 +168,7 @@ export default function PersonForm() {
               type="email"
               placeholder="email@example.com"
               value={form.email || ""}
-              onChange={(e) => update("email", e.target.value)}
-              autoComplete="email"
-              inputMode="email"
+              onChange={(e) => update("email", e.target.value))
             />
           </div>
         </div>
