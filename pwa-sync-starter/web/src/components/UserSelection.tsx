@@ -5,6 +5,7 @@ interface OutreachUser {
   id: string;
   name: string;
   email: string;
+  sfUserId: string;
 }
 
 interface UserSelectionProps {

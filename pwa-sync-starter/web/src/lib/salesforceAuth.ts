@@ -188,7 +188,7 @@ export async function handleOAuthCallback(): Promise<boolean> {
       console.error('OAuth callback failed:', response.status, errorText);
     }
   } catch (error) {
-    console.error('OAuth callback failed:', error);
+    console.error('OAuth callback failed:', error instanceof Error ? error.message : String(error));
   }
   
   return false;
