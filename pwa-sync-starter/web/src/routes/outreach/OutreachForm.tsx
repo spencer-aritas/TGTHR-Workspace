@@ -15,7 +15,7 @@ export default function OutreachForm() {
     if (navigator.onLine) {
       try {
         const { id: _omit, synced: _omit2, ...payload } = record;
-        const res = await submitOutreachEncounter({ ...payload, id: String(id) });
+        const res = await submitOutreachEncounter(payload);
         if (res.ok) {
           await db.encounters.update(id!, { synced: true });
           setStatus('Synced to Salesforce ☁️');
