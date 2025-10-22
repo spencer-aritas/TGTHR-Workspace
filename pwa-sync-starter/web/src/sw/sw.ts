@@ -16,6 +16,15 @@ clientsClaim()
 precacheAndRoute(self.__WB_MANIFEST || [])
 cleanupOutdatedCaches()
 
+// Manually cache the root page for offline
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open('pages').then(cache => {
+      return cache.addAll(['/'])
+    })
+  )
+})
+
 // ---- Queue ALL /api/sync/* POSTs; if offline, return 202 so UI treats as success
 const syncQueue = new Queue('syncQueue', { 
   maxRetentionTime: 24 * 60
