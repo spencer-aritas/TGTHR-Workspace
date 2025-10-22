@@ -41,31 +41,79 @@ export interface SyncStatus {
 }
 
 export async function createPersonAccount(payload: PersonAccountPayload): Promise<PersonAccountResponse> {
-  const res = await fetch('/api/quick-person-account', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  
-  if (!res.ok) {
+  try {
+    const res = await fetch('/api/quick-person-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (res.ok) {
+      return res.json();
+    }
     throw new Error(`Failed to create person account: ${res.statusText}`);
+  } catch (error) {
+    // Store offline
+    const { db } = await import('./db');
+    const localId = crypto.randomUUID();
+    
+    const person = {
+      id: localId,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      phone: payload.phone,
+      birthdate: payload.birthdate,
+      street: payload.street,
+      city: payload.city,
+      state: payload.state,
+      postalCode: payload.postalCode,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      _status: 'pending' as const
+    };
+    
+    await db.persons.add(person);
+    
+    // Queue for sync
+    await db.outbox.add({
+      entity: 'PersonAccount',
+      payload: { localId, person: payload },
+      createdAt: new Date().toISOString(),
+      attempts: 0
+    });
+    
+    return { localId, synced: false };
   }
-  
-  return res.json();
 }
 
 export async function submitOutreachEncounter(payload: OutreachEncounterPayload): Promise<OutreachEncounterResponse> {
-  const res = await fetch('/api/outreach-intake', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  
-  if (!res.ok) {
+  try {
+    const res = await fetch('/api/outreach-intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (res.ok) {
+      return res.json();
+    }
     throw new Error(`Failed to submit encounter: ${res.statusText}`);
+  } catch (error) {
+    // Store offline
+    const { db } = await import('./db');
+    const encounterId = crypto.randomUUID();
+    
+    // Queue for sync
+    await db.outbox.add({
+      entity: 'OutreachEncounter' as any,
+      payload: { encounterId, ...payload },
+      createdAt: new Date().toISOString(),
+      attempts: 0
+    });
+    
+    return { encounterId, status: 'queued' };
   }
-  
-  return res.json();
 }
 
 export async function getSyncStatus(): Promise<SyncStatus> {

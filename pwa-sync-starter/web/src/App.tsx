@@ -4,7 +4,9 @@ import PersonForm from "./features/person/PersonForm"
 import { SyncStatus } from "./components/SyncStatus"
 import { UserSelection } from "./components/UserSelection"
 import { EnrollmentsPage } from "./components/EnrollmentsPage"
+import { OfflineIndicator } from "./components/OfflineIndicator"
 import { isDeviceRegistered, getCurrentUser } from "./lib/salesforceAuth"
+import { syncService } from "./lib/syncService"
 
 export default function App() {
   const [showUserSelection, setShowUserSelection] = useState(false)
@@ -15,6 +17,9 @@ export default function App() {
     if (!isDeviceRegistered()) {
       setShowUserSelection(true)
     }
+    
+    // Start auto-sync service
+    syncService.startAutoSync();
   }, [])
 
   const handleUserSelectionComplete = () => {
@@ -44,6 +49,7 @@ export default function App() {
 
   return (
     <div className="slds" style={{minHeight: '100vh', backgroundColor: '#f8f9fa'}}>
+      <OfflineIndicator />
       <header className="slds-page-header slds-p-around_medium" style={{backgroundColor: 'white', borderBottom: '1px solid #e5e5e5'}}>
         <div className="slds-media">
           <div className="slds-media__figure">
