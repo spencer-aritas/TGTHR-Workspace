@@ -25,18 +25,9 @@ if ('serviceWorker' in navigator) {
   })
 }
 
-// Disable Vite HMR completely to prevent mobile keyboard issues
-if (import.meta.hot) {
-  import.meta.hot.accept(() => {})
-  
-  const disableHMR = () => {
-    if (!navigator.onLine) {
-      import.meta.hot?.dispose(() => {})
-    }
-  }
-  
-  window.addEventListener('offline', disableHMR)
-  disableHMR()
+// Prevent Vite HMR from interfering when offline
+if (import.meta.hot && !navigator.onLine) {
+  import.meta.hot.dispose(() => {})
 }
 
 const root = createRoot(document.getElementById('root')!)

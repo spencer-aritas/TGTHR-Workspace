@@ -3,7 +3,6 @@ import React, { useState, type FormEvent } from "react";
 const uuid = () => crypto.randomUUID();
 import { postSync } from "../../lib/api";
 import { getCurrentUser, getDeviceId } from "../../lib/salesforceAuth";
-import { isOnline, storeFormOffline } from "../../lib/offlineStorage";
 
 type Person = {
   firstName: string;
@@ -88,25 +87,13 @@ export default function PersonForm() {
 
     setBusy(true);
     try {
-      let result;
-      
-      if (isOnline()) {
-        // Try online sync
-        result = await postSync("/sync/PersonAccount", payload);
-      } else {
-        // Store offline immediately
-        result = await storeFormOffline('person', {
-          ...form,
-          createdBy: user?.name || 'Unknown',
-          createdByEmail: user?.email || '',
-          deviceId: getDeviceId()
-        });
-      }
+      // Uses Service Worker + Background Sync when offline
+      const result = await postSync("/sync/PersonAccount", payload);
 
-      if ("queued" in result || !isOnline()) {
-        setMsg("✅ Saved offline (will sync when online)");
+      if ("queued" in result) {
+        setMsg("Saved (queued to sync)");
       } else {
-        setMsg("✅ Saved and synced");
+        setMsg("Saved");
         if ((result as any).salesforceId) setSfId((result as any).salesforceId);
       }
       setForm({});
