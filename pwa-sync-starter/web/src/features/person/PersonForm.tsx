@@ -63,9 +63,20 @@ export default function PersonForm() {
     e.stopPropagation();
     
     if (!navigator.onLine) {
-      // Offline - do nothing to avoid any state changes
-      setMsg("📱 Offline - form saved locally");
-      return false;
+      // Simple offline storage
+      const offlineData = {
+        ...form,
+        timestamp: new Date().toISOString(),
+        createdBy: user?.name || 'Unknown'
+      };
+      
+      const stored = JSON.parse(localStorage.getItem('offlineClients') || '[]');
+      stored.push(offlineData);
+      localStorage.setItem('offlineClients', JSON.stringify(stored));
+      
+      setMsg("✅ Saved offline");
+      setForm({});
+      return;
     }
     
     setErrs([]);
