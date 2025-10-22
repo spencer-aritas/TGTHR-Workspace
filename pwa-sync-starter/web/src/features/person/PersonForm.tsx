@@ -153,7 +153,7 @@ export default function PersonForm() {
               type="tel"
               placeholder="(555) 123-4567"
               value={form.phone || ""}
-              onChange={(e) => update("phone", e.target.value))
+              onChange={(e) => update("phone", e.target.value)}
             />
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function PersonForm() {
               type="email"
               placeholder="email@example.com"
               value={form.email || ""}
-              onChange={(e) => update("email", e.target.value))
+              onChange={(e) => update("email", e.target.value)}
             />
           </div>
         </div>
