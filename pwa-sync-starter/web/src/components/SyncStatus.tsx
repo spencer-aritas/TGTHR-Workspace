@@ -1,6 +1,5 @@
 // web/src/components/SyncStatus.tsx
 import { useState, useEffect } from 'react';
-import { getSyncStatus } from '../lib/outreachApi';
 
 export function SyncStatus() {
   const [status, setStatus] = useState({ unsyncedPeople: 0, unsyncedEncounters: 0 });
@@ -9,10 +8,18 @@ export function SyncStatus() {
   useEffect(() => {
     const updateStatus = async () => {
       try {
-        const result = await getSyncStatus();
-        setStatus(result);
+        // Check local database for unsynced items
+        const { db } = await import('../lib/db');
+        const pendingPersons = await db.persons.where('_status').equals('pending').count();
+        const pendingOutbox = await db.outbox.count();
+        
+        setStatus({ 
+          unsyncedPeople: pendingPersons, 
+          unsyncedEncounters: pendingOutbox 
+        });
       } catch (error) {
         console.error('Failed to get sync status:', error);
+        setStatus({ unsyncedPeople: 0, unsyncedEncounters: 0 });
       }
     };
 
