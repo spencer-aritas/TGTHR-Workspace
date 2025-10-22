@@ -40,13 +40,27 @@ registerRoute(
   }
 )
 
-// Navigation fallback
+// Navigation fallback - prevent offline refreshes
 registerRoute(
   ({ request }) => request.mode === 'navigate',
-  new NetworkFirst({
-    cacheName: 'pages',
-    plugins: [new ExpirationPlugin({ maxEntries: 50 })],
-  })
+  async ({ request }) => {
+    try {
+      // Try network first with short timeout
+      const response = await fetch(request, { 
+        signal: AbortSignal.timeout(2000) 
+      })
+      return response
+    } catch (error) {
+      // Offline - return cached page without refresh
+      const cache = await caches.open('pages')
+      const cachedResponse = await cache.match('/')
+      if (cachedResponse) {
+        return cachedResponse
+      }
+      // Fallback to current page to prevent refresh
+      return new Response('', { status: 200 })
+    }
+  }
 )
 
 // ---- Runtime cache for GET /api/* (stale-while-revalidate)
