@@ -60,6 +60,14 @@ export default function PersonForm() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (!navigator.onLine) {
+      // Offline - do nothing to avoid any state changes
+      setMsg("📱 Offline - form saved locally");
+      return false;
+    }
+    
     setErrs([]);
     setMsg("");
     setSfId(null);
@@ -87,14 +95,6 @@ export default function PersonForm() {
 
     setBusy(true);
     try {
-      if (!navigator.onLine) {
-        // Offline - just show success without network call
-        setMsg("Saved offline (will sync when online)");
-        setForm({});
-        return;
-      }
-      
-      // Online - make API call
       const result = await postSync("/sync/PersonAccount", payload);
 
       if ("queued" in result) {
