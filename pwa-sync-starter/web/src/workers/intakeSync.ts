@@ -3,7 +3,7 @@ import { intakeDb } from '../store/intakeStore';
 import { submitNewClientIntake } from '../api/intakeApi';
 
 export async function syncPendingIntakes(): Promise<void> {
-  const pending = await intakeDb.intakes.where('synced').equals(false).toArray();
+  const pending = await intakeDb.intakes.where('synced').equals(0).toArray();
   
   for (const intake of pending) {
     try {

@@ -6,13 +6,6 @@ import { newEncounterDefaults, type OutreachEncounter, type OutreachEncounterPay
 export default function OutreachForm() {
   const [form, setForm] = useState<OutreachEncounter>(newEncounterDefaults());
   const [status, setStatus] = useState('');
-  
-  const id = await db.encounters.add(form);
-     if (navigator.onLine) {
-          const { id: _omit, synced: _omit2, ...payload } = form as OutreachEncounterPayload;
-          const res = await submitOutreachEncounter(payload);
-          if (res.ok) await db.encounters.update(id, { synced: true });
-}
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const record = newEncounterDefaults();
@@ -21,7 +14,8 @@ export default function OutreachForm() {
 
     if (navigator.onLine) {
       try {
-        const res = await submitOutreachEncounter({ ...record, id });
+        const { id: _omit, synced: _omit2, ...payload } = record;
+        const res = await submitOutreachEncounter({ ...payload, id: String(id) });
         if (res.ok) {
           await db.encounters.update(id!, { synced: true });
           setStatus('Synced to Salesforce ☁️');

@@ -13,7 +13,7 @@ export default function IntakeStatus() {
 
   async function loadStats() {
     const total = await intakeDb.intakes.count();
-    const synced = await intakeDb.intakes.where('synced').equals(true).count();
+    const synced = await intakeDb.intakes.where('synced').equals(1).count();
     const pending = total - synced;
     setStats({ total, synced, pending });
   }

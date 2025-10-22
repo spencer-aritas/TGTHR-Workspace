@@ -4,7 +4,7 @@ export const getCurrentUser = () => {
 };
 
 export const getOutreachUsers = async () => {
-  return [{ id: 'user123', name: 'Current User', email: 'user@example.com' }];
+  return [{ id: 'user123', name: 'Current User', email: 'user@example.com', sfUserId: 'sf123' }];
 };
 
 export const setCurrentUser = (user: any) => {
