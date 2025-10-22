@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { v4 as uuid } from "uuid";
+// Using crypto.randomUUID instead of uuid package
+const uuid = () => crypto.randomUUID();
 import { postSync } from "@/lib/api";
 import { getCurrentUser, getDeviceId } from "../../lib/salesforceAuth";
 

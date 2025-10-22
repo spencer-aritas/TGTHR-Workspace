@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getOutreachUsers, registerDevice, isDeviceRegistered, loginWithSalesforce, handleOAuthCallback, type OutreachUser } from '../lib/salesforceAuth';
+import { getOutreachUsers, registerDevice, isDeviceRegistered, loginWithSalesforce, handleOAuthCallback } from '../lib/salesforceAuth';
+
+interface OutreachUser {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface UserSelectionProps {
   onUserSelected: () => void;

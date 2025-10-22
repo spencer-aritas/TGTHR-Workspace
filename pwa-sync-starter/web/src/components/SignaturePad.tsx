@@ -27,12 +27,15 @@ export const SignaturePadComponent: React.FC<SignaturePadProps> = ({
 
   useEffect(() => {
     if (canvasRef.current) {
-      signaturePadRef.current = new SignaturePad(canvasRef.current, {
+      const pad = new SignaturePad(canvasRef.current, {
         backgroundColor: 'rgb(255, 255, 255)',
-        penColor: 'rgb(0, 0, 0)',
-        onBegin: () => setIsEmpty(false),
-        onEnd: () => setIsEmpty(signaturePadRef.current?.isEmpty() ?? true)
+        penColor: 'rgb(0, 0, 0)'
       });
+      
+      pad.addEventListener('beginStroke', () => setIsEmpty(false));
+      pad.addEventListener('endStroke', () => setIsEmpty(pad.isEmpty()));
+      
+      signaturePadRef.current = pad;
       
       const resizeCanvas = () => {
         const canvas = canvasRef.current!;
