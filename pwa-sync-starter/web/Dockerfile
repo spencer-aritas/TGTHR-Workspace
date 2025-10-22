@@ -3,8 +3,8 @@ FROM node:20-alpine
 WORKDIR /usr/src/app
 
 # Install dependencies
-COPY package.json package-lock.json* ./
-RUN rm -rf node_modules package-lock.json && npm install
+COPY package.json ./
+RUN npm install
 
 # Copy source code
 COPY . .
