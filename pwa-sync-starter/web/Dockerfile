@@ -4,7 +4,7 @@ WORKDIR /usr/src/app
 
 # Install dependencies
 COPY package.json package-lock.json* ./
-RUN npm ci --platform=linux --arch=x64
+RUN rm -rf node_modules package-lock.json && npm install
 
 # Copy source code
 COPY . .
