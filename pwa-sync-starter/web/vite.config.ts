@@ -2,21 +2,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-import tsconfigPaths from "vite-tsconfig-paths";
-import { viteStaticCopy } from 'vite-plugin-static-copy';
+// Removed missing dependencies
 
 export default defineConfig({
   plugins: [
     react(),
-    viteStaticCopy({
-     targets: [
-      {
-        src: 'node_modules/@salesforce-ux/design-system/assets/icons',
-        dest: 'slds/assets'  // ends up at /slds/assets in dist
-      }
-    ]
-    }),
-    tsconfigPaths(),  // lets Vite follow your tsconfig paths
+    // Removed missing plugins
     VitePWA({
       injectRegister: "auto",
       registerType: "autoUpdate",
