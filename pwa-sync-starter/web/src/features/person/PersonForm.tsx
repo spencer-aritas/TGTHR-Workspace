@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 // Using crypto.randomUUID instead of uuid package
 const uuid = () => crypto.randomUUID();
-// Remove unused import
+import { postSync } from "../../lib/api";
 import { getCurrentUser, getDeviceId } from "../../lib/salesforceAuth";
 
 type Person = {
@@ -87,48 +87,15 @@ export default function PersonForm() {
 
     setBusy(true);
     try {
-      // Try direct sync first
-      if (navigator.onLine) {
-        const response = await fetch('/api/sync/PersonAccount', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        
-        if (response.ok) {
-          const result = await response.json();
-          setMsg("Synced to Salesforce ☁️");
-          if (result.salesforceId) setSfId(result.salesforceId);
-          setForm({});
-          setBusy(false);
-          return;
-        }
+      // Uses Service Worker + Background Sync when offline
+      const result = await postSync("/sync/PersonAccount", payload);
+
+      if ("queued" in result) {
+        setMsg("Saved (queued to sync)");
+      } else {
+        setMsg("Saved");
+        if ((result as any).salesforceId) setSfId((result as any).salesforceId);
       }
-      
-      // Fallback: store locally
-      const { db } = await import('../../lib/db');
-      await db.persons.add({
-        id: payload.localId,
-        firstName: payload.person.firstName,
-        lastName: payload.person.lastName,
-        email: payload.person.email,
-        phone: payload.person.phone,
-        birthdate: payload.person.birthdate,
-        notes: payload.person.notes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        _status: 'pending'
-      });
-      
-      // Queue for sync
-      await db.outbox.add({
-        entity: 'PersonAccount',
-        payload: payload,
-        createdAt: new Date().toISOString(),
-        attempts: 0
-      });
-      
-      setMsg("Saved (queued to sync)");
       setForm({});
     } catch (err: any) {
       setErrs([String(err?.message || err)]);
