@@ -41,9 +41,7 @@ export default defineConfig({
         changeOrigin: true
       }
     },
-    hmr: {
-      clientPort: 5173
-    }
+    hmr: false
   },
   preview: { port: 4173 }
 });
