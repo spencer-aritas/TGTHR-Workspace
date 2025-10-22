@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from "react";
+import React, { useState, type FormEvent } from "react";
 // Using crypto.randomUUID instead of uuid package
 const uuid = () => crypto.randomUUID();
 import { postSync } from "../../lib/api";
 import { getCurrentUser, getDeviceId } from "../../lib/salesforceAuth";
+import { isOnline, storeFormOffline } from "../../lib/offlineStorage";
 
 type Person = {
   firstName: string;
@@ -54,9 +55,9 @@ export default function PersonForm() {
   const [sfId, setSfId] = useState<string | null>(null);
   const [errs, setErrs] = useState<string[]>([]);
 
-  function update<K extends keyof Person>(k: K, v: Person[K]) {
+  const update = React.useCallback(<K extends keyof Person>(k: K, v: Person[K]) => {
     setForm((prev) => ({ ...prev, [k]: v }));
-  }
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -87,13 +88,25 @@ export default function PersonForm() {
 
     setBusy(true);
     try {
-      // Uses Service Worker + Background Sync when offline
-      const result = await postSync("/sync/PersonAccount", payload);
-
-      if ("queued" in result) {
-        setMsg("Saved (queued to sync)");
+      let result;
+      
+      if (isOnline()) {
+        // Try online sync
+        result = await postSync("/sync/PersonAccount", payload);
       } else {
-        setMsg("Saved");
+        // Store offline immediately
+        result = await storeFormOffline('person', {
+          ...form,
+          createdBy: user?.name || 'Unknown',
+          createdByEmail: user?.email || '',
+          deviceId: getDeviceId()
+        });
+      }
+
+      if ("queued" in result || !isOnline()) {
+        setMsg("✅ Saved offline (will sync when online)");
+      } else {
+        setMsg("✅ Saved and synced");
         if ((result as any).salesforceId) setSfId((result as any).salesforceId);
       }
       setForm({});
@@ -122,6 +135,8 @@ export default function PersonForm() {
               placeholder="Enter first name"
               value={form.firstName || ""}
               onChange={(e) => update("firstName", e.target.value)}
+              autoComplete="given-name"
+              inputMode="text"
             />
           </div>
         </div>
@@ -139,6 +154,8 @@ export default function PersonForm() {
               placeholder="Enter last name"
               value={form.lastName || ""}
               onChange={(e) => update("lastName", e.target.value)}
+              autoComplete="family-name"
+              inputMode="text"
             />
           </div>
         </div>
@@ -154,6 +171,8 @@ export default function PersonForm() {
               placeholder="(555) 123-4567"
               value={form.phone || ""}
               onChange={(e) => update("phone", e.target.value)}
+              autoComplete="tel"
+              inputMode="tel"
             />
           </div>
         </div>
@@ -169,6 +188,8 @@ export default function PersonForm() {
               placeholder="email@example.com"
               value={form.email || ""}
               onChange={(e) => update("email", e.target.value)}
+              autoComplete="email"
+              inputMode="email"
             />
           </div>
         </div>

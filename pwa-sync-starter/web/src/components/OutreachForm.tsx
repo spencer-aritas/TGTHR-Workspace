@@ -1,6 +1,7 @@
 // web/src/components/OutreachForm.tsx
 import React, { useState } from 'react';
 import { createPersonAccount, submitOutreachEncounter, getDeviceId } from '../lib/outreachApi';
+import { isOnline, storeFormOffline } from '../lib/offlineStorage';
 import type { PersonAccountPayload, OutreachEncounterPayload } from '../lib/outreachApi';
 
 export function OutreachForm() {
@@ -37,10 +38,17 @@ export function OutreachForm() {
     setMessage('');
 
     try {
-      const result = await createPersonAccount(personData);
+      let result;
+      
+      if (isOnline()) {
+        result = await createPersonAccount(personData);
+      } else {
+        result = await storeFormOffline('person', personData);
+      }
+      
       setPersonId(result.localId);
       setStep('encounter');
-      setMessage(result.synced ? 'Person created and synced to Salesforce!' : 'Person created locally (will sync when online)');
+      setMessage(result.synced ? '✅ Person created and synced!' : '✅ Person saved offline (will sync when online)');
     } catch (error) {
       setMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
@@ -54,12 +62,19 @@ export function OutreachForm() {
     setMessage('');
 
     try {
-      await submitOutreachEncounter({
+      const encounterPayload = {
         ...encounterData,
         personLocalId: personId,
         deviceId: getDeviceId()
-      });
-      setMessage('Encounter recorded successfully!');
+      };
+      
+      if (isOnline()) {
+        await submitOutreachEncounter(encounterPayload);
+        setMessage('✅ Encounter recorded and synced!');
+      } else {
+        await storeFormOffline('encounter', encounterPayload);
+        setMessage('✅ Encounter saved offline (will sync when online)');
+      }
       
       // Reset form
       setStep('person');
