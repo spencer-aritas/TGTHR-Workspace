@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline Form Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+    button { padding: 12px 24px; background: #007cba; color: white; border: none; border-radius: 4px; font-size: 16px; }
+    .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+    .offline { background: #ffebee; color: #c62828; }
+    .success { background: #e8f5e8; color: #2e7d32; }
+  </style>
+</head>
+<body>
+  <div id="status" class="status"></div>
+  
+  <form id="personForm">
+    <h2>New Client</h2>
+    <input type="text" id="firstName" placeholder="First Name" required autocomplete="given-name">
+    <input type="text" id="lastName" placeholder="Last Name" required autocomplete="family-name">
+    <input type="tel" id="phone" placeholder="Phone" autocomplete="tel">
+    <input type="email" id="email" placeholder="Email" autocomplete="email">
+    <textarea id="notes" placeholder="Notes" rows="4"></textarea>
+    <button type="submit">Save Client</button>
+  </form>
+
+  <script>
+    const statusDiv = document.getElementById('status');
+    const form = document.getElementById('personForm');
+    
+    function updateStatus() {
+      statusDiv.textContent = navigator.onLine ? '🟢 Online' : '🔴 Offline - Data saved locally';
+      statusDiv.className = navigator.onLine ? 'status' : 'status offline';
+    }
+    
+    updateStatus();
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const data = {
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        phone: document.getElementById('phone').value,
+        email: document.getElementById('email').value,
+        notes: document.getElementById('notes').value,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Store in localStorage
+      const stored = JSON.parse(localStorage.getItem('offlineClients') || '[]');
+      stored.push(data);
+      localStorage.setItem('offlineClients', JSON.stringify(stored));
+      
+      statusDiv.textContent = '✅ Client saved locally';
+      statusDiv.className = 'status success';
+      
+      form.reset();
+      
+      setTimeout(() => updateStatus(), 2000);
+    });
+  </script>
+</body>
+</html>
