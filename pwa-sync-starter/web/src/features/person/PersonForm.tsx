@@ -87,7 +87,14 @@ export default function PersonForm() {
 
     setBusy(true);
     try {
-      // Uses Service Worker + Background Sync when offline
+      if (!navigator.onLine) {
+        // Offline - just show success without network call
+        setMsg("Saved offline (will sync when online)");
+        setForm({});
+        return;
+      }
+      
+      // Online - make API call
       const result = await postSync("/sync/PersonAccount", payload);
 
       if ("queued" in result) {
