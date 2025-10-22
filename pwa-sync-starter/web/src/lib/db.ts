@@ -30,9 +30,18 @@ export interface ProgramIntake {
   _status: 'pending' | 'synced' | 'error' | 'conflict';
 }
 
+export interface SignatureRecord {
+  id?: string;
+  dataURL: string;
+  timestamp: string;
+  recordId?: string;
+  recordType?: string;
+  synced: boolean;
+}
+
 export interface OutboxItem {
   id?: number;
-  entity: 'PersonAccount' | 'ProgramIntake';
+  entity: 'PersonAccount' | 'ProgramIntake' | 'SignatureRecord';
   payload: any;
   createdAt: string;
   attempts: number;
@@ -43,6 +52,7 @@ export interface OutboxItem {
 export class AppDB extends Dexie {
   persons!: Table<PersonAccount, string>;
   intakes!: Table<ProgramIntake, string>;
+  signatures!: Table<SignatureRecord, string>;
   outbox!: Table<OutboxItem, number>;
 
   constructor() {
@@ -50,6 +60,7 @@ export class AppDB extends Dexie {
     this.version(1).stores({
       persons: 'id, accountId, lastName, email, _status, updatedAt',
       intakes: 'id, personLocalId, programId, _status, updatedAt',
+      signatures: 'id, recordId, recordType, timestamp, synced',
       outbox: '++id, entity, createdAt'
     });
   }

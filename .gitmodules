@@ -1,0 +1,3 @@
+[submodule "tgthr-docgen"]
+	path = tgthr-docgen
+	url = https://github.com/spencer-aritas/tgthr-docgen.git

@@ -6,6 +6,11 @@ outreachintake.aritasconsulting.com {
 		reverse_proxy api:8000
 	}
 	
+	# Proxy doc gen requests
+	handle /docgen/* {
+		reverse_proxy docgen:8000
+	}
+	
 	# Serve frontend
 	handle {
 		reverse_proxy web:5173

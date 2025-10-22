@@ -13,128 +13,67 @@
     </div>
   </template>
   
-  <lightning-tabset active-value={activeTab} ontabchange={handleTabChange} variant="scoped" class="tabset-container">
-    <lightning-tab label="1440 Pine" value="all" onactive={handleTabActive}>
-      <!-- Removed Log Interaction button from here -->
-      
-      <!-- Main content area - full width now that sidebar cards are removed -->
-      <div class="slds-p-around_x-small">
-        <h3 class="slds-text-heading_small slds-p-bottom_small">Participants</h3>
-        <template if:true={rowsAll.length}>
-          <div class="slds-scrollable_y table-wrap">
-            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
-              <thead>
-                <tr class="slds-line-height_reset">
-                  <th scope="col" data-field="Date_of_Interaction__c" onclick={handleSort} class="sortable-header">
-                    <div class="slds-truncate">
-                      <span>Date</span>
-                      <!-- Icon will be inserted here by JS -->
-                    </div>
-                  </th>
-                  <th scope="col" data-field="Account_Name" onclick={handleSort} class="sortable-header">
-                    <div class="slds-truncate">
-                      <span>Participant</span>
-                      <!-- Icon will be inserted here by JS -->
-                    </div>
-                  </th>
-                  <th scope="col" data-field="CreatedBy_Name" onclick={handleSort} class="sortable-header">
-                    <div class="slds-truncate">
-                      <span>Staff</span>
-                      <!-- Icon will be inserted here by JS -->
-                    </div>
-                  </th>
-                  <th scope="col"><div class="slds-truncate">Notes</div></th>
-                </tr>
-              </thead>
-              <tbody>
-                <template for:each={rowsAll} for:item="row">
-                  <tr key={row.Id} data-id={row.Id} onclick={handleRowClick} class={row.notesCellClass}>
-                    <td>
-                      <div class="slds-truncate">{row.Date_of_Interaction__c}</div>
-                    </td>
-                    <td>
-                      <div class="slds-truncate">{row.Account_Name}</div>
-                    </td>
-                    <td>
-                      <div class="slds-truncate">{row.CreatedBy_Name}</div>
-                    </td>
-                    <td class="rich-note-cell">
-                      <div class="rich-cell-container slds-is-relative">
-                        <c-rich-hover-cell value={row.MeetingNotes} class-name="table-hover-cell"></c-rich-hover-cell>
+  <lightning-tabset active-value={currentProgramId} ontabchange={handleTabChange} variant="scoped" class="tabset-container">
+    <template for:each={programTabs} for:item="tab">
+      <lightning-tab key={tab.id} label={tab.name} value={tab.id} onactive={handleTabActive}>
+        <!-- Main content area -->
+        <div class="slds-p-around_x-small">
+          <h3 class="slds-text-heading_small slds-p-bottom_small">Participants</h3>
+          <template if:true={currentRows.length}>
+            <div class="slds-scrollable_y table-wrap">
+              <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+                <thead>
+                  <tr class="slds-line-height_reset">
+                    <th scope="col" data-field="Date_of_Interaction__c" onclick={handleSort} class="sortable-header">
+                      <div class="slds-truncate">
+                        <span>Date</span>
+                        <!-- Icon will be inserted here by JS -->
                       </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </template>
-        <template if:false={rowsAll.length}>
-          <div class="slds-p-around_medium slds-text-align_center">No records found for 1440 Pine</div>
-        </template>
-      </div>
-    </lightning-tab>
-
-    <lightning-tab label="Nest 56" value="nest" onactive={handleTabActive}>
-      <!-- Removed Log Interaction button from here -->
-      
-      <!-- Main content area - full width now that sidebar cards are removed -->
-      <div class="slds-p-around_x-small">
-        <h3 class="slds-text-heading_small slds-p-bottom_small">Participants</h3>
-        <template if:true={rowsNest.length}>
-          <div class="slds-scrollable_y table-wrap">
-            <table class="slds-table slds-table_cell-buffer slds-table_bordered">
-              <thead>
-                <tr class="slds-line-height_reset">
-                  <th scope="col" data-field="Date_of_Interaction__c" onclick={handleSort} class="sortable-header">
-                    <div class="slds-truncate">
-                      <span>Date</span>
-                      <!-- Icon will be inserted here by JS -->
-                    </div>
-                  </th>
-                  <th scope="col" data-field="Account_Name" onclick={handleSort} class="sortable-header">
-                    <div class="slds-truncate">
-                      <span>Participant</span>
-                      <!-- Icon will be inserted here by JS -->
-                    </div>
-                  </th>
-                  <th scope="col" data-field="CreatedBy_Name" onclick={handleSort} class="sortable-header">
-                    <div class="slds-truncate">
-                      <span>Staff</span>
-                      <!-- Icon will be inserted here by JS -->
-                    </div>
-                  </th>
-                  <th scope="col"><div class="slds-truncate">Notes</div></th>
-                </tr>
-              </thead>
-              <tbody>
-                <template for:each={rowsNest} for:item="row">
-                  <tr key={row.Id} data-id={row.Id} onclick={handleRowClick} class={row.notesCellClass}>
-                    <td>
-                      <div class="slds-truncate">{row.Date_of_Interaction__c}</div>
-                    </td>
-                    <td>
-                      <div class="slds-truncate">{row.Account_Name}</div>
-                    </td>
-                    <td>
-                      <div class="slds-truncate">{row.CreatedBy_Name}</div>
-                    </td>
-                    <td class="rich-note-cell">
-                      <div class="rich-cell-container slds-is-relative">
-                        <c-rich-hover-cell value={row.MeetingNotes} class-name="table-hover-cell"></c-rich-hover-cell>
+                    </th>
+                    <th scope="col" data-field="Account_Name" onclick={handleSort} class="sortable-header">
+                      <div class="slds-truncate">
+                        <span>Participant</span>
+                        <!-- Icon will be inserted here by JS -->
                       </div>
-                    </td>
+                    </th>
+                    <th scope="col" data-field="CreatedBy_Name" onclick={handleSort} class="sortable-header">
+                      <div class="slds-truncate">
+                        <span>Staff</span>
+                        <!-- Icon will be inserted here by JS -->
+                      </div>
+                    </th>
+                    <th scope="col"><div class="slds-truncate">Notes</div></th>
                   </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </template>
-        <template if:false={rowsNest.length}>
-          <div class="slds-p-around_medium slds-text-align_center">No records found for Nest 56</div>
-        </template>
-      </div>
-    </lightning-tab>
+                </thead>
+                <tbody>
+                  <template for:each={currentRows} for:item="row">
+                    <tr key={row.Id} data-id={row.Id} onclick={handleRowClick} class={row.notesCellClass}>
+                      <td>
+                        <div class="slds-truncate">{row.Date_of_Interaction__c}</div>
+                      </td>
+                      <td>
+                        <div class="slds-truncate">{row.Account_Name}</div>
+                      </td>
+                      <td>
+                        <div class="slds-truncate">{row.CreatedBy_Name}</div>
+                      </td>
+                      <td class="rich-note-cell">
+                        <div class="rich-cell-container slds-is-relative">
+                          <c-rich-hover-cell value={row.MeetingNotes} class-name="table-hover-cell"></c-rich-hover-cell>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </template>
+          <template if:false={currentRows.length}>
+            <div class="slds-p-around_medium slds-text-align_center">No records found for {tab.name}</div>
+          </template>
+        </div>
+      </lightning-tab>
+    </template>
   </lightning-tabset>
 
     <template if:true={selected}>
@@ -426,10 +365,7 @@
                     <div class="slds-col slds-size_1-of-2">
                       <div class="slds-form-element">
                         <span class="slds-form-element__label">Program</span>
-                        <div class="slds-form-element__static slds-text-heading_small">
-                          <template if:true={isAll}>1440 Pine</template>
-                          <template if:false={isAll}>Nest 56</template>
-                        </div>
+                        <div class="slds-form-element__static slds-text-heading_small">{currentProgramName}</div>
                       </div>
                     </div>
                   </div>
