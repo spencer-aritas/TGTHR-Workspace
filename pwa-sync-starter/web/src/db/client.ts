@@ -1,6 +1,7 @@
 
 import Dexie, { Table } from 'dexie'
-import { v4 as uuid } from 'uuid'
+// Using crypto.randomUUID instead of uuid package
+const uuid = () => crypto.randomUUID()
 
 export interface Note {
   id: string
