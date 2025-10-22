@@ -17,7 +17,22 @@ precacheAndRoute(self.__WB_MANIFEST || [])
 cleanupOutdatedCaches()
 
 // ---- Queue ALL /api/sync/* POSTs; if offline, return 202 so UI treats as success
-const syncQueue = new Queue('syncQueue', { maxRetentionTime: 24 * 60 });
+const syncQueue = new Queue('syncQueue', { 
+  maxRetentionTime: 24 * 60,
+  onSync: async ({ queue }) => {
+    let entry;
+    while ((entry = await queue.shiftRequest())) {
+      try {
+        await fetch(entry.request);
+        console.log('Background sync: Successfully replayed request');
+      } catch (error) {
+        console.error('Background sync: Failed to replay request:', error);
+        await queue.unshiftRequest(entry);
+        throw error;
+      }
+    }
+  }
+});
 
 registerRoute(
   ({ url, request }) => request.method === 'POST' && url.pathname.startsWith('/api/sync/'),
