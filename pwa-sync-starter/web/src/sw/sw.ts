@@ -61,11 +61,37 @@ registerRoute(
 // ---- Offline navigation (SPA app shell)
 registerRoute(
   ({ request }) => request.mode === 'navigate',
-  new NetworkFirst({
-    cacheName: 'pages',
-    networkTimeoutSeconds: 3,
-    plugins: [new ExpirationPlugin({ maxEntries: 50, purgeOnQuotaError: true })],
-  })
+  async () => {
+    try {
+      // Try network first with short timeout
+      const response = await fetch('/', { 
+        cache: 'no-cache',
+        signal: AbortSignal.timeout(2000)
+      })
+      if (response.ok) {
+        return response
+      }
+    } catch (error) {
+      console.log('Network failed for navigation, using cache')
+    }
+    
+    // Fallback to cached index.html
+    const cache = await caches.open('pages')
+    const cachedResponse = await cache.match('/')
+    if (cachedResponse) {
+      return cachedResponse
+    }
+    
+    // Last resort - return basic HTML
+    return new Response(`
+      <!DOCTYPE html>
+      <html><head><title>TGTHR</title></head>
+      <body><div id="root">Loading...</div>
+      <script type="module" src="/src/main.tsx"></script></body></html>
+    `, {
+      headers: { 'Content-Type': 'text/html' }
+    })
+  }
 )
 
 // ---- Runtime cache for GET /api/* (stale-while-revalidate)
