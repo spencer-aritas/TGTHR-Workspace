@@ -25,5 +25,10 @@ if ('serviceWorker' in navigator) {
   })
 }
 
+// Prevent Vite HMR from interfering when offline
+if (import.meta.hot && !navigator.onLine) {
+  import.meta.hot.dispose(() => {})
+}
+
 const root = createRoot(document.getElementById('root')!)
 root.render(<App />)
