@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SSRSAssessmentData, SSRSAssessmentRequest } from '../../../shared/contracts';
+import { SSRSAssessmentData, SSRSAssessmentRequest } from '../types/ssrs';
 import { Case } from '../services/caseService';
 import { ssrsAssessmentService } from '../services/ssrsAssessmentService';
 
