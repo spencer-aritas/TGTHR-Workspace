@@ -40,6 +40,15 @@ registerRoute(
   }
 )
 
+// Network-first for other API POST requests
+registerRoute(
+  ({ url, request }) => request.method === 'POST' && url.pathname.startsWith('/api/'),
+  new NetworkFirst({
+    cacheName: 'api-posts',
+    plugins: [new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 5 })],
+  })
+)
+
 
 
 // ---- Runtime cache for GET /api/* (stale-while-revalidate)
