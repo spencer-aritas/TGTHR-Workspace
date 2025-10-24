@@ -21,6 +21,7 @@ export default class SignaturePad extends LightningElement {
             this.initializeSignaturePad();
         } catch (error) {
             this.showToast('Error', 'Failed to load signature library', 'error');
+            console.log('Error loading signature pad library:', error);
         }
     }
 
@@ -75,6 +76,7 @@ export default class SignaturePad extends LightningElement {
                 }
             } catch (error) {
                 this.showToast('Error', 'Failed to save signature', 'error');
+                console.log('Error saving signature:', error);
             }
         }
     }
