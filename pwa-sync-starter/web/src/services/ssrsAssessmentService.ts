@@ -1,4 +1,4 @@
-import { SSRSAssessmentRequest, SSRSAssessmentResult, SSRSAssessmentData } from '../../../shared/contracts/SSRSAssessmentContract';
+import { SSRSAssessmentRequest, SSRSAssessmentResult, SSRSAssessmentData } from '../../../shared/contracts';
 
 class SSRSAssessmentService {
   async submitAssessment(request: SSRSAssessmentRequest): Promise<SSRSAssessmentResult> {
