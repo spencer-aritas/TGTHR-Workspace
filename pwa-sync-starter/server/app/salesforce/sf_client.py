@@ -275,7 +275,8 @@ def create_interaction_summary_direct(record_id: str, notes: str, uuid: str, cre
     
     payload = {
         "Name": title,  # Required field!
-        "RelatedRecordId__c": record_id,  # Use the original record_id (Case or Account)
+        "RelatedRecordId": record_id,  # Standard polymorphic field (Case ID)
+        "AccountId": account_id,  # Always the Account/Person Account ID
         "Date_of_Interaction__c": today.strftime("%Y-%m-%d"),
         "InteractionPurpose": "Communication Log",
         "MeetingNotes": notes,
