@@ -13,6 +13,8 @@ from .api.outreach import router as outreach_router
 from .api.auth import router as auth_router
 from .api.users import router as users_router
 from .api.signatures import router as signatures_router
+from .api.cases import router as cases_router
+from .api.interaction_summary import router as interaction_summary_router
 
 init_schema_and_seed()
 
@@ -55,6 +57,8 @@ app.include_router(outreach_router, prefix="/api")
 app.include_router(auth_router)
 app.include_router(users_router, prefix="/api")
 app.include_router(signatures_router, prefix="/api")
+app.include_router(cases_router, prefix="/api")
+app.include_router(interaction_summary_router, prefix="/api")
 
 # Add device registration router
 from .routers.device import router as device_reg_router

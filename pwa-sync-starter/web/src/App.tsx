@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react"
 import PersonForm from "./features/person/PersonForm"
 import { SyncStatus } from "./components/SyncStatus"
 import { UserSelection } from "./components/UserSelection"
-import { EnrollmentsPage } from "./components/EnrollmentsPage"
+import { MyCasesPage } from "./components/MyCasesPage"
 import { OfflineIndicator } from "./components/OfflineIndicator"
 import { isDeviceRegistered, getCurrentUser } from "./lib/salesforceAuth"
 import { syncService } from "./lib/syncService"
@@ -11,7 +11,7 @@ import { syncService } from "./lib/syncService"
 export default function App() {
   const [showUserSelection, setShowUserSelection] = useState(false)
   const [currentUser, setCurrentUser] = useState(getCurrentUser())
-  const [currentPage, setCurrentPage] = useState<'intake' | 'enrollments'>('intake')
+  const [currentPage, setCurrentPage] = useState<'intake' | 'cases'>('intake')
 
   useEffect(() => {
     if (!isDeviceRegistered()) {
@@ -31,7 +31,7 @@ export default function App() {
     return <UserSelection onUserSelected={handleUserSelectionComplete} />
   }
 
-  if (currentPage === 'enrollments') {
+  if (currentPage === 'cases') {
     return (
       <div>
         <nav className="slds-p-around_small" style={{backgroundColor: 'white', borderBottom: '1px solid #e5e5e5'}}>
@@ -42,7 +42,7 @@ export default function App() {
             ← Back to Client Intake
           </button>
         </nav>
-        <EnrollmentsPage />
+        <MyCasesPage />
       </div>
     )
   }
@@ -69,9 +69,9 @@ export default function App() {
           <div className="slds-media__figure">
             <button 
               className="slds-button slds-button_outline-brand"
-              onClick={() => setCurrentPage('enrollments')}
+              onClick={() => setCurrentPage('cases')}
             >
-              📋 View Enrollments
+              📋 My Cases
             </button>
           </div>
         </div>

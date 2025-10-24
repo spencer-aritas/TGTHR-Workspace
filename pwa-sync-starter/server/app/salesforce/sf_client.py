@@ -318,6 +318,23 @@ class SalesforceClient:
     def upsert_note(self, note: Dict[str, Any]) -> bool:
         # TODO: implement syncing notes to SF
         return True
+    
+    def query(self, soql: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Execute a SOQL query with optional parameters"""
+        if params:
+            # Simple parameter substitution for :paramName
+            for key, value in params.items():
+                soql = soql.replace(f":{key}", f"'{value}'")
+        return _query(soql)
+    
+    def create(self, sobject: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new record in Salesforce"""
+        return _sf(_api(f"/sobjects/{sobject}/"), method="POST", json=data)
+    
+    def call_apex_rest(self, service_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Call an Apex REST service"""
+        path = f"/services/apexrest/{service_name}"
+        return _sf(path, method="POST", json=data)
 __all__ = [
     "SFAuthError", "SFError",
     "query_soql",
