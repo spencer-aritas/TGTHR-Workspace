@@ -229,12 +229,21 @@ def ingest_encounter(encounter_data: Dict[str, Any]) -> Dict[str, Any]:
     path = "/services/apexrest/ProgramEnrollmentService/ingestEncounter"
     return _sf(path, method="POST", json=encounter_data)
 
-def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
+def create_interaction_summary_direct(record_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
     """Direct InteractionSummary creation with proper Name field"""
     from datetime import datetime
     
-    # Get account info for proper Name formatting
-    account = sobject_get("Account", account_id)
+    # Determine if record_id is Account or Case and get account info
+    if record_id.startswith('500'):  # Case ID prefix
+        case = sobject_get("Case", record_id)
+        account_id = case.get('AccountId')
+        if not account_id:
+            raise Exception(f"Case {record_id} has no associated Account")
+        account = sobject_get("Account", account_id)
+    else:  # Assume Account ID
+        account_id = record_id
+        account = sobject_get("Account", account_id)
+    
     participant_name = f"{account.get('LastName', 'Unknown')}, {account.get('FirstName', '')}" if account.get('FirstName') else account.get('Name', 'Unknown')
     
     # Format date as MM/DD/YYYY
@@ -266,7 +275,7 @@ def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, cr
     
     payload = {
         "Name": title,  # Required field!
-        "AccountId": account_id,
+        "RelatedRecordId__c": record_id,  # Use the original record_id (Case or Account)
         "Date_of_Interaction__c": today.strftime("%Y-%m-%d"),
         "InteractionPurpose": "Communication Log",
         "MeetingNotes": notes,
@@ -279,10 +288,10 @@ def create_interaction_summary_direct(account_id: str, notes: str, uuid: str, cr
     res = _sf(_api("/sobjects/InteractionSummary/"), method="POST", json=payload)
     return res["id"]
 
-def call_interaction_summary_service(account_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
+def call_interaction_summary_service(record_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
     """Call InteractionSummaryService with user context"""
-    # Use direct creation with proper user context
-    return create_interaction_summary_direct(account_id, notes, uuid, created_by_user_id)
+    # Use direct creation with proper user context - supports both Account and Case IDs
+    return create_interaction_summary_direct(record_id, notes, uuid, created_by_user_id)
 
 def upsert_person_by_uuid(uuid: str, fields: dict) -> str:
     # PATCH /sobjects/Account/UUID__c/{uuid}
