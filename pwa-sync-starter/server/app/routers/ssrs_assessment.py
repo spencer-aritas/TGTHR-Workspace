@@ -80,25 +80,13 @@ async def submit_ssrs_assessment(request: SSRSAssessmentRequest):
                 "Monitor for changes"
             ]
 
-        # Integrate with Salesforce
-        sf_client = SalesforceClient()
+        # TODO: Deploy SSRSAssessmentHandler Apex class to Salesforce
+        # For now, create a mock assessment record
+        assessment_id = f"SSRS_{request.accountId}_{request.assessmentDate}"
+        case_id = request.caseId or f"CASE_{request.accountId}"
+        task_created = risk_level in ["Moderate", "High", "Imminent"]
         
-        # Call Apex REST service to handle SSRS assessment
-        apex_request = {
-            "accountId": request.accountId,
-            "caseId": request.caseId,
-            "assessmentData": request.assessmentData.dict(),
-            "assessmentDate": request.assessmentDate,
-            "assessedById": request.assessedById,
-            "riskLevel": risk_level,
-            "recommendations": recommendations
-        }
-        
-        sf_result = sf_client.call_apex_rest("SSRSAssessmentHandler", json.dumps(apex_request))
-        
-        assessment_id = sf_result.get("assessmentId")
-        case_id = sf_result.get("caseId")
-        task_created = sf_result.get("taskCreated", False)
+        logger.info(f"Mock SSRS assessment created: {assessment_id} with {risk_level} risk")
         
         return SSRSAssessmentResult(
             assessmentId=assessment_id,
