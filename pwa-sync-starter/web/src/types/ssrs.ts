@@ -1,5 +1,6 @@
 // web/src/types/ssrs.ts
 // SSRS Assessment types for PWA
+// TODO: Consolidate with shared/contracts/SSRSAssessmentContract.ts once Docker build context is fixed
 
 export interface SSRSAssessmentData {
   wishDeadLifetime?: boolean;

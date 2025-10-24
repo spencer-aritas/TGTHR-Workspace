@@ -22,25 +22,21 @@ class InteractionSummaryService:
             start_time = data['StartTime']
             end_time = data['EndTime']
             
-            # Create the interaction summary record
-            interaction_data = {
-                'Name': f"Interaction - {interaction_date} {start_time}-{end_time}",
-                'RelatedRecordId__c': data['RelatedRecordId'],
-                'InteractionDate__c': interaction_date,
-                'StartTime__c': start_time,
-                'EndTime__c': end_time,
-                'Notes__c': data['Notes'],
-                'CreatedBy__c': data.get('CreatedBy'),
-                'CreatedByEmail__c': data.get('CreatedByEmail')
-            }
+            # Create the interaction summary record using the existing sf_client method
+            from .sf_client import call_interaction_summary_service
             
-            result = self.sf_client.create('InteractionSummary__c', interaction_data)
+            # Use the existing interaction summary creation method
+            interaction_id = call_interaction_summary_service(
+                account_id=data['RelatedRecordId'],
+                notes=data['Notes'],
+                uuid=f"interaction_{datetime.now().isoformat()}",
+                created_by_user_id=data.get('CreatedBy')
+            )
             
-            if result.get('success'):
-                logger.info(f"Successfully created interaction summary: {result['id']}")
-                return result['id']
-            else:
-                raise Exception(f"Salesforce creation failed: {result}")
+            return interaction_id
+            
+            logger.info(f"Successfully created interaction summary: {interaction_id}")
+            return interaction_id
                 
         except Exception as e:
             logger.error(f"Failed to create interaction summary: {e}")
