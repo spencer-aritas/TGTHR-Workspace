@@ -16,6 +16,10 @@ public with sharing class CaseService {
         caseSObj.put('Priority', priority != null ? priority : 'Medium');
         caseSObj.put('Status', status != null ? status : 'New');
         caseSObj.put('Origin', origin != null ? origin : 'Web');
+        caseSObj.put('Type', 'Program Involvement');
+        caseSObj.put('OwnerId', UserInfo.getUserId());
+        caseSObj.put('IsEscalated', false);
+
         
         insert caseSObj;
         return caseSObj.Id;
