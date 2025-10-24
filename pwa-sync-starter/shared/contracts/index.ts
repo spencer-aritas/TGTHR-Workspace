@@ -6,6 +6,7 @@ export * from './CaseContract';
 export * from './InteractionSummaryContract';
 export * from './AssessmentContract';
 export * from './AuditLogContract';
+export * from './SSRSAssessmentContract';
 
 // Common types used across contracts
 export interface BaseResponse {

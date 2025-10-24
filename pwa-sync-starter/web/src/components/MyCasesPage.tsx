@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { caseService, Case } from '../services/caseService';
 import { interactionSummaryService, InteractionSummary } from '../services/interactionSummaryService';
+import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
 
 interface InteractionFormData {
   notes: string;
@@ -14,6 +15,7 @@ export function MyCasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [currentView, setCurrentView] = useState<'cases' | 'interaction' | 'ssrs'>('cases');
   const [formData, setFormData] = useState<InteractionFormData>({
     notes: '',
     date: new Date().toISOString().split('T')[0],
@@ -38,14 +40,25 @@ export function MyCasesPage() {
     }
   };
 
-  const handleCaseSelect = (caseItem: Case) => {
+  const handleInteractionSelect = (caseItem: Case) => {
     setSelectedCase(caseItem);
+    setCurrentView('interaction');
     setFormData({
       notes: '',
       date: new Date().toISOString().split('T')[0],
       startTime: '',
       endTime: ''
     });
+  };
+
+  const handleSSRSSelect = (caseItem: Case) => {
+    setSelectedCase(caseItem);
+    setCurrentView('ssrs');
+  };
+
+  const handleBackToCases = () => {
+    setSelectedCase(null);
+    setCurrentView('cases');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +75,7 @@ export function MyCasesPage() {
         Notes: formData.notes
       });
       
-      setSelectedCase(null);
+      handleBackToCases();
       setFormData({
         notes: '',
         date: new Date().toISOString().split('T')[0],
@@ -76,7 +89,17 @@ export function MyCasesPage() {
     }
   };
 
-  if (selectedCase) {
+  if (currentView === 'ssrs' && selectedCase) {
+    return (
+      <SSRSAssessmentWizard
+        selectedCase={selectedCase}
+        onComplete={handleBackToCases}
+        onCancel={handleBackToCases}
+      />
+    );
+  }
+
+  if (currentView === 'interaction' && selectedCase) {
     return (
       <div className="slds" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
         <header className="slds-page-header slds-p-around_medium" style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e5e5' }}>
@@ -90,7 +113,7 @@ export function MyCasesPage() {
             <div className="slds-media__figure">
               <button 
                 className="slds-button slds-button_neutral"
-                onClick={() => setSelectedCase(null)}
+                onClick={handleBackToCases}
               >
                 ← Back to Cases
               </button>
@@ -227,11 +250,7 @@ export function MyCasesPage() {
             <div className="slds-grid slds-wrap slds-gutters">
               {cases.map((caseItem) => (
                 <div key={caseItem.Id} className="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
-                  <div 
-                    className="slds-card slds-card_boundary"
-                    style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
-                    onClick={() => handleCaseSelect(caseItem)}
-                  >
+                  <div className="slds-card slds-card_boundary">
                     <div className="slds-card__header">
                       <h3 className="slds-card__header-title slds-truncate">
                         {caseItem.Contact.Name}
@@ -249,6 +268,26 @@ export function MyCasesPage() {
                           {caseItem.Subject}
                         </p>
                       )}
+                    </div>
+                    <div className="slds-card__footer">
+                      <div className="slds-grid slds-gutters_x-small">
+                        <div className="slds-col">
+                          <button
+                            className="slds-button slds-button_outline-brand slds-size_1-of-1"
+                            onClick={() => handleInteractionSelect(caseItem)}
+                          >
+                            📝 Quick Interaction
+                          </button>
+                        </div>
+                        <div className="slds-col">
+                          <button
+                            className="slds-button slds-button_brand slds-size_1-of-1"
+                            onClick={() => handleSSRSSelect(caseItem)}
+                          >
+                            🧠 SSRS Assessment
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
