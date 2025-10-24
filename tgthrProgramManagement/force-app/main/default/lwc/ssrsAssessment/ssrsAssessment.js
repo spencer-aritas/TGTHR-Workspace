@@ -78,6 +78,10 @@ export default class SsrsAssessment extends LightningElement {
         return !this.canProceed;
     }
 
+    get buttonLabel() {
+        return this.isLastQuestion ? 'Complete Assessment' : 'Next';
+    }
+
     get responseOptions() {
         return [
             { label: 'Yes', value: 'Yes' },
