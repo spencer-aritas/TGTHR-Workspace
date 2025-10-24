@@ -147,10 +147,16 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
               
               <div className="slds-grid slds-gutters slds-m-bottom_medium">
                 <div className="slds-col slds-size_1-of-2">
-                  <h3 className="slds-text-heading_small">Lifetime</h3>
+                  <div className="slds-text-align_center slds-p-around_small" style={{backgroundColor: '#f3f2f2', borderRadius: '4px'}}>
+                    <h3 className="slds-text-heading_small slds-text-color_default"><strong>Lifetime</strong></h3>
+                    <p className="slds-text-body_small">Time He/She/They Felt Most Suicidal</p>
+                  </div>
                 </div>
                 <div className="slds-col slds-size_1-of-2">
-                  <h3 className="slds-text-heading_small">Past 1 Month</h3>
+                  <div className="slds-text-align_center slds-p-around_small" style={{backgroundColor: '#f3f2f2', borderRadius: '4px'}}>
+                    <h3 className="slds-text-heading_small slds-text-color_default"><strong>Past 1 Month</strong></h3>
+                    <p className="slds-text-body_small">Recent Experiences</p>
+                  </div>
                 </div>
               </div>
 
@@ -205,6 +211,11 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
                         </label>
                       </span>
                     </div>
+                    {assessmentData.wishDeadPastMonth && (
+                      <textarea className="slds-textarea slds-m-top_x-small" placeholder="If yes, describe:"
+                                value={assessmentData.wishDeadPastMonthDesc || ''}
+                                onChange={(e) => updateData('wishDeadPastMonthDesc', e.target.value)} />
+                    )}
                   </div>
                 </div>
               </div>
@@ -260,6 +271,11 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
                         </label>
                       </span>
                     </div>
+                    {assessmentData.suicidalThoughtsPastMonth && (
+                      <textarea className="slds-textarea slds-m-top_x-small" placeholder="If yes, describe:"
+                                value={assessmentData.suicidalThoughtsPastMonthDesc || ''}
+                                onChange={(e) => updateData('suicidalThoughtsPastMonthDesc', e.target.value)} />
+                    )}
                   </div>
                 </div>
               </div>
@@ -275,9 +291,23 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
           {currentSection === 'intensity' && (
             <div>
               <h2 className="slds-text-heading_medium slds-m-bottom_medium">Intensity of Ideation</h2>
+              <p className="slds-text-body_regular slds-m-bottom_medium">The following features should be rated with respect to the most severe type of ideation. Ask about time he/she/they were feeling the most suicidal.</p>
+              
+              <div className="slds-grid slds-gutters slds-m-bottom_medium">
+                <div className="slds-col slds-size_1-of-2">
+                  <div className="slds-text-align_center slds-p-around_small" style={{backgroundColor: '#f3f2f2', borderRadius: '4px'}}>
+                    <h3 className="slds-text-heading_small slds-text-color_default"><strong>Lifetime - Most Severe</strong></h3>
+                  </div>
+                </div>
+                <div className="slds-col slds-size_1-of-2">
+                  <div className="slds-text-align_center slds-p-around_small" style={{backgroundColor: '#f3f2f2', borderRadius: '4px'}}>
+                    <h3 className="slds-text-heading_small slds-text-color_default"><strong>Recent - Most Severe</strong></h3>
+                  </div>
+                </div>
+              </div>
               
               <div className="slds-form-element slds-m-bottom_medium">
-                <label className="slds-form-element__label">Frequency - How many times have you had these thoughts?</label>
+                <label className="slds-form-element__label"><strong>Frequency</strong> - How many times have you had these thoughts?</label>
                 <div className="slds-grid slds-gutters">
                   <div className="slds-col slds-size_1-of-2">
                     <select className="slds-select" value={assessmentData.frequencyLifetime || ''}
@@ -315,11 +345,25 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
           {currentSection === 'behavior' && (
             <div>
               <h2 className="slds-text-heading_medium slds-m-bottom_medium">Suicidal Behavior</h2>
+              <p className="slds-text-body_regular slds-m-bottom_medium">Check all that apply, so long as these are separate events; must ask about all types.</p>
+              
+              <div className="slds-grid slds-gutters slds-m-bottom_medium">
+                <div className="slds-col slds-size_1-of-2">
+                  <div className="slds-text-align_center slds-p-around_small" style={{backgroundColor: '#f3f2f2', borderRadius: '4px'}}>
+                    <h3 className="slds-text-heading_small slds-text-color_default"><strong>Lifetime</strong></h3>
+                  </div>
+                </div>
+                <div className="slds-col slds-size_1-of-2">
+                  <div className="slds-text-align_center slds-p-around_small" style={{backgroundColor: '#f3f2f2', borderRadius: '4px'}}>
+                    <h3 className="slds-text-heading_small slds-text-color_default"><strong>Past 3 Months</strong></h3>
+                  </div>
+                </div>
+              </div>
               
               <div className="slds-form-element slds-m-bottom_medium">
                 <label className="slds-form-element__label">
                   <strong>Actual Attempt</strong><br/>
-                  Have you made a suicide attempt?
+                  A potentially self-injurious act undertaken with at least some wish to die, as a result of act. Have you made a suicide attempt?
                 </label>
                 <div className="slds-grid slds-gutters">
                   <div className="slds-col slds-size_1-of-2">
