@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import logging
-from ..salesforce.interaction_summary_service import InteractionSummaryService
 
 logger = logging.getLogger("interaction_summary_api")
 router = APIRouter()
@@ -16,11 +15,20 @@ class InteractionSummaryRequest(BaseModel):
     CreatedBy: str
     CreatedByEmail: str
 
+@router.get("/interaction-summary/test")
+async def test_interaction_summary():
+    """Test endpoint to verify router is working"""
+    return {"status": "ok", "message": "Interaction summary router is working"}
+
 @router.post("/interaction-summary")
 async def create_interaction_summary(request: InteractionSummaryRequest):
     """Create an interaction summary record in Salesforce"""
     try:
         logger.info(f"Received interaction summary request: {request.dict()}")
+        
+        # Import here to avoid startup issues
+        from ..salesforce.interaction_summary_service import InteractionSummaryService
+        
         service = InteractionSummaryService()
         interaction_id = service.create_interaction_summary(request.dict())
         return {"id": interaction_id, "success": True}
