@@ -33,8 +33,6 @@ class InteractionSummaryService:
                 created_by_user_id=data.get('CreatedBy')
             )
             
-            return interaction_id
-            
             logger.info(f"Successfully created interaction summary: {interaction_id}")
             return interaction_id
                 
