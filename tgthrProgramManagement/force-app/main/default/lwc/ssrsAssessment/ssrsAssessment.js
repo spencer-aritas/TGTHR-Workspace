@@ -74,6 +74,10 @@ export default class SsrsAssessment extends LightningElement {
         return 'slds-badge slds-theme_success';
     }
 
+    get isDisabled() {
+        return !this.canProceed;
+    }
+
     get responseOptions() {
         return [
             { label: 'Yes', value: 'Yes' },
