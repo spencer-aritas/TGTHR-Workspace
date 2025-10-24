@@ -27,7 +27,7 @@ class InteractionSummaryService:
             
             # Use the existing interaction summary creation method
             interaction_id = call_interaction_summary_service(
-                account_id=data['RelatedRecordId'],
+                record_id=data['RelatedRecordId'],
                 notes=data['Notes'],
                 uuid=f"interaction_{datetime.now().isoformat()}",
                 created_by_user_id=data.get('CreatedBy')
