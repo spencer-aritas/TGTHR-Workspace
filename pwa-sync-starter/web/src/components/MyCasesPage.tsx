@@ -229,7 +229,7 @@ export function MyCasesPage() {
                 <div key={caseItem.Id} className="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
                   <div 
                     className="slds-card slds-card_boundary"
-                    style={{ cursor: 'pointer', transition: 'transform 0.2s', ':hover': { transform: 'translateY(-2px)' } }}
+                    style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
                     onClick={() => handleCaseSelect(caseItem)}
                   >
                     <div className="slds-card__header">
