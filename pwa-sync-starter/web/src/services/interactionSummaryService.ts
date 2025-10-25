@@ -1,27 +1,24 @@
 import { getCurrentUser } from '../lib/salesforceAuth';
-
-export interface InteractionSummary {
-  Id?: string;
-  RelatedRecordId: string;
-  InteractionDate: string;
-  StartTime: string;
-  EndTime: string;
-  Notes: string;
-  CreatedBy?: string;
-  CreatedByEmail?: string;
-}
+import type { InteractionSummaryRequest } from '@shared/contracts/InteractionSummaryContract';
 
 class InteractionSummaryService {
-  async createInteractionSummary(data: Omit<InteractionSummary, 'Id' | 'CreatedBy' | 'CreatedByEmail'>): Promise<string> {
+  async createInteractionSummary(
+    data: Omit<InteractionSummaryRequest, 'CreatedBy' | 'CreatedByEmail'>
+  ): Promise<string> {
     const currentUser = getCurrentUser();
     if (!currentUser) {
       throw new Error('No authenticated user');
     }
 
-    const payload = {
+    const resolvedUserId = currentUser.sfUserId || currentUser.id;
+    if (!resolvedUserId) {
+      throw new Error('Missing Salesforce user identifier');
+    }
+
+    const payload: InteractionSummaryRequest = {
       ...data,
-      CreatedBy: currentUser.id,
-      CreatedByEmail: currentUser.email
+      CreatedBy: resolvedUserId,
+      CreatedByEmail: currentUser.email ?? ''
     };
 
     const response = await fetch('/api/interaction-summary', {

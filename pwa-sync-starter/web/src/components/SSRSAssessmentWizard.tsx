@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SSRSAssessmentData, SSRSAssessmentRequest } from '../types/ssrs';
+import { SSRSAssessmentData, SSRSAssessmentRequest, SSRSAssessmentResult } from '../types/ssrs';
 import { Case } from '../services/caseService';
 import { ssrsAssessmentService } from '../services/ssrsAssessmentService';
 
@@ -13,7 +13,10 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
   const [currentSection, setCurrentSection] = useState<'ideation' | 'intensity' | 'behavior' | 'complete'>('ideation');
   const [assessmentData, setAssessmentData] = useState<SSRSAssessmentData>({});
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<SSRSAssessmentResult | null>(null);
+  const [error, setError] = useState('');
+  const participantName = selectedCase.Account?.Name ?? 'Participant';
+  const participantId = selectedCase.Account?.Id ?? selectedCase.AccountId;
 
   const updateData = (field: keyof SSRSAssessmentData, value: any) => {
     setAssessmentData(prev => ({ ...prev, [field]: value }));
@@ -48,10 +51,16 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
   };
 
   const handleSubmit = async () => {
+    if (!participantId) {
+      setError('Selected case is missing an Account/Participant.');
+      return;
+    }
+
     setSubmitting(true);
+    setError('');
     try {
       const request: SSRSAssessmentRequest = {
-        accountId: selectedCase.Contact.Id,
+        accountId: participantId,
         caseId: selectedCase.Id,
         assessmentData,
         assessmentDate: new Date().toISOString().split('T')[0],
@@ -61,8 +70,9 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
       const assessmentResult = await ssrsAssessmentService.submitAssessment(request);
       setResult(assessmentResult);
       setCurrentSection('complete');
-    } catch (error) {
-      console.error('Failed to submit assessment:', error);
+    } catch (err) {
+      console.error('Failed to submit assessment:', err);
+      setError('Failed to submit assessment. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +99,7 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
       <div className="slds" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
         <header className="slds-page-header slds-p-around_medium" style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e5e5' }}>
           <h1 className="slds-page-header__title">SSRS Assessment Complete</h1>
-          <p className="slds-page-header__info">{selectedCase.Contact.Name}</p>
+          <p className="slds-page-header__info">{participantName}</p>
         </header>
 
         <div className="slds-p-around_medium">
@@ -98,6 +108,9 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
               <div className={`slds-badge ${result.riskLevel === 'Imminent' || result.riskLevel === 'High' ? 'slds-theme_error' : result.riskLevel === 'Moderate' ? 'slds-theme_warning' : 'slds-theme_success'}`}>
                 {result.riskLevel} Risk
               </div>
+              {typeof result.totalScore === 'number' && (
+                <p className="slds-m-top_small slds-text-body_regular">Total score: {result.totalScore}</p>
+              )}
             </div>
 
             {result.recommendations.length > 0 && (
@@ -128,7 +141,7 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
         <div className="slds-media">
           <div className="slds-media__body">
             <h1 className="slds-page-header__title">SSRS Assessment</h1>
-            <p className="slds-page-header__info">{selectedCase.Contact.Name}</p>
+            <p className="slds-page-header__info">{participantName}</p>
           </div>
           <div className="slds-media__figure">
             <button className="slds-button slds-button_neutral" onClick={onCancel}>
@@ -140,6 +153,12 @@ export function SSRSAssessmentWizard({ selectedCase, onComplete, onCancel }: SSR
 
       <div className="slds-p-around_medium">
         <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          {error && (
+            <div className="slds-notify slds-notify_alert slds-theme_error slds-m-bottom_medium">
+              <span className="slds-assistive-text">Error</span>
+              <span>{error}</span>
+            </div>
+          )}
           
           {currentSection === 'ideation' && (
             <div>

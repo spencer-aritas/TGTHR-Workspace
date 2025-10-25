@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { caseService, Case } from '../services/caseService';
-import { interactionSummaryService, InteractionSummary } from '../services/interactionSummaryService';
+import { interactionSummaryService } from '../services/interactionSummaryService';
 import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
 
 interface InteractionFormData {
@@ -41,6 +41,7 @@ export function MyCasesPage() {
   };
 
   const handleInteractionSelect = (caseItem: Case) => {
+    setError('');
     setSelectedCase(caseItem);
     setCurrentView('interaction');
     setFormData({
@@ -52,11 +53,17 @@ export function MyCasesPage() {
   };
 
   const handleSSRSSelect = (caseItem: Case) => {
+    if (!(caseItem.Account?.Id || caseItem.AccountId)) {
+      setError('This case is missing an associated participant/account.');
+      return;
+    }
+    setError('');
     setSelectedCase(caseItem);
     setCurrentView('ssrs');
   };
 
   const handleBackToCases = () => {
+    setError('');
     setSelectedCase(null);
     setCurrentView('cases');
   };
@@ -107,7 +114,7 @@ export function MyCasesPage() {
             <div className="slds-media__body">
               <h1 className="slds-page-header__title">Log Interaction</h1>
               <p className="slds-page-header__info">
-                {selectedCase.Contact.Name} - {selectedCase.CaseNumber}
+                {(selectedCase.Subject || 'Case')} - {selectedCase.CaseNumber}
               </p>
             </div>
             <div className="slds-media__figure">
@@ -115,7 +122,7 @@ export function MyCasesPage() {
                 className="slds-button slds-button_neutral"
                 onClick={handleBackToCases}
               >
-                ← Back to Cases
+                Back to Cases
               </button>
             </div>
           </div>
@@ -253,13 +260,18 @@ export function MyCasesPage() {
                   <div className="slds-card slds-card_boundary">
                     <div className="slds-card__header">
                       <h3 className="slds-card__header-title slds-truncate">
-                        {caseItem.Contact.Name}
+                        {caseItem.Subject ?? `Case ${caseItem.CaseNumber}`}
                       </h3>
                     </div>
                     <div className="slds-card__body slds-card__body_inner">
                       <p className="slds-text-body_regular slds-m-bottom_x-small">
                         <strong>Case:</strong> {caseItem.CaseNumber}
                       </p>
+                      {caseItem.Account?.Name && (
+                        <p className="slds-text-body_small slds-m-bottom_x-small">
+                          <strong>Participant:</strong> {caseItem.Account.Name}
+                        </p>
+                      )}
                       <p className="slds-text-body_small slds-text-color_weak">
                         Status: {caseItem.Status}
                       </p>
@@ -276,7 +288,7 @@ export function MyCasesPage() {
                             className="slds-button slds-button_outline-brand slds-size_1-of-1"
                             onClick={() => handleInteractionSelect(caseItem)}
                           >
-                            📝 Quick Interaction
+                            Quick Interaction
                           </button>
                         </div>
                         <div className="slds-col">
@@ -284,7 +296,7 @@ export function MyCasesPage() {
                             className="slds-button slds-button_brand slds-size_1-of-1"
                             onClick={() => handleSSRSSelect(caseItem)}
                           >
-                            🧠 SSRS Assessment
+                            SSRS Assessment
                           </button>
                         </div>
                       </div>

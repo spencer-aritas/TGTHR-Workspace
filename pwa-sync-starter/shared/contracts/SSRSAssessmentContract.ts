@@ -86,6 +86,7 @@ export interface SSRSAssessmentRequest {
 export interface SSRSAssessmentResult {
   assessmentId: string;
   caseId: string;
+  totalScore?: number;
   riskLevel: 'Low' | 'Moderate' | 'High' | 'Imminent';
   recommendations: string[];
   taskCreated?: boolean;

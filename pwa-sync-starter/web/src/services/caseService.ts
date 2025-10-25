@@ -1,15 +1,7 @@
 import { getCurrentUser } from '../lib/salesforceAuth';
+import type { CaseData } from '@shared/contracts/CaseContract';
 
-export interface Case {
-  Id: string;
-  CaseNumber: string;
-  Contact: {
-    Id: string;
-    Name: string;
-  };
-  Status: string;
-  Subject?: string;
-}
+export type Case = CaseData;
 
 class CaseService {
   async getMyCases(): Promise<Case[]> {
@@ -18,7 +10,12 @@ class CaseService {
       throw new Error('No authenticated user');
     }
 
-    const response = await fetch(`/api/cases/my-cases?userId=${currentUser.id}`);
+    const userId = currentUser.sfUserId || currentUser.id;
+    if (!userId) {
+      throw new Error('Missing Salesforce user identifier');
+    }
+
+    const response = await fetch(`/api/cases/my-cases?userId=${encodeURIComponent(userId)}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch cases');

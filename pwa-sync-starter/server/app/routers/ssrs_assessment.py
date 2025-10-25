@@ -2,12 +2,13 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 import logging
-import json
-from ..salesforce.sf_client import SalesforceClient
+
+from ..salesforce.assessment_service import AssessmentServiceClient
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+assessment_service = AssessmentServiceClient()
 
 class SSRSAssessmentData(BaseModel):
     wishDeadLifetime: Optional[bool] = None
@@ -41,6 +42,7 @@ class SSRSAssessmentRequest(BaseModel):
 class SSRSAssessmentResult(BaseModel):
     assessmentId: str
     caseId: str
+    totalScore: Optional[int] = None
     riskLevel: str
     recommendations: List[str]
     taskCreated: bool = False
@@ -49,24 +51,28 @@ class SSRSAssessmentResult(BaseModel):
 async def submit_ssrs_assessment(request: SSRSAssessmentRequest):
     """Submit SSRS Assessment and create/update case as needed"""
     try:
-        # Calculate risk level
-        data = request.assessmentData
+        # Normalize payloads
+        assessment_dict = request.assessmentData.dict(exclude_none=True)
+        bool_score = sum(1 for value in assessment_dict.values() if isinstance(value, bool) and value)
         
-        if data.planLifetime and data.intentLifetime:
+        # Determine risk tier + recommendations
+        if request.assessmentData.planLifetime and request.assessmentData.intentLifetime:
             risk_level = "Imminent"
             recommendations = [
                 "Immediate intervention required",
                 "Do not leave person alone", 
                 "Contact crisis team immediately"
             ]
-        elif data.actualAttemptPast3Months or (data.suicidalThoughtsLifetime and data.methodsLifetime):
+        elif request.assessmentData.actualAttemptPast3Months or (
+            request.assessmentData.suicidalThoughtsLifetime and request.assessmentData.methodsLifetime
+        ):
             risk_level = "High"
             recommendations = [
                 "Schedule follow-up within 24-48 hours",
                 "Implement safety plan",
                 "Consider hospitalization"
             ]
-        elif data.suicidalThoughtsLifetime or data.wishDeadLifetime:
+        elif request.assessmentData.suicidalThoughtsLifetime or request.assessmentData.wishDeadLifetime:
             risk_level = "Moderate"
             recommendations = [
                 "Schedule follow-up within 1 week",
@@ -80,23 +86,34 @@ async def submit_ssrs_assessment(request: SSRSAssessmentRequest):
                 "Monitor for changes"
             ]
 
-        # TODO: Deploy SSRSAssessmentHandler Apex class to Salesforce
-        # For now, create a mock assessment record
-        assessment_id = f"SSRS_{request.accountId}_{request.assessmentDate}"
-        case_id = request.caseId or f"CASE_{request.accountId}"
-        task_created = risk_level in ["Moderate", "High", "Imminent"]
-        
-        logger.info(f"Mock SSRS assessment created: {assessment_id} with {risk_level} risk")
+        mapped_fields = assessment_service.build_field_payload(assessment_dict)
+
+        assessment_id = assessment_service.create_assessment(
+            account_id=request.accountId,
+            case_id=request.caseId,
+            assessment_date=request.assessmentDate,
+            assessed_by_id=request.assessedById or None,
+            assessment_fields=mapped_fields,
+            total_score=bool_score,
+            risk_level=risk_level,
+            raw_payload=assessment_dict,
+        )
+
+        task_created = assessment_service.create_follow_up_task(
+            case_id=request.caseId,
+            risk_level=risk_level,
+            recommendations=recommendations,
+        )
         
         return SSRSAssessmentResult(
             assessmentId=assessment_id,
-            caseId=case_id,
-            totalScore=yes_count,
+            caseId=request.caseId or "",
+            totalScore=bool_score,
             riskLevel=risk_level,
             recommendations=recommendations,
             taskCreated=task_created
         )
         
     except Exception as e:
-        logger.error(f"Error submitting SSRS assessment: {str(e)}")
+        logger.error(f"Error submitting SSRS assessment: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to submit assessment")

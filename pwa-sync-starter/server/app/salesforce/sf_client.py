@@ -22,7 +22,10 @@ class SFError(Exception):
     pass
 
 # -------------------- Token cache --------------------
+# Simple in-memory caches
 _account_fields_cache: set[str] | None = None
+# {sobject: describe_result}
+_describe_cache: Dict[str, Dict[str, Any]] = {}
 # (access_token, instance_url, expires_at_epoch)
 _token_cache: Optional[Tuple[str, str, float]] = None
 SERVER_DIR = Path(__file__).resolve().parents[1]
@@ -345,6 +348,16 @@ class SalesforceClient:
         """Call an Apex REST service"""
         path = f"/services/apexrest/{service_name}"
         return _sf(path, method="POST", json=data)
+
+    def describe(self, sobject: str) -> Dict[str, Any]:
+        """Describe metadata for a given sObject, cached for reuse."""
+        key = sobject.lower()
+        cached = _describe_cache.get(key)
+        if cached:
+            return cached
+        desc = _sf(_api(f"/sobjects/{sobject}/describe"))
+        _describe_cache[key] = desc
+        return desc
 __all__ = [
     "SFAuthError", "SFError",
     "query_soql",
