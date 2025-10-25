@@ -1,13 +1,25 @@
 import { SSRSAssessmentRequest, SSRSAssessmentResult, SSRSAssessmentData } from '../types/ssrs';
+import { getCurrentUser } from '../lib/salesforceAuth';
 
 class SSRSAssessmentService {
   async submitAssessment(request: SSRSAssessmentRequest): Promise<SSRSAssessmentResult> {
+    const currentUser = getCurrentUser();
+    const resolvedUserId = request.assessedById || currentUser?.sfUserId || currentUser?.id;
+    if (!resolvedUserId) {
+      throw new Error('Missing Salesforce user identifier');
+    }
+
+    const payload: SSRSAssessmentRequest = {
+      ...request,
+      assessedById: resolvedUserId
+    };
+
     const response = await fetch('/api/ssrs-assessment', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

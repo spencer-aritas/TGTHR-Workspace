@@ -39,7 +39,7 @@ export default function App() {
             className="slds-button slds-button_neutral"
             onClick={() => setCurrentPage('intake')}
           >
-            ← Back to Client Intake
+            Back to Client Intake
           </button>
         </nav>
         <MyCasesPage />
@@ -63,7 +63,7 @@ export default function App() {
           <div className="slds-media__body">
             <h1 className="slds-page-header__title slds-truncate">New Client Intake</h1>
             <p className="slds-page-header__info">
-              {currentUser ? `${currentUser.name} • ` : ''}Capture client information for outreach services
+              {currentUser ? `${currentUser.name} | ` : ''}Capture client information for outreach services
             </p>
           </div>
           <div className="slds-media__figure">
@@ -71,7 +71,7 @@ export default function App() {
               className="slds-button slds-button_outline-brand"
               onClick={() => setCurrentPage('cases')}
             >
-              📋 My Cases
+              My Cases
             </button>
           </div>
         </div>

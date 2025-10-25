@@ -2,6 +2,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { resolve } from "node:path";
 // Removed missing dependencies
 
 export default defineConfig({
@@ -31,10 +32,18 @@ export default defineConfig({
       }
     })
   ],
+  resolve: {
+    alias: {
+      "@shared": resolve(__dirname, "../shared")
+    }
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
     allowedHosts: ['outreachintake.aritasconsulting.com', 'localhost', '0.0.0.0'],
+    fs: {
+      allow: [resolve(__dirname, "..")]
+    },
     proxy: {
       "/api": {
         target: "http://api:8000",

@@ -17,10 +17,11 @@ class CaseService:
             logger.info(f"Fetching active cases for user: {user_id}")
             
             query = """
-            SELECT Id, CaseNumber, Contact.Id, Contact.Name, Status, Subject
+            SELECT Id, CaseNumber, AccountId, Account.Id, Account.Name,
+                   Contact.Id, Contact.Name, Status, Subject
             FROM Case 
             WHERE OwnerId = :userId 
-            AND Status IN ('New', 'Working', 'Escalated', 'In Progress')
+            AND Status IN ('New', 'Working', 'Escalated', 'In Progress', 'Active')
             ORDER BY CreatedDate DESC
             LIMIT 100
             """
@@ -29,14 +30,16 @@ class CaseService:
             
             cases = []
             for record in result.get('records', []):
+                account = record.get('Account') or {}
                 cases.append({
-                    'Id': record['Id'],
-                    'CaseNumber': record['CaseNumber'],
-                    'Contact': {
-                        'Id': record['Contact']['Id'] if record['Contact'] else None,
-                        'Name': record['Contact']['Name'] if record['Contact'] else 'Unknown'
-                    },
-                    'Status': record['Status'],
+                    'Id': record.get('Id'),
+                    'CaseNumber': record.get('CaseNumber'),
+                    'AccountId': record.get('AccountId'),
+                    'Account': {
+                        'Id': account.get('Id'),
+                        'Name': account.get('Name')
+                    } if account else None,
+                    'Status': record.get('Status'),
                     'Subject': record.get('Subject')
                 })
             

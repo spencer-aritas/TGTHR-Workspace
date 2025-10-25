@@ -84,7 +84,7 @@ export function UserSelection({ onUserSelected }: UserSelectionProps) {
               cursor: 'pointer'
             }}
           >
-            🔐 Login with Salesforce
+            Login with Salesforce
           </button>
           
           <button

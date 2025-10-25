@@ -1,13 +1,17 @@
 // shared/contracts/CaseContract.ts
 // Contract between PWA and Salesforce for Case Management
 
+export interface CaseRelationship {
+  Id: string;
+  Name: string;
+}
+
 export interface CaseData {
   Id: string;
   CaseNumber: string;
-  Contact: {
-    Id: string;
-    Name: string;
-  };
+  AccountId?: string;
+  Account?: CaseRelationship | null;
+  Contact?: CaseRelationship | null;
   Status: string;
   Subject?: string;
   Priority?: string;
