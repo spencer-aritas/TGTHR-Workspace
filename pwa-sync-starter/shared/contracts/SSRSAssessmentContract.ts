@@ -16,7 +16,9 @@ export interface SSRSAssessmentData {
   
   // Suicidal Ideation - Past Month
   wishDeadPastMonth?: boolean;
+  wishDeadPastMonthDesc?: string;
   suicidalThoughtsPastMonth?: boolean;
+  suicidalThoughtsPastMonthDesc?: string;
   methodsPastMonth?: boolean;
   intentPastMonth?: boolean;
   planPastMonth?: boolean;
