@@ -2,12 +2,14 @@
 FROM node:20-alpine
 WORKDIR /usr/src/app
 
-# Install dependencies
-COPY package.json ./
+# Install dependencies with cached package layers
+COPY web/package.json web/package-lock.json ./
 RUN npm install
 
-# Copy source code
-COPY . .
+# Copy application source
+COPY web/ .
+# Provide shared contracts for TS path aliases (../shared)
+COPY shared ../shared
 
 # Build the app
 RUN npm run build
