@@ -101,6 +101,32 @@ class AssessmentServiceClient:
 
         return payload
 
+    def _merge_description_fields(self, record: Dict[str, Any], assessment_data: Dict[str, Any]) -> None:
+        """Combine lifetime/past period descriptions into single Salesforce rich text fields."""
+        combos = [
+            ("Wish_to_be_Dead_Description__c", "wishDeadLifetimeDesc", "wishDeadPastMonthDesc"),
+            ("Non_Specific_Active_Thoughts_Description__c", "suicidalThoughtsLifetimeDesc", "suicidalThoughtsPastMonthDesc"),
+            ("No_Plan_No_Intent_Description__c", "methodsLifetimeDesc", "methodsPastMonthDesc"),
+            ("Some_Intent_No_Plan_Description__c", "intentLifetimeDesc", "intentPastMonthDesc"),
+            ("Active_Plan_Intent_Description__c", "planLifetimeDesc", "planPastMonthDesc"),
+        ]
+
+        for field_name, lifetime_key, recent_key in combos:
+            if not self._field_exists(field_name):
+                continue
+            lifetime_text = assessment_data.get(lifetime_key)
+            recent_text = assessment_data.get(recent_key)
+            if not lifetime_text and not recent_text:
+                continue
+
+            sections = []
+            if lifetime_text:
+                sections.append(f"Lifetime:\n{lifetime_text.strip()}")
+            if recent_text:
+                sections.append(f"Recent/Past Month:\n{recent_text.strip()}")
+
+            record[field_name] = "\n\n".join(sections)
+
     def create_assessment(
         self,
         *,
@@ -127,6 +153,7 @@ class AssessmentServiceClient:
             record["Assessed_By__c"] = assessed_by_id
 
         record.update(assessment_fields)
+        self._merge_description_fields(record, raw_payload)
 
         if total_score is not None and self._field_exists("Total_Score__c"):
             record["Total_Score__c"] = total_score

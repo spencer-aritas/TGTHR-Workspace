@@ -20,8 +20,11 @@ export interface SSRSAssessmentData {
   suicidalThoughtsPastMonth?: boolean;
   suicidalThoughtsPastMonthDesc?: string;
   methodsPastMonth?: boolean;
+  methodsPastMonthDesc?: string;
   intentPastMonth?: boolean;
+  intentPastMonthDesc?: string;
   planPastMonth?: boolean;
+  planPastMonthDesc?: string;
   
   // Intensity of Ideation
   lifetimeMostSevereType?: number;
