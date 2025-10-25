@@ -118,7 +118,7 @@ class AssessmentServiceClient:
             "Participant__c": account_id,
             "Assessment_Type__c": "SSRS",
             "Assessment_Date__c": assessment_date,
-            "Status": "Completed",
+            "Status__c": "Completed",
         }
 
         if case_id:
