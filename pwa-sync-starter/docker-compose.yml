@@ -30,7 +30,9 @@ services:
       - ./server:/app
       
   web:
-    build: ./web
+    build:
+      context: .
+      dockerfile: web/Dockerfile
     environment:
       - VITE_API_BASE=/api
       - VITE_HOST=0.0.0.0
