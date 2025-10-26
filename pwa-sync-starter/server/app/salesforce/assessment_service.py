@@ -67,7 +67,60 @@ FIELD_MAP: Dict[str, str] = {
     "mostLethalAttemptLethality": "Most_Lethal_Actual_Lethality__c",
     "mostLethalAttemptPotentialLethality": "Most_Lethal_Potential_Lethality__c",
     "dangerResultingInDeath": "Danger_Resulting_in_Death__c",
-    "dangerResultingInDeathDesc": "Danger_Resulting_in_Death_Description__c",
+        "dangerResultingInDeathDesc": "Danger_Resulting_in_Death_Description__c",
+}
+
+ASSESSMENT_TYPE_VALUE = "Suicidal Ideation"
+
+FREQUENCY_OPTIONS = {
+    1: "Less than once a week",
+    2: "Once a week",
+    3: "2-5 times a week",
+    4: "Daily or almost daily",
+    5: "Many times each day",
+}
+
+DURATION_OPTIONS = {
+    1: "Fleeting - few seconds or minutes",
+    2: "Less than 1 hour/some of the time",
+    3: "1-4 hours/a lot of the time",
+    4: "4-8 hours/most of the day",
+    5: "More than 8 hours/persistent or continuous",
+}
+
+CONTROLLABILITY_OPTIONS = {
+    1: "Easily able to control thoughts",
+    2: "Can control thoughts with little difficulty",
+    3: "Can control thoughts with some difficulty",
+    4: "Can control thoughts with a lot of difficulty",
+    5: "Unable to control thoughts",
+    0: "Does not attempt to control thoughts",
+}
+
+DETERRENT_OPTIONS = {
+    1: "Deterrents definitely stopped you from attempting suicide",
+    2: "Deterrents probably stopped you",
+    3: "Uncertain that deterrents stopped you",
+    4: "Deterrents most likely did not stop you",
+    5: "Deterrents definitely did not stop you",
+    0: "Does not apply",
+}
+
+REASON_OPTIONS = {
+    1: "Completely to get attention, revenge or a reaction from others",
+    2: "Mostly to get attention, revenge or a reaction from others",
+    3: "Equally to get attention, revenge or a reaction from others, and to end/stop the pain",
+    4: "Mostly to end or stop the pain (you couldn't go on living with the pain or how you were feeling)",
+    5: "Completely to end or stop the pain (you couldn't go on living with the pain or how you were feeling)",
+    0: "Does not apply",
+}
+
+PICKLIST_VALUE_MAPS: Dict[str, Dict[int, str]] = {
+    "Frequency__c": FREQUENCY_OPTIONS,
+    "Duration_of_Thoughts__c": DURATION_OPTIONS,
+    "Controllability_of_Thoughts__c": CONTROLLABILITY_OPTIONS,
+    "Deterrents_from_Acting__c": DETERRENT_OPTIONS,
+    "Reason_for_Ideation__c": REASON_OPTIONS,
 }
 
 
@@ -97,7 +150,7 @@ class AssessmentServiceClient:
                 continue
             if not self._field_exists(field_name):
                 continue
-            payload[field_name] = clean_data[source_key]
+            payload[field_name] = self._normalize_picklist_value(field_name, clean_data[source_key])
 
         return payload
 
@@ -142,7 +195,7 @@ class AssessmentServiceClient:
         """Insert the Assessment__c record and return its Id."""
         record: Dict[str, Any] = {
             "Participant__c": account_id,
-            "Assessment_Type__c": "SSRS",
+            "Assessment_Type__c": ASSESSMENT_TYPE_VALUE,
             "Assessment_Date__c": assessment_date,
             "Status__c": "Completed",
         }
@@ -153,6 +206,7 @@ class AssessmentServiceClient:
             record["Assessed_By__c"] = assessed_by_id
 
         record.update(assessment_fields)
+        self._apply_additional_field_logic(record, raw_payload)
         self._merge_description_fields(record, raw_payload)
 
         if total_score is not None and self._field_exists("Total_Score__c"):
@@ -165,6 +219,74 @@ class AssessmentServiceClient:
         logger.info("Creating Assessment__c for account %s (case %s)", account_id, case_id)
         result = self.sf_client.create("Assessment__c", record)
         return result.get("id") or result.get("Id")
+
+    def _normalize_picklist_value(self, field_name: str, raw_value: Any) -> Any:
+        if field_name not in PICKLIST_VALUE_MAPS:
+            return raw_value
+        mapping = PICKLIST_VALUE_MAPS[field_name]
+        if raw_value is None:
+            return None
+        if isinstance(raw_value, str):
+            if raw_value in mapping.values():
+                return raw_value
+            try:
+                raw_value = int(raw_value)
+            except ValueError:
+                return raw_value
+        if isinstance(raw_value, (int, float)):
+            return mapping.get(int(raw_value), raw_value)
+        return str(raw_value)
+
+    def _apply_additional_field_logic(self, record: Dict[str, Any], data: Dict[str, Any]) -> None:
+        self._apply_fallback_value(record, data, "Frequency__c", "frequencyLifetime", "frequencyRecent")
+        self._apply_fallback_value(
+            record, data, "Duration_of_Thoughts__c", "durationLifetime", "durationRecent"
+        )
+        self._apply_fallback_value(
+            record, data, "Controllability_of_Thoughts__c", "controllabilityLifetime", "controllabilityRecent"
+        )
+        self._apply_fallback_value(
+            record, data, "Deterrents_from_Acting__c", "deterrentsLifetime", "deterrentsRecent"
+        )
+        self._apply_fallback_value(
+            record, data, "Reason_for_Ideation__c", "reasonsLifetime", "reasonsRecent"
+        )
+        self._apply_boolean_or(
+            record,
+            data,
+            "Non_Suicidal_Self_Injurious_Harm__c",
+            "nonSuicidalSelfInjuryLifetime",
+            "nonSuicidalSelfInjuryPast3Months",
+        )
+
+    def _apply_fallback_value(
+        self,
+        record: Dict[str, Any],
+        data: Dict[str, Any],
+        field_name: str,
+        primary_key: str,
+        secondary_key: str,
+    ) -> None:
+        if field_name in record:
+            return
+        for key in (primary_key, secondary_key):
+            if key in data and data[key] is not None:
+                record[field_name] = self._normalize_picklist_value(field_name, data[key])
+                return
+
+    def _apply_boolean_or(
+        self,
+        record: Dict[str, Any],
+        data: Dict[str, Any],
+        field_name: str,
+        primary_key: str,
+        secondary_key: str,
+    ) -> None:
+        primary = data.get(primary_key)
+        secondary = data.get(secondary_key)
+        if primary is None and secondary is None:
+            return
+        record[field_name] = bool(primary) or bool(secondary)
 
     def create_follow_up_task(
         self,
