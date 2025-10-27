@@ -1,5 +1,5 @@
 // public/sw.js
-const CACHE = 'pwa-mvp-v1';
+const CACHE = 'pwa-mvp-v3';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
