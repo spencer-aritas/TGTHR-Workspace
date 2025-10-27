@@ -9,6 +9,19 @@ export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<
   const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID();
   const userEmail = localStorage.getItem('userEmail') || 'unknown@tgthr.org';
   const userName = localStorage.getItem('userName') || 'Unknown User';
+  const location = form.location
+    ? {
+        latitude: form.location.latitude,
+        longitude: form.location.longitude,
+        accuracy: form.location.accuracy,
+        altitude: form.location.altitude,
+        heading: form.location.heading,
+        speed: form.location.speed,
+        timestamp: form.location.timestamp,
+        address: form.location.address,
+        source: form.location.source ?? 'device'
+      }
+    : undefined;
   
   const payload = {
     encounterUuid: crypto.randomUUID(),
@@ -25,7 +38,8 @@ export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<
     isCrisis: false,
     deviceId,
     createdBy: userName,
-    createdByEmail: userEmail
+    createdByEmail: userEmail,
+    ...(location ? { location } : {})
   };
   
   const response = await fetch(`${API_BASE}/new-client-intake`, {

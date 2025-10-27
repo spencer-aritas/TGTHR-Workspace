@@ -15,6 +15,27 @@ export interface NewClientIntakePayload {
   phone?: string;
 }
 
+export interface IntakeLocationAddress {
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  formatted?: string;
+}
+
+export interface IntakeLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number | null;
+  altitude?: number | null;
+  heading?: number | null;
+  speed?: number | null;
+  timestamp: string;
+  address?: IntakeLocationAddress;
+  source?: 'device' | 'manual' | 'synced';
+}
+
 export interface NewClientIntakeForm {
   firstName: string;
   lastName: string;
@@ -22,12 +43,14 @@ export interface NewClientIntakeForm {
   email?: string;
   birthdate?: string;
   notes: string;
+  location?: IntakeLocation;
 }
 
 export function createIntakeDefaults(): NewClientIntakeForm {
   return {
     firstName: '',
     lastName: '',
-    notes: ''
+    notes: '',
+    location: undefined
   };
 }
