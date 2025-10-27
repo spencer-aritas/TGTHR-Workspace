@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { caseService, Case } from '../services/caseService';
 import { interactionSummaryService } from '../services/interactionSummaryService';
 import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
+import { loginWithSalesforce } from '../lib/salesforceAuth';
 
 interface InteractionFormData {
   notes: string;
@@ -23,21 +24,38 @@ export function MyCasesPage() {
     endTime: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [authRequired, setAuthRequired] = useState(false);
 
-  useEffect(() => {
-    loadCases();
-  }, []);
-
-  const loadCases = async () => {
+  const loadCases = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
+      setAuthRequired(false);
       const data = await caseService.getMyCases();
       setCases(data);
     } catch (err) {
-      setError('Failed to load cases');
+      console.error('Failed to load cases', err);
+      if (err instanceof Error && err.message === 'AUTH_REQUIRED') {
+        setError('Session expired. Tap to sign in and reload your cases.');
+        setAuthRequired(true);
+      } else {
+        setError('Failed to load cases. Check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    void loadCases();
+  }, [loadCases]);
+
+  const handleRetry = async () => {
+    if (authRequired) {
+      await loginWithSalesforce();
+      return;
+    }
+    await loadCases();
   };
 
   const handleInteractionSelect = (caseItem: Case) => {
@@ -241,9 +259,28 @@ export function MyCasesPage() {
           )}
 
           {error && (
-            <div className="slds-notify slds-notify_alert slds-theme_error slds-m-bottom_medium">
+            <div className="slds-notify slds-notify_alert slds-theme_error slds-m-bottom_medium" role="alert">
               <span className="slds-assistive-text">Error</span>
-              <h2>{error}</h2>
+              <span className="slds-icon_container slds-icon-utility-ban slds-m-right_x-small" title="Error">
+                <svg className="slds-icon slds-icon_x-small" aria-hidden="true">
+                  <use xlinkHref="/assets/icons/utility-sprite/svg/symbols.svg#ban"></use>
+                </svg>
+              </span>
+              <div className="slds-grid slds-grid_vertical-align-center slds-wrap">
+                <div className="slds-col slds-size_1-of-1 slds-m-bottom_x-small">
+                  <h2>{error}</h2>
+                </div>
+                <div className="slds-col slds-size_1-of-1">
+                  <button
+                    type="button"
+                    className="slds-button slds-button_neutral"
+                    onClick={() => { void handleRetry(); }}
+                    disabled={loading}
+                  >
+                    {authRequired ? 'Tap to Sign In' : 'Tap to Retry'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

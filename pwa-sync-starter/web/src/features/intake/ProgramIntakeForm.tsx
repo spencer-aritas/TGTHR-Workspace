@@ -138,7 +138,9 @@ export default function ProgramIntakeForm() {
     setIsSubmitting(true)
     setStatus('Creating new client intake...')
     setIssues([])
-    
+    let storedIntakeId: number | undefined
+    let savedLocally = false
+
     try {
       // Store locally first
       const now = new Date().toISOString()
@@ -160,30 +162,43 @@ export default function ProgramIntakeForm() {
         createdAt: now,
         synced: false
       }
-      
-      await intakeDb.intakes.add(storedIntake)
+      storedIntakeId = await intakeDb.intakes.add(storedIntake)
+      savedLocally = true
+      storedIntake.id = storedIntakeId
       
       // Try to sync
       const result = await submitNewClientIntake(submissionForm)
       if (result.success) {
         // Mark as synced
-        await intakeDb.intakes.update(storedIntake.id!, { 
+        if (storedIntakeId !== undefined) {
+          await intakeDb.intakes.update(storedIntakeId, { 
           synced: result.synced, 
           syncedAt: result.synced ? now : undefined 
         })
+        }
         setStatus(`Intake created successfully. ${result.synced ? 'Synced to Salesforce.' : 'Will sync when online.'}`)
         setForm(createIntakeDefaults())
         void captureLocation()
       } else {
-        await intakeDb.intakes.update(storedIntake.id!, { error: result.errors?.join(', ') })
+        if (storedIntakeId !== undefined) {
+          await intakeDb.intakes.update(storedIntakeId, { error: result.errors?.join(', ') })
+        }
         setIssues(result.errors || ['Unknown error occurred'])
         setStatus('')
       }
     } catch (error) {
-      setIssues([error instanceof Error ? error.message : 'Network error'])
-      setStatus('Saved locally. Will sync when online.')
-      setForm(createIntakeDefaults())
-      void captureLocation()
+      console.error('Intake submission failed', error)
+      if (savedLocally && storedIntakeId !== undefined) {
+        const message = error instanceof Error ? error.message : 'Network error'
+        await intakeDb.intakes.update(storedIntakeId, { error: message, synced: false })
+        setIssues([])
+        setStatus('Saved locally. Will sync when online.')
+        setForm(createIntakeDefaults())
+        void captureLocation()
+      } else {
+        setIssues([error instanceof Error ? error.message : 'Unable to save intake'])
+        setStatus('Save failed. Please try again.')
+      }
     } finally {
       setIsSubmitting(false)
     }
