@@ -4,74 +4,125 @@ import { IntakeLocation, NewClientIntakeForm, createIntakeDefaults } from '../..
 import { submitNewClientIntake } from '../../api/intakeApi'
 import { intakeDb, StoredIntake } from '../../store/intakeStore'
 
+type PermissionStateExtended = PermissionState | 'unsupported' | 'unknown'
+
 export default function ProgramIntakeForm() {
   const [form, setForm] = useState<NewClientIntakeForm>(createIntakeDefaults())
   const [status, setStatus] = useState<string>('')
   const [issues, setIssues] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [locationStatus, setLocationStatus] = useState<string>('Capturing device location...')
+  const [locationPermission, setLocationPermission] = useState<PermissionStateExtended>('unknown')
   const isMountedRef = useRef(true)
 
   const update = (k: keyof NewClientIntakeForm, v: any) => 
     setForm(f => ({ ...f, [k]: v }))
 
-  const captureLocation = useCallback(() => {
+  const buildLocation = useCallback((position: GeolocationPosition): IntakeLocation => {
+    const { coords, timestamp } = position
+    return {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      accuracy: Number.isFinite(coords.accuracy) ? coords.accuracy : null,
+      altitude: coords.altitude ?? null,
+      heading: coords.heading ?? null,
+      speed: coords.speed ?? null,
+      timestamp: new Date(timestamp || Date.now()).toISOString(),
+      source: 'device'
+    }
+  }, [])
+
+  const captureLocation = useCallback(async (): Promise<IntakeLocation | undefined> => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
-      setLocationStatus('Geolocation is not supported on this device.')
-      setForm(f => ({ ...f, location: undefined }))
-      return
+      if (isMountedRef.current) {
+        setLocationStatus('Geolocation is not supported on this device.')
+        setForm(f => ({ ...f, location: undefined }))
+      }
+      return undefined
     }
 
     setLocationStatus('Capturing device location...')
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        if (!isMountedRef.current) return
 
-        const coords = position.coords
-        const location: IntakeLocation = {
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          accuracy: Number.isFinite(coords.accuracy) ? coords.accuracy : null,
-          altitude: coords.altitude ?? null,
-          heading: coords.heading ?? null,
-          speed: coords.speed ?? null,
-          timestamp: new Date(position.timestamp || Date.now()).toISOString(),
-          source: 'device'
+    const location = await new Promise<IntakeLocation | undefined>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const nextLocation = buildLocation(position)
+          if (isMountedRef.current) {
+            setForm(f => ({ ...f, location: nextLocation }))
+            const accuracyText = nextLocation.accuracy != null ? `±${Math.round(nextLocation.accuracy)}m` : 'accuracy unknown'
+            setLocationStatus(`Location captured (${accuracyText}).`)
+          }
+          resolve(nextLocation)
+        },
+        error => {
+          if (!isMountedRef.current) {
+            resolve(undefined)
+            return
+          }
+
+          let message = 'Unable to capture device location.'
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              message = 'Location permission denied. Enable location services to include intake location.'
+              break
+            case error.POSITION_UNAVAILABLE:
+              message = 'Location unavailable. Move to an open area or try again.'
+              break
+            case error.TIMEOUT:
+              message = 'Location request timed out. Try again or check device settings.'
+              break
+            default:
+              message = `Location error: ${error.message || 'unknown error.'}`
+          }
+          setLocationStatus(message)
+          resolve(undefined)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
         }
+      )
+    })
 
-        setForm(f => ({ ...f, location }))
-        const accuracyText = location.accuracy != null ? `±${Math.round(location.accuracy)}m` : 'accuracy unknown'
-        setLocationStatus(`Location captured (${accuracyText}).`)
-      },
-      error => {
-        if (!isMountedRef.current) return
-
-        let message = 'Unable to capture device location.'
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            message = 'Location permission denied. Enable location services to include intake location.'
-            break
-          case error.POSITION_UNAVAILABLE:
-            message = 'Location unavailable. Move to an open area or try again.'
-            break
-          case error.TIMEOUT:
-            message = 'Location request timed out. Try again or check device settings.'
-            break
-          default:
-            message = `Location error: ${error.message || 'unknown error.'}`
-        }
-        setLocationStatus(message)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 60000
-      }
-    )
-  }, [setForm])
+    return location
+  }, [buildLocation])
 
   useEffect(() => {
-    captureLocation()
+    let permissionStatus: PermissionStatus | undefined
+
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' as PermissionName })
+        .then(status => {
+          if (!isMountedRef.current) return
+          permissionStatus = status
+          setLocationPermission(status.state)
+          status.onchange = () => {
+            if (isMountedRef.current) {
+              setLocationPermission(status.state)
+            }
+          }
+          if (status.state === 'granted' || status.state === 'prompt') {
+            captureLocation()
+          } else {
+            setLocationStatus('Location access is blocked. Enable permissions to capture device location, otherwise submissions will proceed without coordinates.')
+          }
+        })
+        .catch(() => {
+          if (!isMountedRef.current) return
+          setLocationPermission('unknown')
+          captureLocation()
+        })
+    } else {
+      setLocationPermission('unsupported')
+      captureLocation()
+    }
+
+    return () => {
+      if (permissionStatus) {
+        permissionStatus.onchange = null
+      }
+    }
   }, [captureLocation])
 
   useEffect(() => {
@@ -94,9 +145,16 @@ export default function ProgramIntakeForm() {
       const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
       const userEmail = localStorage.getItem('userEmail') || 'unknown@tgthr.org'
       const userName = localStorage.getItem('userName') || 'Unknown User'
+
+      let ensuredLocation = form.location ?? await captureLocation()
+
+      const submissionForm: NewClientIntakeForm = {
+        ...form,
+        location: ensuredLocation
+      }
       
       const storedIntake: StoredIntake = {
-        ...form,
+        ...submissionForm,
         encounterUuid: crypto.randomUUID(),
         personUuid: crypto.randomUUID(),
         createdAt: now,
@@ -106,7 +164,7 @@ export default function ProgramIntakeForm() {
       await intakeDb.intakes.add(storedIntake)
       
       // Try to sync
-      const result = await submitNewClientIntake(form)
+      const result = await submitNewClientIntake(submissionForm)
       if (result.success) {
         // Mark as synced
         await intakeDb.intakes.update(storedIntake.id!, { 
@@ -115,7 +173,7 @@ export default function ProgramIntakeForm() {
         })
         setStatus(`Intake created successfully. ${result.synced ? 'Synced to Salesforce.' : 'Will sync when online.'}`)
         setForm(createIntakeDefaults())
-        captureLocation()
+        void captureLocation()
       } else {
         await intakeDb.intakes.update(storedIntake.id!, { error: result.errors?.join(', ') })
         setIssues(result.errors || ['Unknown error occurred'])
@@ -125,7 +183,7 @@ export default function ProgramIntakeForm() {
       setIssues([error instanceof Error ? error.message : 'Network error'])
       setStatus('Saved locally. Will sync when online.')
       setForm(createIntakeDefaults())
-      captureLocation()
+      void captureLocation()
     } finally {
       setIsSubmitting(false)
     }
@@ -192,13 +250,18 @@ export default function ProgramIntakeForm() {
           <div className="slds-text-color_weak slds-text-body_small slds-m-top_xx-small">
             {locationStatus}
           </div>
+          {locationPermission === 'denied' && (
+            <div className="slds-text-color_error slds-text-body_small slds-m-top_xx-small">
+              Location access is currently blocked. Enable location permissions in your browser or device settings and tap “Refresh Location” to include coordinates, or continue without them.
+            </div>
+          )}
           <button
             type="button"
             className="slds-button slds-button_neutral slds-m-top_xx-small"
-            onClick={captureLocation}
+            onClick={() => { void captureLocation() }}
             disabled={isSubmitting}
           >
-            {form.location ? 'Refresh Location' : 'Try Again'}
+            {form.location ? 'Refresh Location' : 'Enable Location'}
           </button>
         </div>
       </div>
