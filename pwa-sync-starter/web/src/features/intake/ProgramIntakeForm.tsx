@@ -1,5 +1,5 @@
 // src/features/intake/ProgramIntakeForm.tsx
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IntakeLocation, NewClientIntakeForm, createIntakeDefaults } from '../../types/intake'
 import { submitNewClientIntake } from '../../api/intakeApi'
 import { intakeDb, StoredIntake } from '../../store/intakeStore'
@@ -14,9 +14,33 @@ export default function ProgramIntakeForm() {
   const [locationStatus, setLocationStatus] = useState<string>('Capturing device location...')
   const [locationPermission, setLocationPermission] = useState<PermissionStateExtended>('unknown')
   const isMountedRef = useRef(true)
+  const lastLocationRef = useRef<IntakeLocation | undefined>(undefined)
+  const lastLocationKey = useMemo(() => 'tgthr_last_intake_location', [])
 
   const update = (k: keyof NewClientIntakeForm, v: any) => 
     setForm(f => ({ ...f, [k]: v }))
+
+  const persistLocation = useCallback((location: IntakeLocation) => {
+    lastLocationRef.current = location
+    try {
+      localStorage.setItem(lastLocationKey, JSON.stringify(location))
+    } catch (err) {
+      console.warn('Failed to persist last location', err)
+    }
+  }, [lastLocationKey])
+
+  const loadLastLocation = useCallback((): IntakeLocation | undefined => {
+    try {
+      const cached = localStorage.getItem(lastLocationKey)
+      if (!cached) return undefined
+      const parsed = JSON.parse(cached) as IntakeLocation
+      lastLocationRef.current = parsed
+      return parsed
+    } catch (err) {
+      console.warn('Failed to load cached location', err)
+      return undefined
+    }
+  }, [lastLocationKey])
 
   const buildLocation = useCallback((position: GeolocationPosition): IntakeLocation => {
     const { coords, timestamp } = position
@@ -51,6 +75,7 @@ export default function ProgramIntakeForm() {
             setForm(f => ({ ...f, location: nextLocation }))
             const accuracyText = nextLocation.accuracy != null ? `±${Math.round(nextLocation.accuracy)}m` : 'accuracy unknown'
             setLocationStatus(`Location captured (${accuracyText}).`)
+            persistLocation(nextLocation)
           }
           resolve(nextLocation)
         },
@@ -75,6 +100,12 @@ export default function ProgramIntakeForm() {
               message = `Location error: ${error.message || 'unknown error.'}`
           }
           setLocationStatus(message)
+          if (lastLocationRef.current) {
+            const fallbackTime = new Date(lastLocationRef.current.timestamp).toLocaleString()
+            setLocationStatus(prev => `${message} Using last known location captured ${fallbackTime}.`)
+            resolve(lastLocationRef.current)
+            return
+          }
           resolve(undefined)
         },
         {
@@ -90,6 +121,12 @@ export default function ProgramIntakeForm() {
 
   useEffect(() => {
     let permissionStatus: PermissionStatus | undefined
+
+    const cachedLocation = loadLastLocation()
+    if (cachedLocation && !form.location) {
+      setForm(current => ({ ...current, location: cachedLocation }))
+      setLocationStatus(`Using last known location captured ${new Date(cachedLocation.timestamp).toLocaleString()}.`)
+    }
 
     if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
       navigator.permissions.query({ name: 'geolocation' as PermissionName })
@@ -149,6 +186,14 @@ export default function ProgramIntakeForm() {
       const userName = localStorage.getItem('userName') || 'Unknown User'
 
       let ensuredLocation = form.location ?? await captureLocation()
+      if (!ensuredLocation) {
+        ensuredLocation = lastLocationRef.current
+        if (ensuredLocation) {
+          setLocationStatus(`Using last known location captured ${new Date(ensuredLocation.timestamp).toLocaleString()}.`)
+        } else {
+          setLocationStatus('No device location available. Saving intake without coordinates.')
+        }
+      }
 
       const submissionForm: NewClientIntakeForm = {
         ...form,

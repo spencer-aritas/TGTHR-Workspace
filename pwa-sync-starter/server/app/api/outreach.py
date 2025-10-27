@@ -351,6 +351,12 @@ async def sync_outreach_data():
 async def create_new_client_intake(payload: dict):
     """Create comprehensive new client intake with all related records"""
     try:
+        if 'location' not in payload:
+            logger.warning(
+                "New client intake payload missing device location; proceeding without coordinates. Keys: %s",
+                list(payload.keys())
+            )
+
         intake_id = str(uuid.uuid4())
         
         # Store intake locally first

@@ -51,7 +51,9 @@ class AuditLogService:
         if user_id:
             record["User__c"] = user_id
         if event_type:
-            record["Event_Type__c"] = event_type[:255]
+            normalized = self._normalize_event_type(event_type)
+            if normalized:
+                record["Event_Type__c"] = normalized
         if source_ip:
             record["Source_IP__c"] = source_ip[:255]
         if compliance_reference:
@@ -71,6 +73,26 @@ class AuditLogService:
         except Exception as exc:
             logger.error(f"Unexpected error writing audit log: {exc}", exc_info=True)
 
+    @staticmethod
+    def _normalize_event_type(event_type: str) -> Optional[str]:
+        """Translate internal event type tokens to Salesforce picklist values."""
+        if not event_type:
+            return None
+
+        lookup = {
+            "ACCESS": "Access",
+            "MODIFY": "Modify",
+            "CREATE": "Create",
+            "DELETE": "Delete",
+            "VIEW": "View",
+        }
+
+        upper = event_type.upper()
+        if upper in lookup:
+            return lookup[upper]
+
+        title_case = event_type.title()
+        return title_case[:255]
+
 
 audit_logger = AuditLogService()
-
