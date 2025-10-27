@@ -74,8 +74,7 @@ class Settings(BaseSettings):
     ]
     SF_ACCOUNT_FIELDS: List[str] = [
         "Id", "IsPersonAccount",
-        "PersonFirstName", "PersonLastName",
-        "PersonBirthdate", "PersonEmail", "Phone",
+        "Name", "PersonEmail", "Phone", "PersonBirthdate",
         "UUID__c", "LastModifiedDate"
     ]
 

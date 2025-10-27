@@ -2,9 +2,8 @@
 import { clientsClaim } from 'workbox-core'
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
-import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import { NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
-import { Queue } from 'workbox-background-sync'
 
 declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
 
@@ -14,8 +13,14 @@ console.log('Service Worker loading...')
 self.skipWaiting()
 clientsClaim()
 
-// Precache app shell
-precacheAndRoute(self.__WB_MANIFEST || [])
+// Precache only safe static assets (js/css/fonts/icons/images)
+const SAFE_ASSET_REGEX = /\.(?:js|css|mjs|cjs|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico)$/i
+const manifestEntries = (self.__WB_MANIFEST || []).filter((entry: any) => {
+  const url = typeof entry === 'string' ? entry : entry.url
+  return SAFE_ASSET_REGEX.test(url)
+})
+
+precacheAndRoute(manifestEntries)
 cleanupOutdatedCaches()
 
 console.log('Service Worker installed')
@@ -40,24 +45,16 @@ registerRoute(
   }
 )
 
-// Network-first for other API POST requests
+// Network-only for other API POST requests (avoid caching PHI)
 registerRoute(
   ({ url, request }) => request.method === 'POST' && url.pathname.startsWith('/api/'),
-  new NetworkFirst({
-    cacheName: 'api-posts',
-    plugins: [new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 5 })],
-  })
+  new NetworkOnly()
 )
 
-
-
-// ---- Runtime cache for GET /api/* (stale-while-revalidate)
+// ---- Avoid caching PHI responses: GET /api/* is network-only
 registerRoute(
   ({ url, request }) => request.method === 'GET' && url.pathname.startsWith('/api/'),
-  new StaleWhileRevalidate({
-    cacheName: 'api',
-    plugins: [new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 10 })],
-  })
+  new NetworkOnly()
 )
 
 // ---- Static assets (JS/CSS/workers/images/fonts)

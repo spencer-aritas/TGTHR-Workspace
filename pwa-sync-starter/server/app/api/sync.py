@@ -1,11 +1,12 @@
 # server/app/api/sync.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List, Literal, Dict, Any
 from ..models.db import SessionLocal
 from ..schema import Note, Meta
 from ..salesforce.sf_client import _get_token, _api, _sf, get_person_account_record_type_id, create_person_account
+from ..salesforce.audit_log_service import audit_logger
 from ..sync_runner import SyncRunner
 import uuid
 import logging
@@ -123,10 +124,12 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
     # Get device user context
     device_id = data.person.get('deviceId')
     logger.info(f"Device ID from request: {device_id}")
+    sf_user_id = None
     if device_id:
         user_context = get_device_user(device_id, db)
         logger.info(f"User context from device lookup: {user_context}")
         data.person["createdByUserId"] = user_context.get("sfUserId")
+        sf_user_id = user_context.get("sfUserId")
         logger.info(f"Set createdByUserId to: {data.person.get('createdByUserId')}")
     else:
         logger.info("No device ID provided in request")
@@ -142,6 +145,7 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
         existing_query = f"SELECT Id FROM Account WHERE UUID__c = '{data.localId}' LIMIT 1"
         existing = query_soql(existing_query)
         
+        created_new = False
         if existing.get('records'):
             # Person Account exists, return existing ID
             sf_id = existing['records'][0]['Id']
@@ -151,6 +155,7 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
             from ..salesforce.sf_client import create_person_account
             sf_id = create_person_account(data.person)
             logger.info(f"Created new Person Account for UUID {data.localId}: {sf_id}")
+            created_new = True
         
         # Create full encounter with all downstream records (Program Enrollment, InteractionSummary, Task, Benefit Assignments)
         notes = data.person.get('notes') or 'Initial outreach contact'
@@ -195,9 +200,32 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
             except Exception as e2:
                 logger.warning(f"Failed to create InteractionSummary fallback: {e2}")
             
+        audit_logger.log_action(
+            action_type="PERSON_ACCOUNT_CREATE" if created_new else "PERSON_ACCOUNT_SYNC",
+            entity_id=data.localId or sf_id,
+            details=f"Person account {'created' if created_new else 'synced'} via PWA",
+            user_id=sf_user_id,
+            event_type="MODIFY",
+            status="Created" if created_new else "Synced",
+            audit_json={
+                "sfId": sf_id,
+                "localId": data.localId,
+                "created": created_new,
+            },
+        )
+
         return {"localId": data.localId, "salesforceId": sf_id}
     except Exception as e:
         logger.error(f"SF sync_person_account failed: {e}", exc_info=True)
+        audit_logger.log_action(
+            action_type="PERSON_ACCOUNT_SYNC",
+            entity_id=data.localId,
+            details="Person account sync failed.",
+            user_id=sf_user_id,
+            event_type="MODIFY",
+            status="Failed",
+            audit_json={"localId": data.localId, "error": str(e)},
+        )
         raise HTTPException(status_code=500, detail={
             "message": "Failed to sync Person Account to Salesforce.",
             "error": str(e)
@@ -208,18 +236,60 @@ def sync_program_intake(data: IntakePayload, db: Session = Depends(get_db)):
     
     # Get device user context
     device_id = data.intake.get('deviceId')
+    sf_user_id = None
     if device_id:
         user_context = get_device_user(device_id, db)
         data.intake["createdByUserId"] = user_context.get("sfUserId")
+        sf_user_id = user_context.get("sfUserId")
     
     """
     Creates a Program Enrollment (or equivalent) in Salesforce.
     Frontend only needs: { ok: true } on success.
     """
     try:
-        create_program_intake(data.intake)
+        if create_program_intake:
+            create_program_intake(data.intake)
+            audit_logger.log_action(
+                action_type="PROGRAM_ENROLLMENT_SUBMIT",
+                entity_id=data.localId or data.intake.get("personLocalId"),
+                details=f"Program intake submitted for program {data.intake.get('programId')}",
+                user_id=sf_user_id,
+                event_type="MODIFY",
+                status="Success",
+                audit_json={
+                    "localId": data.localId,
+                    "programId": data.intake.get("programId"),
+                },
+            )
+        else:
+            logger.warning("Program intake creation function not configured; skipping Salesforce push.")
+            audit_logger.log_action(
+                action_type="PROGRAM_ENROLLMENT_SUBMIT",
+                entity_id=data.localId or data.intake.get("personLocalId"),
+                details="Program intake queued locally (no Salesforce integration configured).",
+                user_id=sf_user_id,
+                event_type="MODIFY",
+                status="Skipped",
+                audit_json={
+                    "localId": data.localId,
+                    "programId": data.intake.get("programId"),
+                },
+            )
     except Exception as e:
         logger.error(f"SF create_program_intake failed: {e}", exc_info=True)
+        audit_logger.log_action(
+            action_type="PROGRAM_ENROLLMENT_SUBMIT",
+            entity_id=data.localId or data.intake.get("personLocalId"),
+            details="Program intake failed to sync to Salesforce.",
+            user_id=sf_user_id,
+            event_type="MODIFY",
+            status="Failed",
+            audit_json={
+                "localId": data.localId,
+                "programId": data.intake.get("programId"),
+                "error": str(e),
+            },
+        )
         raise HTTPException(status_code=500, detail={
             "message": "Failed to create Program Intake in Salesforce.",
             "error": str(e)
@@ -268,6 +338,20 @@ def sync_encounter(data: EncounterPayload, db: Session = Depends(get_db)):
         from ..salesforce.sf_client import ingest_encounter
         result = ingest_encounter(encounter_data)
         
+        audit_logger.log_action(
+            action_type="ENCOUNTER_CREATE",
+            entity_id=data.personUuid,
+            details=f"Encounter created via PWA ({data.encounterUuid})",
+            user_id=user_context.get("sfUserId"),
+            event_type="MODIFY",
+            status="Synced",
+            audit_json={
+                "encounterUuid": data.encounterUuid,
+                "pos": data.pos,
+                "isCrisis": data.isCrisis,
+            },
+        )
+
         logger.info(f"Successfully ingested encounter {data.encounterUuid}")
         return {"success": True, "result": result}
         
@@ -279,7 +363,7 @@ def sync_encounter(data: EncounterPayload, db: Session = Depends(get_db)):
         })
 # Program Enrollments endpoint
 @router.get('/person/{uuid}/enrollments')
-def get_person_enrollments(uuid: str):
+def get_person_enrollments(uuid: str, request: Request):
     """Get Program Enrollments for a Person Account by UUID"""
     try:
         from ..salesforce.sf_client import query_soql
@@ -303,11 +387,24 @@ def get_person_enrollments(uuid: str):
         person = result['records'][0]
         enrollments = person.get('Program_Enrollments__r', {}).get('records', [])
         
-        return {
+        response_payload = {
             "personId": person['Id'],
             "personName": person['Name'],
             "enrollments": enrollments
         }
+        sf_user_id = request.headers.get("X-SF-User-Id") or request.query_params.get("sfUserId") or request.query_params.get("userId")
+        source_ip = request.client.host if request.client else None
+        audit_logger.log_action(
+            action_type="VIEW_PERSON_ENROLLMENTS",
+            entity_id=uuid or person.get('Id'),
+            details=f"Viewed enrollments for {person.get('Name')}",
+            user_id=sf_user_id,
+            event_type="ACCESS",
+            source_ip=source_ip,
+             status="Success",
+            audit_json={"enrollmentCount": len(enrollments)},
+        )
+        return response_payload
         
     except Exception as e:
         logger.error(f"Error getting enrollments for {uuid}: {e}")

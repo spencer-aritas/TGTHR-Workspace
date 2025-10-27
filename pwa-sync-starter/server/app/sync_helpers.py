@@ -6,7 +6,7 @@ from typing import Dict, List, Iterable
 
 from .db import DuckClient
 from .settings import settings
-from .salesforce.sf_client import query_soql, sobject_update
+from .salesforce.sf_client import query_soql, sobject_update, SFError
 
 def ensure_uuid(val: str | None) -> str:
     """Ensure a valid UUID, generate one if missing"""
@@ -54,12 +54,24 @@ def fetch_accounts(account_ids: Iterable[str]) -> List[dict]:
     ids = [i for i in account_ids if i]
     if not ids:
         return []
+    fields = settings.SF_ACCOUNT_FIELDS
     soql = (
-        f"SELECT {', '.join(settings.SF_ACCOUNT_FIELDS)} "
+        f"SELECT {', '.join(fields)} "
         f"FROM {settings.SF_ACCOUNT_OBJECT} "
         f"WHERE IsPersonAccount = TRUE AND Id IN ({soql_in_list(ids)})"
     )
-    return query_soql(soql).get("records", [])
+    try:
+        return query_soql(soql).get("records", [])
+    except SFError as exc:
+        if "INVALID_FIELD" not in str(exc):
+            raise
+        fallback_fields = ["Id", "IsPersonAccount", "Name", "Phone", "UUID__c", "LastModifiedDate"]
+        fallback_soql = (
+            f"SELECT {', '.join(fallback_fields)} "
+            f"FROM {settings.SF_ACCOUNT_OBJECT} "
+            f"WHERE Id IN ({soql_in_list(ids)})"
+        )
+        return query_soql(fallback_soql).get("records", [])
 
 def upsert_programs(db: DuckClient, rows: List[dict]) -> Dict[str, str]:
     """Upsert programs to database, returns SF ID -> UUID mapping"""
@@ -103,8 +115,8 @@ def upsert_participants(db: DuckClient, rows: List[dict]) -> Dict[str, str]:
         """, (
             pa_uuid,
             a.get("Id"),
-            a.get("PersonFirstName"),
-            a.get("PersonLastName"),
+            _extract_first_name(a),
+            _extract_last_name(a),
             a.get("PersonEmail"),
             a.get("Phone"),
             a.get("PersonBirthdate"),
@@ -153,3 +165,24 @@ def upsert_enrollments(
             e.get("LastModifiedDate"),
         ))
     return enr_uuid_by_id
+
+def _extract_first_name(account: dict) -> str | None:
+    if account.get("PersonFirstName"):
+        return account.get("PersonFirstName")
+    name = account.get("Name")
+    if name:
+        parts = name.split()
+        if parts:
+            return parts[0]
+    return None
+
+def _extract_last_name(account: dict) -> str | None:
+    if account.get("PersonLastName"):
+        return account.get("PersonLastName")
+    name = account.get("Name")
+    if name:
+        parts = name.split()
+        if len(parts) > 1:
+            return " ".join(parts[1:])
+        return parts[0]
+    return None

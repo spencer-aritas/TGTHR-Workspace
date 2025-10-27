@@ -1,11 +1,12 @@
 # server/app/routers/baseline.py
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timezone
 import hashlib, json
 
 from ..db import get_db  # DuckDB dependency
+from ..salesforce.audit_log_service import audit_logger
 
 router = APIRouter(prefix="/baseline", tags=["baseline"])
 
@@ -87,6 +88,7 @@ ORDER BY lower(p.last_name), lower(p.first_name);
 @router.get("/active-participants", response_model=BaselinePayload)
 def get_active_participants_baseline(
     response: Response,
+    request: Request,
     codes: Optional[str] = None,
     db = Depends(get_db)
 ):
@@ -119,6 +121,23 @@ def get_active_participants_baseline(
 
     baseline_hash = compute_baseline_hash(items)
     response.headers["ETag"] = baseline_hash
+
+    sf_user_id = request.headers.get("X-SF-User-Id") or request.query_params.get("sfUserId") or request.query_params.get("userId")
+    source_ip = request.client.host if request.client else None
+
+    for item in items:
+        entity_id = item.get("participant_uuid") or item.get("participant_sfid")
+        if not entity_id:
+            continue
+        details = f"Baseline participant view for program {item.get('program_name')} ({item.get('program_code')})"
+        audit_logger.log_action(
+            action_type="VIEW_PARTICIPANT",
+            entity_id=entity_id,
+            details=details,
+            user_id=sf_user_id,
+            event_type="ACCESS",
+            source_ip=source_ip,
+        )
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return BaselinePayload(
