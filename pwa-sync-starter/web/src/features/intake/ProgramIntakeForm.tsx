@@ -1,6 +1,6 @@
 // src/features/intake/ProgramIntakeForm.tsx
-import React, { useState } from 'react'
-import { NewClientIntakeForm, createIntakeDefaults } from '../../types/intake'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { IntakeLocation, NewClientIntakeForm, createIntakeDefaults } from '../../types/intake'
 import { submitNewClientIntake } from '../../api/intakeApi'
 import { intakeDb, StoredIntake } from '../../store/intakeStore'
 
@@ -9,9 +9,76 @@ export default function ProgramIntakeForm() {
   const [status, setStatus] = useState<string>('')
   const [issues, setIssues] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [locationStatus, setLocationStatus] = useState<string>('Capturing device location...')
+  const isMountedRef = useRef(true)
 
   const update = (k: keyof NewClientIntakeForm, v: any) => 
     setForm(f => ({ ...f, [k]: v }))
+
+  const captureLocation = useCallback(() => {
+    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
+      setLocationStatus('Geolocation is not supported on this device.')
+      setForm(f => ({ ...f, location: undefined }))
+      return
+    }
+
+    setLocationStatus('Capturing device location...')
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        if (!isMountedRef.current) return
+
+        const coords = position.coords
+        const location: IntakeLocation = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: Number.isFinite(coords.accuracy) ? coords.accuracy : null,
+          altitude: coords.altitude ?? null,
+          heading: coords.heading ?? null,
+          speed: coords.speed ?? null,
+          timestamp: new Date(position.timestamp || Date.now()).toISOString(),
+          source: 'device'
+        }
+
+        setForm(f => ({ ...f, location }))
+        const accuracyText = location.accuracy != null ? `±${Math.round(location.accuracy)}m` : 'accuracy unknown'
+        setLocationStatus(`Location captured (${accuracyText}).`)
+      },
+      error => {
+        if (!isMountedRef.current) return
+
+        let message = 'Unable to capture device location.'
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message = 'Location permission denied. Enable location services to include intake location.'
+            break
+          case error.POSITION_UNAVAILABLE:
+            message = 'Location unavailable. Move to an open area or try again.'
+            break
+          case error.TIMEOUT:
+            message = 'Location request timed out. Try again or check device settings.'
+            break
+          default:
+            message = `Location error: ${error.message || 'unknown error.'}`
+        }
+        setLocationStatus(message)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000
+      }
+    )
+  }, [setForm])
+
+  useEffect(() => {
+    captureLocation()
+  }, [captureLocation])
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,6 +115,7 @@ export default function ProgramIntakeForm() {
         })
         setStatus(`Intake created successfully. ${result.synced ? 'Synced to Salesforce.' : 'Will sync when online.'}`)
         setForm(createIntakeDefaults())
+        captureLocation()
       } else {
         await intakeDb.intakes.update(storedIntake.id!, { error: result.errors?.join(', ') })
         setIssues(result.errors || ['Unknown error occurred'])
@@ -57,6 +125,7 @@ export default function ProgramIntakeForm() {
       setIssues([error instanceof Error ? error.message : 'Network error'])
       setStatus('Saved locally. Will sync when online.')
       setForm(createIntakeDefaults())
+      captureLocation()
     } finally {
       setIsSubmitting(false)
     }
@@ -109,6 +178,28 @@ export default function ProgramIntakeForm() {
         <div className="slds-form-element__control">
           <textarea className="slds-textarea" rows={4} value={form.notes} 
             onChange={e=>update('notes', e.target.value)}/>
+        </div>
+      </div>
+
+      <div className="slds-form-element slds-m-top_small">
+        <label className="slds-form-element__label">Device Location</label>
+        <div className="slds-form-element__control">
+          <div className="slds-text-body_small">
+            {form.location
+              ? `Lat ${form.location.latitude.toFixed(5)}, Lon ${form.location.longitude.toFixed(5)}${form.location.accuracy != null ? ` (±${Math.round(form.location.accuracy)}m)` : ''}`
+              : 'No location captured yet.'}
+          </div>
+          <div className="slds-text-color_weak slds-text-body_small slds-m-top_xx-small">
+            {locationStatus}
+          </div>
+          <button
+            type="button"
+            className="slds-button slds-button_neutral slds-m-top_xx-small"
+            onClick={captureLocation}
+            disabled={isSubmitting}
+          >
+            {form.location ? 'Refresh Location' : 'Try Again'}
+          </button>
         </div>
       </div>
 
