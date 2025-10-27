@@ -17,12 +17,25 @@ async function sendQueue() {
       const data = await res.json();
       // Apply server ack (e.g., map local id to Salesforce Id)
       if (item.entity === 'PersonAccount') {
-        const { localId, salesforceId } = data;
-        await db.persons.update(localId, { accountId: salesforceId, _status: 'synced' });
+        const responseLocalId = data && typeof data === 'object' ? data.localId : undefined;
+        const localId = responseLocalId ?? item.payload?.localId;
+        if (localId) {
+          await db.persons.delete(localId);
+        }
       }
       if (item.entity === 'ProgramIntake') {
-        const { localId } = item.payload;
-        await db.intakes.update(localId, { _status: 'synced' });
+        const responseLocalId = data && typeof data === 'object' ? data.localId : undefined;
+        const localId = responseLocalId ?? item.payload?.localId;
+        if (localId) {
+          await db.intakes.delete(localId);
+        }
+      }
+      if (item.entity === 'SignatureRecord') {
+        const { signatureService } = await import('../services/signatureService');
+        await signatureService.uploadToSalesforce(item.payload);
+        if (item.payload?.id) {
+          await db.signatures.delete(item.payload.id);
+        }
       }
       await db.outbox.delete(item.id!);
     } catch (e: any) {

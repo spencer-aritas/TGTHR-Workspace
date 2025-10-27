@@ -9,6 +9,7 @@ import re
 import json
 
 from ..salesforce.sf_client import create_person_account
+from ..salesforce.audit_log_service import audit_logger
 from ..db import DuckClient
 from ..sync_runner import SyncRunner
 
@@ -142,15 +143,43 @@ async def create_quick_person_account(payload: PersonAccountPayload):
                 db.execute("UPDATE participants SET sfid = ? WHERE uuid = ?", (sf_id, local_id))
             finally:
                 db.close()
-                
+
+            audit_logger.log_action(
+                action_type="PERSON_ACCOUNT_CREATE",
+                entity_id=local_id,
+                details="Quick person account created via outreach endpoint",
+                user_id=user_context.get("sfUserId"),
+                event_type="MODIFY",
+                audit_json={"sfId": sf_id, "localId": local_id},
+                status="Synced",
+            )
+
             return {"localId": local_id, "salesforceId": sf_id, "synced": True}
             
         except Exception as e:
             logger.warning(f"Failed to sync to Salesforce, stored locally: {e}")
+            audit_logger.log_action(
+                action_type="PERSON_ACCOUNT_CREATE",
+                entity_id=local_id,
+                details="Quick person account stored locally (sync pending)",
+                user_id=user_context.get("sfUserId"),
+                event_type="MODIFY",
+                audit_json={"localId": local_id, "error": str(e)},
+                status="StoredOffline",
+            )
             return {"localId": local_id, "synced": False}
             
     except Exception as e:
         logger.error(f"Failed to create person account: {e}")
+        audit_logger.log_action(
+            action_type="PERSON_ACCOUNT_CREATE",
+            entity_id=None,
+            details="Quick person account creation failed.",
+            user_id=None,
+            event_type="MODIFY",
+            status="Failed",
+            audit_json={"error": str(e)},
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post('/outreach-intake')
@@ -238,15 +267,43 @@ async def submit_outreach_encounter(payload: OutreachEncounterPayload):
                 db.execute("UPDATE outreach_encounters SET synced = TRUE WHERE id = ?", (encounter_id,))
             finally:
                 db.close()
-                
+
+            audit_logger.log_action(
+                action_type="ENCOUNTER_CREATE",
+                entity_id=payload.personLocalId,
+                details=f"Outreach encounter synced ({encounter_id})",
+                user_id=user_context.get("sfUserId"),
+                event_type="MODIFY",
+                audit_json={"encounterId": encounter_id},
+                status="Synced",
+            )
+
             return {"encounterId": encounter_id, "status": "synced", "taskId": result.get("taskId")}
             
         except Exception as e:
             logger.warning(f"Failed to sync to Salesforce, stored locally: {e}")
+            audit_logger.log_action(
+                action_type="ENCOUNTER_CREATE",
+                entity_id=payload.personLocalId,
+                details=f"Outreach encounter stored locally ({encounter_id})",
+                user_id=user_context.get("sfUserId"),
+                event_type="MODIFY",
+                audit_json={"encounterId": encounter_id, "error": str(e)},
+                status="StoredOffline",
+            )
             return {"encounterId": encounter_id, "status": "stored"}
         
     except Exception as e:
         logger.error(f"Failed to submit outreach encounter: {e}")
+        audit_logger.log_action(
+            action_type="ENCOUNTER_CREATE",
+            entity_id=payload.personLocalId,
+            details="Outreach encounter submission failed.",
+            user_id=None,
+            event_type="MODIFY",
+            status="Failed",
+            audit_json={"encounterId": encounter_id, "error": str(e)},
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get('/outreach/sync-status')
