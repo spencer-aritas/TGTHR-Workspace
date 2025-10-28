@@ -347,6 +347,50 @@ async def sync_outreach_data():
         logger.error(f"Sync failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post('/debug/clear-caches')
+async def clear_all_caches():
+    """Clear all application caches for debugging"""
+    try:
+        from ..salesforce.sf_client import clear_all_caches
+        clear_all_caches()
+        
+        # Clear local database
+        db = DuckClient()
+        try:
+            db.execute("DROP TABLE IF EXISTS participants")
+            db.execute("DROP TABLE IF EXISTS outreach_encounters")
+            db.execute("DROP TABLE IF EXISTS new_client_intakes")
+        finally:
+            db.close()
+            
+        return {"success": True, "message": "All caches cleared"}
+    except Exception as e:
+        logger.error(f"Cache clear failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get('/debug/last-payload')
+async def get_last_payload():
+    """Get the last payload sent to Salesforce for debugging"""
+    try:
+        db = DuckClient()
+        try:
+            # Get last intake payload
+            intakes = db.fetch_all(
+                "SELECT payload, created_at FROM new_client_intakes ORDER BY created_at DESC LIMIT 1"
+            )
+            if intakes:
+                import json
+                return {
+                    "lastPayload": json.loads(intakes[0]["payload"]),
+                    "timestamp": intakes[0]["created_at"]
+                }
+            return {"message": "No payloads found"}
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error(f"Failed to get last payload: {e}")
+        return {"error": str(e)}
+
 @router.post('/new-client-intake')
 async def create_new_client_intake(payload: dict):
     """Create comprehensive new client intake with all related records"""

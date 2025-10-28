@@ -28,6 +28,14 @@ _account_fields_cache: set[str] | None = None
 _describe_cache: Dict[str, Dict[str, Any]] = {}
 # (access_token, instance_url, expires_at_epoch)
 _token_cache: Optional[Tuple[str, str, float]] = None
+
+def clear_all_caches():
+    """Clear all in-memory caches - useful for debugging cache issues"""
+    global _account_fields_cache, _describe_cache, _token_cache, _person_rt_cache
+    _account_fields_cache = None
+    _describe_cache.clear()
+    _token_cache = None
+    _person_rt_cache = None
 SERVER_DIR = Path(__file__).resolve().parents[1]
 def _resolve_key_path(path_str: str) -> Path:
     raw = str(path_str).strip().strip('"').strip("'")
