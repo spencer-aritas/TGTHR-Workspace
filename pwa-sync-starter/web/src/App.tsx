@@ -1,6 +1,6 @@
 // web/src/App.tsx
 import React, { useState, useEffect } from "react"
-import PersonForm from "./features/person/PersonForm"
+import ProgramIntakeForm from "./features/intake/ProgramIntakeForm"
 import { SyncStatus } from "./components/SyncStatus"
 import { UserSelection } from "./components/UserSelection"
 import { MyCasesPage } from "./components/MyCasesPage"
@@ -82,7 +82,7 @@ export default function App() {
 
       <div className="slds-p-around_medium">
         <div style={{backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}>
-          <PersonForm />
+          <ProgramIntakeForm />
         </div>
       </div>
       
