@@ -11,14 +11,60 @@ export type IntakeResult = {
   success: boolean;
   synced?: boolean;
   errors?: string[];
+  id?: string;  // Salesforce ID of the created person account
 };
-export function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
-  const payload = {
-    ...form,
-    // startUtc: form.startUtc ?? new Date().toISOString(),
-  };
+export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
+  const deviceId = getDeviceId();
+  const user = getCurrentUser();
 
-  return postSync("/new-client-intake", payload);
+  // First create person account
+  const personAccountResponse = await postSync("/sync/PersonAccount", {
+    localId: form.personUuid,
+    person: {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      phone: form.phone,
+      birthdate: form.birthdate,
+      notes: form.notes,
+      deviceId,
+      location: form.location,
+      createdBy: user?.name || 'Unknown',
+      createdByEmail: user?.email || 'unknown@tgthr.org',
+      createdByUserId: user?.sfUserId
+    }
+  });
+
+  if (!personAccountResponse?.ok) {
+    throw new Error(`Failed to create person account: ${personAccountResponse?.statusText || 'Network error'}`);
+  }
+
+  const { localId, salesforceId } = await personAccountResponse.json();
+
+  // Then create program intake
+  const programIntakeResponse = await postSync("/sync/ProgramIntake", {
+    localId: form.encounterUuid,
+    intake: {
+      personLocalId: localId,
+      programId: 'Street_Outreach',
+      startDate: new Date().toISOString().slice(0,10),
+      consentSigned: true,
+      notes: form.notes,
+      deviceId,
+      location: form.location
+    }
+  });
+
+  if (!programIntakeResponse?.ok) {
+    throw new Error(`Failed to create program intake: ${programIntakeResponse?.statusText || 'Network error'}`);
+  }
+
+  const intakeResult = await programIntakeResponse.json();
+  return {
+    success: true,
+    id: salesforceId,
+    synced: true
+  };
 }
 // export function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
 //   // This will POST to /api/new-client-intake (through Caddy), same as PersonForm style
