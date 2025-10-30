@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict, Literal, Union
 from datetime import datetime
 
 from .db import DuckClient
@@ -18,6 +18,22 @@ from .sync_helpers import (
 )
 
 logger = logging.getLogger("sync_runner")
+class Counts(TypedDict):
+    programs: int
+    participants: int
+    enrollments: int
+    notes: int
+
+class HealthyStatus(TypedDict):
+    counts: Counts
+    last_sync_time: Optional[str]
+    status: Literal["healthy"]
+
+class ErrorStatus(TypedDict):
+    status: Literal["error"]
+    error: str
+
+SyncStatus = Union[HealthyStatus, ErrorStatus]
 
 class SyncRunner:
     """Single entry point for all sync operations"""
@@ -32,11 +48,11 @@ class SyncRunner:
         try:
             # Fetch data from Salesforce
             programs = fetch_programs()
-            prog_ids = [p.get("Id") for p in programs if p.get("Id")]
+            prog_ids = sorted(str(p["Id"]) for p in programs if isinstance(p.get("Id"), str))
             logger.info(f"[sync] Programs: {len(programs)}")
             
             enrollments = fetch_enrollments_for_programs(prog_ids) if prog_ids else []
-            acct_ids = sorted({e.get("AccountId") for e in enrollments if e.get("AccountId")})
+            acct_ids = sorted(str(e["AccountId"]) for e in enrollments if isinstance(e.get("AccountId"), str))
             logger.info(f"[sync] Enrollments: {len(enrollments)} | Accounts referenced: {len(acct_ids)}")
             
             accounts = fetch_accounts(acct_ids) if acct_ids else []
@@ -90,34 +106,30 @@ class SyncRunner:
         
         return synced_ids
     
-    def get_sync_status(self) -> Dict[str, any]:
-        """Get current sync status and statistics"""
+    def get_sync_status(self) -> SyncStatus:
         try:
-            counts = {
-                "programs": self.db.fetch_all("SELECT COUNT(*) n FROM programs")[0]["n"],
-                "participants": self.db.fetch_all("SELECT COUNT(*) n FROM participants")[0]["n"],
-                "enrollments": self.db.fetch_all("SELECT COUNT(*) n FROM program_enrollments")[0]["n"],
-                "notes": self.db.fetch_all("SELECT COUNT(*) n FROM notes")[0]["n"],
+            def _count(tbl: str) -> int:
+                rows = self.db.fetch_all(f"SELECT COUNT(*) AS n FROM {tbl}")
+                return int(rows[0].get("n", 0)) if rows else 0
+
+            counts: Counts = {
+                "programs": _count("programs"),
+                "participants": _count("participants"),
+                "enrollments": _count("program_enrollments"),
+                "notes": _count("notes"),
             }
-            
-            # Get last sync info from meta table
-            try:
-                last_sync = self.db.fetch_all("SELECT value FROM meta WHERE key = 'last_sync_time'")
-                last_sync_time = last_sync[0]["value"] if last_sync else None
-            except Exception:
-                last_sync_time = None
-            
-            return {
-                "counts": counts,
-                "last_sync_time": last_sync_time,
-                "status": "healthy"
-            }
+
+            last_sync = self.db.fetch_all(
+                "SELECT value FROM meta WHERE key = 'last_sync_time' LIMIT 1"
+            )
+            last_sync_time: Optional[str] = last_sync[0]["value"] if last_sync else None
+
+            return {"counts": counts, "last_sync_time": last_sync_time, "status": "healthy"}
         except Exception as e:
             logger.error(f"[sync] Error getting sync status: {e}")
             return {"status": "error", "error": str(e)}
         finally:
-            if hasattr(self, 'db'):
-                self.db.close()
+            pass  
 
 # Convenience functions for backward compatibility
 def run_full_sync() -> Dict[str, int]:
@@ -130,7 +142,7 @@ def run_incremental_sync(since: Optional[datetime] = None) -> Dict[str, int]:
     runner = SyncRunner()
     return runner.run_incremental_sync(since)
 
-def get_sync_status() -> Dict[str, any]:
+def get_sync_status() -> SyncStatus:
     """Get sync status - convenience function"""
     runner = SyncRunner()
     return runner.get_sync_status()

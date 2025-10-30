@@ -1,11 +1,14 @@
 # server/app/sync_helpers.py
 from __future__ import annotations
-
+import logging
 import uuid
-from typing import Dict, List, Iterable
+from typing import Dict, List, Iterable, Optional
 
 from .db import DuckClient
 from .settings import settings
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 from .salesforce.sf_client import query_soql, sobject_update, SFError
 
 def ensure_uuid(val: str | None) -> str:
@@ -124,46 +127,78 @@ def upsert_participants(db: DuckClient, rows: List[dict]) -> Dict[str, str]:
         ))
     return id_to_uuid
 
+from typing import Any, Dict, List, Optional
+
 def upsert_enrollments(
     db: DuckClient,
-    rows: List[dict],
+    rows: List[Dict[str, Any]],
     prog_uuid_by_id: Dict[str, str],
     acct_uuid_by_id: Dict[str, str],
 ) -> Dict[str, str]:
     """Upsert enrollments to database, returns SF ID -> UUID mapping"""
     enr_uuid_by_id: Dict[str, str] = {}
+
     for e in rows:
-        program_uuid = prog_uuid_by_id.get(e.get("ProgramId"))
-        participant_uuid = acct_uuid_by_id.get(e.get("AccountId"))
-        if not (program_uuid and participant_uuid):
+        # Safely extract required string IDs
+        sf_enr_id: Optional[str] = e.get("Id") if isinstance(e.get("Id"), str) else None
+        program_id: Optional[str] = e.get("ProgramId") if isinstance(e.get("ProgramId"), str) else None
+        account_id: Optional[str] = e.get("AccountId") if isinstance(e.get("AccountId"), str) else None
+
+        if not sf_enr_id:
+            logger.debug("[sync] Skipping enrollment without Id: %s", e)
             continue
 
-        enr_uuid = ensure_uuid(e.get("UUID__c"))
-        if not e.get("UUID__c") and settings.TGTHR_WRITE_MISSING_UUIDS:
+        if not program_id or not account_id:
+            logger.debug(
+                "[sync] Skipping enrollment %s due to missing ProgramId/AccountId (ProgramId=%r, AccountId=%r)",
+                sf_enr_id, program_id, account_id
+            )
+            continue
+
+        program_uuid = prog_uuid_by_id.get(program_id)
+        participant_uuid = acct_uuid_by_id.get(account_id)
+        if not (program_uuid and participant_uuid):
+            logger.debug(
+                "[sync] Skipping enrollment %s; missing mapped uuids (program_uuid=%r, participant_uuid=%r)",
+                sf_enr_id, program_uuid, participant_uuid
+            )
+            continue
+
+        # Ensure or generate UUID for the enrollment
+        existing_uuid = e.get("UUID__c") if isinstance(e.get("UUID__c"), str) else None
+        enr_uuid = ensure_uuid(existing_uuid)
+
+        # Optionally write back the UUID to SF if missing
+        if not existing_uuid and settings.TGTHR_WRITE_MISSING_UUIDS:
             try:
-                sobject_update(settings.SF_PROGRAM_ENROLLMENT_OBJECT, e["Id"], {"UUID__c": enr_uuid})
-            except Exception:
-                pass
+                sobject_update(settings.SF_PROGRAM_ENROLLMENT_OBJECT, sf_enr_id, {"UUID__c": enr_uuid})
+            except Exception as ex:
+                logger.warning("[sync] Failed to write UUID__c back to SF for %s: %s", sf_enr_id, ex)
 
-        enr_uuid_by_id[e["Id"]] = enr_uuid
+        enr_uuid_by_id[sf_enr_id] = enr_uuid
 
-        db.execute("""
+        # Insert/replace locally
+        db.execute(
+            """
             INSERT OR REPLACE INTO program_enrollments
                 (uuid, sfid, program_id, enrollee_id,
                  start_date, end_date, status, entered_hmis, exited_hmis, last_modified_date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            enr_uuid,
-            e.get("Id"),
-            e.get("ProgramId"),
-            e.get("AccountId"),
-            e.get("StartDate"),
-            e.get("EndDate"),
-            e.get("Status"),
-            bool(e.get("Entered_into_HMIS__c")),
-            bool(e.get("Exited_from_HMIS__c")),
-            e.get("LastModifiedDate"),
-        ))
+            """,
+            (
+                enr_uuid,
+                sf_enr_id,
+                program_id,
+                account_id,
+                e.get("StartDate"),
+                e.get("EndDate"),
+                e.get("Status"),
+                bool(e.get("Entered_into_HMIS__c")),
+                bool(e.get("Exited_from_HMIS__c")),
+                e.get("LastModifiedDate"),
+            ),
+        )
+
     return enr_uuid_by_id
 
 def _extract_first_name(account: dict) -> str | None:

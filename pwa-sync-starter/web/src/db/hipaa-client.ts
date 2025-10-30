@@ -81,30 +81,59 @@ export async function saveFormData(formType: string, clientUuid: string, data: R
 }
 
 export async function syncPendingData(): Promise<void> {
-  const pending = await hipaaDB.syncQueue.toArray()
-  if (pending.length === 0) return
+  // Grab the current queue snapshot we'll send
+  const pending = await hipaaDB.syncQueue.toArray();
+  if (pending.length === 0) return;
 
   try {
     const response = await fetch('/api/sync/forms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(pending)
-    })
+    });
 
-    if (response.ok) {
-      const { processedIds } = await response.json()
-      await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
-        for (const id of processedIds) {
-          await hipaaDB.syncQueue.delete(id)
-        }
-        // Mark synced forms
-        await hipaaDB.formData.where('pendingSync').equals(true).modify({ pendingSync: false })
-      })
+    if (!response.ok) {
+      console.info('Sync deferred: non-200 from server');
+      return;
     }
+
+    // Assume server returns the IDs of queue items it successfully processed
+    // e.g. { processedIds: string[] }
+    const { processedIds } = (await response.json()) as { processedIds?: string[] };
+
+    if (!processedIds || processedIds.length === 0) {
+      // Nothing confirmed—keep everything pending
+      return;
+    }
+
+    // Map processed queue IDs -> corresponding form IDs to mark as synced
+    const processedSet = new Set(processedIds);
+    const formIdsToMark = pending
+      .filter(q =>
+        processedSet.has(q.id) &&
+        q.table === 'formData' &&
+        (q.operation === 'create' || q.operation === 'update') &&
+        q?.payload?.id
+      )
+      .map(q => q.payload.id as string);
+
+    await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
+      // 1) Delete processed queue items
+      await hipaaDB.syncQueue.bulkDelete(processedIds);
+
+      // 2) Mark only the corresponding forms as synced
+      if (formIdsToMark.length > 0) {
+        await hipaaDB.formData
+          .where('id')
+          .anyOf(formIdsToMark)
+          .modify({ pendingSync: false });
+      }
+    });
   } catch (error) {
-    console.info('Sync queued for later (offline)')
+    console.info('Sync queued for later (offline)');
   }
 }
+
 
 export async function clearAllClientData(): Promise<void> {
   await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
