@@ -3,6 +3,7 @@ import { postSync } from '../../lib/api';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IntakeLocation, NewClientIntakeForm, createIntakeDefaults } from '../../types/intake'
 import { intakeDb, StoredIntake } from '../../store/intakeStore'
+import { getCurrentUser, getDeviceId } from "../../lib/salesforceAuth";
 
 type PermissionStateExtended = PermissionState | 'unsupported' | 'unknown'
 
@@ -192,7 +193,7 @@ export default function ProgramIntakeForm() {
     try {
       // Store locally first
       const now = new Date().toISOString()
-      const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
+      //const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
       const userEmail = localStorage.getItem('userEmail') || 'unknown@tgthr.org'
       const userName = localStorage.getItem('userName') || 'Unknown User'
 
@@ -205,23 +206,37 @@ export default function ProgramIntakeForm() {
           setLocationStatus('No device location available. Saving intake without coordinates.')
         }
       }
-
+      const encounterUuid = crypto.randomUUID();
+      const personUuid = crypto.randomUUID();
+      const deviceId = getDeviceId();
+      const user = getCurrentUser();
+      const createdBy = user?.name ?? 'Unknown';
+      const createdByEmail = user?.email ?? '';
+      const createdBySfUserId = user?.sfUserId ?? '';
+      
       const submissionForm: NewClientIntakeForm = {
         ...form,
-        location: ensuredLocation
-      }
+        location: ensuredLocation, 
+        encounterUuid,
+        personUuid,
+        deviceId, 
+        createdBy,
+        createdByEmail, 
+        createdBySfUserId
+      };
       
       const storedIntake: StoredIntake = {
         ...submissionForm,
-        encounterUuid: crypto.randomUUID(),
-        personUuid: crypto.randomUUID(),
         createdAt: now,
-        synced: false
-      }
+        synced: false, 
+        error: undefined, 
+        encounterUuid,
+        personUuid
+      };
+      
       storedIntakeId = await intakeDb.intakes.add(storedIntake)
       savedLocally = true
       storedIntake.id = storedIntakeId
-      
       // Try to sync
       const result = await submitNewClientIntake(submissionForm)
       if (result.success) {
