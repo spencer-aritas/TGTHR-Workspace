@@ -12,11 +12,18 @@ export type IntakeResult = {
   synced?: boolean;
   errors?: string[];
 };
-
 export function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
-  // This will POST to /api/new-client-intake (through Caddy), same as PersonForm style
-  return postSync('/new-client-intake', form);
+  const payload = {
+    ...form
+    //startUtc: form.startUtc ?? new Date().toISOString(),
+  };
+
+  return postSync("/new-client-intake", payload);
 }
+// export function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
+//   // This will POST to /api/new-client-intake (through Caddy), same as PersonForm style
+//   return postSync('/new-client-intake', form);
+// }
 
 export default function ProgramIntakeForm() {
   const [form, setForm] = useState<NewClientIntakeForm>(createIntakeDefaults())
