@@ -312,7 +312,7 @@ export default function ProgramIntakeForm() {
           </div>
           {locationPermission === 'denied' && (
             <div className="slds-text-color_error slds-text-body_small slds-m-top_xx-small">
-              Location access is currently blocked. Enable location permissions in your browser or device settings and tap “Refresh Location” to include coordinates, or continue without them.
+              Location access is currently blocked. Enable location permissions in your browser or device settings and tap "Refresh Location" to include coordinates, or continue without them.
             </div>
           )}
           <button

@@ -23,24 +23,30 @@ export interface Mutation {
   deviceId: string
 }
 
-class LocalDB extends Dexie {
+export interface Meta {
+  key: string
+  value: string
+}
+
+export class LocalDB extends Dexie {
   notes!: Table<Note, string>
   mutations!: Table<Mutation, string>
-  meta!: Table<{ key: string, value: string }, string>
+  meta!: Table<Meta, string>
   constructor() {
-    super('tgthr')
-    this.version(1).stores({
+    super('LocalDB')
+    this.version(2).stores({
       notes: 'id, updatedAt, pendingSync',
       mutations: 'id, table, clientTs',
       meta: 'key'
     })
   }
 }
+
 export const db = new LocalDB()
 
-function deviceId(): string {
-  // Stable per-browser device id
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+export async function deviceId(): Promise<string> {
+  const record = await db.table('meta').get('deviceId')
+  if (record?.value) return record.value as string
   (async () => {
     const existing = await db.meta.get('deviceId')
     if (!existing) await db.meta.put({ key: 'deviceId', value: uuid() })
