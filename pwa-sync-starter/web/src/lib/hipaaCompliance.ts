@@ -1,4 +1,4 @@
-import { offlineDB } from './database';
+import { hipaaDB, clearAllClientData, clearExpired } from '../db/hipaa-client';
 
 interface ClearanceConfig {
   maxAge: number; // milliseconds
@@ -13,7 +13,7 @@ class HIPAACompliance {
     clearOnVisibilityChange: true
   };
 
-  private idleTimer: NodeJS.Timeout | null = null;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private lastActivity = Date.now();
 
   init(config?: Partial<ClearanceConfig>) {
@@ -65,24 +65,22 @@ class HIPAACompliance {
 
   private startPeriodicCleanup() {
     setInterval(() => {
-      offlineDB.clearExpired(this.config.maxAge);
+      clearExpired(this.config.maxAge).catch(console.error);
     }, 5 * 60 * 1000); // Check every 5 minutes
   }
 
-  private clearAllData() {
+  private async clearAllData() {
     // Clear localStorage
-    const keys = Object.keys(localStorage);
-    keys.forEach(key => {
+    Object.keys(localStorage).forEach(key => {
       if (key.startsWith('offline_form_') || key.includes('phi_')) {
         localStorage.removeItem(key);
       }
     });
-
     // Clear sessionStorage
     sessionStorage.clear();
 
     // Clear IndexedDB
-    offlineDB.clearExpired(0);
+    await clearExpired(0);
 
     console.log('HIPAA compliance: All PHI data cleared');
   }
