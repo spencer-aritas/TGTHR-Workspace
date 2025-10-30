@@ -42,18 +42,64 @@ export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<
     ...(location ? { location } : {})
   };
   
-  const response = await fetch(`${API_BASE}/new-client-intake`, {
+  // First create the person account
+  const personResponse = await fetch(`${API_BASE}/sync/PersonAccount`, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json', 
       ...(token ? { Authorization: `Bearer ${token}` } : {}) 
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      localId: crypto.randomUUID(),
+      person: {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        birthdate: form.birthdate,
+        notes: form.notes,
+        deviceId,
+        createdBy: userName,
+        createdByEmail: userEmail
+      }
+    })
+  });
+
+  if (!personResponse.ok) {
+    throw new Error(`HTTP ${personResponse.status}: ${personResponse.statusText}`);
+  }
+
+  const { localId, salesforceId } = await personResponse.json();
+
+  // Then create the program intake
+  const intakeResponse = await fetch(`${API_BASE}/sync/ProgramIntake`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      ...(token ? { Authorization: `Bearer ${token}` } : {}) 
+    },
+    body: JSON.stringify({
+      localId,
+      intake: {
+        personLocalId: localId,
+        programId: 'Street_Outreach', // Default program
+        startDate: new Date().toISOString().slice(0,10),
+        consentSigned: true,
+        notes: form.notes,
+        deviceId
+      }
+    })
   });
   
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  if (!intakeResponse.ok) {
+    throw new Error(`HTTP ${intakeResponse.status}: ${intakeResponse.statusText}`);
   }
   
-  return response.json();
+  const intakeResult = await intakeResponse.json();
+  
+  return {
+    success: true,
+    id: salesforceId,
+    synced: true
+  };
 }

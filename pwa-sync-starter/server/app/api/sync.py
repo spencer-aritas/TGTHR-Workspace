@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from typing import List, Literal, Dict, Any
+from typing import List, Literal, Dict, Any, Optional
 from ..models.db import SessionLocal
 from ..schema import Note, Meta
 from ..salesforce.sf_client import _get_token, _api, _sf, get_person_account_record_type_id, create_person_account
@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger("sync")
 
 router = APIRouter()
-create_program_intake = None  # TODO: Placeholder for create_program_intake function
+from ..salesforce.intake_service import process_full_intake as create_program_intake
 # ---------------- Existing sync (notes) --------------------------------------
 class Mutation(BaseModel):
     from pydantic import Field
@@ -73,11 +73,11 @@ def upload(mutations: List[Mutation], db: Session = Depends(get_db)):
             note_id = m.payload.get('id')
             if m.op in ('insert','update'):
                 n = db.get(Note, note_id) or Note(id=note_id)
-                n.enrolleeId = m.payload.get('enrolleeId')
-                n.body = m.payload.get('body','')
-                n.createdAt = m.payload.get('createdAt')
-                n.updatedAt = m.payload.get('updatedAt')
-                n.deviceId = m.payload.get('deviceId')
+                n.enrolleeId = m.payload.get('enrolleeId', '')
+                n.body = m.payload.get('body', '')
+                n.createdAt = m.payload.get('createdAt', '')  # Default to empty string if not provided
+                n.updatedAt = m.payload.get('updatedAt', '')  # Default to empty string if not provided
+                n.deviceId = m.payload.get('deviceId', '')    # Default to empty string if not provided
                 serverVersion = get_next_version(db)
                 n.version = serverVersion
                 db.add(n)
@@ -190,12 +190,14 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
                 import uuid as uuid_lib
                 interaction_uuid = str(uuid_lib.uuid4())
                 
+                # Ensure we have a valid created_by_user_id or use a default
+                created_by_user_id = data.person.get('createdByUserId', '')
+                
                 interaction_id = call_interaction_summary_service(
-                    account_id=sf_id,
+                    record_id=sf_id,  # Changed from account_id to record_id
                     notes=notes,
                     uuid=interaction_uuid,
-                    created_by_user_id=data.person.get('createdByUserId')
-                )
+                    created_by_user_id=created_by_user_id)
                 logger.info(f"Created fallback InteractionSummary {interaction_id} for Account {sf_id}")
             except Exception as e2:
                 logger.warning(f"Failed to create InteractionSummary fallback: {e2}")
@@ -307,7 +309,7 @@ class EncounterPayload(BaseModel):
     notes: str = ""
     startUtc: str
     endUtc: str
-    deviceId: str = None
+    deviceId: Optional[str] = None  # Changed to Optional[str]
 
 @router.post('/sync/Encounter')
 def sync_encounter(data: EncounterPayload, db: Session = Depends(get_db)):
