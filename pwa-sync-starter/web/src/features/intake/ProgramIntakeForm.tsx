@@ -14,8 +14,8 @@ export type IntakeResult = {
 };
 export function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
   const payload = {
-    ...form
-    //startUtc: form.startUtc ?? new Date().toISOString(),
+    ...form,
+    // startUtc: form.startUtc ?? new Date().toISOString(),
   };
 
   return postSync("/new-client-intake", payload);
@@ -229,7 +229,7 @@ export default function ProgramIntakeForm() {
         deviceId, 
         createdBy,
         createdByEmail, 
-        createdBySfUserId
+        createdBySfUserId, 
       };
       
       const storedIntake: StoredIntake = {
