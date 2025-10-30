@@ -13,6 +13,16 @@ export interface NewClientIntakePayload {
   lastName: string;
   email?: string;
   phone?: string;
+  birthdate?: string;
+  notes: string;
+  startUtc: string;
+  endUtc: string;
+  pos: string;
+  isCrisis: boolean;
+  deviceId: string;
+  createdBy: string;
+  createdByEmail: string;
+  location?: IntakeLocation;
 }
 
 export interface IntakeLocationAddress {
@@ -44,6 +54,12 @@ export interface NewClientIntakeForm {
   birthdate?: string;
   notes: string;
   location?: IntakeLocation;
+  encounterUuid?: string;
+  personUuid?: string;
+  deviceId?: string;
+  createdBy?: string;
+  createdByEmail?: string;
+  createdBySfUserId?: string;
 }
 
 export function createIntakeDefaults(): NewClientIntakeForm {
