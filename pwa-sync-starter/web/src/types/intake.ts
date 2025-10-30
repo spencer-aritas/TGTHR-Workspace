@@ -60,6 +60,8 @@ export interface NewClientIntakeForm {
   createdBy?: string;
   createdByEmail?: string;
   createdBySfUserId?: string;
+  startUtc: string;
+  endUtc: string;
 }
 
 export function createIntakeDefaults(): NewClientIntakeForm {
@@ -67,6 +69,8 @@ export function createIntakeDefaults(): NewClientIntakeForm {
     firstName: '',
     lastName: '',
     notes: '',
-    location: undefined
+    location: undefined,
+    startUtc: new Date().toISOString(),
+    endUtc: new Date(Date.now() + 60 * 60 * 1000).toISOString()
   };
 }
