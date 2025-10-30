@@ -28,7 +28,7 @@ class HIPAACompliantDB extends Dexie {
   constructor() {
     super('tgthr-hipaa')
     this.version(1).stores({
-      formData: 'id, clientUuid, expiresAt, pendingSync',
+      formData: 'id, clientUuid, expiresAt, pendingSync, createdAt',
       syncQueue: 'id, timestamp',
       meta: 'key'
     })
@@ -80,64 +80,72 @@ export async function saveFormData(formType: string, clientUuid: string, data: R
   })
 }
 
-export async function syncPendingData(): Promise<void> {
-  // Grab the current queue snapshot we'll send
-  const pending = await hipaaDB.syncQueue.toArray();
-  if (pending.length === 0) return;
+  export async function syncPendingData(): Promise<void> {
+    // Grab the current queue snapshot we'll send
+    const pending = await hipaaDB.syncQueue.toArray();
+    if (pending.length === 0) return;
 
-  try {
-    const response = await fetch('/api/sync/forms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(pending)
-    });
+    try {
+      const response = await fetch('/api/sync/forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pending)
+      });
 
-    if (!response.ok) {
-      console.info('Sync deferred: non-200 from server');
-      return;
-    }
-
-    // Assume server returns the IDs of queue items it successfully processed
-    // e.g. { processedIds: string[] }
-    const { processedIds } = (await response.json()) as { processedIds?: string[] };
-
-    if (!processedIds || processedIds.length === 0) {
-      // Nothing confirmed—keep everything pending
-      return;
-    }
-
-    // Map processed queue IDs -> corresponding form IDs to mark as synced
-    const processedSet = new Set(processedIds);
-    const formIdsToMark = pending
-      .filter(q =>
-        processedSet.has(q.id) &&
-        q.table === 'formData' &&
-        (q.operation === 'create' || q.operation === 'update') &&
-        q?.payload?.id
-      )
-      .map(q => q.payload.id as string);
-
-    await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
-      // 1) Delete processed queue items
-      await hipaaDB.syncQueue.bulkDelete(processedIds);
-
-      // 2) Mark only the corresponding forms as synced
-      if (formIdsToMark.length > 0) {
-        await hipaaDB.formData
-          .where('id')
-          .anyOf(formIdsToMark)
-          .modify({ pendingSync: false });
+      if (!response.ok) {
+        console.info('Sync deferred: non-200 from server');
+        return;
       }
-    });
-  } catch (error) {
-    console.info('Sync queued for later (offline)');
+
+      // Assume server returns the IDs of queue items it successfully processed
+      // e.g. { processedIds: string[] }
+      const { processedIds } = (await response.json()) as { processedIds?: string[] };
+
+      if (!processedIds || processedIds.length === 0) {
+        // Nothing confirmed—keep everything pending
+        return;
+      }
+
+      // Map processed queue IDs -> corresponding form IDs to mark as synced
+      const processedSet = new Set(processedIds);
+      const formIdsToMark = pending
+        .filter(q =>
+          processedSet.has(q.id) &&
+          q.table === 'formData' &&
+          (q.operation === 'create' || q.operation === 'update') &&
+          q?.payload?.id
+        )
+        .map(q => q.payload.id as string);
+
+      await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
+        // 1) Delete processed queue items
+        await hipaaDB.syncQueue.bulkDelete(processedIds);
+
+        // 2) Mark only the corresponding forms as synced
+        if (formIdsToMark.length > 0) {
+          await hipaaDB.formData
+            .where('id')
+            .anyOf(formIdsToMark)
+            .modify({ pendingSync: false });
+        }
+      });
+    } catch (error) {
+      console.info('Sync queued for later (offline)');
+    }
   }
-}
+  export async function clearAllClientData(): Promise<void> {
+    await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
+      await hipaaDB.formData.clear()
+      await hipaaDB.syncQueue.clear()
+    })
+  }
 
+  export async function clearExpired(maxAge: number = 30 * 60 * 1000): Promise<void> {
+      const now = Date.now();
+      const cutoff = now - maxAge;
 
-export async function clearAllClientData(): Promise<void> {
-  await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
-    await hipaaDB.formData.clear()
-    await hipaaDB.syncQueue.clear()
-  })
-}
+      await hipaaDB.transaction('rw', hipaaDB.formData, hipaaDB.syncQueue, async () => {
+      await hipaaDB.formData.where('expiresAt').below(now).delete();
+      await hipaaDB.formData.where('createdAt').below(cutoff).delete();
+    });
+  }
