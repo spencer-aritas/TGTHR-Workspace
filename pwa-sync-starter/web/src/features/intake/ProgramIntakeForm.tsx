@@ -1,10 +1,21 @@
 // src/features/intake/ProgramIntakeForm.tsx
+import { postSync } from '../../lib/api';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IntakeLocation, NewClientIntakeForm, createIntakeDefaults } from '../../types/intake'
-import { submitNewClientIntake } from '../../api/intakeApi'
 import { intakeDb, StoredIntake } from '../../store/intakeStore'
 
 type PermissionStateExtended = PermissionState | 'unsupported' | 'unknown'
+
+export type IntakeResult = {
+  success: boolean;
+  synced?: boolean;
+  errors?: string[];
+};
+
+export function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
+  // This will POST to /api/new-client-intake (through Caddy), same as PersonForm style
+  return postSync('/new-client-intake', form);
+}
 
 export default function ProgramIntakeForm() {
   const [form, setForm] = useState<NewClientIntakeForm>(createIntakeDefaults())
@@ -248,7 +259,6 @@ export default function ProgramIntakeForm() {
       setIsSubmitting(false)
     }
   }
-
   return (
     <form className="slds-form slds-p-around_medium" onSubmit={handleSubmit}>
       <div className="slds-form-element">
