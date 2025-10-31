@@ -3,20 +3,24 @@
 FROM node:20 AS builder
 WORKDIR /usr/src/app
 
-# Install dependencies with cached package layers
+# Clean npm cache first
+RUN npm cache clean --force
+
+# Copy only package files first
 COPY web/package.json web/package-lock.json ./
 
-# Clean install dependencies
-RUN rm -rf node_modules package-lock.json && npm install
+# Install dependencies with clean environment
+RUN npm ci --production=false && \
+    rm -rf /root/.npm/_cacache
 
-# Copy application source
+# Copy only necessary source files
 COPY web/ .
-# Provide shared contracts for TS path aliases (../shared)
 COPY shared ../shared
 
 # Build the app in production mode
 ENV NODE_ENV=production
-RUN npm run build
+RUN npm run build && \
+    rm -rf node_modules
 
 # Production stage - using nginx for static file serving
 FROM nginx:stable-alpine
