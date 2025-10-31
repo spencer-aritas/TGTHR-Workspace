@@ -27,6 +27,15 @@ export function UserSelection({ onUserSelected }: UserSelectionProps) {
     // Check if this is an OAuth callback
     if (window.location.search.includes('code=')) {
       setRegistering(true);
+      
+      // Only handle OAuth callback once
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      
+      // Clear the URL parameters to prevent re-handling
+      window.history.replaceState({}, '', window.location.pathname);
+      
       handleOAuthCallback()
         .then(success => {
           if (success) {
@@ -34,6 +43,10 @@ export function UserSelection({ onUserSelected }: UserSelectionProps) {
           } else {
             setShowManualSelection(true);
           }
+        })
+        .catch(error => {
+          console.error('OAuth callback failed:', error);
+          setShowManualSelection(true);
         })
         .finally(() => setRegistering(false));
       return;
@@ -55,10 +68,12 @@ export function UserSelection({ onUserSelected }: UserSelectionProps) {
     setRegistering(false);
   };
 
-  if (loading && showManualSelection) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading users...</div>;
-
   if (registering) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>Authenticating with Salesforce...</div>;
+  }
+
+  if (loading) {
+    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading users...</div>;
   }
 
   return (

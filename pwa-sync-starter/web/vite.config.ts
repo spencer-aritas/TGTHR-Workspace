@@ -2,8 +2,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-import { resolve } from "node:path";
-// Removed missing dependencies
+// No path imports needed
 
 export default defineConfig({
   plugins: [
@@ -15,7 +14,17 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "src/sw",
       filename: "sw.ts",
-      devOptions: { enabled: true, type: "module", navigateFallback: "index.html" },
+      devOptions: { 
+        enabled: true, 
+        type: "module",
+        navigateFallback: "index.html",
+      },
+      workbox: {
+        cleanupOutdatedCaches: false,
+        clientsClaim: true,
+        skipWaiting: true,
+        disableDevLogs: true,
+      },
       manifest: {
         name: "TGTHR Offline App",
         short_name: "TGTHR",
@@ -34,7 +43,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@shared": resolve(__dirname, "../shared")
+      "@shared": "../shared"
     }
   },
   server: {
@@ -42,27 +51,16 @@ export default defineConfig({
     port: 5173,
     allowedHosts: ['outreachintake.aritasconsulting.com', 'localhost', '0.0.0.0'],
     fs: {
-      allow: [resolve(__dirname, "..")]
+      allow: [".."]
     },
     proxy: {
       "/api": {
-        target: "http://api:8000",
+        target: "http://caddy",
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-        configure: (proxy, options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            if (req.headers.authorization) {
-              proxyReq.setHeader('Authorization', req.headers.authorization);
-            }
-          });
-        }
+        secure: false
       }
     },
-    hmr: {
-      clientPort: 443,
-      host: 'outreachintake.aritasconsulting.com'
-    }
+    hmr: false
   },
   preview: { port: 4173 }
 });

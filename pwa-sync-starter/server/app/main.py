@@ -69,6 +69,10 @@ app.include_router(ssrs_router, prefix="/api")
 from .routers.device import router as device_reg_router
 app.include_router(device_reg_router)
 
+# Add users router
+from .routers.users import router as users_router
+app.include_router(users_router)
+
 # Simple top-level health
 @app.get("/health")
 def healthcheck():
