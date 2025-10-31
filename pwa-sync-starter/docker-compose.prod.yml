@@ -8,6 +8,8 @@ services:
     environment:
       - VITE_API_BASE=/api
       - NODE_ENV=production
+    networks:
+      - app_net
     restart: unless-stopped
     
   api:
@@ -29,20 +31,29 @@ services:
         target: /app/keys/jwt_private.key
         read_only: true
       - ./server/data:/app/data
+    networks:
+      - app_net
     restart: unless-stopped
 
   caddy:
     image: caddy:2-alpine
     ports:
+      - "80:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - app_net
     restart: unless-stopped
     depends_on:
       - web
       - api
+
+networks:
+  app_net:
+    driver: bridge
 
 volumes:
   caddy_data:
