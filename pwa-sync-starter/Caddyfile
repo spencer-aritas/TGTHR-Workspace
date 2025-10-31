@@ -28,14 +28,36 @@ outreachintake.aritasconsulting.com {
 	# Caddy automatically gets Let's Encrypt certificate
 	
 	handle /api/* {
-		reverse_proxy api:8000
+		reverse_proxy api:8000 {
+			header_up Host {http.request.header.Host}
+			header_up X-Real-IP {http.request.remote.host}
+			header_up X-Forwarded-For {http.request.remote.host}
+			header_up X-Forwarded-Proto {http.request.scheme}
+		}
 	}
 	
 	handle /docgen/* {
 		reverse_proxy docgen:8000
 	}
 	
+	# WebSocket support for Vite HMR
+	@websockets {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	
+	handle /hmr/* {
+		reverse_proxy @websockets web:5173
+	}
+	
 	handle {
-		reverse_proxy web:5173
+		reverse_proxy web:5173 {
+			header_up Host {http.request.header.Host}
+			header_up X-Real-IP {http.request.remote.host}
+			header_up X-Forwarded-For {http.request.remote.host}
+			header_up X-Forwarded-Proto {http.request.scheme}
+			header_up Upgrade {http.request.header.Upgrade}
+			header_up Connection {http.request.header.Connection}
+		}
 	}
 }

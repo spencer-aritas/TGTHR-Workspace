@@ -60,7 +60,11 @@ export default defineConfig({
         secure: false
       }
     },
-    hmr: false
+    hmr: {
+      clientPort: 443,
+      path: '/hmr/',
+      host: 'outreachintake.aritasconsulting.com'
+    }
   },
   preview: { port: 4173 }
 });
