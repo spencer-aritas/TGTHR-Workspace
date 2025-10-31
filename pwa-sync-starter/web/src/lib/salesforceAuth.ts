@@ -22,14 +22,20 @@ export async function getOutreachUsers(): Promise<OutreachUser[]> {
   }
   
   try {
+    console.log('Fetching outreach users...');
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     const response = await fetch('/api/users/outreach', {
-      signal: controller.signal
+      signal: controller.signal,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
     
     clearTimeout(timeoutId);
+    console.log('Outreach users response:', response.status, response.statusText);
     
     if (response.ok) {
       _cachedUsers = await response.json();
@@ -135,9 +141,13 @@ export async function loginWithSalesforce(): Promise<void> {
     const { clientId, loginUrl } = await response.json();
     console.log('OAuth config received:', { clientId: clientId?.substring(0, 10) + '...', loginUrl });
     
-    // Use current origin for redirect (works for both localhost and IP addresses)
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
-    console.log('Redirect URI:', redirectUri);
+    // Use current origin for redirect
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    console.log('Using redirect URI:', redirectUri);
+    console.log('OAuth redirect details:', {
+      currentUrl: window.location.toString(),
+      redirectUri: redirectUri
+    });
     const state = generateUUID();
     
     localStorage.setItem('oauth_state', state);
@@ -145,7 +155,7 @@ export async function loginWithSalesforce(): Promise<void> {
     const authUrl = `${loginUrl}/services/oauth2/authorize?` +
       `response_type=code&` +
       `client_id=${clientId}&` +
-      `redirect_uri=${redirectUri}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `state=${state}&` +
       `scope=full%20refresh_token`;
     

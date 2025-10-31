@@ -1,17 +1,40 @@
-outreachintake.aritasconsulting.com {
-	# Caddy automatically gets Let's Encrypt certificate
-	
-	# Proxy API requests to backend
+:80, localhost {
+	# Development configuration
 	handle /api/* {
-		reverse_proxy api:8000
+		reverse_proxy api:8000 {
+			header_up Host {http.request.header.Host}
+			header_up X-Real-IP {http.request.remote.host}
+			header_up X-Forwarded-For {http.request.remote.host}
+			header_up X-Forwarded-Proto {http.request.scheme}
+		}
 	}
 	
-	# Proxy doc gen requests
 	handle /docgen/* {
 		reverse_proxy docgen:8000
 	}
 	
-	# Serve frontend
+	handle {
+		reverse_proxy web:5173 {
+			header_up Host {http.request.header.Host}
+			header_up X-Real-IP {http.request.remote.host}
+			header_up X-Forwarded-For {http.request.remote.host}
+			header_up X-Forwarded-Proto {http.request.scheme}
+		}
+	}
+}
+
+outreachintake.aritasconsulting.com {
+	# Production configuration
+	# Caddy automatically gets Let's Encrypt certificate
+	
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	
+	handle /docgen/* {
+		reverse_proxy docgen:8000
+	}
+	
 	handle {
 		reverse_proxy web:5173
 	}

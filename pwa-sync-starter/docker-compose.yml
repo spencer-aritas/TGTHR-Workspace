@@ -23,13 +23,14 @@ services:
       - TZ=America/Denver
       - SF_ENV=benefits
       - SF_BENEFITS_JWT_LOGIN_URL=https://test.salesforce.com
-      - SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/jwt_private.key
+      - APP_BASE_URL=https://localhost
+      - SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/keys/jwt_private.key
       - DB_PATH=/app/data/app.duckdb
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
       - DEBUG_SETTINGS=1
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       # Mount the JWT key with explicit permissions
       - type: bind
@@ -47,7 +48,15 @@ services:
     environment:
       - VITE_API_BASE=/api
       - VITE_HOST=0.0.0.0
-      - VITE_ALLOWED_HOSTS=outreachintake.aritasconsulting.com
+      - VITE_PORT=5173
+      - VITE_ALLOWED_HOSTS=outreachintake.aritasconsulting.com,localhost,0.0.0.0
+      - NODE_ENV=development
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/usr/src/app
+      - ./shared:/usr/src/shared
+      - /usr/src/app/node_modules
     depends_on:
       - api
 

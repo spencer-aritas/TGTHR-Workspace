@@ -1,6 +1,6 @@
 /// <reference lib="WebWorker" />
 import { clientsClaim } from 'workbox-core'
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
@@ -9,9 +9,11 @@ declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
 
 console.log('Service Worker loading...')
 
-// Take control fast
-self.skipWaiting()
-clientsClaim()
+// Only take control if we're not in development
+if (import.meta.env.PROD) {
+  self.skipWaiting()
+  clientsClaim()
+}
 
 // Precache only safe static assets (js/css/fonts/icons/images)
 const SAFE_ASSET_REGEX = /\.(?:js|css|mjs|cjs|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico)$/i
@@ -20,8 +22,12 @@ const manifestEntries = (self.__WB_MANIFEST || []).filter((entry: any) => {
   return SAFE_ASSET_REGEX.test(url)
 })
 
-precacheAndRoute(manifestEntries)
-cleanupOutdatedCaches()
+// Only precache in production
+if (import.meta.env.PROD) {
+  precacheAndRoute(manifestEntries)
+} else {
+  console.log('Development mode: skipping precache')
+}
 
 console.log('Service Worker installed')
 
@@ -51,9 +57,16 @@ registerRoute(
   new NetworkOnly()
 )
 
-// ---- Avoid caching PHI responses: GET /api/* is network-only
+// ---- Handle auth endpoints with NetworkOnly strategy
 registerRoute(
-  ({ url, request }) => request.method === 'GET' && url.pathname.startsWith('/api/'),
+  ({ url }) => url.pathname.startsWith('/api/auth/'),
+  new NetworkOnly(),
+  'GET'
+)
+
+// ---- Avoid caching PHI responses: GET /api/* is network-only for other endpoints
+registerRoute(
+  ({ url, request }) => request.method === 'GET' && url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth/'),
   new NetworkOnly()
 )
 
