@@ -5,13 +5,17 @@ WORKDIR /usr/src/app
 
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
-RUN npm install && \
-    ARCH=$(node -p "process.arch") && \
-    if [ "$ARCH" = "arm64" ]; then \
+
+# Install architecture-specific Rollup binaries
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+      echo "Installing ARM64 dependencies" && \
       npm install --no-save @rollup/rollup-linux-arm64-musl@4.50.0; \
-    elif [ "$ARCH" = "x64" ]; then \
+    else \
+      echo "Installing x64 dependencies" && \
       npm install --no-save @rollup/rollup-linux-x64-musl@4.50.0; \
-    fi
+    fi && \
+    npm install
 
 # Copy application source
 COPY web/ .
@@ -22,21 +26,17 @@ COPY shared ../shared
 ENV NODE_ENV=production
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine
-WORKDIR /usr/src/app
+# Production stage - using nginx for static file serving
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
 
-# Copy only the built files and necessary runtime dependencies
-COPY --from=builder /usr/src/app/dist ./dist
-COPY --from=builder /usr/src/app/package.json ./
-COPY --from=builder /usr/src/app/package-lock.json ./
-COPY --from=builder /usr/src/app/vite.config.ts ./
+# Copy the built files from builder stage
+COPY --from=builder /usr/src/app/dist .
 
-# Install dependencies including Vite (not just production deps)
-RUN npm install
+# Copy our custom nginx config
+COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 5173
 
-# Run in production mode
-ENV NODE_ENV=production
-CMD [ "npm", "run", "preview", "--", "--host", "0.0.0.0" ]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
