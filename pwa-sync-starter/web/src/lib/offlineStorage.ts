@@ -6,7 +6,7 @@ export function isOnline(): boolean {
 }
 
 // Store form data locally without network calls
-export async function storeFormOffline(formType: string, data: any): Promise<{ localId: string; queued: boolean }> {
+export async function storeFormOffline(formType: string, data: any): Promise<{ localId: string; queued: boolean; synced: boolean }> {
   const localId = crypto.randomUUID();
   
   try {
@@ -49,7 +49,7 @@ export async function storeFormOffline(formType: string, data: any): Promise<{ l
     }
     
     console.log(`Stored ${formType} offline:`, localId);
-    return { localId, queued: true };
+    return { localId, queued: true, synced: false };
     
   } catch (error) {
     console.error('Failed to store offline:', error);

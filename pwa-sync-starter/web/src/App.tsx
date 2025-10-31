@@ -1,5 +1,5 @@
 // web/src/App.tsx
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import ProgramIntakeForm from "./features/intake/ProgramIntakeForm"
 import { SyncStatus } from "./components/SyncStatus"
 import { UserSelection } from "./components/UserSelection"
