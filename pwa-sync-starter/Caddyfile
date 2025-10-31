@@ -42,12 +42,20 @@ outreachintake.aritasconsulting.com {
 		reverse_proxy docgen:8000
 	}
 	
-	# Service worker needs special headers and no caching
+	# Service worker and manifest need special handling
 	handle /sw.js {
 		reverse_proxy web:5173 {
 			header_down Cache-Control "no-cache, no-store, must-revalidate"
 			header_down Pragma "no-cache"
 			header_down Service-Worker-Allowed "/"
+			header_down Content-Type "text/javascript"
+		}
+	}
+	
+	handle /manifest.webmanifest {
+		reverse_proxy web:5173 {
+			header_down Cache-Control "no-cache"
+			header_down Content-Type "application/manifest+json"
 		}
 	}
 	
