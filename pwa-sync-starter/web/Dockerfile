@@ -6,9 +6,8 @@ WORKDIR /usr/src/app
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Use JS implementation of Rollup instead of native
-ENV ROLLUP_SKIP_NODEJS_NATIVE=1
-RUN npm ci
+# Clean install dependencies
+RUN rm -rf node_modules package-lock.json && npm install
 
 # Copy application source
 COPY web/ .
