@@ -17,24 +17,57 @@ export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<
   const deviceId = getDeviceId();
   const user = getCurrentUser();
 
-  // Create initial encounter record with person info
-  const response = await postSync("/new-client-intake", {
-    ...form,
-    deviceId,
-    createdBy: user?.name || 'Unknown',
-    createdByEmail: user?.email || 'unknown@tgthr.org',
-    createdBySfUserId: user?.sfUserId
-  });
+  try {
+    // Step 1: Create Person Account
+    const personResponse = await postSync("/sync/PersonAccount", {
+      localId: form.personUuid,
+      person: {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        birthdate: form.birthdate,
+        deviceId,
+        notes: form.notes,
+        createdBy: user?.name || 'Unknown',
+        createdByEmail: user?.email || 'unknown@tgthr.org',
+        createdBySfUserId: user?.sfUserId,
+        location: form.location
+      }
+    });
 
-  if (response.success) {
+    if (!personResponse.salesforceId) {
+      throw new Error('Failed to create Person Account in Salesforce');
+    }
+
+    // Step 2: Create Encounter
+    const encounterResponse = await postSync("/sync/Encounter", {
+      encounterUuid: form.encounterUuid,
+      personUuid: form.personUuid,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      notes: form.notes || '',
+      startUtc: new Date().toISOString(),
+      endUtc: new Date().toISOString(),
+      pos: "27", // Default to Outreach Site
+      isCrisis: false,
+      deviceId
+    });
+
+    if (!encounterResponse.success) {
+      throw new Error('Failed to create Encounter in Salesforce');
+    }
+
     return {
       success: true,
-      id: response.id,
+      id: personResponse.salesforceId,
       synced: true
     };
-  }
 
-  throw new Error(response.error || 'Failed to create intake');
+  } catch (error) {
+    console.error('Intake submission failed:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to create intake');
+  }
 }
 // export function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
 //   // This will POST to /api/new-client-intake (through Caddy), same as PersonForm style
