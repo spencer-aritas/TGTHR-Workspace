@@ -19,18 +19,22 @@ RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create necessary directories
-RUN mkdir -p /app/data
+# Create necessary directories and set permissions
+RUN mkdir -p /app/data /app/keys && \
+    chown -R nobody:nogroup /app/data /app/keys && \
+    chmod 700 /app/keys && \
+    chmod 755 /app/data
 
 # Copy application code
 COPY app ./app
 
-# Create a directory for the JWT key and set proper permissions
-RUN mkdir -p /app/keys && \
-    chmod 700 /app/keys
-
-# Set JWT key path environment variable
+# Set environment for JWT and data paths
 ENV SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/keys/jwt_private.key
+ENV DB_PATH=/app/data/app.duckdb
+ENV SQLITE_DB_PATH=/app/data/server.db
+
+# Switch to non-root user for better security
+USER nobody
 
 EXPOSE 8000
 

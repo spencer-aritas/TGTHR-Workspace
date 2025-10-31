@@ -31,10 +31,12 @@ services:
       - PYTHONPATH=/app
     volumes:
       - type: bind
-        source: ${PWD}/jwt_private.key
+        source: ./jwt_private.key
         target: /app/keys/jwt_private.key
         read_only: true
-      - ./server/data:/app/data
+      - type: volume
+        source: app_data
+        target: /app/data
     networks:
       - app_net
     restart: unless-stopped
@@ -60,5 +62,7 @@ networks:
     driver: bridge
 
 volumes:
+  app_data:
+    driver: local
   caddy_data:
   caddy_config:
