@@ -1,41 +1,38 @@
-
-# Build stage
-FROM node:18 AS builder
+# ---- Build stage ----
+FROM node:20-bookworm AS web-builder
 WORKDIR /usr/src/app
 
-# Set env vars to skip problematic optional dependencies
-ENV ROLLUP_SKIP_NODEJS_NATIVE=true
-ENV DISABLE_OPTIONAL=true
-# Don't set NODE_ENV=production yet - we need devDependencies for build
+# Fix npm optional-deps bug that breaks Rollup platform binaries
+RUN npm i -g npm@11.6.2
 
-# Install dependencies with cached package layers
-COPY web/package.json web/package-lock.json ./
+# Install deps (include dev so tsc/vite are present)
+COPY web/package*.json ./
+RUN npm ci --include=dev
 
-# Install dependencies, skipping optional platform-specific packages
-RUN npm install --no-optional
-
-# Copy application source
-COPY web/ .
-# Provide shared contracts for TS path aliases (../shared)
+# Copy source
+COPY web/ ./
+# If you rely on shared TS path aliases:
+# (make sure build context includes the "shared" folder)
 COPY shared ../shared
 
-# Set production env for build optimization
-ENV NODE_ENV=production
+# Defensive: if npm still missed the Rollup arm64 binary, install it
+# (Use -musl if you build on Alpine in the BUILDER stage; here we are on Debian/glibc)
+RUN node -e "try{require.resolve('@rollup/rollup-linux-arm64-gnu');process.exit(0)}catch(e){process.exit(1)}" \
+  || npm i --no-save @rollup/rollup-linux-arm64-gnu
 
-# Build the app
+# Build
 RUN npm run build
 
-# Production stage - using nginx for static file serving
-FROM nginx:stable-alpine
+# ---- Runtime stage ----
+FROM nginx:stable-alpine AS web-runtime
 WORKDIR /usr/share/nginx/html
 
-# Copy the built files from builder stage
-COPY --from=builder /usr/src/app/dist .
+# Copy built assets
+COPY --from=web-builder /usr/src/app/dist ./
 
-# Copy our custom nginx config
+# SPA routing? Provide your nginx config if needed
+# (assumes web/nginx.conf exists in build context)
 COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 5173
-
-# Start nginx
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
