@@ -30,13 +30,13 @@ WORKDIR /usr/src/app
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/package-lock.json ./
+COPY --from=builder /usr/src/app/vite.config.ts ./
 
-# Install production dependencies and Vite globally
-RUN npm ci --omit=dev && \
-    npm install -g vite
+# Install dependencies including Vite (not just production deps)
+RUN npm install
 
 EXPOSE 5173
 
 # Run in production mode
 ENV NODE_ENV=production
-CMD [ "vite", "preview", "--host", "0.0.0.0", "--port", "5173" ]
+CMD [ "npm", "run", "preview", "--", "--host", "0.0.0.0" ]

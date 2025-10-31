@@ -51,22 +51,18 @@ export default defineConfig({
     allowedHosts: ['outreachintake.aritasconsulting.com', 'localhost', '0.0.0.0'],
     fs: {
       allow: [".."]
-    },
+    }
+  },
+  preview: { 
+    port: 5173,
+    host: '0.0.0.0',
+    // In preview mode (production), proxy API requests to Caddy
     proxy: {
       "/api": {
         target: "http://caddy",
         changeOrigin: true,
         secure: false
       }
-    },
-    // Disable HMR in production
-    hmr: process.env.NODE_ENV === 'production' ? false : {
-      protocol: 'wss',
-      port: 443
     }
-  },
-  preview: { 
-    port: 5173,
-    host: '0.0.0.0'
   }
 });
