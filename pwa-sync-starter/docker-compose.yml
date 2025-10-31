@@ -2,6 +2,8 @@
 services:
   caddy:
     image: caddy:2-alpine
+    env_file:
+      - ./server/.env
     ports:
       - "80:80"
       - "443:443"
@@ -15,11 +17,11 @@ services:
 
   api:
     build: ./server
+    env_file:
+      - ./server/.env
     environment:
       - TZ=America/Denver
       - SF_ENV=benefits
-      - SF_BENEFITS_JWT_CONSUMER_KEY=${SF_BENEFITS_JWT_CONSUMER_KEY}
-      - SF_BENEFITS_JWT_USERNAME=${SF_BENEFITS_JWT_USERNAME}
       - SF_BENEFITS_JWT_LOGIN_URL=https://test.salesforce.com
       - SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/jwt_private.key
       - DB_PATH=/app/data/app.duckdb
