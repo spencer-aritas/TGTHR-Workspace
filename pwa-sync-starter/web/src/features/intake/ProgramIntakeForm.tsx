@@ -137,7 +137,7 @@ export default function ProgramIntakeForm() {
           setLocationStatus(message)
           if (lastLocationRef.current) {
             const fallbackTime = new Date(lastLocationRef.current.timestamp).toLocaleString()
-            setLocationStatus(prev => `${message} Using last known location captured ${fallbackTime}.`)
+            setLocationStatus(`${message} Using last known location captured ${fallbackTime}.`)
             resolve(lastLocationRef.current)
             return
           }
