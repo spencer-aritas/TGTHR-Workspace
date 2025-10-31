@@ -33,18 +33,6 @@ type Person = {
   notes?: string;
 };
 
-const GENDER_OPTIONS = [
-  "Man (Boy, if child)",
-  "Woman (Girl, if child)",
-  "Non-Binary",
-  "Cultural Specific Identity (e.g., Two  Spirit)",
-  "Questioning",
-  "Different Identity",
-  "Doesn't Know",
-  "Prefers Not to Answer",
-  "Data Not Collected",
-];
-
 const SF = import.meta.env.VITE_SF_LIGHTNING_DOMAIN as string | undefined;
 
 export default function PersonForm() {

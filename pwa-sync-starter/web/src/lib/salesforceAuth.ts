@@ -91,16 +91,18 @@ export function getDeviceId(): string {
 // One-time device registration with user selection
 export async function registerDevice(user: OutreachUser): Promise<boolean> {
   const deviceId = getDeviceId();
+  const registration: DeviceRegistration = {
+    deviceId,
+    userId: user.id,
+    sfUserId: user.sfUserId,
+    registeredAt: new Date().toISOString()
+  };
   
   try {
     const response = await fetch('/api/device/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deviceId,
-        userId: user.id,
-        sfUserId: user.sfUserId
-      })
+      body: JSON.stringify(registration)
     });
     
     if (response.ok) {
@@ -151,7 +153,7 @@ export async function loginWithSalesforce(): Promise<void> {
     window.location.href = authUrl;
   } catch (error) {
     console.error('OAuth flow failed:', error);
-    alert(`Login failed: ${error.message}`);
+    alert(`Login failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

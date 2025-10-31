@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { getCurrentUser } from '../lib/salesforceAuth';
+import { useState } from 'react';
 
 interface Enrollment {
   Id: string;

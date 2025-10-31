@@ -1,4 +1,9 @@
 {
      "python-envs.defaultEnvManager": "ms-python.python:system",
-     "python-envs.pythonProjects": []
+     "python-envs.pythonProjects": [],
+     "eslint.workingDirectories": [
+    { "directory": "pwa-sync-starter/web", "changeProcessCWD": true }
+    // Don't list the other project here.
+     ],
+     "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"]
 }

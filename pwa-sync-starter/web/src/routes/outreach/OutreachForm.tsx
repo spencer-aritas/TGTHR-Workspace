@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { db } from '../../store/outreachStore';
 import { submitOutreachEncounter } from '../../api/outreachApi';
-import { newEncounterDefaults, type OutreachEncounter, type OutreachEncounterPayload } from '../../types/outreach';
+import { newEncounterDefaults, type OutreachEncounter } from '../../types/outreach';
 
 export default function OutreachForm() {
   const [form, setForm] = useState<OutreachEncounter>(newEncounterDefaults());
