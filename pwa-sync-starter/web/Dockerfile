@@ -5,18 +5,21 @@ WORKDIR /usr/src/app
 
 # Set env var to skip native modules before any npm commands
 ENV ROLLUP_SKIP_NODEJS_NATIVE=true
-ENV NODE_ENV=production
+# Don't set NODE_ENV=production yet - we need devDependencies for build
 
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Clean install dependencies - force use of JS implementation
-RUN npm ci --no-audit --no-fund
+# Install ALL dependencies (including devDependencies) for build
+RUN npm ci --no-audit --no-fund --include=dev
 
 # Copy application source
 COPY web/ .
 # Provide shared contracts for TS path aliases (../shared)
 COPY shared ../shared
+
+# Set production env for build optimization
+ENV NODE_ENV=production
 
 # Build the app
 RUN npm run build
