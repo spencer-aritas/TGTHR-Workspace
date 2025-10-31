@@ -38,7 +38,7 @@ services:
         target: /app/keys/jwt_private.key
         read_only: true
       # Data directory for the app
-      - ./server/data:/app/data
+      - ./server/data:/app/data:Z
     restart: unless-stopped
       
   web:
