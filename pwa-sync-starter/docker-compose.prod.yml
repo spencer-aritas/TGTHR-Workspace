@@ -17,6 +17,7 @@ services:
     restart: unless-stopped
     
   api:
+    user: "1000:1000"
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -30,13 +31,16 @@ services:
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
     volumes:
+      - duckdb_data:/app/data
       - type: bind
         source: ./jwt_private.key
         target: /app/keys/jwt_private.key
         read_only: true
       - type: volume
         source: app_data
-        target: /app/data
+        target: /app/data- ./server/data:/app/data:Z
+      - ./server/data:/app/data:Z
+
     networks:
       - app_net
     restart: unless-stopped
