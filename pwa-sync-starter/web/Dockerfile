@@ -3,15 +3,19 @@
 FROM node:18 AS builder
 WORKDIR /usr/src/app
 
-# Set env var to skip native modules before any npm commands
+# Set env vars to skip problematic optional dependencies
 ENV ROLLUP_SKIP_NODEJS_NATIVE=true
+ENV DISABLE_OPTIONAL=true
 # Don't set NODE_ENV=production yet - we need devDependencies for build
 
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Install ALL dependencies (including devDependencies) for build
-RUN npm ci --no-audit --no-fund --include=dev
+# Clean install without optional deps and platform-specific packages
+RUN npm ci --no-audit --no-fund --include=dev --no-optional \
+    && npm config set optional false \
+    && npm config set platform linux \
+    && npm config set arch x64
 
 # Copy application source
 COPY web/ .
