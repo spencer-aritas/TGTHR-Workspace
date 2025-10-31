@@ -28,11 +28,6 @@ export function UserSelection({ onUserSelected }: UserSelectionProps) {
     if (window.location.search.includes('code=')) {
       setRegistering(true);
       
-      // Only handle OAuth callback once
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
-      
       // Clear the URL parameters to prevent re-handling
       window.history.replaceState({}, '', window.location.pathname);
       
