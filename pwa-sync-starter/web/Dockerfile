@@ -1,14 +1,13 @@
 
 # Build stage
-FROM --platform=linux/amd64 node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20 AS builder
 WORKDIR /usr/src/app
 
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Force x64 architecture and install dependencies
-RUN npm install --no-save @rollup/rollup-linux-x64-musl@4.50.0 && \
-    npm install
+# Clean install dependencies without platform specifics
+RUN npm ci
 
 # Copy application source
 COPY web/ .
@@ -20,7 +19,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # Production stage - using nginx for static file serving
-FROM --platform=linux/amd64 nginx:alpine
+FROM nginx:stable-alpine
 WORKDIR /usr/share/nginx/html
 
 # Copy the built files from builder stage
