@@ -324,6 +324,16 @@ export default function ProgramIntakeForm() {
         await loginWithSalesforce();
         setIssues(['Authentication required. Please try again after logging in.']);
         setStatus('Please login...');
+      } else if (error instanceof Error && error.message.includes('Server temporarily unavailable')) {
+        // Handle 502 errors specifically
+        setIssues(['The server is temporarily unavailable. Your data will be saved locally and synced when the server is available.']);
+        setStatus('Server unavailable - saving locally');
+      } else if (error instanceof Error && error.message.includes('Server temporarily unavailable')) {
+        setIssues(['The server is temporarily unavailable. Your data will be saved locally and synced when the server is available.']);
+        if (savedLocally && storedIntakeId !== undefined) {
+          setStatus('Saved locally. Will sync when server is available.');
+        } else {
+          setStatus('Unable to save. Please try again.');
       } else if (savedLocally && storedIntakeId !== undefined) {
         const message = error instanceof Error ? error.message : 'Network error';
         await intakeDb.intakes.update(storedIntakeId, { error: message, synced: false });
