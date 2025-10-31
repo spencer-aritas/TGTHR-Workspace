@@ -3,10 +3,14 @@
 FROM node:18 AS builder
 WORKDIR /usr/src/app
 
+# Set env var to skip native modules before any npm commands
+ENV ROLLUP_SKIP_NODEJS_NATIVE=true
+ENV NODE_ENV=production
+
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Clean install dependencies
+# Clean install dependencies - force use of JS implementation
 RUN npm ci --no-audit --no-fund
 
 # Copy application source
@@ -14,9 +18,7 @@ COPY web/ .
 # Provide shared contracts for TS path aliases (../shared)
 COPY shared ../shared
 
-# Build the app in production mode
-ENV NODE_ENV=production
-ENV ROLLUP_SKIP_NODEJS_NATIVE=true
+# Build the app
 RUN npm run build
 
 # Production stage - using nginx for static file serving
