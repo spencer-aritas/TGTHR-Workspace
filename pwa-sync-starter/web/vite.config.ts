@@ -9,11 +9,10 @@ export default defineConfig({
     react(),
     // Removed missing plugins
     VitePWA({
-      injectRegister: "auto",
-      registerType: "autoUpdate",
-      strategies: "injectManifest",
-      srcDir: "src/sw",
-      filename: "sw.ts",
+      injectRegister: "script",
+      registerType: "prompt",
+      strategies: "generateSW",
+      filename: "sw.js",
       devOptions: { 
         enabled: true, 
         type: "module",
