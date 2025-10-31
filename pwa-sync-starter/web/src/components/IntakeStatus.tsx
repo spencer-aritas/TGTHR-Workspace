@@ -1,5 +1,5 @@
 // web/src/components/IntakeStatus.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { intakeDb } from '../store/intakeStore';
 import { syncPendingIntakes } from '../workers/intakeSync';
 

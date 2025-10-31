@@ -1,6 +1,5 @@
 // web/src/components/SyncStatus.tsx
 import { useState, useEffect } from 'react';
-import { getSyncStatus } from '../lib/outreachApi';
 
 export function SyncStatus() {
   const [status, setStatus] = useState({ unsyncedPeople: 0, unsyncedEncounters: 0 });
