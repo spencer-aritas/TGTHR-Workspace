@@ -373,7 +373,6 @@ __all__ = [
     "sobject_update",
     "sobject_upsert_external",
     "create_person_account",
-    "create_interaction_summary",
     "upsert_person_by_uuid",
     "get_person_account_record_type_id",
     "ingest_encounter",
