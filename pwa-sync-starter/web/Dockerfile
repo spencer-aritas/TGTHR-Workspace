@@ -1,5 +1,5 @@
 # ---- Build stage ----
-FROM node:20-bookworm AS web-builder
+FROM public.ecr.aws/docker/library/node:20-bookworm AS web-builder
 WORKDIR /usr/src/app
 
 # Fix npm optional-deps bug that breaks Rollup platform binaries
@@ -24,7 +24,7 @@ RUN node -e "try{require.resolve('@rollup/rollup-linux-arm64-gnu');process.exit(
 RUN npm run build
 
 # ---- Runtime stage ----
-FROM nginx:stable-alpine AS web-runtime
+FROM public.ecr.aws/docker/library/nginx:stable-alpine AS web-runtime
 WORKDIR /usr/share/nginx/html
 
 # Copy built assets
