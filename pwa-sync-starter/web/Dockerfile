@@ -11,11 +11,8 @@ ENV DISABLE_OPTIONAL=true
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Clean install without optional deps and platform-specific packages
-RUN npm ci --no-audit --no-fund --include=dev --no-optional \
-    && npm config set optional false \
-    && npm config set platform linux \
-    && npm config set arch x64
+# Install dependencies, skipping optional platform-specific packages
+RUN npm install --no-optional
 
 # Copy application source
 COPY web/ .
