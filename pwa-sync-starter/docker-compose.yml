@@ -31,7 +31,12 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ${PWD}/jwt_private.key:/app/jwt_private.key:ro
+      # Mount the JWT key with explicit permissions
+      - type: bind
+        source: ${PWD}/jwt_private.key
+        target: /app/keys/jwt_private.key
+        read_only: true
+      # Data directory for the app
       - ./server/data:/app/data
     restart: unless-stopped
       

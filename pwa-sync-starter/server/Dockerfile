@@ -25,6 +25,13 @@ RUN mkdir -p /app/data
 # Copy application code
 COPY app ./app
 
+# Create a directory for the JWT key and set proper permissions
+RUN mkdir -p /app/keys && \
+    chmod 700 /app/keys
+
+# Set JWT key path environment variable
+ENV SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/keys/jwt_private.key
+
 EXPOSE 8000
 
 # Command to run the application

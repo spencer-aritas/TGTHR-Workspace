@@ -56,7 +56,7 @@ def _read_private_key() -> str:
             "SALESFORCE_PRIVATE_KEY_PATH is not set. "
             "Set SF_BENEFITS_JWT_PRIVATE_KEY_PATH in server/.env."
         )
-    p = Path(str(path_str).strip())
+    p = _resolve_key_path(path_str)
     if not p.exists():
         raise SFAuthError(f"Private key not found at: {p}")
     if p.is_dir():
