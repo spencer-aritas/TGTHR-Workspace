@@ -17,17 +17,19 @@ services:
     build: ./server
     environment:
       - TZ=America/Denver
-      - API_ORIGINS=https://outreachintake.aritasconsulting.com
-      - DATABASE_URL=sqlite:///app/data/server.db
-      - ENVIRONMENT=production
-      - SALESFORCE_LOGIN_URL=https://login.salesforce.com
-      - SALESFORCE_CLIENT_ID=
-      - SALESFORCE_USERNAME=
-      - JWT_PRIVATE_KEY_PATH=/app/jwt_private.key
+      - SF_ENV=benefits
+      - SF_BENEFITS_JWT_LOGIN_URL=https://test.salesforce.com
+      - SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/jwt_private.key
+      - DB_PATH=/app/data/app.duckdb
+      - SQLITE_DB_PATH=/app/data/server.db
+      - PYTHONPATH=/app
+      - DEBUG_SETTINGS=1
     ports:
-      - "8001:8000"
+      - "8000:8000"
     volumes:
-      - ./server:/app
+      - ./jwt_private.key:/app/jwt_private.key:ro
+      - ./server/data:/app/data
+    restart: unless-stopped
       
   web:
     build:
