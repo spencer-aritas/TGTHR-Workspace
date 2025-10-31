@@ -6,8 +6,8 @@ WORKDIR /usr/src/app
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Install the x64 version of Rollup first, then do regular install
-RUN npm install --no-save @rollup/rollup-linux-x64-gnu && npm ci
+# Clean install dependencies
+RUN npm ci --no-audit --no-fund
 
 # Copy application source
 COPY web/ .
