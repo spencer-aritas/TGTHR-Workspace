@@ -47,7 +47,16 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://api:8000",
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            if (req.headers.authorization) {
+              proxyReq.setHeader('Authorization', req.headers.authorization);
+            }
+          });
+        }
       }
     },
     hmr: {

@@ -21,8 +21,12 @@ export const postSync = async (endpoint: string, payload: any) => {
       body: JSON.stringify(payload)
     });
 
-    if (resp.status === 401 || resp.status === 403 || resp.status === 502) {
+    if (resp.status === 401 || resp.status === 403) {
       throw new AuthError();
+    }
+    
+    if (resp.status === 502) {
+      throw new Error('Server temporarily unavailable. Please try again in a moment.');
     }
 
     if (!resp.ok) {
