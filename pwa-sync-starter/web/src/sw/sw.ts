@@ -57,9 +57,11 @@ registerRoute(
   new NetworkOnly()
 )
 
-// ---- Handle auth endpoints with NetworkOnly strategy
+// ---- Handle auth endpoints and callbacks with NetworkOnly strategy
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/auth/'),
+  ({ url }) => url.pathname.startsWith('/api/auth/') || 
+               url.pathname === '/auth/callback' || 
+               (url.pathname === '/' && url.search.includes('code=')),
   new NetworkOnly(),
   'GET'
 )
