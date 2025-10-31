@@ -3,11 +3,10 @@ version: '3.8'
 services:
   web:
     build: 
-      context: ./web
-      dockerfile: Dockerfile
-    ports:
-      - "80:4173"
+      context: .
+      dockerfile: web/Dockerfile
     environment:
+      - VITE_API_BASE=/api
       - NODE_ENV=production
     restart: unless-stopped
     
@@ -15,16 +14,22 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
     environment:
-      - ENVIRONMENT=production
-      - DATABASE_URL=sqlite:///app/data/server.db
+      - TZ=America/Denver
+      - SF_ENV=benefits
+      - SF_BENEFITS_JWT_LOGIN_URL=https://test.salesforce.com
+      - APP_BASE_URL=https://outreachintake.aritasconsulting.com
+      - SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/keys/jwt_private.key
+      - DB_PATH=/app/data/app.duckdb
+      - SQLITE_DB_PATH=/app/data/server.db
+      - PYTHONPATH=/app
     volumes:
+      - type: bind
+        source: ${PWD}/jwt_private.key
+        target: /app/keys/jwt_private.key
+        read_only: true
       - ./server/data:/app/data
     restart: unless-stopped
-    depends_on:
-      - web
 
   caddy:
     image: caddy:2-alpine
