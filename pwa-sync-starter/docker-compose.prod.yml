@@ -5,8 +5,6 @@ services:
     build: 
       context: .
       dockerfile: web/Dockerfile
-      args:
-        - BUILDPLATFORM=${BUILDPLATFORM:-linux/amd64}
     environment:
       - NODE_ENV=production
     networks:

@@ -1,13 +1,13 @@
 
 # Build stage
-FROM --platform=$BUILDPLATFORM node:20 AS builder
+FROM node:20 AS builder
 WORKDIR /usr/src/app
 
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Clean install dependencies without platform specifics
-RUN npm ci
+# Force x64 version of rollup
+RUN npm install --no-save @rollup/rollup-linux-x64-gnu && npm ci
 
 # Copy application source
 COPY web/ .
