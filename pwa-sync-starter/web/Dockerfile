@@ -1,26 +1,22 @@
 
 # Build stage
-FROM node:20 AS builder
+FROM node:18-alpine AS builder
 WORKDIR /usr/src/app
 
-# Clean npm cache first
-RUN npm cache clean --force
-
-# Copy only package files first
+# Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Install dependencies with clean environment
-RUN npm ci --production=false && \
-    rm -rf /root/.npm/_cacache
+# Clean install dependencies
+RUN npm ci
 
-# Copy only necessary source files
+# Copy application source
 COPY web/ .
+# Provide shared contracts for TS path aliases (../shared)
 COPY shared ../shared
 
 # Build the app in production mode
 ENV NODE_ENV=production
-RUN npm run build && \
-    rm -rf node_modules
+RUN npm run build
 
 # Production stage - using nginx for static file serving
 FROM nginx:stable-alpine
