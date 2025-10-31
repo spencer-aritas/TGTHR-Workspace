@@ -1,9 +1,9 @@
 // src/features/intake/ProgramIntakeForm.tsx
-import { postSync } from '../../lib/api';
+import { postSync, AuthError } from '../../lib/api';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IntakeLocation, NewClientIntakeForm, createIntakeDefaults } from '../../types/intake'
 import { intakeDb, StoredIntake } from '../../store/intakeStore'
-import { getCurrentUser, getDeviceId } from "../../lib/salesforceAuth";
+import { getCurrentUser, getDeviceId, loginWithSalesforce } from "../../lib/salesforceAuth";
 
 type PermissionStateExtended = PermissionState | 'unsupported' | 'unknown'
 
@@ -16,6 +16,10 @@ export type IntakeResult = {
 export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<IntakeResult> {
   const deviceId = getDeviceId();
   const user = getCurrentUser();
+
+  if (!user) {
+    throw new AuthError('AUTH_REQUIRED');
+  }
 
   try {
     // Step 1: Create Person Account
@@ -314,17 +318,22 @@ export default function ProgramIntakeForm() {
         setStatus('')
       }
     } catch (error) {
-      console.error('Intake submission failed', error)
-      if (savedLocally && storedIntakeId !== undefined) {
-        const message = error instanceof Error ? error.message : 'Network error'
-        await intakeDb.intakes.update(storedIntakeId, { error: message, synced: false })
-        setIssues([])
-        setStatus('Saved locally. Will sync when online.')
-        setForm(createIntakeDefaults())
-        void captureLocation()
+      console.error('Intake submission failed', error);
+      if (error instanceof AuthError) {
+        // Try to login and inform user to try again
+        await loginWithSalesforce();
+        setIssues(['Authentication required. Please try again after logging in.']);
+        setStatus('Please login...');
+      } else if (savedLocally && storedIntakeId !== undefined) {
+        const message = error instanceof Error ? error.message : 'Network error';
+        await intakeDb.intakes.update(storedIntakeId, { error: message, synced: false });
+        setIssues([]);
+        setStatus('Saved locally. Will sync when online.');
+        setForm(createIntakeDefaults());
+        void captureLocation();
       } else {
-        setIssues([error instanceof Error ? error.message : 'Unable to save intake'])
-        setStatus('Save failed. Please try again.')
+        setIssues([error instanceof Error ? error.message : 'Unable to save intake']);
+        setStatus('Save failed. Please try again.');
       }
     } finally {
       setIsSubmitting(false)
