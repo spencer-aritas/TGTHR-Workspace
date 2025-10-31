@@ -247,8 +247,8 @@ export default function ProgramIntakeForm() {
       // Store locally first
       const now = new Date().toISOString()
       //const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
-      const userEmail = localStorage.getItem('userEmail') || 'unknown@tgthr.org'
-      const userName = localStorage.getItem('userName') || 'Unknown User'
+      //const userEmail = localStorage.getItem('userEmail') || 'unknown@tgthr.org'
+      //const userName = localStorage.getItem('userName') || 'Unknown User'
 
       let ensuredLocation = form.location ?? await captureLocation()
       if (!ensuredLocation) {
