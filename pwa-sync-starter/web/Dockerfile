@@ -1,5 +1,6 @@
 
-FROM node:20-alpine
+# Build stage
+FROM node:20-alpine AS builder
 WORKDIR /usr/src/app
 
 # Install dependencies with cached package layers
@@ -17,11 +18,24 @@ COPY web/ .
 # Provide shared contracts for TS path aliases (../shared)
 COPY shared ../shared
 
-# Build the app
+# Build the app in production mode
+ENV NODE_ENV=production
 RUN npm run build
 
-EXPOSE 5173 4173
+# Production stage
+FROM node:20-alpine
+WORKDIR /usr/src/app
 
-# Use environment variable to determine dev/prod mode
+# Copy only the built files and necessary runtime dependencies
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/package.json ./
+COPY --from=builder /usr/src/app/package-lock.json ./
+
+# Install only production dependencies
+RUN npm ci --production
+
+EXPOSE 5173
+
+# Run in production mode
 ENV NODE_ENV=production
 CMD [ "npm", "run", "preview", "--", "--host", "0.0.0.0" ]
