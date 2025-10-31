@@ -26,14 +26,17 @@ app.include_router(baseline.router)
 # Initialize DB schema
 Base.metadata.create_all(bind=engine)
 
-# CORS for local dev (adjust for prod)
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Development origins
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://192.168.1.20:5173",  # Your local IP
-        "https://your-domain.com"  # Add your production domain
+        "http://192.168.1.20:5173",
+        # Production origins
+        "https://outreachintake.aritasconsulting.com",
+        "https://app.outreachintake.aritasconsulting.com"
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],  # Restrict methods
