@@ -60,11 +60,14 @@ export default defineConfig({
         secure: false
       }
     },
-    hmr: {
-      clientPort: 443,
-      path: '/hmr/',
-      host: 'outreachintake.aritasconsulting.com'
+    // Disable HMR in production
+    hmr: process.env.NODE_ENV === 'production' ? false : {
+      protocol: 'wss',
+      port: 443
     }
   },
-  preview: { port: 4173 }
+  preview: { 
+    port: 5173,
+    host: '0.0.0.0'
+  }
 });

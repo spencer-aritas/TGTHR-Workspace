@@ -27,6 +27,7 @@ outreachintake.aritasconsulting.com {
 	# Production configuration
 	# Caddy automatically gets Let's Encrypt certificate
 	
+	# Handle API requests
 	handle /api/* {
 		reverse_proxy api:8000 {
 			header_up Host {http.request.header.Host}
@@ -36,28 +37,27 @@ outreachintake.aritasconsulting.com {
 		}
 	}
 	
+	# Handle docgen requests
 	handle /docgen/* {
 		reverse_proxy docgen:8000
 	}
 	
-	# WebSocket support for Vite HMR
-	@websockets {
-		header Connection *Upgrade*
-		header Upgrade websocket
+	# Service worker needs special headers and no caching
+	handle /sw.js {
+		reverse_proxy web:5173 {
+			header_down Cache-Control "no-cache, no-store, must-revalidate"
+			header_down Pragma "no-cache"
+			header_down Service-Worker-Allowed "/"
+		}
 	}
 	
-	handle /hmr/* {
-		reverse_proxy @websockets web:5173
-	}
-	
+	# Handle everything else
 	handle {
 		reverse_proxy web:5173 {
 			header_up Host {http.request.header.Host}
 			header_up X-Real-IP {http.request.remote.host}
 			header_up X-Forwarded-For {http.request.remote.host}
 			header_up X-Forwarded-Proto {http.request.scheme}
-			header_up Upgrade {http.request.header.Upgrade}
-			header_up Connection {http.request.header.Connection}
 		}
 	}
 }
