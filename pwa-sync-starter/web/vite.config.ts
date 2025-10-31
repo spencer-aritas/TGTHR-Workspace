@@ -50,7 +50,10 @@ export default defineConfig({
         changeOrigin: true
       }
     },
-    hmr: false
+    hmr: {
+      clientPort: 443,
+      host: 'outreachintake.aritasconsulting.com'
+    }
   },
   preview: { port: 4173 }
 });
