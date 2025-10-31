@@ -31,11 +31,12 @@ COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/package-lock.json ./
 
-# Install only production dependencies
-RUN npm ci --production
+# Install production dependencies and Vite globally
+RUN npm ci --omit=dev && \
+    npm install -g vite
 
 EXPOSE 5173
 
 # Run in production mode
 ENV NODE_ENV=production
-CMD [ "npm", "run", "preview", "--", "--host", "0.0.0.0" ]
+CMD [ "vite", "preview", "--host", "0.0.0.0", "--port", "5173" ]
