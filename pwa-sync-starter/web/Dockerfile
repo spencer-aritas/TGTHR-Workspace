@@ -1,13 +1,13 @@
 
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:18 AS builder
 WORKDIR /usr/src/app
 
 # Install dependencies with cached package layers
 COPY web/package.json web/package-lock.json ./
 
-# Clean install dependencies
-RUN npm ci
+# Install the x64 version of Rollup first, then do regular install
+RUN npm install --no-save @rollup/rollup-linux-x64-gnu && npm ci
 
 # Copy application source
 COPY web/ .
@@ -16,6 +16,7 @@ COPY shared ../shared
 
 # Build the app in production mode
 ENV NODE_ENV=production
+ENV ROLLUP_SKIP_NODEJS_NATIVE=true
 RUN npm run build
 
 # Production stage - using nginx for static file serving
