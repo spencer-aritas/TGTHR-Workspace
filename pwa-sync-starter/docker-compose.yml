@@ -31,7 +31,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./jwt_private.key:/app/jwt_private.key:ro
+      - ${PWD}/jwt_private.key:/app/jwt_private.key:ro
       - ./server/data:/app/data
     restart: unless-stopped
       
