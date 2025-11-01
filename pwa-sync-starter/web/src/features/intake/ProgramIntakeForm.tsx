@@ -55,7 +55,8 @@ export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<
       endUtc: new Date().toISOString(),
       pos: "27", // Default to Outreach Site
       isCrisis: false,
-      deviceId
+      deviceId,
+      location: form.location
     });
 
     if (!encounterResponse.success) {

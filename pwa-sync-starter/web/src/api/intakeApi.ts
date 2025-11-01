@@ -52,7 +52,8 @@ export async function submitNewClientIntake(form: NewClientIntakeForm): Promise<
         startDate: new Date().toISOString().slice(0,10),
         consentSigned: true,
         notes: form.notes,
-        deviceId
+        deviceId,
+        location: form.location
       }
     })
   });
