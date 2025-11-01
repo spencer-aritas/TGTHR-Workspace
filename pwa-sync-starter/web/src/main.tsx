@@ -27,15 +27,30 @@ async function registerServiceWorker() {
     
     console.log('Service worker registered successfully:', registration.scope);
     
-    // Handle updates more gracefully
+    // Enhanced update handling
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;
-      if (newWorker) {
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed') {
-            if (registration.active) {
-              // New version available - show prompt or handle update
-              console.log('New service worker version available');
+      
+      if (!newWorker) return;
+
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && registration.active) {
+          // New version ready but waiting (no auto-activation)
+          const shouldUpdate = window.confirm(
+            'A new version of the app is available. Load the new version?'
+          );
+          
+          if (shouldUpdate) {
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            window.location.reload();
+          }
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Service worker registration failed:', error);
+  }
+}
               // Optional: implement user prompt for reload
             }
           }

@@ -50,11 +50,17 @@ def _resolve_key_path(path_str: str) -> Path:
     return p
 
 def _read_private_key() -> str:
+    # Try environment variable first (for Docker)
+    key_content = os.getenv("SF_JWT_PRIVATE_KEY")
+    if key_content:
+        return key_content.strip()
+    
+    # Fall back to file path
     path_str = getattr(settings, "SALESFORCE_PRIVATE_KEY_PATH", None)
     if not path_str or not str(path_str).strip():
         raise SFAuthError(
-            "SALESFORCE_PRIVATE_KEY_PATH is not set. "
-            "Set SF_BENEFITS_JWT_PRIVATE_KEY_PATH in server/.env."
+            "Neither SF_JWT_PRIVATE_KEY nor SALESFORCE_PRIVATE_KEY_PATH is set. "
+            "Set SF_JWT_PRIVATE_KEY or SF_BENEFITS_JWT_PRIVATE_KEY_PATH in environment."
         )
     p = _resolve_key_path(path_str)
     if not p.exists():
