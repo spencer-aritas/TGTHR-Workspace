@@ -93,7 +93,7 @@ def _get_token() -> Tuple[str, str]:
         "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
         "assertion": _jwt_assertion(),
     }
-    resp = httpx.post(token_url, data=data, timeout=30.0)
+    resp = httpx.post(token_url, data=data, timeout=30.0, follow_redirects=True)
     if resp.status_code != 200:
         raise SFAuthError(f"JWT auth failed: {resp.status_code} {resp.text}")
     j = resp.json()
