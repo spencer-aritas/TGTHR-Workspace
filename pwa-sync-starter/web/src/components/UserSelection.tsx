@@ -28,11 +28,11 @@ export function UserSelection({ onUserSelected }: UserSelectionProps) {
     if (window.location.search.includes('code=')) {
       setRegistering(true);
       
-      // Clear the URL parameters to prevent re-handling
-      window.history.replaceState({}, '', window.location.pathname);
-      
       handleOAuthCallback()
         .then(success => {
+          // Clear the URL parameters after handling to prevent re-handling
+          window.history.replaceState({}, '', window.location.pathname);
+          
           if (success) {
             onUserSelected();
           } else {
@@ -41,6 +41,8 @@ export function UserSelection({ onUserSelected }: UserSelectionProps) {
         })
         .catch(error => {
           console.error('OAuth callback failed:', error);
+          // Clear URL on error too
+          window.history.replaceState({}, '', window.location.pathname);
           setShowManualSelection(true);
         })
         .finally(() => setRegistering(false));
