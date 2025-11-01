@@ -51,23 +51,9 @@ async function registerServiceWorker() {
     console.error('Service worker registration failed:', error);
   }
 }
-              // Optional: implement user prompt for reload
-            }
-          }
-        });
-      }
-    });
-  } catch (error) {
-    console.error('Service worker registration failed:', error);
-  }
-}
 
 // Call registration function
 registerServiceWorker();
-
-
-
-
 
 const root = createRoot(document.getElementById('root')!)
 root.render(<App />)
