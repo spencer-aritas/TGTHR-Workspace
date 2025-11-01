@@ -88,7 +88,14 @@ def _get_token() -> Tuple[str, str]:
     if _token_cache and (_token_cache[2] - time.time() > 30):
         return _token_cache[0], _token_cache[1]
 
-    token_url = settings.SALESFORCE_LOGIN_URL.rstrip("/") + "/services/oauth2/token"
+    # Build token URL - convert lightning.force.com to my.salesforce.com for token endpoint
+    login_url = settings.SALESFORCE_LOGIN_URL.rstrip("/")
+    if ".lightning.force.com" in login_url:
+        # Convert https://tgthrnpc--benefits.sandbox.lightning.force.com -> https://tgthrnpc--benefits.sandbox.my.salesforce.com
+        token_url = login_url.replace(".lightning.force.com", ".my.salesforce.com") + "/services/oauth2/token"
+    else:
+        token_url = login_url + "/services/oauth2/token"
+    
     data = {
         "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
         "assertion": _jwt_assertion(),
@@ -96,7 +103,7 @@ def _get_token() -> Tuple[str, str]:
     headers = {
         "Content-Type": "application/x-www-form-urlencoded"
     }
-    resp = httpx.post(token_url, data=data, headers=headers, timeout=30.0, follow_redirects=True)
+    resp = httpx.post(token_url, data=data, headers=headers, timeout=30.0)
     if resp.status_code != 200:
         raise SFAuthError(f"JWT auth failed: {resp.status_code} {resp.text}")
     j = resp.json()
