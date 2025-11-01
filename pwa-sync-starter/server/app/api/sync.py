@@ -267,6 +267,7 @@ class EncounterPayload(BaseModel):
     startUtc: str
     endUtc: str
     deviceId: Optional[str] = None  # Changed to Optional[str]
+    location: Optional[Dict[str, Any]] = None
 
 @router.post('/sync/Encounter')
 def sync_encounter(data: EncounterPayload, db: Session = Depends(get_db)):
@@ -293,7 +294,11 @@ def sync_encounter(data: EncounterPayload, db: Session = Depends(get_db)):
             "endUtc": data.endUtc,
             "createdByUserId": user_context.get("sfUserId")
         }
-        
+        if data.location:
+            normalized_location = {k: v for k, v in data.location.items() if v is not None}
+            if normalized_location:
+                encounter_data["location"] = normalized_location
+
         from ..salesforce.sf_client import ingest_encounter
         result = ingest_encounter(encounter_data)
         
