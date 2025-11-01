@@ -7,6 +7,7 @@ KEY_CONTENT=$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' server/jwt_private.ke
 # Create .env file with properly escaped key
 cat > .env << EOF
 SF_JWT_PRIVATE_KEY="${KEY_CONTENT}"
+APP_BASE_URL=https://outreachintake.aritasconsulting.com
 EOF
 
 echo "Created .env file"
