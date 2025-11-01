@@ -9,20 +9,19 @@ export default defineConfig({
     react(),
     // Removed missing plugins
     VitePWA({
-      injectRegister: "script",
-      registerType: "prompt",
-      strategies: "generateSW",
+      injectRegister: null, // We'll handle registration ourselves
+      strategies: "injectManifest",
+      srcDir: "src/sw",
       filename: "sw.js",
       devOptions: { 
-        enabled: true, 
+        enabled: true,
         type: "module",
-        navigateFallback: "index.html",
       },
       workbox: {
-        cleanupOutdatedCaches: false,
-        clientsClaim: true,
-        skipWaiting: true,
-        disableDevLogs: true,
+        cleanupOutdatedCaches: true,
+        clientsClaim: false,
+        skipWaiting: false,
+        disableDevLogs: false,
       },
       manifest: {
         name: "TGTHR Offline App",

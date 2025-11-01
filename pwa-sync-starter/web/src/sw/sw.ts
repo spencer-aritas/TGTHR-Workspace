@@ -1,5 +1,4 @@
 /// <reference lib="WebWorker" />
-import { clientsClaim } from 'workbox-core'
 import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies'
@@ -9,13 +8,15 @@ declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any }
 
 console.log('Service Worker loading...')
 
-// Only take control if we're not in development
-if (import.meta.env.PROD) {
-  self.skipWaiting()
-  clientsClaim()
-}
+// Listen for skip waiting message
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
-// Precache only safe static assets (js/css/fonts/icons/images)
+// No auto-claim or skip-waiting - let updates be controlled
+// This matches our Vite PWA config
 const SAFE_ASSET_REGEX = /\.(?:js|css|mjs|cjs|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|webp|ico)$/i
 const manifestEntries = (self.__WB_MANIFEST || []).filter((entry: any) => {
   const url = typeof entry === 'string' ? entry : entry.url
