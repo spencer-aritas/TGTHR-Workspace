@@ -58,7 +58,7 @@ app.include_router(sync.router, prefix="/api")
 app.include_router(device.router, prefix="/api")
 app.include_router(health.router, prefix="/api")
 app.include_router(outreach_router, prefix="/api")
-app.include_router(auth_router, prefix="/api")  # Fix: Add /api prefix to auth router
+app.include_router(auth_router)  # Auth router already has /api/auth prefix
 app.include_router(users_router, prefix="/api")
 app.include_router(signatures_router, prefix="/api")
 app.include_router(cases_router, prefix="/api")
