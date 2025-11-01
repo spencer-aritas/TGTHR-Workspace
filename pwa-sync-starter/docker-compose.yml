@@ -22,9 +22,9 @@ services:
     environment:
       - TZ=America/Denver
       - SF_ENV=benefits
-      - SF_BENEFITS_JWT_LOGIN_URL=https://test.salesforce.com
+      - SF_BENEFITS_JWT_LOGIN_URL=https://tgthrnpc--benefits.sandbox.lightning.force.com/
       - APP_BASE_URL=https://localhost
-      - SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/keys/jwt_private.key
+      - SF_JWT_PRIVATE_KEY=${SF_JWT_PRIVATE_KEY}
       - DB_PATH=/app/data/app.duckdb
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
@@ -32,11 +32,6 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      # Mount the JWT key with explicit permissions
-      - type: bind
-        source: ${PWD}/jwt_private.key
-        target: /app/keys/jwt_private.key
-        read_only: true
       # Data directory for the app
       - ./server/data:/app/data:Z
     restart: unless-stopped
