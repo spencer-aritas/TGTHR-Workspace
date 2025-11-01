@@ -21,12 +21,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/data /app/keys && \
-    chown -R nobody:nogroup /app/data /app/keys && \
+    # Create user with specific UID/GID for volume ownership
+    groupadd -g 1000 appuser && \
+    useradd -u 1000 -g appuser -s /bin/bash -m appuser && \
+    # Set correct ownership and permissions
+    chown -R 1000:1000 /app/data /app/keys && \
     chmod 700 /app/keys && \
     chmod 755 /app/data
 
 # Copy application code
 COPY app ./app
+RUN chown -R 1000:1000 /app/app
 
 # Set environment for JWT and data paths
 ENV SF_BENEFITS_JWT_PRIVATE_KEY_PATH=/app/keys/jwt_private.key
@@ -34,7 +39,7 @@ ENV DB_PATH=/app/data/app.duckdb
 ENV SQLITE_DB_PATH=/app/data/server.db
 
 # Switch to non-root user for better security
-USER nobody
+USER 1000:1000
 
 EXPOSE 8000
 
