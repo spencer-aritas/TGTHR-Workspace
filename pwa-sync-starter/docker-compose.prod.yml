@@ -31,20 +31,13 @@ services:
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
     volumes:
-      # Bind mount with proper SELinux context for data
       - type: bind
         source: ./server/data
         target: /app/data
-        bind:
-          create_host_path: true
-          selinux: "z"
-      # JWT key with read-only and SELinux context
       - type: bind
         source: ./jwt_private.key
         target: /app/keys/jwt_private.key
         read_only: true
-        bind:
-          selinux: "z"
 
     networks:
       - app_net
