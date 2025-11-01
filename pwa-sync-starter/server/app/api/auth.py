@@ -15,16 +15,12 @@ async def get_oauth_config():
         if env == 'benefits':
             client_id = os.getenv('SF_BENEFITS_JWT_CONSUMER_KEY')
             login_url = 'https://tgthrnpc--benefits.sandbox.my.salesforce.com'
-            print(f"Benefits mode - Client ID: {client_id}")
+            print(f"Benefits mode - Client ID: {client_id[:20]}..." if client_id else "Benefits mode - No client ID")
             print(f"Benefits mode - Login URL: {login_url}")
-            print(f"All env vars for debugging:")
-            for k, v in os.environ.items():
-                if 'SF_' in k:
-                    print(f"{k}: {v}")
         else:
             client_id = os.getenv('SF_PROD_JWT_CONSUMER_KEY')
             login_url = os.getenv('SF_PROD_JWT_LOGIN_URL', 'https://tgthrnpc.my.salesforce.com')
-            print(f"Prod mode - Client ID: {client_id}")
+            print(f"Prod mode - Client ID: {client_id[:20]}..." if client_id else "Prod mode - No client ID")
             print(f"Prod mode - Login URL: {login_url}")
         
         if not client_id:
