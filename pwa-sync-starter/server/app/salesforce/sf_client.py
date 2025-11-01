@@ -1,6 +1,8 @@
 
 # server/app/salesforce/sf_client.py
 from __future__ import annotations
+import json
+import logging
 import os
 from pathlib import Path
 import time
@@ -12,6 +14,8 @@ import httpx
 import jwt  # PyJWT
 
 from ..settings import settings  
+
+logger = logging.getLogger("sf_client")
 
 # -------------------- Errors --------------------
 
@@ -256,6 +260,23 @@ def create_person_account(person: Dict[str, Any]) -> str:
 def ingest_encounter(encounter_data: Dict[str, Any]) -> Dict[str, Any]:
     """Call the Apex REST endpoint to ingest a complete encounter"""
     path = "/services/apexrest/ProgramEnrollmentService/ingestEncounter"
+    logger.info(
+        "Posting encounter to ProgramEnrollmentService/ingestEncounter: encounterUuid=%s personUuid=%s hasLocation=%s createdByUserId=%s",
+        encounter_data.get("encounterUuid"),
+        encounter_data.get("personUuid"),
+        bool(encounter_data.get("location")),
+        encounter_data.get("createdByUserId"),
+    )
+    try:
+        logger.debug(
+            "Encounter payload body: %s",
+            json.dumps(encounter_data, default=str, sort_keys=True),
+        )
+    except TypeError as serialization_error:
+        logger.debug(
+            "Encounter payload serialization failed: %s",
+            serialization_error,
+        )
     return _sf(path, method="POST", json=encounter_data)
 
 def create_interaction_summary_direct(record_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:

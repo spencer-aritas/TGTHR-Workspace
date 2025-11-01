@@ -118,7 +118,6 @@ class IntakePayload(BaseModel):
 
 @router.post('/sync/PersonAccount')
 def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
-    from datetime import datetime
     data.person["uuid"] = data.localId
     
     # Get device user context
@@ -140,7 +139,7 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
     """
     try:
         # Check if Person Account already exists by UUID
-        from ..salesforce.sf_client import query_soql, upsert_person_by_uuid
+        from ..salesforce.sf_client import query_soql
         
         existing_query = f"SELECT Id FROM Account WHERE UUID__c = '{data.localId}' LIMIT 1"
         existing = query_soql(existing_query)
@@ -157,51 +156,9 @@ def sync_person_account(data: PersonPayload, db: Session = Depends(get_db)):
             logger.info(f"Created new Person Account for UUID {data.localId}: {sf_id}")
             created_new = True
         
-        # Create full encounter with all downstream records (Program Enrollment, InteractionSummary, Task, Benefit Assignments)
-        notes = data.person.get('notes') or 'Initial outreach contact'
-        try:
-            from ..salesforce.sf_client import ingest_encounter
-            import uuid as uuid_lib
-            encounter_uuid = str(uuid_lib.uuid4())
-            
-            # Create full encounter with defaults for Street Outreach
-            encounter_payload = {
-                "encounterUuid": encounter_uuid,
-                "personUuid": data.localId,
-                "firstName": data.person.get('firstName', 'Unknown'),
-                "lastName": data.person.get('lastName', 'Unknown'),
-                "startUtc": datetime.now().isoformat(),
-                "endUtc": datetime.now().isoformat(),
-                "pos": "27",  # Default POS - Outreach Site / Street
-                "isCrisis": False,
-                "notes": notes,
-                "createdByUserId": data.person.get('createdByUserId')
-            }
-            
-            logger.info(f"Creating full encounter for Person Account {sf_id}")
-            result = ingest_encounter(encounter_payload)
-            logger.info(f"Created full encounter {encounter_uuid}: {result}")
-            
-        except Exception as e:
-            logger.warning(f"Failed to create full encounter: {e}")
-            # Fall back to just creating InteractionSummary
-            try:
-                from ..salesforce.sf_client import call_interaction_summary_service
-                import uuid as uuid_lib
-                interaction_uuid = str(uuid_lib.uuid4())
-                
-                # Ensure we have a valid created_by_user_id or use a default
-                created_by_user_id = data.person.get('createdByUserId', '')
-                
-                interaction_id = call_interaction_summary_service(
-                    record_id=sf_id,  # Changed from account_id to record_id
-                    notes=notes,
-                    uuid=interaction_uuid,
-                    created_by_user_id=created_by_user_id)
-                logger.info(f"Created fallback InteractionSummary {interaction_id} for Account {sf_id}")
-            except Exception as e2:
-                logger.warning(f"Failed to create InteractionSummary fallback: {e2}")
-            
+        # Encounter creation now happens via /sync/Encounter after the person account call
+        # to avoid duplicate ProgramEnrollmentService.ingestEncounter executions.
+        # Any additional interaction logging should be handled by that dedicated endpoint.
         audit_logger.log_action(
             action_type="PERSON_ACCOUNT_CREATE" if created_new else "PERSON_ACCOUNT_SYNC",
             entity_id=data.localId or sf_id,

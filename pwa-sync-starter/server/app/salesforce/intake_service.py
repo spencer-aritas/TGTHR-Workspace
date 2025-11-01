@@ -1,5 +1,6 @@
 # server/app/salesforce/intake_service.py
 import logging
+import json
 from typing import Dict, Any, Optional
 
 import requests
@@ -135,6 +136,23 @@ class IntakeService:
 
             if location_payload:
                 encounter_data["location"] = location_payload
+            logger.info(
+                "Prepared ProgramEnrollmentService payload: encounterUuid=%s personUuid=%s hasLocation=%s createdBy=%s",
+                encounter_data.get("encounterUuid"),
+                encounter_data.get("personUuid"),
+                bool(encounter_data.get("location")),
+                encounter_data.get("createdBy"),
+            )
+            try:
+                logger.debug(
+                    "ProgramEnrollmentService payload body: %s",
+                    json.dumps(encounter_data, default=str, sort_keys=True),
+                )
+            except TypeError as serialization_error:
+                logger.debug(
+                    "ProgramEnrollmentService payload serialization failed: %s",
+                    serialization_error,
+                )
             
             # Make REST call to enhanced ProgramEnrollmentService
             response = self.sf_client.call_apex_rest(
