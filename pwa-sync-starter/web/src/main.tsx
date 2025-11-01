@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
 
-// Register service worker with retry
+// Register service worker
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) {
     console.log('Service workers are not supported');
@@ -19,11 +19,7 @@ async function registerServiceWorker() {
   }
 
   try {
-    // Unregister any existing service workers first
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map(r => r.unregister()));
-    
-    // Register new service worker
+    // Register service worker if not already registered
     const registration = await navigator.serviceWorker.register('/sw.js', { 
       scope: '/',
       type: 'module'
@@ -31,25 +27,21 @@ async function registerServiceWorker() {
     
     console.log('Service worker registered successfully:', registration.scope);
     
-    // Handle updates
+    // Handle updates more gracefully
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;
       if (newWorker) {
         newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated') {
-            console.log('New service worker activated');
-            if (!window.location.pathname.includes('/auth/')) {
-              window.location.reload();
+          if (newWorker.state === 'installed') {
+            if (registration.active) {
+              // New version available - show prompt or handle update
+              console.log('New service worker version available');
+              // Optional: implement user prompt for reload
             }
           }
         });
       }
     });
-
-    // Check if we need immediate activation
-    if (registration.active) {
-      registration.active.postMessage({ type: 'SKIP_WAITING' });
-    }
   } catch (error) {
     console.error('Service worker registration failed:', error);
   }
