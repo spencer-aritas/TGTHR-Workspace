@@ -73,7 +73,9 @@ def _jwt_assertion() -> str:
     now = int(time.time())
     # For sandboxes the JWT audience is test.salesforce.com; for prod it's login.salesforce.com
     login_url = settings.SALESFORCE_LOGIN_URL.rstrip("/")
-    aud = "https://test.salesforce.com" if "test.salesforce.com" in login_url else "https://login.salesforce.com"
+    # Check for sandbox by looking for .sandbox. in the URL
+    is_sandbox = ".sandbox." in login_url or "test.salesforce.com" in login_url
+    aud = "https://test.salesforce.com" if is_sandbox else "https://login.salesforce.com"
     payload = {
         "iss": settings.SALESFORCE_CLIENT_ID,
         "sub": settings.SALESFORCE_USERNAME,
