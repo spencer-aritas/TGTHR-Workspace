@@ -101,9 +101,7 @@ class Settings(BaseSettings):
     def SALESFORCE_LOGIN_URL(self) -> str:
         raw = (self.SF_BENEFITS_JWT_LOGIN_URL if self.SF_ENV == "benefits"
                else self.SF_PROD_JWT_LOGIN_URL) or ""
-        # For JWT bearer, token host must be test/login, not My Domain
-        if "my.salesforce.com" in raw or "lightning.force.com" in raw:
-            return "https://test.salesforce.com" if self.SF_ENV == "benefits" else "https://login.salesforce.com"
+        # Use the provided URL directly - JWT works with MyDomain URLs
         return raw or ("https://test.salesforce.com" if self.SF_ENV == "benefits" else "https://login.salesforce.com")
     
     @property
