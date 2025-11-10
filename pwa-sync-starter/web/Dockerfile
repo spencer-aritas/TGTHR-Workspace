@@ -14,9 +14,12 @@ COPY shared/contracts/package.json ./shared/contracts/
 # This ensures npm recognizes and links the workspace packages
 RUN npm ci --include=dev
 
-# Copy source files
+# Copy source files - do this BEFORE changing WORKDIR
+# Copy shared first to /usr/src/app/shared (not ../shared)
+COPY shared/ ./shared/
+
+# Copy web files to web/ directory
 COPY web/ ./web/
-COPY shared/ ../shared/
 
 # Build from web directory
 WORKDIR /usr/src/app/web
