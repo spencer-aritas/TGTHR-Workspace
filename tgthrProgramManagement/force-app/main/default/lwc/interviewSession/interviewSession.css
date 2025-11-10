@@ -1,0 +1,54 @@
+.interview-session {
+    background-color: #f3f3f3;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+}
+
+.interview-header {
+    background-color: white;
+    border-bottom: 1px solid #dddbda;
+    margin-bottom: 1rem;
+}
+
+.question-container {
+    padding: 0.5rem 0;
+}
+
+.question-field {
+    width: 100%;
+}
+
+/* Review page improvements */
+.slds-text-longform {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.slds-form-element__static {
+    min-height: 1.5rem;
+    padding: 0.5rem 0;
+}
+
+/* Better spacing for cards */
+lightning-card {
+    margin-bottom: 1rem;
+}
+
+/* Responsive layout - better desktop spacing */
+@media (min-width: 768px) {
+    .slds-m-around_medium {
+        margin: 1rem auto;
+        max-width: 900px;
+    }
+    
+    lightning-card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+}
+
+@media (min-width: 1024px) {
+    .slds-m-around_medium {
+        max-width: 1100px;
+    }
+}

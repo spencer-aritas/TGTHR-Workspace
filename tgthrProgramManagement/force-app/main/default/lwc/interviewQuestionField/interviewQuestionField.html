@@ -1,0 +1,166 @@
+<template>
+    <div class="question-field">
+        <!-- Text -->
+        <template if:true={isText}>
+            <lightning-input
+                type="text"
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-input>
+        </template>
+
+        <!-- Textarea -->
+        <template if:true={isTextarea}>
+            <lightning-textarea
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-textarea>
+        </template>
+
+        <!-- Number -->
+        <template if:true={isNumber}>
+            <lightning-input
+                type="number"
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-input>
+        </template>
+
+        <!-- Boolean -->
+        <template if:true={isBoolean}>
+            <lightning-input
+                type="checkbox"
+                label={question.label}
+                checked={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                disabled={question.isReadOnly}
+                onchange={handleChange}
+                field-level-help={question.helpText}>
+            </lightning-input>
+        </template>
+
+        <!-- Picklist -->
+        <template if:true={isPicklist}>
+            <lightning-combobox
+                label={question.label}
+                value={question.answer}
+                options={question.picklistOptions}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-combobox>
+        </template>
+
+        <!-- Radio Toggles (multiple checkboxes) -->
+        <template if:true={isRadios}>
+            <fieldset class="slds-form-element">
+                <legend class="slds-form-element__legend slds-form-element__label">
+                    {question.label}
+                    <template if:true={question.required}>
+                        <abbr class="slds-required" title="required">*</abbr>
+                    </template>
+                </legend>
+                <template if:true={question.helpText}>
+                    <div class="slds-form-element__help">{question.helpText}</div>
+                </template>
+                <div class="slds-form-element__control">
+                    <template for:each={radioOptions} for:item="option">
+                        <div key={option.value} class="slds-checkbox">
+                            <template if:true={option.checked}>
+                                <input
+                                    type="checkbox"
+                                    id={option.value}
+                                    data-value={option.value}
+                                    checked
+                                    disabled={question.isReadOnly}
+                                    onchange={handleRadioChange} />
+                            </template>
+                            <template if:false={option.checked}>
+                                <input
+                                    type="checkbox"
+                                    id={option.value}
+                                    data-value={option.value}
+                                    disabled={question.isReadOnly}
+                                    onchange={handleRadioChange} />
+                            </template>
+                            <label class="slds-checkbox__label" for={option.value}>
+                                <span class="slds-checkbox__faux"></span>
+                                <span class="slds-form-element__label">{option.label}</span>
+                            </label>
+                        </div>
+                    </template>
+                </div>
+            </fieldset>
+        </template>
+
+        <!-- Date -->
+        <template if:true={isDate}>
+            <lightning-input
+                type="date"
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-input>
+        </template>
+
+        <!-- Datetime -->
+        <template if:true={isDatetime}>
+            <lightning-input
+                type="datetime"
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-input>
+        </template>
+
+        <!-- Default fallback for unknown types -->
+        <template if:true={showDefault}>
+            <lightning-input
+                type="text"
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-input>
+            <div class="slds-text-color_error slds-m-top_xx-small">
+                Unknown response type: {question.responseType}
+            </div>
+        </template>
+    </div>
+</template>

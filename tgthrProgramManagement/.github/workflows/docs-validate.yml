@@ -1,0 +1,180 @@
+name: Documentation Validation
+
+on:
+  pull_request:
+    paths:
+      - '**.md'
+      - '.markdownlintrc'
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - '**.md'
+      - '.markdownlintrc'
+
+jobs:
+  lint-markdown:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Lint markdown files
+        run: npm run lint:md
+      
+      - name: Comment on PR (if failing)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Markdown linting failed. Please run `npm run lint:md:fix` locally to fix formatting issues.'
+            })
+      
+      - name: Report results
+        if: always()
+        run: |
+          echo "## Markdown Linting Results"
+          if [ $? -eq 0 ]; then
+            echo "✅ All markdown files pass linting"
+          else
+            echo "❌ Some markdown files have linting errors"
+            echo "Run: npm run lint:md:fix"
+            exit 1
+          fi
+
+  check-docs-index:
+    name: Check Documentation Index
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install python-markdown
+      
+      - name: Verify docs folder exists
+        run: |
+          if [ ! -d "docs" ]; then
+            echo "❌ /docs/ folder not found"
+            exit 1
+          fi
+          echo "✅ /docs/ folder exists"
+      
+      - name: Check documentation structure
+        run: |
+          required_dirs=("architecture" "api" "setup" "decisions" "guides" "release-notes")
+          missing=0
+          
+          for dir in "${required_dirs[@]}"; do
+            if [ ! -d "docs/$dir" ]; then
+              echo "❌ Missing: docs/$dir"
+              missing=$((missing + 1))
+            else
+              echo "✅ Found: docs/$dir"
+            fi
+          done
+          
+          if [ $missing -gt 0 ]; then
+            echo "❌ $missing required directories are missing"
+            exit 1
+          fi
+          echo "✅ All required directories present"
+
+  validate-links:
+    name: Validate Documentation Links
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for broken internal links
+        run: |
+          echo "🔍 Scanning for broken documentation links..."
+          
+          # Find all markdown files
+          find docs -name "*.md" -type f | while read file; do
+            # Extract links to local files (not URLs)
+            grep -o '\[.*\]([^)]*\.md)' "$file" | grep -v 'http' | while read link; do
+              target=$(echo "$link" | sed 's/.*(\([^)]*\)).*/\1/')
+              
+              # Check if target exists
+              if [ ! -f "docs/$target" ] && [ ! -f "$target" ]; then
+                echo "❌ Broken link in $file: $target"
+                exit 1
+              fi
+            done
+          done
+          
+          echo "✅ All internal links are valid"
+
+  docs-updated:
+    name: Ensure Docs Updated with Code Changes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check if code changes require doc updates
+        run: |
+          # Get changed files
+          changed=$(git diff --name-only origin/main...HEAD)
+          
+          has_apex=$(echo "$changed" | grep -c 'force-app/.*\.cls$' || true)
+          has_ts=$(echo "$changed" | grep -c 'pwa-sync-starter/.*\.ts$' || true)
+          has_docs=$(echo "$changed" | grep -c 'docs/.*\.md$' || true)
+          has_root_md=$(echo "$changed" | grep -c '^[A-Z_]*\.md$' || true)
+          
+          if [ $has_apex -gt 0 ] || [ $has_ts -gt 0 ]; then
+            if [ $has_docs -eq 0 ] && [ $has_root_md -eq 0 ]; then
+              echo "ℹ️  Code changes detected but no documentation updates found"
+              echo "Consider updating relevant docs in /docs/ folder"
+            fi
+          fi
+
+  summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [lint-markdown, check-docs-index, validate-links]
+    if: always()
+    
+    steps:
+      - name: Report results
+        run: |
+          if [ "${{ needs.lint-markdown.result }}" == "success" ] && \
+             [ "${{ needs.check-docs-index.result }}" == "success" ] && \
+             [ "${{ needs.validate-links.result }}" == "success" ]; then
+            echo "✅ All documentation checks passed!"
+            exit 0
+          else
+            echo "❌ Some documentation checks failed"
+            exit 1
+          fi

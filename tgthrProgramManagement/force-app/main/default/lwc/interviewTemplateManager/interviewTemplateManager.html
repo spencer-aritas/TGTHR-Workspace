@@ -1,0 +1,211 @@
+<template>
+    <div class="slds-grid slds-wrap slds-gutters">
+        <!-- Active Templates Section -->
+        <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+            <article class="slds-card">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__figure">
+                            <span class="slds-icon_container slds-icon-standard-account">
+                                <lightning-icon icon-name="standard:topic" size="small"></lightning-icon>
+                            </span>
+                        </div>
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <span>Active Interviews</span>
+                            </h2>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body slds-card__body_inner">
+                    <template if:true={isLoading}>
+                        <lightning-spinner alternative-text="Loading"></lightning-spinner>
+                    </template>
+                    
+                    <template if:true={hasActiveTemplates}>
+                        <div class="slds-grid slds-wrap slds-gutters_small">
+                            <template for:each={activeTemplates} for:item="tmpl">
+                                <div key={tmpl.templateVersionId} class="slds-col slds-size_1-of-1">
+                                    <article class="slds-box slds-box_x-small slds-theme_shade">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <div class="slds-col slds-has-flexi-truncate">
+                                                <h3 class="slds-text-heading_small slds-truncate" title={tmpl.name}>
+                                                    {tmpl.name}
+                                                </h3>
+                                                <p class="slds-text-body_small slds-text-color_weak">
+                                                    {tmpl.versionLabel} • {tmpl.category}
+                                                </p>
+                                                <p class="slds-text-body_small slds-text-color_weak">
+                                                    {tmpl.effectiveDateRange}
+                                                </p>
+                                            </div>
+                                            <div class="slds-col slds-no-flex">
+                                                <div class="slds-button-group" role="group">
+                                                    <button 
+                                                        class="slds-button slds-button_neutral"
+                                                        data-id={tmpl.templateId}
+                                                        data-version-id={tmpl.templateVersionId}
+                                                        onclick={handleReviewQuestions}>
+                                                        Review
+                                                    </button>
+                                                    <button 
+                                                        class="slds-button slds-button_neutral"
+                                                        data-version-id={tmpl.templateVersionId}
+                                                        data-name={tmpl.name}
+                                                        onclick={handleCloneVersion}>
+                                                        Clone New Version
+                                                    </button>
+                                                    <button 
+                                                        class="slds-button slds-button_destructive"
+                                                        data-version-id={tmpl.templateVersionId}
+                                                        data-name={tmpl.name}
+                                                        onclick={handleRetire}>
+                                                        Retire
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    
+                    <template if:false={hasActiveTemplates}>
+                        <div class="slds-text-align_center slds-p-around_medium">
+                            <p class="slds-text-color_weak">No active interview templates</p>
+                        </div>
+                    </template>
+                </div>
+            </article>
+        </div>
+
+        <!-- Draft & Templates Section -->
+        <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-2">
+            <article class="slds-card">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__figure">
+                            <span class="slds-icon_container slds-icon-standard-document">
+                                <lightning-icon icon-name="standard:document" size="small"></lightning-icon>
+                            </span>
+                        </div>
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <span>Templates & In-Progress</span>
+                            </h2>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body slds-card__body_inner">
+                    <template if:true={hasDraftTemplates}>
+                        <div class="slds-grid slds-wrap slds-gutters_small">
+                            <template for:each={draftTemplates} for:item="tmpl">
+                                <div key={tmpl.templateVersionId} class="slds-col slds-size_1-of-1">
+                                    <article class="slds-box slds-box_x-small slds-theme_shade">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <div class="slds-col slds-has-flexi-truncate">
+                                                <div class="slds-grid slds-grid_vertical-align-center slds-gutters_xx-small">
+                                                    <div class="slds-col slds-has-flexi-truncate">
+                                                        <h3 class="slds-text-heading_small slds-truncate" title={tmpl.name}>
+                                                            {tmpl.name}
+                                                        </h3>
+                                                    </div>
+                                                    <div class="slds-col slds-no-flex">
+                                                        <lightning-badge label={tmpl.statusBadge}></lightning-badge>
+                                                    </div>
+                                                </div>
+                                                <p class="slds-text-body_small slds-text-color_weak">
+                                                    {tmpl.versionLabel} • {tmpl.category}
+                                                </p>
+                                            </div>
+                                            <div class="slds-col slds-no-flex">
+                                                <template if:false={tmpl.isTemplate}>
+                                                    <!-- In Progress - Resume Editing -->
+                                                    <button 
+                                                        class="slds-button slds-button_brand"
+                                                        data-id={tmpl.templateId}
+                                                        data-version-id={tmpl.templateVersionId}
+                                                        onclick={handleEditDraft}>
+                                                        Resume Editing
+                                                    </button>
+                                                </template>
+                                                <template if:true={tmpl.isTemplate}>
+                                                    <!-- Template - Clone to New -->
+                                                    <button 
+                                                        class="slds-button slds-button_brand"
+                                                        data-version-id={tmpl.templateVersionId}
+                                                        onclick={handleCloneFromTemplate}>
+                                                        Use Template
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    
+                    <template if:false={hasDraftTemplates}>
+                        <div class="slds-text-align_center slds-p-around_medium">
+                            <p class="slds-text-color_weak">No templates or drafts in progress</p>
+                        </div>
+                    </template>
+                </div>
+            </article>
+        </div>
+
+        <!-- Retired Templates Section -->
+        <div class="slds-col slds-size_1-of-1">
+            <article class="slds-card">
+                <div class="slds-card__header slds-grid">
+                    <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                        <div class="slds-media__figure">
+                            <span class="slds-icon_container slds-icon-standard-archive">
+                                <lightning-icon icon-name="standard:archive" size="small" alternative-text="Retired"></lightning-icon>
+                            </span>
+                        </div>
+                        <div class="slds-media__body">
+                            <h2 class="slds-card__header-title">
+                                <span>Retired Interviews</span>
+                            </h2>
+                        </div>
+                    </header>
+                </div>
+                <div class="slds-card__body slds-card__body_inner">
+                    <template if:true={hasRetiredTemplates}>
+                        <div class="slds-grid slds-wrap slds-gutters_small">
+                            <template for:each={retiredTemplates} for:item="tmpl">
+                                <div key={tmpl.templateVersionId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                                    <article class="slds-box slds-box_x-small slds-theme_shade">
+                                        <div class="slds-grid slds-grid_vertical">
+                                            <div class="slds-col">
+                                                <h3 class="slds-text-heading_small slds-truncate" title={tmpl.name}>
+                                                    {tmpl.name}
+                                                </h3>
+                                                <p class="slds-text-body_small slds-text-color_weak">
+                                                    {tmpl.versionLabel} • {tmpl.category}
+                                                </p>
+                                                <p class="slds-text-body_small slds-text-color_weak">
+                                                    {tmpl.effectiveDateRange}
+                                                </p>
+                                                <lightning-badge label="Retired" class="slds-m-top_x-small"></lightning-badge>
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    
+                    <template if:false={hasRetiredTemplates}>
+                        <div class="slds-text-align_center slds-p-around_medium">
+                            <p class="slds-text-color_weak">No retired templates</p>
+                        </div>
+                    </template>
+                </div>
+            </article>
+        </div>
+    </div>
+</template>

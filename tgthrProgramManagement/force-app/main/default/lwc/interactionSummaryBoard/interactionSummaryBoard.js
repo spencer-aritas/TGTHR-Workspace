@@ -107,7 +107,8 @@ export default class InteractionSummaryBoard extends LightningElement {
     this.currentInteraction = {
       accountId: this.selected.AccountId,
       programId: this.currentProgramId,
-      relatedRecordId: mostRecentCaseId || ""
+      caseId: mostRecentCaseId || "",
+      parentInteractionId: ""
     };
 
     // Reset form fields and form modified state
@@ -1100,6 +1101,7 @@ export default class InteractionSummaryBoard extends LightningElement {
     const accountId =
       event.currentTarget.dataset.accountid || this.selected?.AccountId;
     const programId = event.currentTarget.dataset.programid;
+    const caseIdFromDom = event.currentTarget.dataset.caseid;
 
     // Validation
     if (!accountId) {
@@ -1124,7 +1126,8 @@ export default class InteractionSummaryBoard extends LightningElement {
     this.currentInteraction = {
       accountId: accountId,
       programId: programId || defaultProgramId,
-      relatedRecordId: recordId || "" // This is the parent interaction ID for follow-up
+      caseId: caseIdFromDom || "",
+      parentInteractionId: recordId || ""
     };
 
     // Reset form fields and form modified state
@@ -1496,9 +1499,9 @@ export default class InteractionSummaryBoard extends LightningElement {
                 // Get clean text without bullets
                 let text = item.textContent.trim();
                 if (
-                  text.startsWith("•") ||
+                  text.startsWith("???") ||
                   text.startsWith("-") ||
-                  text.startsWith("∙")
+                  text.startsWith("???")
                 ) {
                   text = text.substring(1).trim();
                 }
@@ -1559,12 +1562,12 @@ export default class InteractionSummaryBoard extends LightningElement {
       return;
     }
 
-    // Update each button
-    followUpButtons.forEach((button) => {
-      const recordId = button.dataset.recordid;
+        // Update each button
+        followUpButtons.forEach((button) => {
+          const recordId = button.dataset.recordid;
 
-      if (!recordId) {
-        return;
+          if (!recordId) {
+            return;
       }
 
       // Find the matching record in convo array
@@ -1580,10 +1583,14 @@ export default class InteractionSummaryBoard extends LightningElement {
         // Update programId to ensure it's correctly set
         const programId = matchingRecord.Program__c || defaultProgramId;
         button.dataset.programid = programId;
+
+        // Update caseId for follow-up linkage
+        button.dataset.caseid = matchingRecord.CaseId || "";
       } else {
         // If no matching record, use selected account and default program
         button.dataset.accountid = this.selected.AccountId;
         button.dataset.programid = defaultProgramId;
+        button.dataset.caseid = this.currentInteraction && this.currentInteraction.caseId ? this.currentInteraction.caseId : "";
       }
     });
   }
@@ -1634,7 +1641,8 @@ export default class InteractionSummaryBoard extends LightningElement {
       const interactionData = {
         accountId: this.currentInteraction.accountId,
         programId: this.currentInteraction.programId,
-        relatedRecordId: this.currentInteraction.relatedRecordId || "",
+        caseId: this.currentInteraction.caseId || "",
+        parentInteractionId: this.currentInteraction.parentInteractionId || "",
         notes: this.meetingNotes,
         purpose: this.interactionPurpose,
         interactionDate: this.interactionDate,
@@ -1663,11 +1671,12 @@ export default class InteractionSummaryBoard extends LightningElement {
       const recordId = await createInteractionDirectly({
         accountId: interactionData.accountId,
         programId: interactionData.programId,
-        relatedRecordId: interactionData.relatedRecordId,
+        relatedRecordId: interactionData.parentInteractionId,
         notes: cleanedNotes,
         purpose: interactionData.purpose,
         interactionDate: interactionData.interactionDate,
-        notifyCaseManager: interactionData.notifyCaseManager
+        notifyCaseManager: interactionData.notifyCaseManager,
+        caseId: interactionData.caseId
       });
 
       console.log("Record created successfully with ID:", recordId);
@@ -1916,3 +1925,4 @@ export default class InteractionSummaryBoard extends LightningElement {
     }
 }
 }
+

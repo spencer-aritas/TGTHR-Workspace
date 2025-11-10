@@ -886,6 +886,21 @@ public with sharing class BenefitDisbursementService {
               interactionDate = req.serviceDate;
             }
 
+            // Locate active case for the participant/program if available
+            Id caseId = null;
+            try {
+              String enrollmentLookup = 'SELECT Case__c FROM ProgramEnrollment WHERE AccountId = :acctId AND ProgramId = :programId ORDER BY StartDate DESC LIMIT 1';
+              List<SObject> enrollmentRecords = Database.query(enrollmentLookup);
+              if (!enrollmentRecords.isEmpty()) {
+                Object caseValue = enrollmentRecords[0].get('Case__c');
+                if (caseValue != null) {
+                  caseId = (Id) caseValue;
+                }
+              }
+            } catch (Exception lookupEx) {
+              System.debug('Unable to locate Case for account ' + acctId + ': ' + lookupEx.getMessage());
+            }
+
             // Call the InteractionSummaryService helper to create a direct interaction record
             try {
               InteractionSummaryService.createInteractionDirectly(
@@ -895,7 +910,8 @@ public with sharing class BenefitDisbursementService {
                 notes,
                 purpose,
                 interactionDate,
-                true
+                true,
+                caseId != null ? String.valueOf(caseId) : null
               );
               System.debug(
                 'Created InteractionSummary for account ' +

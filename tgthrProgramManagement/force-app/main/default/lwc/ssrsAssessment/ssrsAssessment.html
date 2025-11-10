@@ -1,104 +1,367 @@
 <template>
-    <lightning-card title="SSRS Assessment" icon-name="standard:survey">
-        <template if:false={showResults}>
-            <!-- Progress Bar -->
-            <div class="slds-p-horizontal_medium slds-p-top_medium">
-                <lightning-progress-bar 
-                    value={progressPercentage} 
-                    size="large"
-                    variant="circular">
-                </lightning-progress-bar>
-                <p class="slds-text-align_center slds-m-top_x-small">
-                    Question {questionNumber} of {questionsLength}
-                </p>
-            </div>
-
-            <!-- Question -->
-            <div class="slds-p-around_medium">
-                <h2 class="slds-text-heading_medium slds-m-bottom_medium">
-                    {currentQuestion.text}
-                </h2>
-
-                <!-- Response Options -->
-                <lightning-radio-group 
-                    name="response"
-                    options={responseOptions}
-                    value={currentResponse}
-                    onchange={handleResponseChange}
-                    type="button">
-                </lightning-radio-group>
-            </div>
-
-            <!-- Navigation -->
-            <div slot="footer" class="slds-grid slds-grid_align-spread">
-                <div>
-                    <template if:true={canGoBack}>
-                        <lightning-button 
-                            label="Previous"
-                            onclick={handlePrevious}
-                            variant="neutral">
-                        </lightning-button>
-                    </template>
-                </div>
-                <div>
-                    <lightning-button 
-                        label={buttonLabel}
-                        onclick={handleNext}
-                        variant="brand"
-                        disabled={isDisabled}>
-                    </lightning-button>
-                </div>
-            </div>
-
-            <!-- Loading -->
-            <template if:true={isSubmitting}>
-                <lightning-spinner 
-                    alternative-text="Processing assessment..."
-                    size="large">
-                </lightning-spinner>
-            </template>
-        </template>
-
-        <!-- Results -->
-        <template if:true={showResults}>
-            <div class="slds-p-around_medium">
-                <div class="slds-text-align_center slds-m-bottom_large">
-                    <span class={riskLevelClass}>
-                        {assessmentResult.riskLevel} Risk
-                    </span>
-                    <h2 class="slds-text-heading_medium slds-m-top_small">
-                        Total Score: {assessmentResult.totalScore}
-                    </h2>
-                </div>
-
-                <template if:true={assessmentResult.recommendations}>
-                    <div class="slds-m-bottom_large">
-                        <h3 class="slds-text-heading_small slds-m-bottom_small">
-                            Recommendations:
-                        </h3>
-                        <ul class="slds-list_dotted">
-                            <template for:each={assessmentResult.recommendations} for:item="rec">
-                                <li key={rec} class="slds-item">{rec}</li>
-                            </template>
-                        </ul>
-                    </div>
-                </template>
-
-                <template if:true={assessmentResult.taskCreated}>
-                    <div class="slds-notify slds-notify_alert slds-theme_info slds-m-bottom_medium">
-                        <span class="slds-assistive-text">Info</span>
-                        <h2>A follow-up task has been created for additional documentation.</h2>
-                    </div>
-                </template>
-            </div>
-
-            <div slot="footer" class="slds-text-align_center">
-                <lightning-button 
-                    label="Start New Assessment"
-                    onclick={handleStartOver}
-                    variant="neutral">
-                </lightning-button>
+    <div class="assessment-shell">
+        <template if:true={isLoading}>
+            <div class="loading-overlay">
+                <lightning-spinner alternative-text="Loading SSRS assessment" size="medium"></lightning-spinner>
             </div>
         </template>
-    </lightning-card>
+
+        <template if:true={loadError}>
+            <div class="slds-notify slds-notify_alert slds-theme_error slds-m-around_medium">
+                <span class="slds-assistive-text">Error</span>
+                <h2>{loadError}</h2>
+            </div>
+        </template>
+
+        <template if:true={isReady}>
+            <section class="note-header">
+                <div class="header-title">
+                    <lightning-icon icon-name="standard:survey" size="small"></lightning-icon>
+                    <div>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Participant Overview</h3>
+                        <p class="slds-text-body_small">Columbia Suicide Severity Rating Scale (C-SSRS)</p>
+                    </div>
+                </div>
+                <div class="header-grid">
+                    <div class="field-block">
+                        <span class="label">Participant</span>
+                        <span class="value">{header.personName}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Date of Birth</span>
+                        <span class="value">{header.birthdate}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Email</span>
+                        <span class="value">{header.email}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Mobile</span>
+                        <span class="value">{header.phone}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Medicaid ID</span>
+                        <span class="value">{header.medicaidId}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Assessment Date</span>
+                        <lightning-input
+                            type="date"
+                            value={assessmentDate}
+                            onchange={handleAssessmentDateChange}
+                            variant="label-hidden">
+                        </lightning-input>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Assessor</span>
+                        <span class="value">{assessedByName}</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="note-layout">
+                <aside class="note-sidebar">
+                    <nav class="sidebar-nav" role="navigation" aria-label="SSRS assessment sections">
+                        <template for:each={navigationSteps} for:item="item">
+                            <button
+                                type="button"
+                                key={item.name}
+                                class={item.className}
+                                data-section={item.name}
+                                onclick={handleSidebarClick}
+                                aria-pressed={item.isActive}
+                                aria-current={item.ariaCurrent}>
+                                <span class="step-indicator">{item.step}</span>
+                                <span class="nav-label">{item.label}</span>
+                            </button>
+                        </template>
+                    </nav>
+                </aside>
+
+                <div class="note-content">
+                    <lightning-accordion
+                        active-section-name={activeSection}
+                        allow-multiple="false"
+                        onsectiontoggle={handleSectionToggle}>
+
+                        <lightning-accordion-section name="ideation" label="Suicidal Ideation">
+                            <div data-section="ideation">
+                                <p class="section-intro">{ideationIntro}</p>
+                                <template for:each={ideationCards} for:item="card">
+                                    <div key={card.key} class="section-card">
+                                        <div class="section-card__header">
+                                            <h4 class="section-card__title">{card.title}</h4>
+                                            <p class="section-card__description">{card.description}</p>
+                                        </div>
+                                        <p class="question-text">{card.questionText}</p>
+                                        <div class="dual-column">
+                                            <div class="column">
+                                                <lightning-combobox
+                                                    label={card.lifetimeLabel}
+                                                    data-field={card.lifetimeField}
+                                                    value={card.lifetimeValue}
+                                                    options={booleanOptions}
+                                                    placeholder="Select"
+                                                    onchange={handleBooleanChange}>
+                                                </lightning-combobox>
+                                                <template if:true={card.showLifetimeNotes}>
+                                                    <lightning-textarea
+                                                        class="slds-m-top_small"
+                                                        label="If yes, describe (Lifetime)"
+                                                        data-field={card.lifetimeDescField}
+                                                        value={card.lifetimeDescValue}
+                                                        onchange={handleTextChange}>
+                                                    </lightning-textarea>
+                                                </template>
+                                            </div>
+                                            <div class="column">
+                                                <lightning-combobox
+                                                    label={card.recentLabel}
+                                                    data-field={card.recentField}
+                                                    value={card.recentValue}
+                                                    options={booleanOptions}
+                                                    placeholder="Select"
+                                                    onchange={handleBooleanChange}>
+                                                </lightning-combobox>
+                                                <template if:true={card.showRecentNotes}>
+                                                    <lightning-textarea
+                                                        class="slds-m-top_small"
+                                                        label="If yes, describe (Past Month)"
+                                                        data-field={card.recentDescField}
+                                                        value={card.recentDescValue}
+                                                        onchange={handleTextChange}>
+                                                    </lightning-textarea>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <template if:true={showIntensitySection}>
+                            <lightning-accordion-section name="intensity" label="Intensity of Ideation">
+                                <div data-section="intensity">
+                                    <p class="section-intro">{intensityIntro}</p>
+                                    <template for:each={intensityCards} for:item="card">
+                                        <div key={card.key} class="section-card">
+                                            <div class="section-card__header">
+                                                <h4 class="section-card__title">{card.title}</h4>
+                                                <p class="section-card__description">{card.description}</p>
+                                            </div>
+                                            <div class="dual-column">
+                                                <div class="column">
+                                                    <lightning-combobox
+                                                        label={card.lifetimeLabel}
+                                                        data-field={card.lifetimeField}
+                                                        value={card.lifetimeValue}
+                                                        options={card.options}
+                                                        placeholder="Select value"
+                                                        onchange={handlePicklistNumberChange}>
+                                                    </lightning-combobox>
+                                                    <template if:true={card.lifetimeDescField}>
+                                                        <lightning-textarea
+                                                            class="slds-m-top_small"
+                                                            label="Description (Lifetime)"
+                                                            data-field={card.lifetimeDescField}
+                                                            value={card.lifetimeDescValue}
+                                                            onchange={handleTextChange}>
+                                                        </lightning-textarea>
+                                                    </template>
+                                                </div>
+                                                <div class="column">
+                                                    <lightning-combobox
+                                                        label={card.recentLabel}
+                                                        data-field={card.recentField}
+                                                        value={card.recentValue}
+                                                        options={card.options}
+                                                        placeholder="Select value"
+                                                        onchange={handlePicklistNumberChange}>
+                                                    </lightning-combobox>
+                                                    <template if:true={card.recentDescField}>
+                                                        <lightning-textarea
+                                                            class="slds-m-top_small"
+                                                            label="Description (Recent)"
+                                                            data-field={card.recentDescField}
+                                                            value={card.recentDescValue}
+                                                            onchange={handleTextChange}>
+                                                        </lightning-textarea>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <p class="scale-helper">{card.legend}</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </lightning-accordion-section>
+                        </template>
+
+                        <lightning-accordion-section name="behavior" label="Suicidal Behavior">
+                            <div data-section="behavior">
+                                <p class="section-intro">{behaviorIntro}</p>
+                                <template for:each={behaviorCards} for:item="card">
+                                    <div key={card.key} class="section-card">
+                                        <div class="section-card__header">
+                                            <h4 class="section-card__title">{card.title}</h4>
+                                            <p class="section-card__description">
+                                                {card.definition}
+                                                <template if:true={card.description}>
+                                                    <br />{card.description}
+                                                </template>
+                                            </p>
+                                        </div>
+                                        <template if:true={card.questions}>
+                                            <ul class="slds-list_dotted">
+                                                <template for:each={card.questions} for:item="prompt">
+                                                    <li key={prompt} class="slds-item">{prompt}</li>
+                                                </template>
+                                            </ul>
+                                        </template>
+                                        <div class="dual-column">
+                                            <div class="column">
+                                                <lightning-combobox
+                                                    label={card.lifetimeLabel}
+                                                    data-field={card.lifetimeField}
+                                                    value={card.lifetimeValue}
+                                                    options={booleanOptions}
+                                                    placeholder="Select"
+                                                    onchange={handleBooleanChange}>
+                                                </lightning-combobox>
+                                                <template if:true={card.showLifetimeNotes}>
+                                                    <lightning-textarea
+                                                        class="slds-m-top_small"
+                                                        label="If yes, describe (Lifetime)"
+                                                        data-field={card.lifetimeDescField}
+                                                        value={card.lifetimeDescValue}
+                                                        onchange={handleTextChange}>
+                                                    </lightning-textarea>
+                                                </template>
+                                                <template if:true={card.showLifetimeCount}>
+                                                    <lightning-input
+                                                        class="slds-m-top_small"
+                                                        type="number"
+                                                        min="0"
+                                                        label={card.lifetimeCountLabel}
+                                                        data-field={card.lifetimeCountField}
+                                                        value={card.lifetimeCountValue}
+                                                        onchange={handleNumberChange}>
+                                                    </lightning-input>
+                                                </template>
+                                            </div>
+                                            <div class="column">
+                                                <template if:true={card.recentField}>
+                                                    <lightning-combobox
+                                                        label={card.recentLabel}
+                                                        data-field={card.recentField}
+                                                        value={card.recentValue}
+                                                        options={booleanOptions}
+                                                        placeholder="Select"
+                                                        onchange={handleBooleanChange}>
+                                                    </lightning-combobox>
+                                                </template>
+                                                <template if:true={card.showRecentNotes}>
+                                                    <lightning-textarea
+                                                        class="slds-m-top_small"
+                                                        label="If yes, describe (Past 3 Months)"
+                                                        data-field={card.recentDescField}
+                                                        value={card.recentDescValue}
+                                                        onchange={handleTextChange}>
+                                                    </lightning-textarea>
+                                                </template>
+                                                <template if:true={card.showRecentCount}>
+                                                    <lightning-input
+                                                        class="slds-m-top_small"
+                                                        type="number"
+                                                        min="0"
+                                                        label={card.recentCountLabel}
+                                                        data-field={card.recentCountField}
+                                                        value={card.recentCountValue}
+                                                        onchange={handleNumberChange}>
+                                                    </lightning-input>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="attempts" label="Attempt Details">
+                            <div data-section="attempts">
+                                <div class="section-card">
+                                    <div class="section-card__header">
+                                        <h4 class="section-card__title">Attempt Timeline</h4>
+                                        <p class="section-card__description">
+                                            Capture key dates and lethality information for attempts.
+                                        </p>
+                                    </div>
+                                    <div class="attempt-grid">
+                                        <template for:each={attemptDetailFields} for:item="field">
+                                            <lightning-input
+                                                key={field.field}
+                                                type={field.type}
+                                                label={field.label}
+                                                data-field={field.field}
+                                                value={field.value}
+                                                placeholder={field.placeholder}
+                                                onchange={handleAttemptDetailChange}>
+                                            </lightning-input>
+                                        </template>
+                                    </div>
+                                    <template for:each={attemptDefinitions} for:item="definition">
+                                        <div key={definition.title} class="definition-block">
+                                            <strong>{definition.title}</strong>
+                                            <span>{definition.text}</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <h3 class="slds-text-heading_small">Risk Preview</h3>
+                            <span class={riskBadgeClass}>{riskPreview} Risk</span>
+                        </div>
+                        <template if:true={riskRecommendations}>
+                            <ul class="slds-list_dotted slds-m-top_small">
+                                <template for:each={riskRecommendations} for:item="rec">
+                                    <li key={rec} class="slds-item">{rec}</li>
+                                </template>
+                            </ul>
+                        </template>
+                        <template if:true={serverResult}>
+                            <div class="server-result slds-m-top_medium">
+                                <p class="slds-text-title_caps slds-m-bottom_x-small">Last Saved Assessment</p>
+                                <p class="slds-text-body_small">
+                                    Risk level: {serverResult.riskLevel}
+                                    <template if:true={serverResult.totalScore}>
+                                        &bull; Score: {serverResult.totalScore}
+                                    </template>
+                                    <template if:true={serverResult.taskCreated}>
+                                        &bull; Follow-up task created.
+                                    </template>
+                                </p>
+                            </div>
+                        </template>
+                        <div class="actions">
+                            <lightning-button
+                                variant="neutral"
+                                label="Reset"
+                                onclick={handleReset}>
+                            </lightning-button>
+                            <lightning-button
+                                variant="brand"
+                                label="Save Assessment"
+                                class="submit-button"
+                                onclick={handleSubmit}
+                                disabled={isSubmitting}>
+                            </lightning-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
 </template>

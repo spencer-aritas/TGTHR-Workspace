@@ -85,11 +85,23 @@ global with sharing class ProgramEnrollmentService {
             throw new AuraHandledException('Program query failed: ' + ex.getMessage());
         }
 
-        // 3) Check for existing enrollment
+        // 3) Ensure participant has an active Case record
+        Id ownerId;
+        try {
+            String createdByUserId = (String) rawData.get('createdByUserId');
+            if (String.isNotBlank(createdByUserId)) {
+                ownerId = Id.valueOf(createdByUserId);
+            }
+        } catch (Exception ex) {
+            System.debug('Invalid createdByUserId provided: ' + ex.getMessage());
+        }
+        Id caseId = ensureActiveCase(accountId, ownerId);
+
+        // 4) Check for existing enrollment
         System.debug('About to check for existing enrollments');
         List<SObject> existingEnrollments;
         try {
-            String enrollmentQuery = 'SELECT Id FROM ProgramEnrollment WHERE AccountId = :accountId AND ProgramId = :programId AND Status IN (\'Enrolled\',\'Active\') LIMIT 1';
+            String enrollmentQuery = 'SELECT Id, Case__c FROM ProgramEnrollment WHERE AccountId = :accountId AND ProgramId = :programId AND Status IN (\'Enrolled\',\'Active\') LIMIT 1';
             existingEnrollments = Database.query(enrollmentQuery);
             System.debug('Found ' + existingEnrollments.size() + ' existing enrollments');
         } catch (Exception ex) {
@@ -106,6 +118,9 @@ global with sharing class ProgramEnrollmentService {
             enrollmentSObj.put('ProgramId', programId);
             enrollmentSObj.put('Status', 'Enrolled');
             enrollmentSObj.put('StartDate', Date.today());
+            if (caseId != null) {
+                enrollmentSObj.put('Case__c', caseId);
+            }
             
             try {
                 insert enrollmentSObj;
@@ -118,20 +133,34 @@ global with sharing class ProgramEnrollmentService {
         } else {
             enrollmentId = existingEnrollments[0].Id;
             System.debug('Using existing enrollment: ' + enrollmentId);
+            if (caseId != null) {
+                Object existingCase = existingEnrollments[0].get('Case__c');
+                if (existingCase == null) {
+                    SObject enrollmentUpdate = (SObject) Type.forName('ProgramEnrollment').newInstance();
+                    enrollmentUpdate.put('Id', enrollmentId);
+                    enrollmentUpdate.put('Case__c', caseId);
+                    try {
+                        update enrollmentUpdate;
+                        System.debug('Updated enrollment with Case__c: ' + enrollmentId);
+                    } catch (Exception updateEx) {
+                        System.debug('Failed to update enrollment Case__c: ' + updateEx.getMessage());
+                    }
+                }
+            }
         }
 
-        // 4) Create Benefit Assignments and Disbursements using BenefitDisbursementService
+        // 5) Create Benefit Assignments and Disbursements using BenefitDisbursementService
         System.debug('About to create benefit assignments and disbursements using service');
         try {
             List<Id> disbursementIds = createBenefitDisbursementsUsingService(accountId, programId, enrollmentId, e);
             System.debug('Created ' + disbursementIds.size() + ' benefit disbursements via service');
             
-            // 5) Create Tasks on BenefitDisbursements for validation
+            // 6) Create Tasks on BenefitDisbursements for validation
             String createdByUserId = (String) rawData.get('createdByUserId');
             System.debug('About to create validation tasks for ' + disbursementIds.size() + ' disbursements');
             for (Id disbursementId : disbursementIds) {
                 try {
-                    Id taskId = TaskService.createValidationTask(
+                    TaskService.TaskCreationDTO taskDto = new TaskService.TaskCreationDTO(
                         disbursementId,
                         e.encounterUuid,
                         e.notes,
@@ -141,6 +170,7 @@ global with sharing class ProgramEnrollmentService {
                         e.endUtc,
                         createdByUserId
                     );
+                    Id taskId = TaskService.createValidationTask(taskDto);
                     System.debug('Created validation task: ' + taskId + ' for disbursement: ' + disbursementId);
                 } catch (Exception ex) {
                     System.debug('Error creating validation task for disbursement ' + disbursementId + ': ' + ex.getMessage());
@@ -148,21 +178,22 @@ global with sharing class ProgramEnrollmentService {
                 }
             }
         } catch (Exception ex) {
-            System.debug('Error creating benefit assignments and disbursements: ' + ex.getMessage());
+                System.debug('Error creating benefit assignments and disbursements: ' + ex.getMessage());
             System.debug('Benefit creation stack trace: ' + ex.getStackTraceString());
         }
 
-        // 6) Create InteractionSummary
+        // 7) Create InteractionSummary
         try {
             String createdByUserId = (String) rawData.get('createdByUserId');
             String interactionId = InteractionSummaryService.createInteractionDirectly(
                 accountId,
                 programId,
-                enrollmentId,
+                null,
                 e.notes,
                 'Street Outreach Encounter',
                 String.valueOf(Date.today()),
-                false
+                false,
+                caseId != null ? String.valueOf(caseId) : null
             );
             System.debug('Created interaction: ' + interactionId);
         } catch (Exception ex) {
@@ -172,8 +203,62 @@ global with sharing class ProgramEnrollmentService {
         return JSON.serialize(new Map<String, Object>{
             'success' => true,
             'enrollmentId' => enrollmentId,
-            'accountId' => accountId
+            'accountId' => accountId,
+            'caseId' => caseId
         });
+    }
+
+    private static Id ensureActiveCase(Id accountId, Id ownerId) {
+        if (accountId == null) {
+            return null;
+        }
+        try {
+            List<Case> existingCases = [
+                SELECT Id, Status
+                FROM Case
+                WHERE AccountId = :accountId AND IsClosed = false
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            if (!existingCases.isEmpty()) {
+                return existingCases[0].Id;
+            }
+        } catch (Exception ex) {
+            System.debug('Error querying existing Case: ' + ex.getMessage());
+        }
+
+        Case newCase = new Case();
+        newCase.AccountId = accountId;
+        if (ownerId != null) {
+            newCase.OwnerId = ownerId;
+        }
+        // Determine an open status to use
+        String openStatus = 'New';
+        try {
+            List<CaseStatus> statusOptions = [
+                SELECT MasterLabel
+                FROM CaseStatus
+                WHERE IsDefault = true AND IsClosed = false
+                LIMIT 1
+            ];
+            if (!statusOptions.isEmpty()) {
+                openStatus = statusOptions[0].MasterLabel;
+            }
+        } catch (Exception statusEx) {
+            System.debug('Unable to determine default Case status: ' + statusEx.getMessage());
+        }
+        newCase.Status = openStatus;
+        newCase.Origin = 'PWA Intake';
+        newCase.Subject = 'Street Outreach Case - ' + Date.today().format();
+
+        try {
+            insert newCase;
+            System.debug('Created new Case for account ' + accountId + ': ' + newCase.Id);
+            return newCase.Id;
+        } catch (Exception insertEx) {
+            System.debug('Failed to create Case: ' + insertEx.getMessage());
+            return null;
+        }
     }
 
     private static PwaEncounter parseEncounter(Map<String, Object> data) {
@@ -307,18 +392,5 @@ global with sharing class ProgramEnrollmentService {
         }
         
         return results;
-    }
-    
-    
-    private class PwaEncounter {
-        public String encounterUuid;
-        public String personUuid;
-        public String firstName;
-        public String lastName;
-        public String pos;
-        public Boolean isCrisis;
-        public String notes;
-        public Datetime startUtc;
-        public Datetime endUtc;
     }
 }

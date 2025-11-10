@@ -1,0 +1,240 @@
+<template>
+    <div class="interview-session">
+        <template if:true={isLoading}>
+            <div class="slds-align_absolute-center slds-m-around_large">
+                <lightning-spinner alternative-text="Loading interview session"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={errorMessage}>
+            <div class="slds-m-around_medium">
+                <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                    <h2>{errorMessage}</h2>
+                </div>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+            <template if:false={errorMessage}>
+                <!-- Header -->
+                <div class="interview-header slds-page-header">
+                    <div class="slds-page-header__row">
+                        <div class="slds-page-header__col-title">
+                            <div class="slds-media">
+                                <div class="slds-media__figure">
+                                    <lightning-icon icon-name="standard:survey" size="medium"></lightning-icon>
+                                </div>
+                                <div class="slds-media__body">
+                                    <h1 class="slds-page-header__title slds-truncate" title={templateName}>
+                                        {templateName}
+                                    </h1>
+                                    <p class="slds-page-header__meta-text">{templateCategory}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div class="slds-m-around_medium">
+                    <lightning-progress-indicator current-step={currentStep} type="path" variant="base">
+                        <lightning-progress-step label="Interaction Details" value="interaction"></lightning-progress-step>
+                        <lightning-progress-step label="Interview Questions" value="interview"></lightning-progress-step>
+                        <lightning-progress-step label="Review & Submit" value="review"></lightning-progress-step>
+                    </lightning-progress-indicator>
+                </div>
+
+                <!-- Step 1: Interaction Details -->
+                <template if:true={isInteractionStep}>
+                    <div class="slds-m-around_medium">
+                        <lightning-card title="Interaction Details" icon-name="utility:date_time">
+                            <div class="slds-p-around_medium">
+                                <div class="slds-grid slds-wrap slds-gutters">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <lightning-input
+                                            type="date"
+                                            label="Interaction Date"
+                                            value={interactionInput.interactionDate}
+                                            data-field="interactionDate"
+                                            onchange={handleInteractionInput}
+                                            required>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2"></div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <lightning-input
+                                            type="time"
+                                            label="Start Time"
+                                            value={interactionInput.startTime}
+                                            data-field="startTime"
+                                            onchange={handleInteractionInput}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <lightning-input
+                                            type="time"
+                                            label="End Time"
+                                            value={interactionInput.endTime}
+                                            data-field="endTime"
+                                            onchange={handleInteractionInput}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1">
+                                        <lightning-textarea
+                                            label="Meeting Notes"
+                                            value={interactionInput.meetingNotes}
+                                            data-field="meetingNotes"
+                                            onchange={handleInteractionInput}
+                                            placeholder="Enter any initial notes or context for this interview...">
+                                        </lightning-textarea>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1">
+                                        <lightning-input
+                                            type="text"
+                                            label="Location"
+                                            value={interactionInput.location}
+                                            data-field="location"
+                                            onchange={handleInteractionInput}
+                                            placeholder="e.g., Office, Phone, Video Call">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </lightning-card>
+                    </div>
+                </template>
+
+                <!-- Step 2: Interview Questions -->
+                <template if:true={isInterviewStep}>
+                    <div class="slds-m-around_medium">
+                        <template for:each={sections} for:item="section">
+                            <lightning-card key={section.name} title={section.label} class="slds-m-bottom_medium">
+                                <div class="slds-p-around_medium">
+                                    <template for:each={section.questions} for:item="question">
+                                        <div key={question.questionId} class="question-container slds-m-bottom_medium">
+                                            <c-interview-question-field
+                                                question={question}
+                                                onanswerchange={handleAnswerChange}>
+                                            </c-interview-question-field>
+                                        </div>
+                                    </template>
+                                </div>
+                            </lightning-card>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Step 3: Review -->
+                <template if:true={isReviewStep}>
+                    <div class="slds-m-around_medium">
+                        <lightning-card title="Review Your Responses" icon-name="utility:preview">
+                            <div class="slds-p-around_medium">
+                                <!-- Interaction Summary -->
+                                <div class="slds-m-bottom_large">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">Interaction Details</h3>
+                                    <dl class="slds-dl_horizontal">
+                                        <dt class="slds-dl_horizontal__label">
+                                            <p class="slds-truncate">Date:</p>
+                                        </dt>
+                                        <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                                            <p>{reviewData.interaction.interactionDate}</p>
+                                        </dd>
+                                        <template if:true={reviewData.interaction.startTime}>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate">Time:</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                                                <p>{reviewData.interaction.startTime} - {reviewData.interaction.endTime}</p>
+                                            </dd>
+                                        </template>
+                                        <template if:true={reviewData.interaction.meetingNotes}>
+                                            <dt class="slds-dl_horizontal__label">
+                                                <p class="slds-truncate">Notes:</p>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail slds-tile__meta">
+                                                <p>{reviewData.interaction.meetingNotes}</p>
+                                            </dd>
+                                        </template>
+                                    </dl>
+                                </div>
+
+                                <!-- Interview Answers by Section -->
+                                <template for:each={reviewData.sections} for:item="section">
+                                    <div key={section.name} class="slds-m-bottom_large">
+                                        <h3 class="slds-text-heading_small slds-m-bottom_medium slds-border_bottom slds-p-bottom_x-small">
+                                            {section.name}
+                                        </h3>
+                                        <div class="slds-form" role="list">
+                                            <template for:each={section.questions} for:item="question">
+                                                <div key={question.label} class="slds-form__row slds-m-bottom_small">
+                                                    <div class="slds-form__item" role="listitem">
+                                                        <div class="slds-form-element slds-form-element_stacked">
+                                                            <span class="slds-form-element__label slds-text-title_bold">
+                                                                {question.label}
+                                                            </span>
+                                                            <div class="slds-form-element__control">
+                                                                <div class="slds-form-element__static slds-text-longform">
+                                                                    {question.value}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </lightning-card>
+                    </div>
+                </template>
+
+                <!-- DEBUG INFO -->
+                <div class="slds-m-around_medium slds-box slds-theme_warning">
+                    <p>DEBUG: currentStepIndex = {currentStepIndex}</p>
+                    <p>DEBUG: currentStep = {currentStep}</p>
+                    <p>DEBUG: isReviewStep = {isReviewStep}</p>
+                    <p>DEBUG: isLastStep = {isLastStep}</p>
+                    <p>DEBUG: isSaving = {isSaving}</p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="slds-m-around_medium">
+                    <div class="slds-grid slds-grid_align-spread">
+                        <div>
+                            <lightning-button
+                                label="Cancel"
+                                onclick={handleCancel}
+                                class="slds-m-right_x-small">
+                            </lightning-button>
+                            <template if:false={isFirstStep}>
+                                <lightning-button
+                                    label="Previous"
+                                    onclick={handlePrev}
+                                    variant="neutral">
+                                </lightning-button>
+                            </template>
+                        </div>
+                        <div>
+                            <template if:false={isLastStep}>
+                                <lightning-button
+                                    label={nextButtonLabel}
+                                    onclick={handleNext}
+                                    variant="brand">
+                                </lightning-button>
+                            </template>
+                            <template if:true={isLastStep}>
+                                <lightning-button
+                                    label="Save Interview"
+                                    onclick={handleSave}
+                                    variant="brand"
+                                    disabled={isSaving}>
+                                </lightning-button>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

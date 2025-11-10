@@ -1,0 +1,17 @@
+.duplicate-group {
+    border-left: 4px solid #fe9339;
+}
+
+.group-header {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dddbda;
+}
+
+.duplicate-item {
+    background-color: #fef8f2;
+    border-left: 2px solid #fe9339;
+}
+
+.duplicate-item:hover {
+    background-color: #fef5ed;
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Interview Session wizard for conducting interviews based on templates</description>
+    <label>Interview Session</label>
+    <lwcComponent>interviewSession</lwcComponent>
+    <motif>Custom88: Hand and Desk Bell</motif>
+</CustomTab>

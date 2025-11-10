@@ -1,0 +1,157 @@
+<template>
+    <lightning-card title="Documentation" icon-name="utility:note">
+        <div class="button-row">
+            <lightning-button
+                variant="brand"
+                label="Clinical Note"
+                onclick={openClinicalNote}>
+            </lightning-button>
+            <lightning-button
+                class="slds-m-left_small"
+                variant="neutral"
+                label="SSRS Assessment"
+                onclick={openSsrsAssessment}
+                disabled={isSsrsDisabled}>
+            </lightning-button>
+            <lightning-button
+                class="slds-m-left_small"
+                variant="neutral"
+                label="New Available Interview"
+                onclick={openInterviewModal}
+                disabled={isInterviewDisabled}>
+            </lightning-button>
+        </div>
+        <template if:true={ssrsDisabledMessage}>
+            <p class="slds-text-color_error slds-m-top_small">{ssrsDisabledMessage}</p>
+        </template>
+    </lightning-card>
+
+    <template if:true={showClinicalModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="clinical-note-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeClinicalNote}>
+                    </lightning-button-icon>
+                    <h2 id="clinical-note-modal-heading" class="slds-text-heading_medium">
+                        Clinical Note
+                    </h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <c-clinical-note-form record-id={recordId}></c-clinical-note-form>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeClinicalNote}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showSsrsModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="ssrs-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeSsrsAssessment}>
+                    </lightning-button-icon>
+                    <h2 id="ssrs-modal-heading" class="slds-text-heading_medium">
+                        SSRS Assessment
+                    </h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <c-ssrs-assessment record-id={accountId} case-id={recordId}></c-ssrs-assessment>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeSsrsAssessment}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showInterviewModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="interview-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeInterviewModal}>
+                    </lightning-button-icon>
+                    <h2 id="interview-modal-heading" class="slds-text-heading_medium">
+                        Available Interviews
+                    </h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <template if:true={isLoadingInterviews}>
+                        <div class="modal-spinner">
+                            <lightning-spinner alternative-text="Loading interview templates"></lightning-spinner>
+                        </div>
+                    </template>
+                    <template if:false={isLoadingInterviews}>
+                        <template if:true={hasInterviewTemplates}>
+                            <div class="template-list">
+                                <template for:each={interviewTemplates} for:item="template">
+                                    <div key={template.key} class="interview-card">
+                                        <div class="interview-card__details">
+                                            <p class="interview-card__title">{template.templateName}</p>
+                                            <div class="interview-card__meta">
+                                                <span>Variant: {template.displayVariant}</span>
+                                                <template if:true={template.category}>
+                                                    <span>Category: {template.category}</span>
+                                                </template>
+                                                <template if:true={template.versionName}>
+                                                    <span>Version: {template.versionName}</span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <lightning-button
+                                            variant="brand"
+                                            label="Launch"
+                                            data-version-id={template.templateVersionId}
+                                            data-template-name={template.templateName}
+                                            onclick={launchInterview}>
+                                        </lightning-button>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template if:false={hasInterviewTemplates}>
+                            <p class="slds-text-color_error">{interviewError}</p>
+                        </template>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeInterviewModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

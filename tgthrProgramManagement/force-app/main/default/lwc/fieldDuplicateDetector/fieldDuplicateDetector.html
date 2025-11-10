@@ -1,0 +1,85 @@
+<template>
+    <lightning-card title="Duplicate Field Detector" icon-name="standard:merge">
+        <template if:true={isLoading}>
+            <div class="slds-align_absolute-center slds-m-around_large">
+                <lightning-spinner alternative-text="Loading..."></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+            <template if:true={hasDuplicates}>
+                <div class="slds-p-horizontal_medium">
+                    <p class="slds-text-body_regular slds-m-bottom_medium">
+                        Found <strong>{duplicateCount}</strong> potentially duplicate fields across <strong>{duplicateGroups.length}</strong> groups.
+                        Review and clean up to keep your field library organized.
+                    </p>
+                </div>
+
+                <div class="slds-p-horizontal_medium slds-m-bottom_medium">
+                    <template for:each={duplicateGroups} for:item="group" for:index="groupIndex">
+                        <div key={group.normalizedLabel} class="duplicate-group slds-box slds-m-bottom_small">
+                            <div class="group-header">
+                                <h3 class="slds-text-heading_small">
+                                    <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                    {group.count} variations of "{group.normalizedLabel}"
+                                </h3>
+                            </div>
+                            
+                            <div class="slds-m-top_small">
+                                <template for:each={group.items} for:item="item" for:index="itemIndex">
+                                    <div key={item.id} class="duplicate-item slds-box slds-box_x-small slds-m-bottom_x-small">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <div class="slds-col slds-grow">
+                                                <p class="slds-text-title_bold">{item.label}</p>
+                                                <p class="slds-text-color_weak slds-text-body_small">
+                                                    {item.apiName} • {item.responseType}
+                                                    <template if:true={item.section}> • {item.section}</template>
+                                                </p>
+                                                <template if:true={item.detailsExpanded}>
+                                                    <div class="slds-m-top_x-small slds-text-body_small">
+                                                        <template if:true={item.helpText}>
+                                                            <p><strong>Help Text:</strong> {item.helpText}</p>
+                                                        </template>
+                                                        <template if:true={item.mapsTo}>
+                                                            <p><strong>Maps To:</strong> {item.mapsTo}</p>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <div class="slds-col slds-no-flex">
+                                                <lightning-button-group>
+                                                    <lightning-button
+                                                        label={item.toggleButtonLabel}
+                                                        data-index={groupIndex}
+                                                        data-itemindex={itemIndex}
+                                                        onclick={handleToggleDetails}>
+                                                    </lightning-button>
+                                                    <lightning-button
+                                                        variant="destructive-text"
+                                                        label="Delete"
+                                                        data-id={item.id}
+                                                        onclick={handleDelete}>
+                                                    </lightning-button>
+                                                </lightning-button-group>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <template if:false={hasDuplicates}>
+                <div class="slds-align_absolute-center slds-m-around_large">
+                    <div class="slds-text-align_center">
+                        <lightning-icon icon-name="utility:success" size="large" variant="success"></lightning-icon>
+                        <p class="slds-text-heading_small slds-m-top_small">No duplicates found!</p>
+                        <p class="slds-text-body_regular slds-text-color_weak">Your field library is clean.</p>
+                    </div>
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+</template>
