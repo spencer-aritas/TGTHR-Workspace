@@ -1,4 +1,4 @@
-# server/app/salesforce/intake_service.py
+﻿# server/app/salesforce/intake_service.py
 import logging
 import json
 from typing import Dict, Any, Optional
@@ -180,3 +180,4 @@ def process_full_intake(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Standalone function for processing full intake"""
     service = IntakeService()
     return service.process_full_intake(payload)
+

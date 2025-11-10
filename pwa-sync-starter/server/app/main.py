@@ -16,6 +16,7 @@ from .api.signatures import router as signatures_router
 from .api.cases import router as cases_router
 from .api.interaction_summary import router as interaction_summary_router
 from .routers.ssrs_assessment import router as ssrs_router
+from .middleware.logging_with_audit import setup_audit_logging
 
 init_schema_and_seed()
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { caseService, Case } from '../services/caseService';
 import { interactionSummaryService } from '../services/interactionSummaryService';
 import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
+import { InteractionHistory } from './InteractionHistory';
 import { loginWithSalesforce } from '../lib/salesforceAuth';
 
 interface InteractionFormData {
@@ -16,7 +17,7 @@ export function MyCasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [currentView, setCurrentView] = useState<'cases' | 'interaction' | 'ssrs'>('cases');
+  const [currentView, setCurrentView] = useState<'cases' | 'interaction' | 'history' | 'ssrs'>('cases');
   const [formData, setFormData] = useState<InteractionFormData>({
     notes: '',
     date: new Date().toISOString().split('T')[0],
@@ -70,6 +71,12 @@ export function MyCasesPage() {
     });
   };
 
+  const handleViewHistory = (caseItem: Case) => {
+    setError('');
+    setSelectedCase(caseItem);
+    setCurrentView('history');
+  };
+
   const handleSSRSSelect = (caseItem: Case) => {
     if (!(caseItem.Account?.Id || caseItem.AccountId)) {
       setError('This case is missing an associated participant/account.');
@@ -120,6 +127,15 @@ export function MyCasesPage() {
         selectedCase={selectedCase}
         onComplete={handleBackToCases}
         onCancel={handleBackToCases}
+      />
+    );
+  }
+
+  if (currentView === 'history' && selectedCase) {
+    return (
+      <InteractionHistory
+        selectedCase={selectedCase}
+        onBack={handleBackToCases}
       />
     );
   }
@@ -294,13 +310,43 @@ export function MyCasesPage() {
             <div className="slds-grid slds-wrap slds-gutters">
               {cases.map((caseItem) => (
                 <div key={caseItem.Id} className="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
-                  <div className="slds-card slds-card_boundary">
+                  <div
+                    className="slds-card slds-card_boundary"
+                    style={{
+                      transition: 'all 0.2s ease-in-out',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      const card = e.currentTarget;
+                      card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                      card.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      const card = e.currentTarget;
+                      card.style.boxShadow = '';
+                      card.style.transform = '';
+                    }}
+                  >
                     <div className="slds-card__header">
                       <h3 className="slds-card__header-title slds-truncate">
                         {caseItem.Subject ?? `Case ${caseItem.CaseNumber}`}
                       </h3>
                     </div>
-                    <div className="slds-card__body slds-card__body_inner">
+                    <div
+                      className="slds-card__body slds-card__body_inner"
+                      onClick={() => handleViewHistory(caseItem)}
+                      style={{
+                        cursor: 'pointer',
+                        backgroundColor: '#fafafa',
+                        transition: 'background-color 0.2s ease-in-out'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0f0f0';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#fafafa';
+                      }}
+                    >
                       <p className="slds-text-body_regular slds-m-bottom_x-small">
                         <strong>Case:</strong> {caseItem.CaseNumber}
                       </p>
