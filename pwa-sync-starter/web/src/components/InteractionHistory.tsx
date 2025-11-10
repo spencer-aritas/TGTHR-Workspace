@@ -203,47 +203,97 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
 
               <div style={{
                 maxHeight: '600px',
-                overflowY: 'auto',
-                borderTop: '1px solid #e5e5e5',
-                borderBottom: '1px solid #e5e5e5',
-                paddingTop: '16px',
-                paddingBottom: '16px'
+                overflowY: 'auto'
               }}>
                 {interactions.map((interaction, index) => (
                   <div
                     key={interaction.Id}
                     style={{
-                      borderBottom: index < interactions.length - 1 ? '1px solid #f0f0f0' : 'none',
-                      paddingBottom: '16px',
-                      marginBottom: '16px'
+                      borderBottom: index < interactions.length - 1 ? '1px solid #e5e5e5' : 'none',
+                      paddingBottom: '20px',
+                      marginBottom: '20px',
+                      paddingTop: index === 0 ? '0' : '20px'
                     }}
                   >
-                    <div className="slds-grid slds-grid_vertical-align-start slds-gutters">
-                      <div className="slds-col slds-size_1-of-3">
-                        <div className="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                    {/* Header: Date and Interaction Details */}
+                    <div style={{ marginBottom: '12px' }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline'
+                      }}>
+                        <div className="slds-text-body_small slds-text-color_weak">
+                          <span style={{ fontWeight: '600' }}>Date:</span>{' '}
                           {new Date(interaction.InteractionDate).toLocaleDateString()}
                         </div>
-                        <div className="slds-text-body_small slds-font-weight_bold">
+                        <div className="slds-text-body_small slds-text-color_weak">
+                          <span style={{ fontWeight: '600' }}>By:</span>{' '}
                           {interaction.CreatedByName}
                         </div>
                       </div>
-                      <div className="slds-col slds-size_2-of-3">
-                        <div
-                          className="slds-text-body_regular slds-m-bottom_small"
-                          style={{
-                            lineHeight: '1.5',
-                            color: '#3c3c3c'
-                          }}
-                          dangerouslySetInnerHTML={{ __html: interaction.Notes }}
-                        />
-                        <button
-                          className="slds-button slds-button_text-destructive slds-text-body_small"
-                          onClick={() => handleQuickNote(interaction.Id)}
-                          style={{ padding: '0', fontSize: '0.875rem', color: '#0070d2', textDecoration: 'none' }}
-                        >
-                          Quick Note →
-                        </button>
+                    </div>
+
+                    {/* Time Details - if present */}
+                    {(interaction.StartTime || interaction.EndTime) && (
+                      <div style={{
+                        marginBottom: '12px',
+                        paddingLeft: '12px',
+                        borderLeft: '3px solid #0070d2'
+                      }}>
+                        <div className="slds-text-body_small">
+                          <span style={{ fontWeight: '600' }}>Time:</span>{' '}
+                          {interaction.StartTime && interaction.EndTime
+                            ? `${interaction.StartTime} - ${interaction.EndTime}`
+                            : interaction.StartTime
+                            ? interaction.StartTime
+                            : interaction.EndTime
+                            ? interaction.EndTime
+                            : 'No time recorded'}
+                        </div>
                       </div>
+                    )}
+
+                    {/* Meeting Notes - Dedicated Section */}
+                    <div style={{
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      marginBottom: '12px',
+                      borderLeft: '4px solid #0070d2'
+                    }}>
+                      <div className="slds-text-body_small" style={{ fontWeight: '600', marginBottom: '8px' }}>
+                        Meeting Notes
+                      </div>
+                      <div
+                        className="slds-text-body_regular"
+                        style={{
+                          lineHeight: '1.6',
+                          color: '#3c3c3c',
+                          whiteSpace: 'pre-wrap',
+                          wordWrap: 'break-word'
+                        }}
+                        dangerouslySetInnerHTML={{ __html: interaction.Notes || 'No notes' }}
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px',
+                      justifyContent: 'flex-end'
+                    }}>
+                      <button
+                        className="slds-button slds-button_text"
+                        onClick={() => handleQuickNote(interaction.Id)}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '0.875rem',
+                          color: '#0070d2',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        + Add Quick Note
+                      </button>
                     </div>
                   </div>
                 ))}
