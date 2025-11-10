@@ -2,7 +2,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
-// No path imports needed
 
 export default defineConfig({
   plugins: [
@@ -43,6 +42,9 @@ export default defineConfig({
     alias: {
       "@shared": "../shared"
     }
+  },
+  optimizeDeps: {
+    include: ['../shared/contracts']
   },
   server: {
     host: '0.0.0.0',

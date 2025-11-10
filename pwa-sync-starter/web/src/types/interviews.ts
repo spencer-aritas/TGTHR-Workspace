@@ -1,13 +1,13 @@
 // web/src/types/interviews.ts
 // Re-export interview contract types and provide helper builders for the wizard.
 
-export * from '@shared/contracts/InterviewContract';
+export * from '@shared/contracts';
 
 import {
   InterviewQuestionDraft,
   InterviewTemplateDraft,
   InterviewTemplateVersionDraft,
-} from '@shared/contracts/InterviewContract';
+} from '@shared/contracts';
 
 export interface InterviewBuilderState {
   template: InterviewTemplateDraft;
