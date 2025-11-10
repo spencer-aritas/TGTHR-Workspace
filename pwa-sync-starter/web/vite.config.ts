@@ -40,20 +40,11 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@shared": "../shared",
-      "@shared/contracts": "../shared/contracts/index.ts"
-    }
-  },
-  build: {
-    rollupOptions: {
-      external: [],
-      output: {
-        globals: {}
-      }
+      "@shared": "../shared"
     }
   },
   optimizeDeps: {
-    include: ['../shared/contracts/index.ts']
+    include: ['../shared/contracts']
   },
   server: {
     host: '0.0.0.0',
