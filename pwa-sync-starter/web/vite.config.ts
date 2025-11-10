@@ -40,11 +40,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@shared": "../shared"
+      "@shared": "../shared",
+      "@shared/contracts": "../shared/contracts/index.ts"
     }
   },
   optimizeDeps: {
-    include: ['../shared/contracts']
+    include: ['../shared/contracts/index.ts']
   },
   server: {
     host: '0.0.0.0',
