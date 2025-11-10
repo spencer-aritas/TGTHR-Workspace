@@ -1,5 +1,5 @@
 import { getCurrentUser } from '../lib/salesforceAuth';
-import type { InteractionSummaryRequest } from '@shared/contracts/index';
+import type { InteractionSummaryRequest } from '@shared/contracts';
 
 export interface InteractionSummaryData {
   Id: string;

@@ -1,5 +1,5 @@
 import { getCurrentUser } from '../lib/salesforceAuth';
-import type { CaseData } from '@shared/contracts/index';
+import type { CaseData } from '@shared/contracts';
 
 export type Case = CaseData;
 
