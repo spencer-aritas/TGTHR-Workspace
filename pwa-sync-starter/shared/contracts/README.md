@@ -58,6 +58,7 @@ When creating a new Salesforce object or API:
 - `InteractionSummaryContract.ts` - Interaction logging
 - `AssessmentContract.ts` - Assessment creation and retrieval
 - `AuditLogContract.ts` - Audit logging
+- `InterviewContract.ts` - Interview templates, questions, and responses
 - `index.ts` - Central exports
 
 ## Best Practices

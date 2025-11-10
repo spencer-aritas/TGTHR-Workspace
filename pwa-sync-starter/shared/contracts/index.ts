@@ -7,6 +7,9 @@ export * from './InteractionSummaryContract';
 export * from './AssessmentContract';
 export * from './AuditLogContract';
 export * from './SSRSAssessmentContract';
+export * from './InterviewContract';
+export * from './TaskContract';
+export * from './PwaEncounterContract';
 
 // Common types used across contracts
 export interface BaseResponse {

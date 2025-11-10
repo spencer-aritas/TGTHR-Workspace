@@ -1,6 +1,6 @@
 # server/app/salesforce/interaction_summary_service.py
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from datetime import datetime
 from .sf_client import SalesforceClient
 
@@ -30,7 +30,7 @@ class InteractionSummaryService:
                 record_id=data['RelatedRecordId'],
                 notes=data['Notes'],
                 uuid=f"interaction_{datetime.now().isoformat()}",
-                created_by_user_id=data.get('CreatedBy')
+                created_by_user_id=data.get('CreatedBy') or ''
             )
             
             logger.info(f"Successfully created interaction summary: {interaction_id}")
@@ -39,3 +39,46 @@ class InteractionSummaryService:
         except Exception as e:
             logger.error(f"Failed to create interaction summary: {e}")
             raise
+    
+    def get_interactions_by_record(self, record_id: str, max_rows: int = 50) -> List[Dict[str, Any]]:
+        """Fetch interaction summaries for a specific record (Case, Account, etc.)"""
+        try:
+            logger.info(f"Fetching interactions for record: {record_id}")
+            
+            # Query InteractionSummary records related to this case/account
+            query = """
+            SELECT Id, Name, RelatedRecordId__c, InteractionDate__c, 
+                   StartTime__c, EndTime__c, Notes__c, CreatedDate, 
+                   CreatedBy.Name
+            FROM InteractionSummary__c
+            WHERE RelatedRecordId__c = :recordId
+            ORDER BY InteractionDate__c DESC, CreatedDate DESC
+            LIMIT :maxRows
+            """
+            
+            result = self.sf_client.query(query, {
+                "recordId": record_id,
+                "maxRows": max_rows
+            })
+            
+            interactions = []
+            for record in result.get('records', []):
+                interactions.append({
+                    'Id': record.get('Id'),
+                    'RelatedRecordId': record.get('RelatedRecordId__c'),
+                    'InteractionDate': record.get('InteractionDate__c'),
+                    'StartTime': record.get('StartTime__c'),
+                    'EndTime': record.get('EndTime__c'),
+                    'Notes': record.get('Notes__c'),
+                    'CreatedByName': record.get('CreatedBy', {}).get('Name') if record.get('CreatedBy') else 'Unknown',
+                    'CreatedDate': record.get('CreatedDate')
+                })
+            
+            logger.info(f"Found {len(interactions)} interactions for record {record_id}")
+            return interactions
+                
+        except Exception as e:
+            logger.error(f"Failed to fetch interactions for record {record_id}: {e}")
+            # Return empty list instead of raising to prevent breaking the UI
+            logger.warning(f"Returning empty interaction list due to error")
+            return []

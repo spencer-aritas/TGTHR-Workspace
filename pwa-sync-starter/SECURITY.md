@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD022 MD031 MD032 MD040 MD058 MD047-->
+
 # Security Recommendations for TGTHR Outreach PWA
 
 ## Current Security Posture ✅

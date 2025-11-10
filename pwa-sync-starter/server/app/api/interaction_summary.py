@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import logging
 
 logger = logging.getLogger("interaction_summary_api")
@@ -15,10 +15,36 @@ class InteractionSummaryRequest(BaseModel):
     CreatedBy: str
     CreatedByEmail: str
 
+class InteractionSummaryResponse(BaseModel):
+    Id: str
+    RelatedRecordId: str
+    InteractionDate: str
+    StartTime: Optional[str] = None
+    EndTime: Optional[str] = None
+    Notes: str
+    CreatedByName: Optional[str] = None
+    CreatedDate: str
+
 @router.get("/interaction-summary/test")
 async def test_interaction_summary():
     """Test endpoint to verify router is working"""
     return {"status": "ok", "message": "Interaction summary router is working"}
+
+@router.get("/interaction-summary/by-case/{caseId}")
+async def get_interactions_by_case(caseId: str, maxRows: int = Query(50, ge=1, le=500)):
+    """Get all interaction summaries for a specific case"""
+    try:
+        logger.info(f"Fetching interactions for case: {caseId}")
+        
+        from ..salesforce.interaction_summary_service import InteractionSummaryService
+        
+        service = InteractionSummaryService()
+        interactions = service.get_interactions_by_record(caseId, maxRows)
+        return {"interactions": interactions, "count": len(interactions)}
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch interactions for case {caseId}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch interactions: {str(e)}")
 
 @router.post("/interaction-summary")
 async def create_interaction_summary(request: InteractionSummaryRequest):
