@@ -46,13 +46,14 @@ class InteractionSummaryService:
             logger.info(f"Fetching interactions for record: {record_id}")
             
             # Query InteractionSummary records related to this case/account
+            # Use standard fields: RelatedRecordId (case), Date_of_Interaction__c (date), MeetingNotes (notes)
             query = """
-            SELECT Id, Name, RelatedRecordId__c, InteractionDate__c, 
-                   StartTime__c, EndTime__c, Notes__c, CreatedDate, 
+            SELECT Id, Name, RelatedRecordId, Date_of_Interaction__c, 
+                   Start_Time__c, End_Time__c, MeetingNotes, CreatedDate, 
                    CreatedBy.Name
-            FROM InteractionSummary__c
-            WHERE RelatedRecordId__c = :recordId
-            ORDER BY InteractionDate__c DESC, CreatedDate DESC
+            FROM InteractionSummary
+            WHERE RelatedRecordId = :recordId
+            ORDER BY Date_of_Interaction__c DESC, CreatedDate DESC
             LIMIT :maxRows
             """
             
@@ -65,11 +66,11 @@ class InteractionSummaryService:
             for record in result.get('records', []):
                 interactions.append({
                     'Id': record.get('Id'),
-                    'RelatedRecordId': record.get('RelatedRecordId__c'),
-                    'InteractionDate': record.get('InteractionDate__c'),
-                    'StartTime': record.get('StartTime__c'),
-                    'EndTime': record.get('EndTime__c'),
-                    'Notes': record.get('Notes__c'),
+                    'RelatedRecordId': record.get('RelatedRecordId'),
+                    'InteractionDate': record.get('Date_of_Interaction__c'),
+                    'StartTime': record.get('Start_Time__c'),
+                    'EndTime': record.get('End_Time__c'),
+                    'Notes': record.get('MeetingNotes'),
                     'CreatedByName': record.get('CreatedBy', {}).get('Name') if record.get('CreatedBy') else 'Unknown',
                     'CreatedDate': record.get('CreatedDate')
                 })
