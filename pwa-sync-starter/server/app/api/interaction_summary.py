@@ -34,12 +34,14 @@ async def test_interaction_summary():
 async def get_interactions_by_case(caseId: str, maxRows: int = Query(50, ge=1, le=500)):
     """Get all interaction summaries for a specific case"""
     try:
-        logger.info(f"Fetching interactions for case: {caseId}")
+        logger.info(f"API request: Fetching interactions for case: {caseId} with maxRows: {maxRows}")
         
         from ..salesforce.interaction_summary_service import InteractionSummaryService
         
         service = InteractionSummaryService()
         interactions = service.get_interactions_by_record(caseId, maxRows)
+        
+        logger.info(f"API response: Returning {len(interactions)} interactions for case {caseId}")
         return {"interactions": interactions, "count": len(interactions)}
         
     except Exception as e:

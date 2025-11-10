@@ -380,11 +380,24 @@ class SalesforceClient:
         return True
     
     def query(self, soql: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Execute a SOQL query with optional parameters"""
+        """Execute a SOQL query with optional parameters
+        
+        Handles both string and numeric parameters:
+        - Numeric values (int, float) are NOT quoted (for LIMIT, offsets, etc.)
+        - String values ARE quoted
+        - None values are replaced with NULL keyword
+        """
         if params:
-            # Simple parameter substitution for :paramName
+            # Parameter substitution for :paramName
             for key, value in params.items():
-                soql = soql.replace(f":{key}", f"'{value}'")
+                placeholder = f":{key}"
+                if value is None:
+                    replacement = "NULL"
+                elif isinstance(value, (int, float)):
+                    replacement = str(value)  # Don't quote numbers
+                else:
+                    replacement = f"'{value}'"  # Quote strings
+                soql = soql.replace(placeholder, replacement)
         return _query(soql)
     
     def create(self, sobject: str, data: Dict[str, Any]) -> Dict[str, Any]:
