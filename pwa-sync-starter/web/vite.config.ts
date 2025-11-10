@@ -44,6 +44,14 @@ export default defineConfig({
       "@shared/contracts": "../shared/contracts/index.ts"
     }
   },
+  build: {
+    rollupOptions: {
+      external: [],
+      output: {
+        globals: {}
+      }
+    }
+  },
   optimizeDeps: {
     include: ['../shared/contracts/index.ts']
   },

@@ -1,0 +1,22 @@
+{
+  "name": "@tgthr/contracts",
+  "version": "1.0.0",
+  "description": "Shared Salesforce-PWA contract types and interfaces",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "types": "./index.ts"
+    }
+  },
+  "keywords": [
+    "salesforce",
+    "contracts",
+    "types",
+    "tgthr"
+  ],
+  "author": "TGTHR",
+  "license": "MIT",
+  "private": true
+}

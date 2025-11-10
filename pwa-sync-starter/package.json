@@ -1,4 +1,12 @@
 {
+  "name": "pwa-sync-starter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TGTHR PWA with Salesforce sync",
+  "workspaces": [
+    "shared/contracts",
+    "web"
+  ],
   "devDependencies": {
     "typescript": "^5.9.3"
   }
