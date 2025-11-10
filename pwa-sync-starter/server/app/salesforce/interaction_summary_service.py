@@ -43,7 +43,7 @@ class InteractionSummaryService:
     def get_interactions_by_record(self, record_id: str, max_rows: int = 50) -> List[Dict[str, Any]]:
         """Fetch interaction summaries for a specific record (Case, Account, etc.)"""
         try:
-            logger.info(f"Fetching interactions for record: {record_id}")
+            logger.info(f"Fetching interactions for record: {record_id} (type: {type(record_id).__name__})")
             
             # Query InteractionSummary records related to this case/account
             # Use standard fields: RelatedRecordId (case), Date_of_Interaction__c (date), MeetingNotes (notes)
@@ -57,14 +57,19 @@ class InteractionSummaryService:
             LIMIT :maxRows
             """
             
+            logger.debug(f"Query: {query}")
+            logger.debug(f"Parameters: recordId={record_id}, maxRows={max_rows}")
+            
             result = self.sf_client.query(query, {
                 "recordId": record_id,
                 "maxRows": max_rows
             })
             
+            logger.debug(f"Query result: {result}")
+            
             interactions = []
             for record in result.get('records', []):
-                interactions.append({
+                interaction = {
                     'Id': record.get('Id'),
                     'RelatedRecordId': record.get('RelatedRecordId'),
                     'InteractionDate': record.get('Date_of_Interaction__c'),
@@ -73,13 +78,15 @@ class InteractionSummaryService:
                     'Notes': record.get('MeetingNotes'),
                     'CreatedByName': record.get('CreatedBy', {}).get('Name') if record.get('CreatedBy') else 'Unknown',
                     'CreatedDate': record.get('CreatedDate')
-                })
+                }
+                logger.debug(f"Mapped interaction: {interaction}")
+                interactions.append(interaction)
             
             logger.info(f"Found {len(interactions)} interactions for record {record_id}")
             return interactions
                 
         except Exception as e:
-            logger.error(f"Failed to fetch interactions for record {record_id}: {e}")
+            logger.error(f"Failed to fetch interactions for record {record_id}: {e}", exc_info=True)
             # Return empty list instead of raising to prevent breaking the UI
             logger.warning(f"Returning empty interaction list due to error")
             return []
