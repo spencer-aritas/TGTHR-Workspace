@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Case } from '../services/caseService';
 import { interactionSummaryService, InteractionSummaryData } from '../services/interactionSummaryService';
 import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
+import { AvailableInterviewsModal } from './AvailableInterviewsModal';
+import type { InterviewTemplateDefinition } from '@shared/contracts/index.ts';
 
 interface InteractionHistoryProps {
   selectedCase: Case;
@@ -31,6 +33,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
   const [submitting, setSubmitting] = useState(false);
   const [showNewNoteForm, setShowNewNoteForm] = useState(false);
   const [showSSRS, setShowSSRS] = useState(false);
+  const [showAvailableInterviews, setShowAvailableInterviews] = useState(false);
 
   const loadInteractions = useCallback(async () => {
     try {
@@ -112,6 +115,12 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
     await loadInteractions();
   };
 
+  const handleSelectInterview = (template: InterviewTemplateDefinition) => {
+    setShowAvailableInterviews(false);
+    // TODO: Navigate to interview or start interview with selected template
+    console.log('Selected interview template:', template);
+  };
+
   if (showSSRS && selectedCase) {
     return (
       <SSRSAssessmentWizard
@@ -182,7 +191,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
             <div style={{ marginBottom: '24px' }}>
               <div className="slds-m-bottom_medium">
                 <div className="slds-grid slds-gutters">
-                  <div className="slds-col slds-size_1-of-2">
+                  <div className="slds-col slds-size_1-of-3">
                     <button
                       className="slds-button slds-button_brand slds-size_1-of-1"
                       onClick={handleNewNote}
@@ -190,7 +199,15 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                       New Note
                     </button>
                   </div>
-                  <div className="slds-col slds-size_1-of-2">
+                  <div className="slds-col slds-size_1-of-3">
+                    <button
+                      className="slds-button slds-button_outline-brand slds-size_1-of-1"
+                      onClick={() => setShowAvailableInterviews(true)}
+                    >
+                      Available Interviews
+                    </button>
+                  </div>
+                  <div className="slds-col slds-size_1-of-3">
                     <button
                       className="slds-button slds-button_outline-brand slds-size_1-of-1"
                       onClick={() => setShowSSRS(true)}
@@ -444,6 +461,14 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
             </form>
           </div>
         </div>
+      )}
+
+      {/* Available Interviews Modal */}
+      {showAvailableInterviews && (
+        <AvailableInterviewsModal
+          onSelect={handleSelectInterview}
+          onClose={() => setShowAvailableInterviews(false)}
+        />
       )}
     </div>
   );
