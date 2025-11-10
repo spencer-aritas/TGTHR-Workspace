@@ -749,6 +749,57 @@ public with sharing class InterviewTemplateController {
         }
     }
 
+    @AuraEnabled(cacheable=true)
+    public static List<Map<String, Object>> getMobileAvailableTemplates() {
+        /**
+         * Fetch active interview templates marked as Available_for_Mobile__c = true
+         * Used by PWA for "Available Interviews" button/selector
+         * Returns dynamic results since custom objects aren't in schema
+         */
+        List<Map<String, Object>> summaries = new List<Map<String, Object>>();
+
+        try {
+            String query = 'SELECT Id, Name, InterviewTemplate__c, InterviewTemplate__r.Name, ' +
+                          'InterviewTemplate__r.Category__c, Status__c, Variant__c, Effective_From__c, Effective_To__c ' +
+                          'FROM InterviewTemplateVersion__c ' +
+                          'WHERE InterviewTemplate__r.Active__c = true ' +
+                          'AND InterviewTemplate__r.Available_for_Mobile__c = true ' +
+                          'AND Status__c = \'Active\' ' +
+                          'ORDER BY InterviewTemplate__r.Name, Variant__c, Name';
+            
+            List<SObject> versions = Database.query(query);
+            
+            for (SObject versionRecord : versions) {
+                Map<String, Object> summary = new Map<String, Object>();
+                summary.put('templateId', versionRecord.get('InterviewTemplate__c'));
+                summary.put('templateVersionId', versionRecord.get('Id'));
+                
+                SObject templateRel = versionRecord.getSObject('InterviewTemplate__r');
+                if (templateRel != null) {
+                    summary.put('templateName', templateRel.get('Name'));
+                    summary.put('category', templateRel.get('Category__c'));
+                } else {
+                    summary.put('templateName', null);
+                    summary.put('category', null);
+                }
+                
+                summary.put('versionName', versionRecord.get('Name'));
+                summary.put('variant', versionRecord.get('Variant__c'));
+                summary.put('status', versionRecord.get('Status__c'));
+                summary.put('effectiveFrom', versionRecord.get('Effective_From__c'));
+                summary.put('effectiveTo', versionRecord.get('Effective_To__c'));
+                
+                summaries.add(summary);
+            }
+        } catch (Exception e) {
+            System.debug('Error fetching mobile available templates: ' + e.getMessage());
+            System.debug('Stack trace: ' + e.getStackTraceString());
+            // If field doesn't exist yet, return empty list rather than error
+        }
+
+        return summaries;
+    }
+
     private static String generateUuid() {
         Blob randomBlob = Crypto.generateDigest(
             'SHA1',

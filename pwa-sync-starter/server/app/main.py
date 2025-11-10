@@ -15,6 +15,7 @@ from .api.users import router as users_router
 from .api.signatures import router as signatures_router
 from .api.cases import router as cases_router
 from .api.interaction_summary import router as interaction_summary_router
+from .api.interview_templates import router as interview_templates_router
 from .routers.ssrs_assessment import router as ssrs_router
 from .middleware.logging_with_audit import setup_audit_logging
 
@@ -64,6 +65,7 @@ app.include_router(users_router, prefix="/api")
 app.include_router(signatures_router, prefix="/api")
 app.include_router(cases_router, prefix="/api")
 app.include_router(interaction_summary_router, prefix="/api")
+app.include_router(interview_templates_router, prefix="/api")
 app.include_router(ssrs_router, prefix="/api")
 
 # Add device registration router
