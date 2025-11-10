@@ -5,6 +5,8 @@
   "description": "Salesforce App",
   "scripts": {
     "lint": "eslint **/{aura,lwc}/**/*.js",
+    "lint:md": "markdownlint-cli2 \"docs/**/*.md\" \"*.md\"",
+    "lint:md:fix": "markdownlint-cli2 --fix \"docs/**/*.md\" \"*.md\"",
     "test": "npm run test:unit",
     "test:unit": "sfdx-lwc-jest",
     "test:unit:watch": "sfdx-lwc-jest --watch",
@@ -12,8 +14,10 @@
     "test:unit:coverage": "sfdx-lwc-jest --coverage",
     "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
     "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
+    "validate-dto-sync": "node scripts/validate-dto-sync.js",
+    "docs:index": "python scripts/generate-docs-index.py",
     "prepare": "husky || true",
-    "precommit": "lint-staged"
+    "precommit": "npm run validate-dto-sync && npm run lint:md && lint-staged"
   },
   "devDependencies": {
     "@lwc/eslint-plugin-lwc": "^3.1.0",
@@ -27,6 +31,7 @@
     "eslint-plugin-jest": "^28.14.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
+    "markdownlint-cli2": "^0.18.1",
     "prettier": "^3.5.3",
     "prettier-plugin-apex": "^2.2.6"
   },
@@ -38,7 +43,7 @@
       "eslint"
     ],
     "**/lwc/**": [
-        "sfdx-lwc-jest -- --bail --findRelatedTests --passWithNoTests"
+      "sfdx-lwc-jest -- --bail --findRelatedTests --passWithNoTests"
     ]
   }
 }

@@ -1,0 +1,58 @@
+<template>
+    <template if:true={isOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" 
+                            title="Close" onclick={close}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 class="slds-modal__title slds-hyphenate">Add Diagnosis / Code</h2>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template if:true={isLoadingCodes}>
+                        <lightning-spinner alternative-text="Loading codes..." size="small"></lightning-spinner>
+                    </template>
+                    
+                    <lightning-combobox
+                        label="Select Code / Diagnosis"
+                        value={selectedCodeId}
+                        options={codeOptions}
+                        onchange={handleCodeChange}
+                        placeholder="Search for a code..."
+                        required
+                        disabled={isLoadingCodes}>
+                    </lightning-combobox>
+                    
+                    <lightning-textarea
+                        label="Notes"
+                        value={notes}
+                        onchange={handleNotesChange}
+                        class="slds-m-top_small"
+                        placeholder="Additional notes about this diagnosis/code...">
+                    </lightning-textarea>
+                    
+                    <lightning-input
+                        type="checkbox"
+                        label="Primary Diagnosis"
+                        checked={isPrimary}
+                        onchange={handlePrimaryChange}
+                        class="slds-m-top_small">
+                    </lightning-input>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={close}>Cancel</button>
+                    <button class="slds-button slds-button_brand" 
+                            onclick={handleSave}
+                            disabled={isSaving}>
+                        {saveButtonLabel}
+                    </button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

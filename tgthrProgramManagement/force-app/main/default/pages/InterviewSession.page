@@ -1,0 +1,25 @@
+<apex:page lightningStylesheets="true" showHeader="false" sidebar="false" standardStylesheets="false">
+    <apex:includeLightning />
+    <div id="interviewSessionContainer" style="height: 100vh; width: 100%;"></div>
+    <script>
+        var urlParams = new URLSearchParams(window.location.search);
+        var caseId = urlParams.get('caseId');
+        var templateVersionId = urlParams.get('templateVersionId');
+        
+        console.log('Case ID:', caseId);
+        console.log('Template Version ID:', templateVersionId);
+        
+        $Lightning.use("c:InterviewSessionApp", function() {
+            $Lightning.createComponent("c:interviewSession",
+                { 
+                    caseId: caseId,
+                    templateVersionId: templateVersionId
+                },
+                "interviewSessionContainer",
+                function(cmp) {
+                    console.log("Interview Session component created successfully");
+                }
+            );
+        });
+    </script>
+</apex:page>

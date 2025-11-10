@@ -1,0 +1,288 @@
+<template>
+    <div class="note-shell">
+        <template if:true={isLoading}>
+            <div class="loading-overlay">
+                <lightning-spinner alternative-text="Loading clinical note" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={loadError}>
+            <div class="slds-notify slds-notify_alert slds-theme_error slds-m-around_medium">
+                <span class="slds-assistive-text">Error</span>
+                <h2>{loadError}</h2>
+            </div>
+        </template>
+
+        <template if:true={isReady}>
+            <section class="note-header">
+                <div class="header-title">
+                    <lightning-icon icon-name="standard:notebook" size="small"></lightning-icon>
+                    <div>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Participant Overview</h3>
+                        <p class="slds-text-body_small">Captured automatically from the linked Person Account</p>
+                    </div>
+                </div>
+                <div class="header-grid">
+                    <div class="field-block">
+                        <span class="label">Participant</span>
+                        <span class="value">{header.personName}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Date of Birth</span>
+                        <span class="value">{header.birthdate}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Email</span>
+                        <span class="value">{header.email}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Mobile</span>
+                        <span class="value">{header.phone}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Medicaid ID</span>
+                        <span class="value">{header.medicaidId}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Note Date</span>
+                        <span class="value">{form.interactionDate}</span>
+                    </div>
+                </div>
+            </section>
+
+            <div class="note-layout">
+                <aside class="note-sidebar">
+                    <nav class="sidebar-nav" role="navigation" aria-label="Clinical note sections">
+                        <template for:each={navigationSteps} for:item="item">
+                            <button
+                                type="button"
+                                key={item.name}
+                                class={item.className}
+                                data-section={item.name}
+                                onclick={handleSidebarClick}
+                                aria-pressed={item.isActive}
+                                aria-current={item.ariaCurrent}
+                            >
+                                <span class="step-indicator">{item.step}</span>
+                                <span class="nav-label">{item.label}</span>
+                            </button>
+                        </template>
+                    </nav>
+                </aside>
+
+                <div class="note-content">
+                    <lightning-accordion
+                        active-section-name={activeSection}
+                        allow-multiple="false"
+                        onsectiontoggle={handleSectionToggle}
+                    >
+                        <lightning-accordion-section name="visit" label="Visit Details">
+                            <div data-section="visit">
+                                <div class="slds-grid slds-wrap slds-gutters_small">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                        <lightning-input
+                                            type="time"
+                                            name="startTime"
+                                            label="Start Time"
+                                            required
+                                            value={form.startTime}
+                                            onchange={handleInputChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                        <lightning-input
+                                            type="time"
+                                            name="endTime"
+                                            label="End Time"
+                                            required
+                                            value={form.endTime}
+                                            onchange={handleInputChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                        <div class="duration-block">
+                                            <span class="label">Duration</span>
+                                            <span class="value">{durationDisplay}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-wrap slds-gutters_small slds-m-top_small">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <lightning-input
+                                            type="checkbox"
+                                            name="interpreterUsed"
+                                            label="Interpreter Used"
+                                            checked={form.interpreterUsed}
+                                            onchange={handleInputChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <lightning-combobox
+                                            name="pos"
+                                            label="Place of Service"
+                                            value={form.pos}
+                                            options={posOptions}
+                                            placeholder="Select"
+                                            onchange={handleInputChange}>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="narrative" label="Notes">
+                            <div data-section="narrative">
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Reason for Visit</label>
+                                    <lightning-input-rich-text
+                                        value={form.reason}
+                                        formats={richTextFormats}
+                                        onchange={handleReasonChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Intervention</label>
+                                    <lightning-input-rich-text
+                                        value={form.services}
+                                        formats={richTextFormats}
+                                        onchange={handleServicesChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Client Response</label>
+                                    <lightning-input-rich-text
+                                        value={form.response}
+                                        formats={richTextFormats}
+                                        onchange={handleResponseChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Plan</label>
+                                    <lightning-input-rich-text
+                                        value={form.plan}
+                                        formats={richTextFormats}
+                                        onchange={handlePlanChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="services" label="Services Provided">
+                            <div data-section="services">
+                                <template if:false={hasBenefits}>
+                                    <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small">
+                                        <span class="slds-assistive-text">Warning</span>
+                                        <p>No clinical benefits available. Ensure Benefits have "Available for Clinical" checked for this Case's Program.</p>
+                                    </div>
+                                </template>
+                                <lightning-dual-listbox
+                                    name="benefits"
+                                    label="Select Services"
+                                    source-label="Available Services"
+                                    selected-label="Services Provided"
+                                    field-level-help="Select the clinical services/benefits provided during this interaction. Benefit assignments and disbursements will be automatically created."
+                                    value={form.benefitIds}
+                                    options={benefitOptions}
+                                    onchange={handleBenefitsChange}>
+                                </lightning-dual-listbox>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="goals" label="Goals Addressed">
+                            <div data-section="goals">
+                                <div class="slds-m-bottom_small">
+                                    <lightning-button
+                                        label="Create New Goal"
+                                        icon-name="utility:new"
+                                        onclick={handleCreateGoal}
+                                        variant="neutral"
+                                        class="slds-m-bottom_x-small">
+                                    </lightning-button>
+                                </div>
+                                <lightning-dual-listbox
+                                    name="goals"
+                                    label="Select Goal Assignments"
+                                    source-label="Available Goals"
+                                    selected-label="Goals Addressed"
+                                    field-level-help="Only goal assignments for this participant are listed"
+                                    value={form.goalIds}
+                                    options={goalOptions}
+                                    onchange={handleGoalsChange}>
+                                </lightning-dual-listbox>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="codes" label="Code Assignments">
+                            <div data-section="codes">
+                                <div class="slds-m-bottom_small">
+                                    <lightning-button
+                                        label="Add New Diagnosis"
+                                        icon-name="utility:new"
+                                        onclick={handleCreateCode}
+                                        variant="neutral"
+                                        class="slds-m-bottom_x-small">
+                                    </lightning-button>
+                                </div>
+                                <lightning-dual-listbox
+                                    name="codes"
+                                    label="Select Codes"
+                                    source-label="Available Codes"
+                                    selected-label="Codes Applied"
+                                    value={form.codeIds}
+                                    options={codeOptions}
+                                    onchange={handleCodesChange}>
+                                </lightning-dual-listbox>
+                            </div>
+                        </lightning-accordion-section>
+                        
+                        <!-- Goal Assignment Creator Modal -->
+                        <c-goal-assignment-creator
+                            account-id={accountId}
+                            case-id={recordId}
+                            ongoalcreated={handleGoalCreated}>
+                        </c-goal-assignment-creator>
+                        
+                        <!-- Code Assignment Creator Modal -->
+                        <c-code-assignment-creator
+                            account-id={accountId}
+                            case-id={recordId}
+                            oncodecreated={handleCodeCreated}>
+                        </c-code-assignment-creator>
+
+                        <lightning-accordion-section name="signature" label="Signature">
+                            <div data-section="signature">
+                                <p class="slds-text-body_small slds-m-bottom_small">
+                                    Signer: {signatureContext.signerName} - Date: {signatureContext.signDate}
+                                </p>
+                                <c-signature-pad
+                                    hide-controls
+                                    record-id={interactionId}
+                                    onsignaturesaved={handleSignatureSaved}>
+                                </c-signature-pad>
+                            </div>
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+
+                    <div class="actions">
+                        <lightning-button
+                            variant="neutral"
+                            label="Reset"
+                            onclick={handleReset}>
+                        </lightning-button>
+                        <lightning-button
+                            variant="brand"
+                            label="Save Clinical Note"
+                            class="submit-button"
+                            onclick={handleSave}
+                            disabled={isSaving}>
+                        </lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

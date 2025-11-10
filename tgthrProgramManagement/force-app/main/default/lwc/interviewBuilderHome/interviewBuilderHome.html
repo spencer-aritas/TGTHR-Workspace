@@ -1,0 +1,696 @@
+<template>
+    <lightning-card title="Interview Management Home" icon-name="custom:custom63">
+        <!-- Template Manager Section -->
+        <template if:false={showWizard}>
+            <div class="slds-p-around_medium">
+                <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_medium">
+                    <div class="slds-col">
+                        <h2 class="slds-text-heading_medium">Manage Interview Templates</h2>
+                    </div>
+                    <div class="slds-col slds-no-flex">
+                        <lightning-button
+                            variant="brand"
+                            label="Create New Template"
+                            icon-name="utility:add"
+                            onclick={handleCreateNew}>
+                        </lightning-button>
+                    </div>
+                </div>
+                
+                <c-interview-template-manager
+                    onreviewtemplate={handleReviewTemplate}
+                    onedittemplate={handleEditTemplate}
+                    onclonefromtemplate={handleCloneFromTemplate}>
+                </c-interview-template-manager>
+            </div>
+        </template>
+
+        <!-- Wizard Section -->
+        <template if:true={showWizard}>
+            <div class="slds-p-horizontal_medium slds-p-top_small">
+                <lightning-button
+                    variant="neutral"
+                    label="Back to Templates"
+                    icon-name="utility:back"
+                    onclick={handleBackToManager}>
+                </lightning-button>
+            </div>
+        </template>
+
+        <template if:true={showWizard}>
+        <div class="wizard-header slds-grid slds-grid_vertical-align-center slds-p-around_medium">
+            <div class="slds-col">
+                <lightning-progress-indicator current-step={currentStep} type="path">
+                    <lightning-progress-step label="Template" value="template"></lightning-progress-step>
+                    <lightning-progress-step label="Account Fields" value="accountFields"></lightning-progress-step>
+                    <lightning-progress-step label="Assessment Fields" value="assessmentFields"></lightning-progress-step>
+                    <lightning-progress-step label="Format" value="format"></lightning-progress-step>
+                    <lightning-progress-step label="Review &amp; Save" value="review"></lightning-progress-step>
+                </lightning-progress-indicator>
+            </div>
+            <div class="wizard-header__actions slds-col_bump-left">
+                <lightning-button
+                    variant="brand"
+                    label={primaryActionLabel}
+                    disabled={isSaveDisabled}
+                    onclick={handleSave}>
+                </lightning-button>
+            </div>
+        </div>
+
+        <div class="slds-p-around_medium slds-border_top">
+            <template if:true={isTemplateStep}>
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            name="name"
+                            label="Template Name"
+                            value={templateForm.name}
+                            onchange={handleTemplateInput}
+                            required>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            name="name"
+                            label="Version Name"
+                            value={versionForm.name}
+                            onchange={handleVersionInput}
+                            required>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox
+                            name="category"
+                            label="Category"
+                            value={templateForm.category}
+                            options={categoryOptions}
+                            onchange={handleTemplateInput}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox
+                            name="variant"
+                            label="Variant"
+                            value={versionForm.variant}
+                            options={variantOptions}
+                            onchange={handleVersionInput}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-3">
+                        <lightning-combobox
+                            name="status"
+                            label="Status"
+                            value={versionForm.status}
+                            options={statusOptions}
+                            onchange={handleVersionInput}>
+                        </lightning-combobox>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            type="number"
+                            name="versionNumber"
+                            label="Version Number"
+                            value={versionForm.versionNumber}
+                            step="0.1"
+                            onchange={handleVersionInput}
+                            required>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            type="date"
+                            name="effectiveFrom"
+                            label="Effective From"
+                            value={versionForm.effectiveFrom}
+                            onchange={handleVersionInput}>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            type="date"
+                            name="effectiveTo"
+                            label="Effective To"
+                            value={versionForm.effectiveTo}
+                            onchange={handleVersionInput}>
+                        </lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <div class="lookup-wrapper">
+                            <lightning-record-edit-form object-api-name="InterviewTemplate__c">
+                                <lightning-input-field
+                                    field-name="Program__c"
+                                    value={templateForm.programId}
+                                    onchange={handleProgramChange}>
+                                </lightning-input-field>
+                            </lightning-record-edit-form>
+                        </div>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-m-top_medium">
+                        <lightning-input
+                            type="toggle"
+                            name="active"
+                            label="Template Active"
+                            checked={templateForm.active}
+                            onchange={handleTemplateInput}>
+                        </lightning-input>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Account Fields Step -->
+            <template if:true={isAccountFieldsStep}>
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_medium slds-m-bottom_medium">
+                        Select Account (Demographic) Fields
+                    </div>
+                    <div class="slds-text-body_regular slds-m-bottom_large slds-text-color_weak">
+                        Choose which participant demographic fields should be included in the interview.
+                    </div>
+                    
+                    <div class="slds-m-bottom_medium">
+                        <lightning-input
+                            type="search"
+                            label="Search Account Fields"
+                            value={accountFieldSearch}
+                            onchange={handleAccountFieldSearch}
+                            placeholder="Search by field name...">
+                        </lightning-input>
+                    </div>
+                    
+                    <lightning-dual-listbox
+                        name="accountFields"
+                        label="Account Fields"
+                        source-label="Available"
+                        selected-label="Included in Interview"
+                        options={filteredAccountFieldOptions}
+                        value={selectedAccountFields}
+                        onchange={handleAccountFieldChange}>
+                    </lightning-dual-listbox>
+                    
+                    <template if:true={hasSelectedAccountFields}>
+                        <div class="slds-m-top_medium">
+                            <p class="slds-text-title_caps slds-m-bottom_x-small">Selected Account Fields</p>
+                            <ul class="slds-list_dotted">
+                                <template for:each={selectedAccountFieldSummary} for:item="field">
+                                    <li key={field.id}>{field.label}</li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                    <template if:false={hasSelectedAccountFields}>
+                        <p class="slds-text-color_weak slds-m-top_medium">
+                            You can continue without selecting account fields.
+                        </p>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Assessment Fields Step -->
+            <template if:true={isAssessmentFieldsStep}>
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_medium slds-m-bottom_medium">
+                        Select Assessment (Clinical/Program) Fields
+                    </div>
+                    <div class="slds-text-body_regular slds-m-bottom_large slds-text-color_weak">
+                        Choose which assessment and program data fields should be included in the interview.
+                    </div>
+                    
+                    <div class="slds-m-bottom_medium">
+                        <lightning-input
+                            type="search"
+                            label="Search Assessment Fields"
+                            value={assessmentFieldSearch}
+                            onchange={handleAssessmentFieldSearch}
+                            placeholder="Search by field name...">
+                        </lightning-input>
+                    </div>
+                    
+                    <lightning-dual-listbox
+                        name="assessmentFields"
+                        label="Assessment Fields"
+                        source-label="Available"
+                        selected-label="Included in Interview"
+                        options={filteredAssessmentFieldOptions}
+                        value={selectedAssessmentFields}
+                        onchange={handleAssessmentFieldChange}>
+                    </lightning-dual-listbox>
+                    
+                    <template if:true={hasSelectedAssessmentFields}>
+                        <div class="slds-m-top_medium">
+                            <p class="slds-text-title_caps slds-m-bottom_x-small">Selected Assessment Fields</p>
+                            <ul class="slds-list_dotted">
+                                <template for:each={selectedAssessmentFieldSummary} for:item="field">
+                                    <li key={field.id}>{field.label}</li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                    <template if:false={hasSelectedAssessmentFields}>
+                        <p class="slds-text-color_weak slds-m-top_medium">
+                            You can continue without selecting assessment fields and add custom questions in the next step.
+                        </p>
+                    </template>
+                </div>
+            </template>
+
+            <template if:true={isFormatStep}>
+                <div class="question-workspace">
+                    <aside class="question-workspace__sidebar">
+                        <div class="slds-m-bottom_small question-workspace__canvas-header">
+                            <h3 class="slds-text-heading_small">Available Fields</h3>
+                        </div>
+                        <lightning-input
+                            type="search"
+                            value={librarySearch}
+                            label="Search Fields"
+                            onchange={handleLibrarySearch}>
+                        </lightning-input>
+                        <div class="question-library slds-m-top_small">
+                            <template if:true={groupedAvailableFields.length}>
+                                <template for:each={groupedAvailableFields} for:item="group" for:index="groupIndex">
+                                    <div key={group.groupName} class={group.containerClass}>
+                                        <h4 class="field-group__header" 
+                                            data-groupname={group.groupName}
+                                            onclick={handleToggleGroup}>
+                                            <span class="field-group__title">
+                                                {group.groupName}
+                                                <span class="field-group__count">({group.count})</span>
+                                            </span>
+                                            <lightning-icon icon-name="utility:chevronright" size="xx-small" class="field-group-chevron"></lightning-icon>
+                                        </h4>
+                                        
+                                        <template if:true={group.expanded}>
+                                        <template for:each={group.alphaGroups} for:item="alphaGroup" for:index="alphaIndex">
+                                            <div key={alphaGroup.letter} class="alpha-group">
+                                                <div class={alphaGroup.headerClass}
+                                                     data-groupindex={groupIndex}
+                                                     data-alphaindex={alphaIndex}
+                                                     onclick={handleToggleAlphaGroup}>
+                                                    <span class="alpha-letter">{alphaGroup.letter}</span>
+                                                    <span class="alpha-count">({alphaGroup.fields.length})</span>
+                                                    <lightning-icon icon-name="utility:chevronright" size="xx-small" class="alpha-chevron"></lightning-icon>
+                                                </div>
+                                                
+                                                <template if:true={alphaGroup.expanded}>
+                                                    <div class="alpha-fields">
+                                                        <template for:each={alphaGroup.fields} for:item="item">
+                                                            <div key={item.id} 
+                                                                 class={item.itemClass}>
+                                                                <template if:true={item.isAdded}>
+                                                                    <div class="field-item__content field-item__content--clickable" 
+                                                                         data-id={item.id}
+                                                                         onclick={handleRemoveField}>
+                                                                        <div class="field-item__info">
+                                                                            <span class="field-item__label">{item.label}</span>
+                                                                            <template if:true={item.usageInfo}>
+                                                                                <span class="field-item__usage">{item.usageInfo}</span>
+                                                                            </template>
+                                                                        </div>
+                                                                        <lightning-icon 
+                                                                            icon-name="utility:check"
+                                                                            size="x-small"
+                                                                            variant="success"
+                                                                            title="Click to remove">
+                                                                        </lightning-icon>
+                                                                    </div>
+                                                                </template>
+                                                                <template if:false={item.isAdded}>
+                                                                    <div class="field-item__content">
+                                                                        <div class="field-item__info">
+                                                                            <span class="field-item__label">{item.label}</span>
+                                                                            <template if:true={item.usageInfo}>
+                                                                                <span class="field-item__usage">{item.usageInfo}</span>
+                                                                            </template>
+                                                                        </div>
+                                                                        <lightning-button-icon
+                                                                            icon-name="utility:add"
+                                                                            variant="neutral"
+                                                                            size="x-small"
+                                                                            alternative-text="Add field"
+                                                                            title="Add field"
+                                                                            data-id={item.id}
+                                                                            data-is-field={item.isField}
+                                                                            onclick={handleFieldAdd}>
+                                                                        </lightning-button-icon>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                
+                                                <template if:false={alphaGroup.expanded}>
+                                                    <div class="alpha-preview">
+                                                        <template for:each={alphaGroup.fields} for:item="item" for:index="previewIndex">
+                                                            <template if:true={item.showPreview}>
+                                                                <span key={item.id} class="alpha-preview__item">{item.label}</span>
+                                                            </template>
+                                                        </template>
+                                                        <template if:true={alphaGroup.hasMore}>
+                                                            <span class="alpha-preview__more">+{alphaGroup.moreCount} more...</span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        </template>
+                                    </div>
+                                </template>
+                            </template>
+                            <template if:false={groupedAvailableFields.length}>
+                                <p class="slds-text-color_weak slds-text-body_small slds-m-top_small">No matching fields.</p>
+                            </template>
+                        </div>
+                    </aside>
+
+                    <section class="question-workspace__canvas">
+                        <div class="slds-m-bottom_small question-workspace__canvas-header">
+                            <lightning-button
+                                label="Add Custom Question"
+                                icon-name="utility:add"
+                                variant="brand-outline"
+                                onclick={handleAddQuestion}>
+                            </lightning-button>
+                        </div>
+                        <template if:true={questionSections.length}>
+                            <template for:each={questionSections} for:item="sectionGroup">
+                                <div key={sectionGroup.name} class="question-section">
+                                    <div class="question-section__title">
+                                        <lightning-input
+                                            value={sectionGroup.name}
+                                            data-section={sectionGroup.value}
+                                            onchange={handleSectionRename}
+                                            variant="label-hidden"
+                                            class="section-title-input">
+                                        </lightning-input>
+                                        <span class="slds-text-color_weak slds-text-body_small">{sectionGroup.items.length} fields</span>
+                                    </div>
+                                    <template for:each={sectionGroup.items} for:item="entry">
+                                        <article
+                                            key={entry.question.key}
+                                            class={entry.question.cardClass}
+                                            draggable="true"
+                                            data-index={entry.index}
+                                            ondragstart={handleDragStart}
+                                            ondragover={handleDragOver}
+                                            ondrop={handleDrop}
+                                            ondragend={handleDragEnd}>
+                                            <div class="slds-card__header slds-grid slds-grid_align-spread question-card__header">
+                                                <div class="question-card__title">
+                                                    <lightning-icon icon-name={entry.question.iconName} size="x-small"></lightning-icon>
+                                                    <div>
+                                                        <p class="slds-text-title_bold">#{entry.question.order} {entry.question.label}</p>
+                                                        <p class="slds-text-color_weak slds-text-body_small">{entry.question.responseType}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="slds-button-group" role="group">
+                                                    <lightning-button-icon
+                                                        icon-name="utility:jump_to_top"
+                                                        alternative-text="Move to top"
+                                                        title="Move to top"
+                                                        onclick={handleMoveToTop}
+                                                        data-index={entry.index}
+                                                        size="small">
+                                                    </lightning-button-icon>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:chevronup"
+                                                        alternative-text="Move up"
+                                                        title="Move up one"
+                                                        onclick={handleMoveUp}
+                                                        data-index={entry.index}
+                                                        size="small">
+                                                    </lightning-button-icon>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:chevrondown"
+                                                        alternative-text="Move down"
+                                                        title="Move down one"
+                                                        onclick={handleMoveDown}
+                                                        data-index={entry.index}
+                                                        size="small">
+                                                    </lightning-button-icon>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:jump_to_bottom"
+                                                        alternative-text="Move to bottom"
+                                                        title="Move to bottom"
+                                                        onclick={handleMoveToBottom}
+                                                        data-index={entry.index}
+                                                        size="small">
+                                                    </lightning-button-icon>
+                                                    <lightning-button-icon
+                                                        icon-name="utility:close"
+                                                        alternative-text="Remove question"
+                                                        title="Remove question"
+                                                        onclick={handleRemoveQuestion}
+                                                        data-index={entry.index}
+                                                        variant="destructive-text"
+                                                        size="small">
+                                                    </lightning-button-icon>
+                                                </div>
+                                            </div>
+                                            <div class="slds-card__body slds-p-around_medium">
+                                                <div class="slds-grid slds-wrap slds-gutters">
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <lightning-input
+                                                            data-index={entry.index}
+                                                            data-field="label"
+                                                            label="Label"
+                                                            value={entry.question.label}
+                                                            onchange={handleQuestionInput}>
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <lightning-input
+                                                            data-index={entry.index}
+                                                            data-field="apiName"
+                                                            label="API Name"
+                                                            value={entry.question.apiName}
+                                                            disabled
+                                                            class="slds-text-color_weak">
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <lightning-input
+                                                            data-index={entry.index}
+                                                            data-field="mapsTo"
+                                                            label="Maps To"
+                                                            value={entry.question.mapsTo}
+                                                            disabled
+                                                            class="slds-text-color_weak">
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <lightning-input
+                                                            data-index={entry.index}
+                                                            data-field="order"
+                                                            type="number"
+                                                            label="Display Order"
+                                                            value={entry.question.order}
+                                                            onchange={handleQuestionNumberInput}>
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <lightning-combobox
+                                                            data-index={entry.index}
+                                                            data-field="responseType"
+                                                            label="Response Type"
+                                                            value={entry.question.responseType}
+                                                            options={responseTypeOptions}
+                                                            onchange={handleQuestionInput}>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-1">
+                                                        <lightning-textarea
+                                                            data-index={entry.index}
+                                                            data-field="helpText"
+                                                            label="Help Text"
+                                                            value={entry.question.helpText}
+                                                            onchange={handleQuestionInput}>
+                                                        </lightning-textarea>
+                                                    </div>
+                                                    <template if:true={entry.question.showPicklistEditor}>
+                                                        <div class="slds-col slds-size_1-of-1">
+                                                            <lightning-textarea
+                                                                data-index={entry.index}
+                                                                data-field="picklistValuesText"
+                                                                label="Picklist Values (one per line)"
+                                                                value={entry.question.picklistValuesText}
+                                                                onchange={handlePicklistChange}>
+                                                            </lightning-textarea>
+                                                        </div>
+                                                        <div class="slds-col slds-size_1-of-2">
+                                                            <lightning-combobox
+                                                                label="Display As"
+                                                                data-index={entry.index}
+                                                                value={entry.question.picklistDisplayMode}
+                                                                options={picklistDisplayOptions}
+                                                                onchange={handlePicklistDisplayChange}>
+                                                            </lightning-combobox>
+                                                        </div>
+                                                    </template>
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <lightning-input
+                                                            type="number"
+                                                            data-index={entry.index}
+                                                            data-field="scoreWeight"
+                                                            label="Score Weight"
+                                                            value={entry.question.scoreWeight}
+                                                            onchange={handleQuestionNumberInput}>
+                                                        </lightning-input>
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-2 slds-grid">
+                                                        <lightning-input
+                                                            type="checkbox"
+                                                            data-index={entry.index}
+                                                            data-field="required"
+                                                            label="Required"
+                                                            checked={entry.question.required}
+                                                            onchange={handleQuestionCheckbox}>
+                                                        </lightning-input>
+                                                        <lightning-input
+                                                            class="slds-m-left_medium"
+                                                            data-index={entry.index}
+                                                            data-field="sensitive"
+                                                            type="checkbox"
+                                                            label="Sensitive"
+                                                            checked={entry.question.sensitive}
+                                                            onchange={handleQuestionCheckbox}>
+                                                        </lightning-input>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    </template>
+                                    <div class="question-section__footer">
+                                        <lightning-button
+                                            variant="neutral"
+                                            icon-name="utility:add"
+                                            label="New Custom Question"
+                                            data-section={sectionGroup.value}
+                                            onclick={handleAddSectionQuestion}>
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={questionSections.length}>
+                            <div class="slds-box slds-theme_alert-texture">
+                                <p>No questions yet. Use the toolbox or add a custom prompt.</p>
+                            </div>
+                        </template>
+                    </section>
+
+                    <aside class="question-workspace__map">
+                        <div class="slds-m-bottom_small">
+                            <h3 class="slds-text-heading_small">Question Map</h3>
+                            <p class="slds-text-color_weak slds-text-body_small">{questions.length} total questions</p>
+                        </div>
+                        <div class="question-map-scroll">
+                            <template if:true={questionSummarySections.length}>
+                                <template for:each={questionSummarySections} for:item="section">
+                                    <div key={section.name} class="question-map__section slds-m-bottom_small">
+                                        <p class="slds-text-title_caps">{section.name}</p>
+                                        <ol class="slds-list_ordered">
+                                            <template for:each={section.questions} for:item="summary">
+                                                <li 
+                                                    key={summary.order} 
+                                                    class={summary.mapItemClass} 
+                                                    data-index={summary.index}
+                                                    onclick={handleMapItemClick}>
+                                                    #{summary.order} {summary.label}
+                                                </li>
+                                            </template>
+                                        </ol>
+                                    </div>
+                                </template>
+                            </template>
+                            <template if:false={questionSummarySections.length}>
+                                <p class="slds-text-color_weak slds-text-body_small">Add questions to build the map.</p>
+                            </template>
+                        </div>
+                    </aside>
+                </div>
+            </template>
+
+            <template if:true={isReviewStep}>
+                <div class="slds-box slds-m-bottom_medium">
+                    <p class="slds-text-heading_small">{templateForm.name}</p>
+                    <p class="slds-text-color_weak">
+                        {versionForm.name} • {versionForm.variant} • Status: {versionForm.status}
+                    </p>
+                    <p class="slds-m-top_small">
+                        <strong>Program:</strong> {programSummary}
+                    </p>
+                </div>
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="6" padding="around-small">
+                        <h3 class="slds-text-title_caps">Mapped Fields</h3>
+                        <ul class="slds-list_dotted">
+                            <template for:each={selectedFieldSummary} for:item="field">
+                                <li key={field.id}>{field.label}</li>
+                            </template>
+                        </ul>
+                    </lightning-layout-item>
+                    <lightning-layout-item size="6" padding="around-small">
+                        <h3 class="slds-text-title_caps">Questions ({questions.length})</h3>
+                        <ol class="slds-list_ordered">
+                            <template for:each={questions} for:item="question">
+                                <li key={question.key}>
+                                    {question.label} <span class="slds-text-color_weak">({question.responseType})</span>
+                                </li>
+                            </template>
+                        </ol>
+                    </lightning-layout-item>
+                </lightning-layout>
+                <template if:true={saveMessage}>
+                    <div class="slds-notify slds-notify_alert slds-theme_success slds-m-top_medium">
+                        <span class="slds-assistive-text">success</span>
+                        <h2>{saveMessage}</h2>
+                    </div>
+                </template>
+            </template>
+        </div>
+
+        <div class="slds-card__footer slds-grid slds-grid_align-spread slds-p-around_medium">
+            <lightning-button
+                label="Previous"
+                onclick={handlePrev}
+                disabled={isFirstStep}>
+            </lightning-button>
+            <div class="slds-button-group" role="group">
+                <template if:true={isReviewStep}>
+                    <lightning-button
+                        label="Save as Draft"
+                        onclick={handleSaveAsDraft}
+                        disabled={isSaveDisabled}>
+                    </lightning-button>
+                    <lightning-button
+                        variant="brand"
+                        label="Save & Continue Editing"
+                        onclick={handleSaveAndContinue}
+                        disabled={isSaveDisabled}>
+                    </lightning-button>
+                    <lightning-button
+                        variant="success"
+                        label="Save & Activate"
+                        onclick={handleSaveAndActivate}
+                        disabled={isSaveDisabled}>
+                    </lightning-button>
+                </template>
+                <template if:false={isReviewStep}>
+                    <lightning-button
+                        variant="brand"
+                        label="Next"
+                        onclick={handleNext}
+                        disabled={isNextDisabled}>
+                    </lightning-button>
+                </template>
+            </div>
+        </div>
+        </template>
+
+        <template if:true={isSaving}>
+            <lightning-spinner alternative-text="Saving Interview Template"></lightning-spinner>
+        </template>
+    </lightning-card>
+</template>

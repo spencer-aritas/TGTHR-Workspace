@@ -145,7 +145,8 @@ public with sharing class InteractionSummaryService {
     String notes,
     String purpose,
     String interactionDate,
-    Boolean notifyCaseManager
+    Boolean notifyCaseManager,
+    String caseId
   ) {
     try {
       System.debug(
@@ -256,12 +257,59 @@ public with sharing class InteractionSummaryService {
         ' - ' +
         staffName;
 
+      // Determine Case linkage and parent interaction
+      Id caseIdToUse = null;
+      Id parentInteractionId = null;
+      // Evaluate explicit caseId parameter first
+      if (String.isNotBlank(caseId)) {
+        try {
+          caseIdToUse = Id.valueOf(caseId);
+        } catch (Exception ex) {
+          System.debug('Invalid caseId supplied: ' + caseId + ' - ' + ex.getMessage());
+        }
+      }
+
+      if (String.isNotBlank(relatedRecordId)) {
+        try {
+          Id candidateId = Id.valueOf(relatedRecordId);
+          Schema.SObjectType candidateType = candidateId.getSObjectType();
+          if (candidateType == Case.SObjectType) {
+            if (caseIdToUse == null) {
+              caseIdToUse = candidateId;
+            }
+          } else if (candidateType == InteractionSummary.SObjectType) {
+            parentInteractionId = candidateId;
+          }
+        } catch (Exception ex) {
+          System.debug('Unable to interpret relatedRecordId: ' + ex.getMessage());
+        }
+      }
+
       // Create a new interaction record using dynamic SObject creation
       SObject newInteraction = Schema.getGlobalDescribe()
         .get('InteractionSummary')
         .newSObject();
       newInteraction.put('AccountId', accountId);
       newInteraction.put('Program__c', programId);
+      if (caseIdToUse == null) {
+        try {
+          List<Case> fallbackCases = [
+            SELECT Id
+            FROM Case
+            WHERE AccountId = :accountId AND IsClosed = false
+            ORDER BY CreatedDate DESC
+            LIMIT 1
+          ];
+          if (!fallbackCases.isEmpty()) {
+            caseIdToUse = fallbackCases[0].Id;
+          }
+        } catch (Exception fallbackEx) {
+          System.debug('Unable to derive case for interaction: ' + fallbackEx.getMessage());
+        }
+      }
+      if (caseIdToUse != null) {
+        newInteraction.put('RelatedRecordId', caseIdToUse);
+      }
       newInteraction.put('Date_of_Interaction__c', userInteractionDate);
       newInteraction.put(
         'Notify_Case_Manager__c',
@@ -290,15 +338,16 @@ public with sharing class InteractionSummaryService {
         newInteraction.put('MeetingNotes', '');
       }
 
-      // If relatedRecordId is provided, don't add reference to the notes
-      if (String.isNotBlank(relatedRecordId)) {
+      // If a parent interaction is supplied, capture the relationship for audit
+      if (parentInteractionId != null) {
         System.debug(
-          'Related record ID provided, but NOT adding reference text to notes'
+          'Parent interaction provided, setting relationship back to interaction: ' +
+            parentInteractionId
         );
 
         try {
           // Query the original record for context
-          String query = 'SELECT Id, Name, InteractionPurpose FROM InteractionSummary WHERE Id = :relatedRecordId LIMIT 1';
+          String query = 'SELECT Id, Name, InteractionPurpose FROM InteractionSummary WHERE Id = :parentInteractionId LIMIT 1';
           List<SObject> relatedRecords = Database.query(query);
 
           if (!relatedRecords.isEmpty()) {
@@ -307,7 +356,7 @@ public with sharing class InteractionSummaryService {
             // Simply record the ID of the related interaction without appending to notes
             // If your schema has a field for related interaction, you would set it here
             // For now, we're just logging the relationship
-            System.debug('Related interaction ID: ' + relatedRecordId);
+            System.debug('Related interaction ID: ' + parentInteractionId);
 
             // Try to add a parent record ID if the field exists (safer approach)
             try {
@@ -324,8 +373,8 @@ public with sharing class InteractionSummaryService {
               for (String fieldName : possibleFieldNames) {
                 try {
                   // Try setting the field and catch the exception if it doesn't exist
-                  newInteraction.put(fieldName, relatedRecordId);
-                  System.debug('Set ' + fieldName + ' to ' + relatedRecordId);
+                  newInteraction.put(fieldName, parentInteractionId);
+                  System.debug('Set ' + fieldName + ' to ' + parentInteractionId);
                   break;
                 } catch (Exception fieldEx) {
                   // Field doesn't exist, try the next one

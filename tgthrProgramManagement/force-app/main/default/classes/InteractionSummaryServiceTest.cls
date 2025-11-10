@@ -86,7 +86,8 @@ public class InteractionSummaryServiceTest {
       'Test Notes',
       'Follow-up',
       '2025-10-12',
-      false
+      false,
+      null
     );
     Test.stopTest();
 
@@ -103,3 +104,10 @@ public class InteractionSummaryServiceTest {
     );
   }
 }
+
+
+
+
+
+
+

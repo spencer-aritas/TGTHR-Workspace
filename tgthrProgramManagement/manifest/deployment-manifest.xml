@@ -1,9 +1,88 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Apex Classes - Core Services -->
     <types>
-        <members>TestDataFactory</members>
-        <members>BenefitServiceTest</members>
+        <members>AssessmentService</members>
+        <members>AuditLogService</members>
+        <members>BenefitService</members>
+        <members>BenefitAssignmentService</members>
+        <members>BenefitDisbursementService</members>
+        <members>CaseService</members>
+        <members>InteractionContextService</members>
+        <members>InteractionSummaryService</members>
+        <members>ProgramEnrollmentService</members>
+        <members>ProgramThemeService</members>
+        <members>SSRSAssessmentHandler</members>
+        <members>TaskService</members>
+        <members>PwaEncounter</members>
         <name>ApexClass</name>
     </types>
+    <!-- Apex Classes - Controllers -->
+    <types>
+        <members>ClinicalNoteController</members>
+        <members>CodeAssignmentController</members>
+        <members>GoalAssignmentController</members>
+        <members>InterviewSessionController</members>
+        <members>InterviewTemplateController</members>
+        <members>ProgramCensusController</members>
+        <members>SignatureController</members>
+        <members>SSRSAssessmentController</members>
+        <name>ApexClass</name>
+    </types>
+    <!-- Apex Classes - Test Utilities -->
+    <types>
+        <members>AuditLogServiceTest</members>
+        <members>BenefitAssignmentTest</members>
+        <members>BenefitAssignmentTestUtil</members>
+        <members>BenefitDisbursementServiceTest</members>
+        <members>BenefitServiceTest</members>
+        <members>ClinicalNoteControllerTest</members>
+        <members>InteractionSummaryServiceTest</members>
+        <members>ProgramCensusControllerTest</members>
+        <members>ProgramEnrollmentServiceTest</members>
+        <members>TaskServiceTest</members>
+        <name>ApexClass</name>
+    </types>
+    <!-- Lightning Web Components -->
+    <types>
+        <members>asyncHelpers</members>
+        <members>clinicalNoteForm</members>
+        <members>codeAssignmentCreator</members>
+        <members>contextBanner</members>
+        <members>contextPill</members>
+        <members>datatableRich</members>
+        <members>documentationHub</members>
+        <members>fieldDuplicateDetector</members>
+        <members>goalAssignmentCreator</members>
+        <members>interactionSummaryBoard</members>
+        <members>interviewBuilderHome</members>
+        <members>interviewQuestionField</members>
+        <members>interviewSession</members>
+        <members>interviewTemplateManager</members>
+        <members>programCensusBoard</members>
+        <members>programCensusGrid</members>
+        <members>richHoverCell</members>
+        <members>sanitizeHtml</members>
+        <members>signaturePad</members>
+        <members>simpleRichText</members>
+        <members>ssrsAssessment</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <!-- Aura Components -->
+    <types>
+        <members>InterviewSessionApp</members>
+        <name>AuraDefinitionBundle</name>
+    </types>
+    <!-- Visualforce Pages -->
+    <types>
+        <members>InterviewSession</members>
+        <name>ApexPage</name>
+    </types>
+    <!-- FlexiPages (App Pages) -->
+    <types>
+        <members>Interview_Session</members>
+        <name>FlexiPage</name>
+    </types>
+    <!-- API Version (Salesforce v57.0 = Spring 2023) -->
     <version>57.0</version>
 </Package>
