@@ -105,7 +105,10 @@ export function AvailableInterviewsModal({ onSelect, onClose }: AvailableIntervi
               {templates.map((template) => (
                 <button
                   key={template.templateVersionId}
-                  onClick={() => onSelect(template)}
+                  onClick={() => {
+                    console.log('AvailableInterviewsModal: Selected template:', template);
+                    onSelect(template);
+                  }}
                   style={{
                     padding: '16px',
                     border: '1px solid #e5e5e5',
@@ -137,6 +140,9 @@ export function AvailableInterviewsModal({ onSelect, onClose }: AvailableIntervi
                       Category: {template.category}
                     </div>
                   )}
+                  <div className="slds-text-body_small slds-text-color_weak" style={{marginTop: '8px', fontSize: '11px'}}>
+                    ID: {template.templateVersionId}
+                  </div>
                 </button>
               ))}
             </div>
