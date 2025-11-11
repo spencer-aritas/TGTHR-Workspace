@@ -1,0 +1,49 @@
+// SOQL Diagnostic Queries for Interview Template Issues
+// Run these in Salesforce Developer Console to debug template and question issues
+
+// Query 1: Check all InterviewTemplate records and their Available_for_Mobile status
+SELECT Id, Name, Active__c, Available_for_Mobile__c FROM InterviewTemplate__c ORDER BY Name;
+
+// Query 2: Check all InterviewTemplateVersion records with their parent template info
+SELECT Id, Name, Status__c, InterviewTemplate__c, InterviewTemplate__r.Name, 
+       InterviewTemplate__r.Active__c, InterviewTemplate__r.Available_for_Mobile__c 
+FROM InterviewTemplateVersion__c 
+ORDER BY InterviewTemplate__r.Name, Name;
+
+// Query 3: Check templates matching our filter criteria (what the API should return)
+SELECT Id, Name, InterviewTemplate__c, InterviewTemplate__r.Name,
+       InterviewTemplate__r.Category__c, Status__c, Variant__c,
+       Effective_From__c, Effective_To__c
+FROM InterviewTemplateVersion__c
+WHERE InterviewTemplate__r.Active__c = true
+AND InterviewTemplate__r.Available_for_Mobile__c = true
+AND Status__c = 'Active'
+ORDER BY InterviewTemplate__r.Name, Variant__c, Name;
+
+// Query 4: Check for the specific template IDs you mentioned
+SELECT Id, Name, Active__c, Available_for_Mobile__c FROM InterviewTemplate__c 
+WHERE Id IN ('a0mRT000003TMzVYAW', 'a0mRT000003SYEjYAO');
+
+// Query 5: Check versions for those specific templates
+SELECT Id, Name, Status__c, InterviewTemplate__c, InterviewTemplate__r.Name,
+       InterviewTemplate__r.Active__c, InterviewTemplate__r.Available_for_Mobile__c
+FROM InterviewTemplateVersion__c
+WHERE InterviewTemplate__c IN ('a0mRT000003TMzVYAW', 'a0mRT000003SYEjYAO')
+ORDER BY InterviewTemplate__r.Name, Name;
+
+// Query 6: Check for questions linked to the versions
+SELECT Id, Name, InterviewTemplateVersion__c, InterviewTemplateVersion__r.Name,
+       QuestionText__c, QuestionType__c, DisplayOrder__c
+FROM InterviewQuestion__c
+WHERE InterviewTemplateVersion__c IN 
+  (SELECT Id FROM InterviewTemplateVersion__c 
+   WHERE InterviewTemplate__c IN ('a0mRT000003TMzVYAW', 'a0mRT000003SYEjYAO'))
+ORDER BY InterviewTemplateVersion__r.Name, DisplayOrder__c, Name;
+
+// Query 7: Double-check - are there ANY questions in the org?
+SELECT COUNT() FROM InterviewQuestion__c;
+
+// Query 8: List all questions with their template version relationships
+SELECT Id, Name, InterviewTemplateVersion__c, QuestionText__c, QuestionType__c, DisplayOrder__c
+FROM InterviewQuestion__c
+ORDER BY DisplayOrder__c, Name;

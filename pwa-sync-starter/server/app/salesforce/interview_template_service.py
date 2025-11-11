@@ -19,7 +19,7 @@ class InterviewTemplateService:
             # First, log what we're querying
             logger.debug("Query criteria: Active__c=true, Available_for_Mobile__c=true, Status__c='Active'")
             
-            # Query InterviewTemplateVersion__c records where parent Available_for_Mobile__c = true and Status = Active
+            # Start with strict filters
             soql = """
                 SELECT Id, Name, InterviewTemplate__c, InterviewTemplate__r.Name,
                        InterviewTemplate__r.Category__c, Status__c, Variant__c,
@@ -53,8 +53,36 @@ class InterviewTemplateService:
                     }
                     logger.debug(f"Template: {template_data}")
                     templates.append(template_data)
-                logger.info(f"Found {len(templates)} mobile-available templates")
-                return templates
+                logger.info(f"Found {len(templates)} mobile-available templates with strict filters")
+                
+                # If we found some templates, return them
+                if templates:
+                    return templates
+            
+            # If strict filter found nothing, try a more lenient query to help debug
+            logger.warning("No templates found with strict filters. Trying lenient query for debugging...")
+            
+            lenient_soql = """
+                SELECT Id, Name, InterviewTemplate__c, InterviewTemplate__r.Name,
+                       InterviewTemplate__r.Category__c, InterviewTemplate__r.Active__c,
+                       InterviewTemplate__r.Available_for_Mobile__c, Status__c, Variant__c
+                FROM InterviewTemplateVersion__c
+                ORDER BY InterviewTemplate__r.Name, Variant__c, Name
+                LIMIT 100
+            """
+            
+            logger.debug(f"Executing lenient SOQL: {lenient_soql}")
+            lenient_result = self.sf_client.query(lenient_soql)
+            logger.debug(f"Lenient result: {lenient_result}")
+            
+            if lenient_result and 'records' in lenient_result:
+                logger.warning(f"Found {len(lenient_result['records'])} total templates, but none match strict criteria:")
+                for record in lenient_result['records']:
+                    template_rel = record.get('InterviewTemplate__r', {})
+                    logger.warning(f"  - {template_rel.get('Name')} / {record.get('Name')}: "
+                                 f"Active={template_rel.get('Active__c')}, "
+                                 f"Mobile={template_rel.get('Available_for_Mobile__c')}, "
+                                 f"Status={record.get('Status__c')}")
             
             logger.warning("No mobile-available templates found")
             return []
