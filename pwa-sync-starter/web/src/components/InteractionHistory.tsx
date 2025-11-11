@@ -136,21 +136,27 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
   return (
     <div className="slds" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       <header className="slds-page-header slds-p-around_medium" style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e5e5' }}>
-        <div className="slds-media">
-          <div className="slds-media__body">
-            <h1 className="slds-page-header__title">Interaction History</h1>
-            <p className="slds-page-header__info">
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr auto',
+          gap: '24px',
+          alignItems: 'start'
+        }}>
+          <div>
+            <h1 className="slds-page-header__title" style={{ marginBottom: '8px' }}>
+              Interaction History
+            </h1>
+            <p className="slds-page-header__info" style={{ marginTop: '0' }}>
               {selectedCase.Subject || `Case ${selectedCase.CaseNumber}`}
             </p>
           </div>
-          <div className="slds-media__figure">
-            <button 
-              className="slds-button slds-button_neutral"
-              onClick={onBack}
-            >
-              Back to Cases
-            </button>
-          </div>
+          <button 
+            className="slds-button slds-button_neutral"
+            onClick={onBack}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            Back to Cases
+          </button>
         </div>
       </header>
 
@@ -214,7 +220,10 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
 
               <div style={{
                 maxHeight: '600px',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                paddingRight: '12px',
+                paddingLeft: '4px',
+                marginRight: '-12px'
               }}>
                 {interactions.map((interaction, index) => (
                   <div
