@@ -3,6 +3,7 @@ import { Case } from '../services/caseService';
 import { interactionSummaryService, InteractionSummaryData } from '../services/interactionSummaryService';
 import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
 import { AvailableInterviewsModal } from './AvailableInterviewsModal';
+import { InterviewLauncher } from './InterviewLauncher';
 import type { InterviewTemplateDefinition } from '@shared/contracts/index.ts';
 
 interface InteractionHistoryProps {
@@ -31,9 +32,9 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
     endTime: ''
   });
   const [submitting, setSubmitting] = useState(false);
-  const [showNewNoteForm, setShowNewNoteForm] = useState(false);
   const [showSSRS, setShowSSRS] = useState(false);
   const [showAvailableInterviews, setShowAvailableInterviews] = useState(false);
+  const [selectedInterviewTemplate, setSelectedInterviewTemplate] = useState<InterviewTemplateDefinition | null>(null);
 
   const loadInteractions = useCallback(async () => {
     try {
@@ -65,17 +66,6 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
     setShowQuickNoteForm(true);
   };
 
-  const handleNewNote = () => {
-    setShowNewNoteForm(true);
-    setQuickNoteData({
-      parentInteractionId: null,
-      notes: '',
-      date: new Date().toISOString().split('T')[0],
-      startTime: '',
-      endTime: ''
-    });
-  };
-
   const handleSubmitQuickNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCase || !quickNoteData.notes) return;
@@ -91,7 +81,6 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
       });
 
       setShowQuickNoteForm(false);
-      setShowNewNoteForm(false);
       setQuickNoteData({
         parentInteractionId: null,
         notes: '',
@@ -116,9 +105,8 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
   };
 
   const handleSelectInterview = (template: InterviewTemplateDefinition) => {
+    setSelectedInterviewTemplate(template);
     setShowAvailableInterviews(false);
-    // TODO: Navigate to interview or start interview with selected template
-    console.log('Selected interview template:', template);
   };
 
   if (showSSRS && selectedCase) {
@@ -127,6 +115,20 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
         selectedCase={selectedCase}
         onComplete={handleSSRSComplete}
         onCancel={() => setShowSSRS(false)}
+      />
+    );
+  }
+
+  if (selectedInterviewTemplate && selectedCase) {
+    return (
+      <InterviewLauncher
+        template={selectedInterviewTemplate}
+        selectedCase={selectedCase}
+        onComplete={() => {
+          setSelectedInterviewTemplate(null);
+          loadInteractions();
+        }}
+        onCancel={() => setSelectedInterviewTemplate(null)}
       />
     );
   }
@@ -191,15 +193,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
             <div style={{ marginBottom: '24px' }}>
               <div className="slds-m-bottom_medium">
                 <div className="slds-grid slds-gutters">
-                  <div className="slds-col slds-size_1-of-3">
-                    <button
-                      className="slds-button slds-button_brand slds-size_1-of-1"
-                      onClick={handleNewNote}
-                    >
-                      New Note
-                    </button>
-                  </div>
-                  <div className="slds-col slds-size_1-of-3">
+                  <div className="slds-col slds-size_1-of-2">
                     <button
                       className="slds-button slds-button_outline-brand slds-size_1-of-1"
                       onClick={() => setShowAvailableInterviews(true)}
@@ -207,7 +201,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                       Available Interviews
                     </button>
                   </div>
-                  <div className="slds-col slds-size_1-of-3">
+                  <div className="slds-col slds-size_1-of-2">
                     <button
                       className="slds-button slds-button_outline-brand slds-size_1-of-1"
                       onClick={() => setShowSSRS(true)}
@@ -334,7 +328,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
       </div>
 
       {/* Quick Note Form Modal */}
-      {(showQuickNoteForm || showNewNoteForm) && (
+      {showQuickNoteForm && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -359,7 +353,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
             padding: '24px'
           }}>
             <h2 className="slds-text-heading_medium slds-m-bottom_medium">
-              {showNewNoteForm ? 'New Note' : 'Quick Note'}
+              Quick Note
             </h2>
 
             <form onSubmit={handleSubmitQuickNote}>
@@ -450,7 +444,6 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                     className="slds-button slds-button_neutral slds-size_1-of-1"
                     onClick={() => {
                       setShowQuickNoteForm(false);
-                      setShowNewNoteForm(false);
                     }}
                     disabled={submitting}
                   >
