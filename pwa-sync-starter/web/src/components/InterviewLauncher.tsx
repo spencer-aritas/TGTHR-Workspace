@@ -186,7 +186,7 @@ export function InterviewLauncher({
                           required={question.IsRequired}
                         >
                           <option value="">-- Select --</option>
-                          {question.Options?.split(',').map(opt => (
+                          {question.Options?.split('\n').filter(opt => opt.trim()).map(opt => (
                             <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
                           ))}
                         </select>

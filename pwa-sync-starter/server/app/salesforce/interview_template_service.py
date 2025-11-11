@@ -98,12 +98,16 @@ class InterviewTemplateService:
             logger.info(f"Fetching interview questions for template version: {template_version_id}")
             
             # Query InterviewQuestion__c records where InterviewTemplateVersion__c matches
+            # Field names from Salesforce schema (confirmed from InterviewTemplateController.cls):
+            # Label__c (not QuestionText__c), Response_Type__c (not QuestionType__c), 
+            # Required__c (not IsRequired__c), Order__c (not DisplayOrder__c)
             soql = f"""
-                SELECT Id, Name, QuestionText__c, QuestionType__c, IsRequired__c, 
-                       FieldReference__c, Options__c, DisplayOrder__c
+                SELECT Id, Name, Label__c, API_Name__c, Response_Type__c, Required__c,
+                       Maps_To__c, Help_Text__c, Order__c, Section__c, Sensitive__c, 
+                       Score_Weight__c, Picklist_Values__c
                 FROM InterviewQuestion__c
                 WHERE InterviewTemplateVersion__c = '{template_version_id}'
-                ORDER BY DisplayOrder__c ASC, Name ASC
+                ORDER BY Order__c ASC, Name ASC
             """
             
             logger.debug(f"Executing SOQL: {soql}")
@@ -117,12 +121,17 @@ class InterviewTemplateService:
                     question_data = {
                         'Id': record.get('Id'),
                         'Name': record.get('Name'),
-                        'QuestionText': record.get('QuestionText__c'),
-                        'QuestionType': record.get('QuestionType__c'),
-                        'IsRequired': record.get('IsRequired__c', False),
-                        'FieldReference': record.get('FieldReference__c'),
-                        'Options': record.get('Options__c'),
-                        'DisplayOrder': record.get('DisplayOrder__c')
+                        'QuestionText': record.get('Label__c'),  # Map Label__c to QuestionText for frontend
+                        'QuestionType': record.get('Response_Type__c'),  # Map Response_Type__c to QuestionType
+                        'IsRequired': record.get('Required__c', False),  # Map Required__c to IsRequired
+                        'ApiName': record.get('API_Name__c'),
+                        'MapsTo': record.get('Maps_To__c'),
+                        'HelpText': record.get('Help_Text__c'),
+                        'Section': record.get('Section__c'),
+                        'Sensitive': record.get('Sensitive__c', False),
+                        'ScoreWeight': record.get('Score_Weight__c'),
+                        'Options': record.get('Picklist_Values__c'),  # Map Picklist_Values__c to Options
+                        'DisplayOrder': record.get('Order__c')  # Map Order__c to DisplayOrder
                     }
                     logger.debug(f"Question: {question_data}")
                     questions.append(question_data)
