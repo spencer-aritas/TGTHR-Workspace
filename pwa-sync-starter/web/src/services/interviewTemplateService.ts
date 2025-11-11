@@ -4,12 +4,17 @@ import type { InterviewTemplateDefinition } from '@shared/contracts/index.ts';
 interface InterviewQuestion {
   Id: string;
   Name: string;
-  QuestionText: string;
-  QuestionType: string;
-  IsRequired: boolean;
-  FieldReference?: string;
-  Options?: string;
-  DisplayOrder?: number;
+  QuestionText: string;  // Mapped from Label__c
+  QuestionType: string;  // Mapped from Response_Type__c (text, number, select, etc.)
+  IsRequired: boolean;   // Mapped from Required__c
+  ApiName?: string;      // From API_Name__c
+  MapsTo?: string;       // From Maps_To__c
+  HelpText?: string;     // From Help_Text__c
+  Section?: string;      // From Section__c
+  Sensitive?: boolean;   // From Sensitive__c
+  ScoreWeight?: number;  // From Score_Weight__c
+  Options?: string;      // Mapped from Picklist_Values__c (newline-separated)
+  DisplayOrder?: number; // Mapped from Order__c
 }
 
 class InterviewTemplateService {
