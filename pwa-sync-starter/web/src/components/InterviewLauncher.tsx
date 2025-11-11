@@ -40,10 +40,13 @@ export function InterviewLauncher({
 
   const loadQuestions = async () => {
     try {
+      console.log('InterviewLauncher: Loading questions for template:', template);
       setLoading(true);
       setError('');
       // Fetch questions from backend based on template version ID
+      console.log('Calling getQuestionsForTemplate with ID:', template.templateVersionId);
       const loadedQuestions = await interviewTemplateService.getQuestionsForTemplate(template.templateVersionId);
+      console.log('Questions loaded:', loadedQuestions);
       setQuestions(loadedQuestions);
       
       if (loadedQuestions.length === 0) {

@@ -16,9 +16,12 @@ export function AvailableInterviewsModal({ onSelect, onClose }: AvailableIntervi
   useEffect(() => {
     const loadTemplates = async () => {
       try {
+        console.log('AvailableInterviewsModal: Loading templates...');
         setLoading(true);
         setError('');
         const data = await interviewTemplateService.getMobileAvailableTemplates();
+        console.log('AvailableInterviewsModal: Received templates:', data);
+        console.log(`AvailableInterviewsModal: Got ${data.length} templates`);
         setTemplates(data);
       } catch (err) {
         console.error('Failed to load templates', err);

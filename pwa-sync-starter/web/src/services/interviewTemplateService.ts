@@ -15,6 +15,7 @@ interface InterviewQuestion {
 class InterviewTemplateService {
   async getMobileAvailableTemplates(): Promise<InterviewTemplateDefinition[]> {
     try {
+      console.log('Fetching mobile-available interview templates...');
       const response = await fetch('/api/interview-templates/mobile-available');
       
       if (!response.ok) {
@@ -23,7 +24,10 @@ class InterviewTemplateService {
       }
       
       const result = await response.json();
-      return result.templates || [];
+      console.log('Received templates:', result);
+      const templates = result.templates || [];
+      console.log(`Found ${templates.length} templates`);
+      return templates;
     } catch (err) {
       console.error('Failed to fetch interview templates', err);
       return [];
@@ -37,15 +41,19 @@ class InterviewTemplateService {
         return [];
       }
 
+      console.log(`Fetching questions for template version: ${templateVersionId}`);
       const response = await fetch(`/api/interview-templates/${encodeURIComponent(templateVersionId)}/questions`);
       
       if (!response.ok) {
-        console.error(`Failed to fetch questions (HTTP ${response.status})`);
+        console.error(`Failed to fetch questions (HTTP ${response.status})`, await response.text());
         return [];
       }
       
       const result = await response.json();
-      return result.questions || [];
+      console.log('Received questions:', result);
+      const questions = result.questions || [];
+      console.log(`Found ${questions.length} questions`);
+      return questions;
     } catch (err) {
       console.error(`Failed to fetch questions for template ${templateVersionId}`, err);
       return [];

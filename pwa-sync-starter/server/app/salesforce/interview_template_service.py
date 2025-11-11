@@ -16,6 +16,9 @@ class InterviewTemplateService:
         try:
             logger.info("Fetching mobile-available interview templates")
             
+            # First, log what we're querying
+            logger.debug("Query criteria: Active__c=true, Available_for_Mobile__c=true, Status__c='Active'")
+            
             # Query InterviewTemplateVersion__c records where parent Available_for_Mobile__c = true and Status = Active
             soql = """
                 SELECT Id, Name, InterviewTemplate__c, InterviewTemplate__r.Name,
@@ -28,13 +31,16 @@ class InterviewTemplateService:
                 ORDER BY InterviewTemplate__r.Name, Variant__c, Name
             """
             
+            logger.debug(f"Executing SOQL: {soql}")
             result = self.sf_client.query(soql)
+            
+            logger.debug(f"Query result: {result}")
             
             if result and 'records' in result:
                 templates = []
                 for record in result['records']:
                     template_rel = record.get('InterviewTemplate__r', {})
-                    templates.append({
+                    template_data = {
                         'templateId': record.get('InterviewTemplate__c'),
                         'templateVersionId': record.get('Id'),
                         'templateName': template_rel.get('Name'),
@@ -44,7 +50,9 @@ class InterviewTemplateService:
                         'status': record.get('Status__c'),
                         'effectiveFrom': record.get('Effective_From__c'),
                         'effectiveTo': record.get('Effective_To__c')
-                    })
+                    }
+                    logger.debug(f"Template: {template_data}")
+                    templates.append(template_data)
                 logger.info(f"Found {len(templates)} mobile-available templates")
                 return templates
             
@@ -70,12 +78,15 @@ class InterviewTemplateService:
                 ORDER BY DisplayOrder__c ASC, Name ASC
             """
             
+            logger.debug(f"Executing SOQL: {soql}")
             result = self.sf_client.query(soql)
+            
+            logger.debug(f"Query result for questions: {result}")
             
             if result and 'records' in result:
                 questions = []
                 for record in result['records']:
-                    questions.append({
+                    question_data = {
                         'Id': record.get('Id'),
                         'Name': record.get('Name'),
                         'QuestionText': record.get('QuestionText__c'),
@@ -84,7 +95,9 @@ class InterviewTemplateService:
                         'FieldReference': record.get('FieldReference__c'),
                         'Options': record.get('Options__c'),
                         'DisplayOrder': record.get('DisplayOrder__c')
-                    })
+                    }
+                    logger.debug(f"Question: {question_data}")
+                    questions.append(question_data)
                 logger.info(f"Found {len(questions)} questions for template version {template_version_id}")
                 return questions
             
