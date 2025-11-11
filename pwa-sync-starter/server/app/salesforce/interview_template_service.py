@@ -16,14 +16,40 @@ class InterviewTemplateService:
         try:
             logger.info("Fetching mobile-available interview templates")
             
-            # Call the Apex REST endpoint
-            result = self.sf_client.call_apex_rest(
-                'InterviewTemplateController/getMobileAvailableTemplates',
-                {}
-            )
+            # Query InterviewTemplateVersion__c records where parent Available_for_Mobile__c = true and Status = Active
+            soql = """
+                SELECT Id, Name, InterviewTemplate__c, InterviewTemplate__r.Name,
+                       InterviewTemplate__r.Category__c, Status__c, Variant__c,
+                       Effective_From__c, Effective_To__c
+                FROM InterviewTemplateVersion__c
+                WHERE InterviewTemplate__r.Active__c = true
+                AND InterviewTemplate__r.Available_for_Mobile__c = true
+                AND Status__c = 'Active'
+                ORDER BY InterviewTemplate__r.Name, Variant__c, Name
+            """
             
-            logger.info(f"Found {len(result) if isinstance(result, list) else 0} templates")
-            return result if isinstance(result, list) else []
+            result = self.sf_client.query(soql)
+            
+            if result and 'records' in result:
+                templates = []
+                for record in result['records']:
+                    template_rel = record.get('InterviewTemplate__r', {})
+                    templates.append({
+                        'templateId': record.get('InterviewTemplate__c'),
+                        'templateVersionId': record.get('Id'),
+                        'templateName': template_rel.get('Name'),
+                        'category': template_rel.get('Category__c'),
+                        'versionName': record.get('Name'),
+                        'variant': record.get('Variant__c'),
+                        'status': record.get('Status__c'),
+                        'effectiveFrom': record.get('Effective_From__c'),
+                        'effectiveTo': record.get('Effective_To__c')
+                    })
+                logger.info(f"Found {len(templates)} mobile-available templates")
+                return templates
+            
+            logger.warning("No mobile-available templates found")
+            return []
             
         except Exception as e:
             logger.error(f"Failed to fetch mobile-available templates: {e}", exc_info=True)
