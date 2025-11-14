@@ -2,10 +2,6 @@
     gap: 1.5rem;
 }
 
-.wizard-header__actions {
-    margin-left: auto;
-}
-
 .slds-card__footer {
     position: sticky;
     bottom: 0;
@@ -13,6 +9,31 @@
     border-top: 1px solid #dddbda;
     box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
     z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.footer-left,
+.footer-center,
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.footer-left {
+    flex: 0 0 auto;
+}
+
+.footer-center {
+    flex: 1;
+    justify-content: center;
+}
+
+.footer-right {
+    flex: 0 0 auto;
 }
 
 .question-workspace {

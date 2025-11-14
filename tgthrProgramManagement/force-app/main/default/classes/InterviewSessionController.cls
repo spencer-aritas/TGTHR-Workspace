@@ -205,6 +205,10 @@ public with sharing class InterviewSessionController {
             );
             insert interview;
 
+            // Link Interview back to InteractionSummary
+            putIfFieldExists(summary, 'Interview__c', (Id)interview.get('Id'));
+            update summary;
+
             // Link Assessment back to Interview if both exist
             if (assessment != null && assessmentId != null) {
                 putIfFieldExists(assessment, 'Interview__c', (Id)interview.get('Id'));
@@ -534,8 +538,17 @@ public with sharing class InterviewSessionController {
         summary.put('Name', 'Interview - ' + interactionDate.format());
         summary.put('MeetingNotes', meetingNotes);
         putIfFieldExists(summary, 'ServiceDate', interactionDate);
-        putIfFieldExists(summary, 'Start_Time__c', startTime);
-        putIfFieldExists(summary, 'End_Time__c', endTime);
+        
+        // Convert Time to Datetime by combining with the interaction date
+        if (startTime != null && interactionDate != null) {
+            Datetime startDateTime = Datetime.newInstance(interactionDate, startTime);
+            putIfFieldExists(summary, 'Start_Time__c', startDateTime);
+        }
+        if (endTime != null && interactionDate != null) {
+            Datetime endDateTime = Datetime.newInstance(interactionDate, endTime);
+            putIfFieldExists(summary, 'End_Time__c', endDateTime);
+        }
+        
         return summary;
     }
 

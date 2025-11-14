@@ -1,7 +1,8 @@
-{
+﻿{
   "folders": [
     { "path": "tgthrProgramManagement" },
-    { "path": "pwa-sync-starter" }
+    { "path": "pwa-sync-starter" },
+    { "path": "tgthr-docgen" }
   ],
   "settings": {
     "files.exclude": {
@@ -25,6 +26,13 @@
         "problemMatcher": []
       },
       {
+        "label": "DocGen: dev",
+        "type": "shell",
+        "options": { "cwd": "${workspaceFolder: tgthr-docgen}" },
+        "command": "uvicorn serve:app --reload --host 0.0.0.0 --port 8001",
+        "problemMatcher": []
+      },
+      {
         "label": "PWA: dev",
         "type": "shell",
         "options": { "cwd": "${workspaceFolder: pwa-sync-starter}" },
@@ -39,8 +47,8 @@
         "problemMatcher": []
       },
       {
-        "label": "Start all (API + PWA)",
-        "dependsOn": ["API: dev (FastAPI)", "PWA: dev"],
+        "label": "Start all (API + PWA + DocGen)",
+        "dependsOn": ["API: dev (FastAPI)", "PWA: dev", "DocGen: dev"],
         "dependsOrder": "parallel"
       }
     ]

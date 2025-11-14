@@ -23,6 +23,16 @@
 	}
 }
 
+docgen.aritasconsulting.com {
+	# DocGen service with automatic Let's Encrypt certificate
+	reverse_proxy docgen:8000 {
+		header_up Host {http.request.header.Host}
+		header_up X-Real-IP {http.request.remote.host}
+		header_up X-Forwarded-For {http.request.remote.host}
+		header_up X-Forwarded-Proto {http.request.scheme}
+	}
+}
+
 outreachintake.aritasconsulting.com {
 	# Production configuration
 	# Caddy automatically gets Let's Encrypt certificate
