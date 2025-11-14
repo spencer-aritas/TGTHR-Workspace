@@ -1,0 +1,4 @@
+// Check if Remote Site Settings exist for DocGen endpoints
+SELECT DeveloperName, EndpointUrl, IsActive 
+FROM RemoteProxy 
+WHERE EndpointUrl LIKE '%docgen%' OR EndpointUrl LIKE '%localhost:8001%'

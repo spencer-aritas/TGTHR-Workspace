@@ -4,6 +4,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CurrentPageReference } from 'lightning/navigation';
 import initializeSession from '@salesforce/apex/InterviewSessionController.initializeSession';
 import saveInterviewSession from '@salesforce/apex/InterviewSessionController.saveInterviewSession';
+import generateDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
 
 const STEPS = ['interaction', 'interview', 'review'];
 
@@ -29,6 +30,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track answers = new Map();
     @track errorMessage = '';
     @track isSaving = false;
+    @track isGeneratingDocument = false;
     parametersLoaded = false;
 
     @wire(CurrentPageReference)
@@ -306,7 +308,15 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     async handleSave() {
-        console.log('Save button clicked');
+        await this.performSave(false);
+    }
+
+    async handleSaveAndDownload() {
+        await this.performSave(true);
+    }
+
+    async performSave(shouldDownload) {
+        console.log('Save button clicked, shouldDownload:', shouldDownload);
         this.isSaving = true;
         try {
             const requestData = this.buildSaveRequest();
@@ -323,10 +333,18 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 console.log('SUCCESS! Interview created with ID:', result.interviewId);
                 console.log('InteractionSummary created with ID:', result.interactionSummaryId);
                 
-                // Show alert to pause before navigation so we can see logs
-                alert('Interview saved successfully! ID: ' + result.interviewId + '\nCheck console for details before clicking OK.');
+                // Generate document if requested or on mobile
+                const isMobile = this.isMobileDevice();
+                if (shouldDownload || isMobile) {
+                    await this.generateInterviewDocument(result.interactionSummaryId, shouldDownload && !isMobile);
+                }
                 
                 this.showToast('Interview Saved', 'Interview has been saved successfully.', 'success');
+                
+                // Wait a moment before navigation if document was generated
+                if (shouldDownload || this.isMobileDevice()) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
                 
                 // Navigate to the interview record using Lightning one.app navigation
                 // This ensures we stay in Lightning Experience
@@ -427,6 +445,33 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             },
             answers: answerList
         };
+    }
+
+    async generateInterviewDocument(interactionSummaryId, shouldDownload) {
+        this.isGeneratingDocument = true;
+        try {
+            console.log('Generating document for InteractionSummary:', interactionSummaryId);
+            const contentDocId = await generateDocument({ interactionSummaryId });
+            console.log('Document generated! ContentDocument ID:', contentDocId);
+            
+            if (shouldDownload && contentDocId) {
+                // Trigger download in browser
+                const downloadUrl = `/sfc/servlet.shepherd/document/download/${contentDocId}`;
+                window.open(downloadUrl, '_blank');
+            }
+            
+            this.showToast('Document Generated', 'Interview document has been created and attached.', 'success');
+        } catch (error) {
+            console.error('Document generation error:', error);
+            // Don't fail the save if document generation fails
+            this.showToast('Document Generation Failed', this.normalizeError(error), 'warning');
+        } finally {
+            this.isGeneratingDocument = false;
+        }
+    }
+
+    isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
     normalizeError(error) {

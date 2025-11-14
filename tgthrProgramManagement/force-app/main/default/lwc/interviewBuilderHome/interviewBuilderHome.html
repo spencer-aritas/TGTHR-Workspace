@@ -48,14 +48,6 @@
                     <lightning-progress-step label="Review &amp; Save" value="review"></lightning-progress-step>
                 </lightning-progress-indicator>
             </div>
-            <div class="wizard-header__actions slds-col_bump-left">
-                <lightning-button
-                    variant="brand"
-                    label={primaryActionLabel}
-                    disabled={isSaveDisabled}
-                    onclick={handleSave}>
-                </lightning-button>
-            </div>
         </div>
 
         <div class="slds-p-around_medium slds-border_top">
@@ -76,6 +68,8 @@
                             label="Version Name"
                             value={versionForm.name}
                             onchange={handleVersionInput}
+                            readonly
+                            field-level-help="Auto-generated from Category, Variant, and date"
                             required>
                         </lightning-input>
                     </div>
@@ -98,15 +92,6 @@
                         </lightning-combobox>
                     </div>
                     <div class="slds-col slds-size_1-of-3">
-                        <lightning-combobox
-                            name="status"
-                            label="Status"
-                            value={versionForm.status}
-                            options={statusOptions}
-                            onchange={handleVersionInput}>
-                        </lightning-combobox>
-                    </div>
-                    <div class="slds-col slds-size_1-of-2">
                         <lightning-input
                             type="number"
                             name="versionNumber"
@@ -146,14 +131,196 @@
                             </lightning-record-edit-form>
                         </div>
                     </div>
-                    <div class="slds-col slds-size_1-of-2 slds-m-top_medium">
-                        <lightning-input
-                            type="toggle"
-                            name="active"
-                            label="Template Active"
-                            checked={templateForm.active}
-                            onchange={handleTemplateInput}>
-                        </lightning-input>
+                </div>
+            </template>
+
+            <!-- Template Features Step -->
+            <template if:true={isTemplateFeaturesStep}>
+                <div class="slds-p-around_medium">
+                    <div class="slds-text-heading_medium slds-m-bottom_medium">
+                        Template Features
+                    </div>
+                    <div class="slds-text-body_regular slds-m-bottom_large slds-text-color_weak">
+                        Configure which features are available in this interview template.
+                    </div>
+
+                    <div class="slds-grid slds-wrap slds-gutters">
+                        <!-- Column 1: Goals and Diagnoses -->
+                        <div class="slds-col slds-size_1-of-3">
+                            <!-- Goals Policy -->
+                            <div class="slds-box slds-box_small slds-m-bottom_medium">
+                                <div class="slds-text-heading_small slds-m-bottom_small">
+                                    Goals
+                                </div>
+                                <div class="slds-form-element">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Enabled"
+                                        name="goalsEnabled"
+                                        checked={goalsEnabled}
+                                        data-field="goalsPolicy"
+                                        onchange={handlePolicyEnabledToggle}>
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-form-element slds-m-top_small">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Required"
+                                        name="goalsRequired"
+                                        checked={goalsRequired}
+                                        disabled={goalsDisabled}
+                                        data-field="goalsPolicy"
+                                        onchange={handlePolicyRequiredToggle}>
+                                    </lightning-input>
+                                </div>
+                            </div>
+
+                            <!-- Diagnoses Policy -->
+                            <div class="slds-box slds-box_small">
+                                <div class="slds-text-heading_small slds-m-bottom_small">
+                                    Diagnoses
+                                </div>
+                                <div class="slds-form-element">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Enabled"
+                                        name="diagnosesEnabled"
+                                        checked={diagnosesEnabled}
+                                        data-field="diagnosesPolicy"
+                                        onchange={handlePolicyEnabledToggle}>
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-form-element slds-m-top_small">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Required"
+                                        name="diagnosesRequired"
+                                        checked={diagnosesRequired}
+                                        disabled={diagnosesDisabled}
+                                        data-field="diagnosesPolicy"
+                                        onchange={handlePolicyRequiredToggle}>
+                                    </lightning-input>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Housing and Clinical Benefits -->
+                        <div class="slds-col slds-size_1-of-3">
+                            <!-- Housing Benefit Policy -->
+                            <div class="slds-box slds-box_small slds-m-bottom_medium">
+                                <div class="slds-text-heading_small slds-m-bottom_small">
+                                    Housing Benefits
+                                </div>
+                                <div class="slds-form-element">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Enabled"
+                                        name="housingBenefitEnabled"
+                                        checked={housingBenefitEnabled}
+                                        data-field="housingBenefitPolicy"
+                                        onchange={handlePolicyEnabledToggle}>
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-form-element slds-m-top_small">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Required"
+                                        name="housingBenefitRequired"
+                                        checked={housingBenefitRequired}
+                                        disabled={housingBenefitDisabled}
+                                        data-field="housingBenefitPolicy"
+                                        onchange={handlePolicyRequiredToggle}>
+                                    </lightning-input>
+                                </div>
+                            </div>
+
+                            <!-- Clinical Benefit Policy -->
+                            <div class="slds-box slds-box_small">
+                                <div class="slds-text-heading_small slds-m-bottom_small">
+                                    Clinical Benefits
+                                </div>
+                                <div class="slds-form-element">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Enabled"
+                                        name="clinicalBenefitEnabled"
+                                        checked={clinicalBenefitEnabled}
+                                        data-field="clinicalBenefitPolicy"
+                                        onchange={handlePolicyEnabledToggle}>
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-form-element slds-m-top_small">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Required"
+                                        name="clinicalBenefitRequired"
+                                        checked={clinicalBenefitRequired}
+                                        disabled={clinicalBenefitDisabled}
+                                        data-field="clinicalBenefitPolicy"
+                                        onchange={handlePolicyRequiredToggle}>
+                                    </lightning-input>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 3: Signatures -->
+                        <div class="slds-col slds-size_1-of-3">
+                            <!-- Client Signature Policy -->
+                            <div class="slds-box slds-box_small slds-m-bottom_medium">
+                                <div class="slds-text-heading_small slds-m-bottom_small">
+                                    Client Signature
+                                </div>
+                                <div class="slds-form-element">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Enabled"
+                                        name="clientSignatureEnabled"
+                                        checked={clientSignatureEnabled}
+                                        data-field="clientSignaturePolicy"
+                                        onchange={handlePolicyEnabledToggle}>
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-form-element slds-m-top_small">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Required"
+                                        name="clientSignatureRequired"
+                                        checked={clientSignatureRequired}
+                                        disabled={clientSignatureDisabled}
+                                        data-field="clientSignaturePolicy"
+                                        onchange={handlePolicyRequiredToggle}>
+                                    </lightning-input>
+                                </div>
+                            </div>
+
+                            <!-- Staff Signature Policy -->
+                            <div class="slds-box slds-box_small">
+                                <div class="slds-text-heading_small slds-m-bottom_small">
+                                    Staff Signature
+                                </div>
+                                <div class="slds-form-element">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Enabled"
+                                        name="staffSignatureEnabled"
+                                        checked={staffSignatureEnabled}
+                                        data-field="staffSignaturePolicy"
+                                        onchange={handlePolicyEnabledToggle}>
+                                    </lightning-input>
+                                </div>
+                                <div class="slds-form-element slds-m-top_small">
+                                    <lightning-input 
+                                        type="toggle"
+                                        label="Required"
+                                        name="staffSignatureRequired"
+                                        checked={staffSignatureRequired}
+                                        disabled={staffSignatureDisabled}
+                                        data-field="staffSignaturePolicy"
+                                        onchange={handlePolicyRequiredToggle}>
+                                    </lightning-input>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -166,6 +333,18 @@
                     </div>
                     <div class="slds-text-body_regular slds-m-bottom_large slds-text-color_weak">
                         Choose which participant demographic fields should be included in the interview.
+                    </div>
+                    
+                    <div class="slds-notify slds-notify_alert slds-theme_alert-texture" role="alert" style="background-color: #d8edff; border-left: 4px solid #0176d3;">
+                        <span class="slds-assistive-text">info</span>
+                        <span class="slds-icon_container slds-icon-utility-info slds-m-right_x-small" title="Required Fields">
+                            <svg class="slds-icon slds-icon_x-small" aria-hidden="true" style="fill: #014486;">
+                                <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#info"></use>
+                            </svg>
+                        </span>
+                        <h2 style="color: #014486;">
+                            <strong>Required Fields:</strong> First Name, Last Name, Goes By, Pronouns, Phone, Email, HMIS ID, and Medicaid ID are automatically included and cannot be removed.
+                        </h2>
                     </div>
                     
                     <div class="slds-m-bottom_medium">
@@ -622,26 +801,91 @@
                         <strong>Program:</strong> {programSummary}
                     </p>
                 </div>
+
+                <!-- Mapped Fields & Questions -->
                 <lightning-layout multiple-rows>
                     <lightning-layout-item size="6" padding="around-small">
-                        <h3 class="slds-text-title_caps">Mapped Fields</h3>
-                        <ul class="slds-list_dotted">
+                        <h3 class="slds-text-title_caps">Mapped Fields ({selectedFieldSummary.length})</h3>
+                        <template if:true={generateDocument}>
+                            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                                Select fields to include in the document template:
+                            </p>
+                        </template>
+                        <div class="slds-m-top_small">
                             <template for:each={selectedFieldSummary} for:item="field">
-                                <li key={field.id}>{field.label}</li>
+                                <div key={field.id} class="slds-m-bottom_x-small">
+                                    <template if:true={generateDocument}>
+                                        <lightning-input
+                                            type="checkbox"
+                                            label={field.label}
+                                            value={field.id}
+                                            checked={field.includeInDocument}
+                                            disabled={field.isAlwaysIncluded}
+                                            data-field-id={field.id}
+                                            onchange={handleFieldSelectionChange}>
+                                        </lightning-input>
+                                        <template if:true={field.isAlwaysIncluded}>
+                                            <span class="slds-text-color_weak slds-text-body_small"> (Always included)</span>
+                                        </template>
+                                    </template>
+                                    <template if:false={generateDocument}>
+                                        <span>{field.label}</span>
+                                    </template>
+                                </div>
                             </template>
-                        </ul>
+                        </div>
                     </lightning-layout-item>
                     <lightning-layout-item size="6" padding="around-small">
-                        <h3 class="slds-text-title_caps">Questions ({questions.length})</h3>
-                        <ol class="slds-list_ordered">
-                            <template for:each={questions} for:item="question">
-                                <li key={question.key}>
-                                    {question.label} <span class="slds-text-color_weak">({question.responseType})</span>
-                                </li>
+                        <h3 class="slds-text-title_caps">Questions ({questionsWithDocumentState.length})</h3>
+                        <template if:true={generateDocument}>
+                            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
+                                Select questions to include in the document template:
+                            </p>
+                        </template>
+                        <div class="slds-m-top_small">
+                            <template for:each={questionsWithDocumentState} for:item="question">
+                                <div key={question.key} class="slds-m-bottom_x-small">
+                                    <template if:true={generateDocument}>
+                                        <lightning-input
+                                            type="checkbox"
+                                            label={question.label}
+                                            value={question.key}
+                                            checked={question.includeInDocument}
+                                            data-question-key={question.key}
+                                            onchange={handleQuestionSelectionChange}>
+                                        </lightning-input>
+                                        <span class="slds-text-color_weak slds-text-body_small"> ({question.responseType})</span>
+                                    </template>
+                                    <template if:false={generateDocument}>
+                                        <span>{question.label} <span class="slds-text-color_weak">({question.responseType})</span></span>
+                                    </template>
+                                </div>
                             </template>
-                        </ol>
+                        </div>
                     </lightning-layout-item>
                 </lightning-layout>
+
+                <!-- Generate Document Toggle -->
+                <div class="slds-box slds-theme_shade slds-m-top_medium">
+                    <lightning-input
+                        type="toggle"
+                        label="Generate Document Template"
+                        checked={generateDocument}
+                        onchange={handleGenerateDocumentToggle}
+                        message-toggle-active="Document template will be created with selected fields"
+                        message-toggle-inactive="No document template will be created">
+                    </lightning-input>
+                    <template if:true={generateDocument}>
+                        <div class="slds-m-top_small">
+                            <p class="slds-text-body_small slds-text-color_weak">
+                                <lightning-icon icon-name="utility:info" size="x-small" class="slds-m-right_xx-small"></lightning-icon>
+                                Select which fields and questions should be included in the auto-generated document template.
+                                Demographic fields selected earlier will always be included in the document header.
+                            </p>
+                        </div>
+                    </template>
+                </div>
+
                 <template if:true={saveMessage}>
                     <div class="slds-notify slds-notify_alert slds-theme_success slds-m-top_medium">
                         <span class="slds-assistive-text">success</span>
@@ -651,14 +895,41 @@
             </template>
         </div>
 
-        <div class="slds-card__footer slds-grid slds-grid_align-spread slds-p-around_medium">
-            <lightning-button
-                label="Previous"
-                onclick={handlePrev}
-                disabled={isFirstStep}>
-            </lightning-button>
-            <div class="slds-button-group" role="group">
-                <template if:true={isReviewStep}>
+        <!-- Governance Checks Info (Review Step Only) -->
+        <template if:true={isReviewStep}>
+            <div class="slds-p-around_medium slds-border_top">
+                <div class="slds-box slds-theme_alert-texture">
+                    <p class="slds-text-heading_small slds-m-bottom_small">
+                        <lightning-icon 
+                            icon-name="utility:info" 
+                            size="small"
+                            class="slds-m-right_x-small">
+                        </lightning-icon>
+                        Governance Checks
+                    </p>
+                    <p class="slds-text-body_small slds-text-color_weak">
+                        When you click "Save & Activate", this template will be:
+                    </p>
+                    <ul class="slds-list_dotted slds-m-left_medium slds-m-top_small">
+                        <li>✓ Validated for governance compliance (linter checks)</li>
+                        <li>✓ Analyzed for mobile readiness</li>
+                        <li>✓ Snapshot for PWA offline sync</li>
+                        <li>✓ Marked with immutable content hash</li>
+                    </ul>
+                </div>
+            </div>
+        </template>
+
+        <div class="slds-card__footer slds-grid slds-grid_align-spread slds-p-around_medium slds-border_top">
+            <div class="footer-left">
+                <lightning-button
+                    label="Previous"
+                    onclick={handlePrev}
+                    disabled={isFirstStep}>
+                </lightning-button>
+            </div>
+            <div class="footer-center">
+                <div class="slds-button-group" role="group">
                     <lightning-button
                         label="Save as Draft"
                         onclick={handleSaveAsDraft}
@@ -670,11 +941,17 @@
                         onclick={handleSaveAndContinue}
                         disabled={isSaveDisabled}>
                     </lightning-button>
+                </div>
+            </div>
+            <div class="footer-right">
+                <template if:true={isReviewStep}>
                     <lightning-button
-                        variant="success"
+                        variant="neutral"
                         label="Save & Activate"
                         onclick={handleSaveAndActivate}
-                        disabled={isSaveDisabled}>
+                        disabled={isSaveDisabled}
+                        loading={isRunningGovernanceChecks}
+                        title="Runs governance checks + generates mobile manifest">
                     </lightning-button>
                 </template>
                 <template if:false={isReviewStep}>
@@ -687,10 +964,10 @@
                 </template>
             </div>
         </div>
-        </template>
+    </template>
 
-        <template if:true={isSaving}>
-            <lightning-spinner alternative-text="Saving Interview Template"></lightning-spinner>
-        </template>
+    <template if:true={isSaving}>
+        <lightning-spinner alternative-text="Saving Interview Template"></lightning-spinner>
+    </template>
     </lightning-card>
 </template>

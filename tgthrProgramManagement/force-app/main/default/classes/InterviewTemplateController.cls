@@ -31,6 +31,12 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public String category;
         @AuraEnabled public Boolean active;
         @AuraEnabled public String programId;
+        @AuraEnabled public String goalsPolicy;
+        @AuraEnabled public String diagnosesPolicy;
+        @AuraEnabled public String housingBenefitPolicy;
+        @AuraEnabled public String clinicalBenefitPolicy;
+        @AuraEnabled public String clientSignaturePolicy;
+        @AuraEnabled public String staffSignaturePolicy;
     }
 
         public class VersionForm {
@@ -63,6 +69,12 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public TemplateForm template;
         @AuraEnabled public VersionForm version;
         @AuraEnabled public List<QuestionForm> questions;
+        @AuraEnabled public DocumentTemplateForm documentTemplate;
+    }
+
+    public class DocumentTemplateForm {
+        @AuraEnabled public Boolean enabled;
+        @AuraEnabled public String dataMapping; // JSON string from buildDataMapping()
     }
 
     public class TemplateResponse {
@@ -71,6 +83,8 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public List<Id> questionIds;
         @AuraEnabled public String templateUuid;
         @AuraEnabled public String templateVersionUuid;
+        @AuraEnabled public Id documentTemplateId;
+        @AuraEnabled public List<String> errors;
     }
 
     public class InterviewTemplateSummary {
@@ -85,6 +99,9 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public Date effectiveFrom;
         @AuraEnabled public Date effectiveTo;
         @AuraEnabled public Boolean isTemplate;
+        @AuraEnabled public String programName;
+        @AuraEnabled public DateTime activatedDate;
+        @AuraEnabled public String activatedBy;
     }
 
     public class QuestionLibraryItem {
@@ -159,7 +176,9 @@ public with sharing class InterviewTemplateController {
 
         List<InterviewTemplateVersion__c> versions = [
             SELECT Id, Name, Status__c, Variant__c, Effective_From__c, Effective_To__c,
-                   InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c
+                   LastModifiedDate, LastModifiedBy.Name,
+                   InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c,
+                   InterviewTemplate__r.Program__c, InterviewTemplate__r.Program__r.Name
             FROM InterviewTemplateVersion__c
             WHERE InterviewTemplate__r.Active__c = true
             AND (Status__c = 'Active')
@@ -177,6 +196,9 @@ public with sharing class InterviewTemplateController {
             summary.status = versionRecord.Status__c;
             summary.effectiveFrom = versionRecord.Effective_From__c;
             summary.effectiveTo = versionRecord.Effective_To__c;
+            summary.programName = versionRecord.InterviewTemplate__r?.Program__r?.Name;
+            summary.activatedDate = versionRecord.LastModifiedDate;
+            summary.activatedBy = versionRecord.LastModifiedBy?.Name;
             summaries.add(summary);
         }
 
@@ -189,8 +211,10 @@ public with sharing class InterviewTemplateController {
 
         List<InterviewTemplateVersion__c> versions = [
             SELECT Id, Name, Status__c, Variant__c, Version__c,
+                   LastModifiedDate, LastModifiedBy.Name,
                    InterviewTemplate__c, InterviewTemplate__r.Name, 
-                   InterviewTemplate__r.Category__c
+                   InterviewTemplate__r.Category__c,
+                   InterviewTemplate__r.Program__c, InterviewTemplate__r.Program__r.Name
             FROM InterviewTemplateVersion__c
             WHERE Status__c = 'Draft'
             ORDER BY InterviewTemplate__r.Name, Name
@@ -208,6 +232,9 @@ public with sharing class InterviewTemplateController {
             summary.status = versionRecord.Status__c;
             // For now, all Draft templates are treated as "in progress" (not templates)
             summary.isTemplate = false;
+            summary.programName = versionRecord.InterviewTemplate__r?.Program__r?.Name;
+            summary.activatedDate = versionRecord.LastModifiedDate;
+            summary.activatedBy = versionRecord.LastModifiedBy?.Name;
             summaries.add(summary);
         }
 
@@ -220,8 +247,10 @@ public with sharing class InterviewTemplateController {
 
         List<InterviewTemplateVersion__c> versions = [
             SELECT Id, Name, Status__c, Variant__c, Version__c, Effective_From__c, Effective_To__c,
+                   LastModifiedDate, LastModifiedBy.Name,
                    InterviewTemplate__c, InterviewTemplate__r.Name, 
-                   InterviewTemplate__r.Category__c
+                   InterviewTemplate__r.Category__c,
+                   InterviewTemplate__r.Program__c, InterviewTemplate__r.Program__r.Name
             FROM InterviewTemplateVersion__c
             WHERE Status__c = 'Retired'
             ORDER BY LastModifiedDate DESC, InterviewTemplate__r.Name, Name
@@ -240,6 +269,9 @@ public with sharing class InterviewTemplateController {
             summary.effectiveFrom = versionRecord.Effective_From__c;
             summary.effectiveTo = versionRecord.Effective_To__c;
             summary.isTemplate = false;
+            summary.programName = versionRecord.InterviewTemplate__r?.Program__r?.Name;
+            summary.activatedDate = versionRecord.LastModifiedDate;
+            summary.activatedBy = versionRecord.LastModifiedBy?.Name;
             summaries.add(summary);
         }
 
@@ -436,12 +468,44 @@ public with sharing class InterviewTemplateController {
             payload.questions = new List<QuestionForm>();
         }
 
+        // Check for existing Active template with same Category/Variant/Program if trying to activate
+        if (payload.template.active == true) {
+            String categoryFilter = payload.template.category;
+            String variantFilter = payload.version.variant;
+            Id programFilter = String.isBlank(payload.template.programId) ? null : Id.valueOf(payload.template.programId);
+            
+            List<InterviewTemplateVersion__c> existingActive = [
+                SELECT Id, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, Variant__c
+                FROM InterviewTemplateVersion__c
+                WHERE InterviewTemplate__r.Active__c = true
+                AND Status__c = 'Active'
+                AND InterviewTemplate__r.Category__c = :categoryFilter
+                AND Variant__c = :variantFilter
+                AND InterviewTemplate__r.Program__c = :programFilter
+                LIMIT 1
+            ];
+            
+            if (!existingActive.isEmpty()) {
+                String programName = programFilter != null ? ' for this Program' : ' (Global)';
+                throw new AuraHandledException(
+                    'An Active ' + categoryFilter + ' (' + variantFilter + ') template already exists' + programName + '. ' +
+                    'Please retire "' + existingActive[0].InterviewTemplate__r.Name + '" before activating a new one.'
+                );
+            }
+        }
+        
         InterviewTemplate__c template = new InterviewTemplate__c(
             Name = payload.template.name,
             Program__c = String.isBlank(payload.template.programId) ? null : payload.template.programId,
             Category__c = payload.template.category,
             Active__c = payload.template.active == null ? true : payload.template.active,
-            UUID__c = generateUuid()
+            UUID__c = generateUuid(),
+            Goals_Policy__c = payload.template.goalsPolicy,
+            Diagnoses_Policy__c = payload.template.diagnosesPolicy,
+            Housing_Benefit_Policy__c = payload.template.housingBenefitPolicy,
+            Clinical_Benefit_Policy__c = payload.template.clinicalBenefitPolicy,
+            Client_Signature_Policy__c = payload.template.clientSignaturePolicy,
+            Staff_Signature_Policy__c = payload.template.staffSignaturePolicy
         );
         InterviewTemplateVersion__c version;
         List<InterviewQuestion__c> questionsToInsert = new List<InterviewQuestion__c>();
@@ -460,6 +524,20 @@ public with sharing class InterviewTemplateController {
                 UUID__c = generateUuid()
             );
             insert version;
+
+            // Delete any existing questions for this version (in case we're re-saving a draft)
+            // This ensures deleted questions are removed and prevents duplicates
+            try {
+                List<SObject> existingQuestions = Database.query(
+                    'SELECT Id FROM InterviewQuestion__c WHERE InterviewTemplateVersion__c = :versionId'
+                    .replace(':versionId', '\'' + version.Id + '\'')
+                );
+                if (!existingQuestions.isEmpty()) {
+                    delete existingQuestions;
+                }
+            } catch (Exception deleteEx) {
+                System.debug('No existing questions to delete: ' + deleteEx.getMessage());
+            }
 
             if (payload.questions != null) {
                 Integer orderCounter = 1;
@@ -485,7 +563,10 @@ public with sharing class InterviewTemplateController {
                             ? String.join(form.picklistValues, '\n')
                             : null,
                         UUID__c = form.uuid != null ? form.uuid : generateUuid(),
-                        InterviewQuestionLibrary__c = String.isNotBlank(form.libraryQuestionId) ? form.libraryQuestionId : null
+                        InterviewQuestionLibrary__c = String.isNotBlank(form.libraryQuestionId) ? form.libraryQuestionId : null,
+                        // Field-mapped questions (from demographic/assessment selection) are auto-approved
+                        Status__c = String.isNotBlank(form.mapsTo) ? 'Active' : null,
+                        Approver__c = String.isNotBlank(form.mapsTo) ? UserInfo.getUserId() : null
                     );
                     questionsToInsert.add(question);
                     orderCounter++;
@@ -503,11 +584,66 @@ public with sharing class InterviewTemplateController {
         response.templateId = template.Id;
         response.templateVersionId = version.Id;
         response.questionIds = new List<Id>();
+        response.documentTemplateId = null; // Will be set if document template created
         for (InterviewQuestion__c question : questionsToInsert) {
             response.questionIds.add(question.Id);
         }
         response.templateUuid = template.UUID__c;
         response.templateVersionUuid = version.UUID__c;
+
+        // Create InterviewTemplateDocument if document template is enabled
+        if (payload.documentTemplate != null && payload.documentTemplate.enabled == true) {
+            System.debug('Creating InterviewTemplateDocument - enabled: ' + payload.documentTemplate.enabled);
+            System.debug('Data mapping length: ' + (payload.documentTemplate.dataMapping != null ? payload.documentTemplate.dataMapping.length() : 0));
+            try {
+                SObject document = Schema.getGlobalDescribe().get('InterviewTemplateDocument__c').newSObject();
+                document.put('InterviewTemplate__c', template.Id);
+                document.put('InterviewTemplateVersion__c', version.Id);
+                document.put('Program__c', template.Program__c);
+                document.put('Status__c', 'Published'); // Valid values: Draft, Reviewed, Published, Archived
+                document.put('Template_Format__c', 'DOCX');
+                document.put('Data_Mapping__c', payload.documentTemplate.dataMapping);
+                document.put('Engine_Version__c', '1.0');
+                document.put('Active__c', true);
+                document.put('Output_Format__c', 'DOCX');
+                document.put('Contains_PHI__c', true);
+                document.put('Primary_Object__c', 'Interview__c');
+                document.put('Category__c', template.Category__c);
+                
+                insert document;
+                response.documentTemplateId = (String)document.get('Id');
+                System.debug('InterviewTemplateDocument created successfully: ' + document.get('Id'));
+                
+                // Generate the Jinja-tagged Word template from the data mapping
+                try {
+                    String contentDocumentId = generateTemplateDocument((String)document.get('Id'), payload.documentTemplate.dataMapping);
+                    if (String.isNotBlank(contentDocumentId)) {
+                        document.put('Content_Link__c', contentDocumentId);
+                        update document;
+                        System.debug('Template document generated and linked: ' + contentDocumentId);
+                    }
+                } catch (Exception templateGenEx) {
+                    System.debug(LoggingLevel.WARN, 'Template generation failed (non-blocking): ' + templateGenEx.getMessage());
+                    if (response.errors == null) {
+                        response.errors = new List<String>();
+                    }
+                    response.errors.add('Template document generation failed: ' + templateGenEx.getMessage());
+                }
+            } catch (Exception docEx) {
+                // Log detailed error information
+                System.debug(LoggingLevel.ERROR, 'Failed to create document template: ' + docEx.getMessage());
+                System.debug(LoggingLevel.ERROR, 'Stack trace: ' + docEx.getStackTraceString());
+                // Add error to response instead of failing entire save
+                if (response.errors == null) {
+                    response.errors = new List<String>();
+                }
+                response.errors.add('Document template creation failed: ' + docEx.getMessage());
+            }
+        } else {
+            System.debug('InterviewTemplateDocument NOT created - payload.documentTemplate: ' + 
+                        (payload.documentTemplate != null ? 'exists but enabled=' + payload.documentTemplate.enabled : 'null'));
+        }
+
         return response;
     }
 
@@ -539,6 +675,19 @@ public with sharing class InterviewTemplateController {
         result.version.variant = asString(versionRaw.get('variant'));
         result.version.effectiveFrom = asDate(versionRaw.get('effectiveFrom'));
         result.version.effectiveTo = asDate(versionRaw.get('effectiveTo'));
+
+        // Parse documentTemplate if present
+        Map<String, Object> documentTemplateRaw = (Map<String, Object>)raw.get('documentTemplate');
+        if (documentTemplateRaw != null) {
+            result.documentTemplate = new DocumentTemplateForm();
+            result.documentTemplate.enabled = asBoolean(documentTemplateRaw.get('enabled'));
+            
+            // Serialize dataMapping object to JSON string
+            Object dataMappingObj = documentTemplateRaw.get('dataMapping');
+            if (dataMappingObj != null) {
+                result.documentTemplate.dataMapping = JSON.serialize(dataMappingObj);
+            }
+        }
 
         result.questions = new List<QuestionForm>();
         List<Object> questionsRaw = (List<Object>)raw.get('questions');
@@ -806,5 +955,152 @@ public with sharing class InterviewTemplateController {
             Blob.valueOf(String.valueOf(System.now().getTime()) + String.valueOf(Crypto.getRandomLong()))
         );
         return EncodingUtil.convertToHex(randomBlob).left(32);
+    }
+    
+    /**
+     * Generate Jinja-tagged Word template document from data mapping JSON.
+     * Calls external template builder service to create the DOCX template.
+     * 
+     * @param templateDocumentId InterviewTemplateDocument__c record ID
+     * @param dataMappingJson JSON string containing field/question mappings
+     * @return ContentDocument ID of the generated template, or null if generation failed
+     */
+    private static String generateTemplateDocument(String templateDocumentId, String dataMappingJson) {
+        try {
+            // Use Named Credential for secure endpoint configuration
+            String endpoint = 'callout:Doc_Gen_Secure/build-interview-template';
+            
+            System.debug('Calling Template Builder: ' + endpoint);
+            System.debug('Template Document ID: ' + templateDocumentId);
+            System.debug('Data Mapping JSON length: ' + (dataMappingJson != null ? dataMappingJson.length() : 0));
+            
+            // Build request payload
+            Map<String, Object> requestBody = new Map<String, Object>{
+                'template_document_id' => templateDocumentId,
+                'data_mapping' => dataMappingJson
+            };
+            
+            // Make HTTP callout
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(endpoint);
+            req.setMethod('POST');
+            req.setHeader('Content-Type', 'application/json');
+            req.setBody(JSON.serialize(requestBody));
+            req.setTimeout(120000); // 2 minutes
+            
+            Http http = new Http();
+            HttpResponse res = http.send(req);
+            
+            System.debug('Template Builder response status: ' + res.getStatusCode());
+            
+            if (res.getStatusCode() == 200) {
+                Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                String contentDocId = (String) result.get('contentDocumentId');
+                
+                if (String.isBlank(contentDocId)) {
+                    throw new CalloutException('No ContentDocument ID returned from Template Builder');
+                }
+                
+                System.debug('✅ Template document generated! ContentDocument ID: ' + contentDocId);
+                return contentDocId;
+            } else {
+                String errorMsg = 'Template Builder error (HTTP ' + res.getStatusCode() + '): ' + res.getBody();
+                System.debug('❌ ' + errorMsg);
+                throw new CalloutException(errorMsg);
+            }
+            
+        } catch (Exception e) {
+            System.debug('❌ Exception in generateTemplateDocument: ' + e.getMessage());
+            System.debug(e.getStackTraceString());
+            throw e;
+        }
+    }
+    
+    /**
+     * Get DocGen service endpoint URL based on environment.
+     * Same logic as InterviewDocumentService to ensure consistency.
+     */
+    @TestVisible
+    private static String getDocGenEndpoint() {
+        // Try Custom Metadata first
+        try {
+            String query = 'SELECT Endpoint_URL__c FROM DocGen_Settings__mdt WHERE Active__c = true LIMIT 1';
+            List<SObject> settings = Database.query(query);
+            
+            if (!settings.isEmpty()) {
+                String endpointUrl = (String) settings[0].get('Endpoint_URL__c');
+                if (String.isNotBlank(endpointUrl)) {
+                    System.debug('Using DocGen endpoint from Custom Metadata: ' + endpointUrl);
+                    return endpointUrl;
+                }
+            }
+        } catch (Exception e) {
+            System.debug('Custom Metadata not found, falling back to default endpoint: ' + e.getMessage());
+        }
+        
+        // Fallback: Check if sandbox or production
+        Boolean isSandbox = [SELECT IsSandbox FROM Organization LIMIT 1].IsSandbox;
+        
+        if (isSandbox) {
+            System.debug('Sandbox environment detected, using localhost');
+            return 'http://localhost:8001';
+        } else {
+            System.debug('Production environment detected, using production endpoint');
+            return 'https://docgen.aritasconsulting.com';
+        }
+    }
+    
+    /**
+     * Run governance linter on template before publish.
+     */
+    @AuraEnabled
+    public static TemplateLinterService.LintReport runTemplateLinter(Id templateId) {
+        return TemplateLinterService.lintTemplate(templateId);
+    }
+
+    /**
+     * Generate immutable manifest for template.
+     */
+    @AuraEnabled
+    public static ManifestGeneratorService.GenerateResult generateTemplateManifest(Id templateId) {
+        return ManifestGeneratorService.generateManifest(templateId);
+    }
+
+    /**
+     * Update template with governance data after publish.
+     */
+    @AuraEnabled
+    public static void updatePublishedTemplate(
+        Id templateId,
+        String status,
+        Boolean lintPassed,
+        String lintReport,
+        String manifest,
+        String contentHash,
+        String mobileStatus
+    ) {
+        try {
+            String query = 'SELECT Id FROM InterviewTemplate__c WHERE Id = :templateId LIMIT 1';
+            List<SObject> results = Database.query(query);
+            
+            if (results.isEmpty()) {
+                throw new IllegalArgumentException('Template not found');
+            }
+            
+            SObject template = results[0];
+            template.put('Status__c', status);
+            template.put('Lint_Passed__c', lintPassed);
+            template.put('Lint_Report__c', lintReport);
+            template.put('Mobile_Manifest__c', manifest);
+            template.put('Mobile_Content_Hash__c', contentHash);
+            template.put('Mobile_Status__c', mobileStatus);
+            template.put('Lint_Run_Date__c', Date.today());
+            
+            Database.update(template);
+            System.debug('Published template ' + templateId + ' with governance data');
+        } catch (Exception e) {
+            System.debug('Error updating published template: ' + e.getMessage());
+            throw new AuraHandledException('Failed to update template: ' + e.getMessage());
+        }
     }
 }

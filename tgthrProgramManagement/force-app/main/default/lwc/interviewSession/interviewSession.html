@@ -227,6 +227,13 @@
                                 <lightning-button
                                     label="Save Interview"
                                     onclick={handleSave}
+                                    variant="neutral"
+                                    disabled={isSaving}
+                                    class="slds-m-right_small">
+                                </lightning-button>
+                                <lightning-button
+                                    label="Save & Download"
+                                    onclick={handleSaveAndDownload}
                                     variant="brand"
                                     disabled={isSaving}>
                                 </lightning-button>

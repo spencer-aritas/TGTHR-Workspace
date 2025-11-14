@@ -4,8 +4,25 @@ import getFieldMetadata from '@salesforce/apex/InterviewTemplateController.getFi
 import getQuestionLibrary from '@salesforce/apex/InterviewTemplateController.getQuestionLibrary';
 import saveTemplate from '@salesforce/apex/InterviewTemplateController.saveTemplate';
 import loadTemplate from '@salesforce/apex/InterviewTemplateController.loadTemplate';
+import runTemplateLinter from '@salesforce/apex/InterviewTemplateController.runTemplateLinter';
+import generateTemplateManifest from '@salesforce/apex/InterviewTemplateController.generateTemplateManifest';
+import updatePublishedTemplate from '@salesforce/apex/InterviewTemplateController.updatePublishedTemplate';
 
-const STEPS = ['template', 'accountFields', 'assessmentFields', 'format', 'review'];
+const STEPS = ['template', 'templateFeatures', 'accountFields', 'assessmentFields', 'format', 'review'];
+
+// Required demographic fields that must be included in every interview
+// Order here determines the order in the interview document
+const REQUIRED_ACCOUNT_FIELDS = [
+    'FirstName',           // First Name
+    'LastName',            // Last Name
+    'Preferred_Name__pc',  // Goes By
+    'PersonPronouns',      // Pronouns
+    'PersonEmail',         // Email
+    'Phone',               // Account Phone
+    'HMIS_Identifier_Number__pc', // HMIS Identifier Number
+    'Primary_Diagnosis__c' // Primary Diagnosis
+];
+
 const CATEGORY_OPTIONS = [
     { label: 'Intake', value: 'Intake' },
     { label: 'Discharge', value: 'Discharge' },
@@ -47,7 +64,14 @@ const DEFAULT_TEMPLATE = {
     name: '',
     category: 'Intake',
     active: true,
-    programId: null
+    programId: null,
+    // Template Features - Policy fields
+    goalsPolicy: 'Hidden',
+    diagnosesPolicy: 'Hidden',
+    housingBenefitPolicy: 'Hidden',
+    clinicalBenefitPolicy: 'Hidden',
+    clientSignaturePolicy: 'Hidden',
+    staffSignaturePolicy: 'Hidden'
 };
 
 const DEFAULT_VERSION = {
@@ -59,11 +83,22 @@ const DEFAULT_VERSION = {
     effectiveTo: null
 };
 
+// Generate auto-populated version name
+function generateVersionName(category, variant) {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `${category || 'Template'}_${variant || 'Standard'}_${dateStr}_${random}`;
+}
+
 export default class InterviewBuilderHome extends LightningElement {
     currentStepIndex = 0;
     showWizard = false;
     editingTemplateId = null;
     editingVersionId = null;
+    templateId = null;
+    documentRecordId = null; // InterviewTemplateDocument__c record ID
+    builderManifest = null; // JSON manifest from docTemplateBuilder
     templateForm = { ...DEFAULT_TEMPLATE };
     versionForm = { ...DEFAULT_VERSION };
     questions = [];
@@ -76,6 +111,10 @@ export default class InterviewBuilderHome extends LightningElement {
     isSaving = false;
     saveMessage = '';
     saveMode = null; // 'draft', 'continue', or 'activate'
+    isRunningGovernanceChecks = false;
+    generateDocument = false; // Toggle for creating InterviewTemplateDocument
+    selectedDocumentFields = new Set(); // Fields selected for document template
+    selectedDocumentQuestions = new Set(); // Questions selected for document template
 
     fieldOptionCache = {};
     questionLibrary = [];
@@ -104,9 +143,7 @@ export default class InterviewBuilderHome extends LightningElement {
         if (data) {
             this.questionLibrary = data || [];
         } else if (error) {
-            // Non-blocking warning
-            // eslint-disable-next-line no-console
-            console.warn('Unable to load question library', error);
+            // Non-blocking warning - silently skip question library loading
         }
     }
 
@@ -116,6 +153,10 @@ export default class InterviewBuilderHome extends LightningElement {
 
     get isTemplateStep() {
         return this.currentStep === 'template';
+    }
+
+    get isTemplateFeaturesStep() {
+        return this.currentStep === 'templateFeatures';
     }
 
     get isAccountFieldsStep() {
@@ -181,6 +222,91 @@ export default class InterviewBuilderHome extends LightningElement {
 
     get picklistDisplayOptions() {
         return PICKLIST_DISPLAY_OPTIONS;
+    }
+
+    // Template Features policy getters
+    get goalsEnabled() {
+        return this.templateForm.goalsPolicy !== 'Hidden';
+    }
+    get goalsRequired() {
+        return this.templateForm.goalsPolicy === 'Required';
+    }
+    get goalsDisabled() {
+        return !this.goalsEnabled;
+    }
+
+    get diagnosesEnabled() {
+        return this.templateForm.diagnosesPolicy !== 'Hidden';
+    }
+    get diagnosesRequired() {
+        return this.templateForm.diagnosesPolicy === 'Required';
+    }
+    get diagnosesDisabled() {
+        return !this.diagnosesEnabled;
+    }
+
+    get housingBenefitEnabled() {
+        return this.templateForm.housingBenefitPolicy !== 'Hidden';
+    }
+    get housingBenefitRequired() {
+        return this.templateForm.housingBenefitPolicy === 'Required';
+    }
+    get housingBenefitDisabled() {
+        return !this.housingBenefitEnabled;
+    }
+
+    get clinicalBenefitEnabled() {
+        return this.templateForm.clinicalBenefitPolicy !== 'Hidden';
+    }
+    get clinicalBenefitRequired() {
+        return this.templateForm.clinicalBenefitPolicy === 'Required';
+    }
+    get clinicalBenefitDisabled() {
+        return !this.clinicalBenefitEnabled;
+    }
+
+    get clientSignatureEnabled() {
+        return this.templateForm.clientSignaturePolicy !== 'Hidden';
+    }
+    get clientSignatureRequired() {
+        return this.templateForm.clientSignaturePolicy === 'Required';
+    }
+    get clientSignatureDisabled() {
+        return !this.clientSignatureEnabled;
+    }
+
+    get staffSignatureEnabled() {
+        return this.templateForm.staffSignaturePolicy !== 'Hidden';
+    }
+    get staffSignatureRequired() {
+        return this.templateForm.staffSignaturePolicy === 'Required';
+    }
+    get staffSignatureDisabled() {
+        return !this.staffSignatureEnabled;
+    }
+
+    get isGoalsPolicyRequired() {
+        return this.templateForm.goalsPolicy === 'Required';
+    }
+
+    get isDiagnosesPolicyRequired() {
+        return this.templateForm.diagnosesPolicy === 'Required';
+    }
+
+    get isHousingBenefitPolicyRequired() {
+        return this.templateForm.housingBenefitPolicy === 'Required';
+    }
+
+    get isClinicalBenefitPolicyRequired() {
+        return this.templateForm.clinicalBenefitPolicy === 'Required';
+    }
+
+    get isClientSignaturePolicyRequired() {
+        return this.templateForm.clientSignaturePolicy === 'Required';
+    }
+
+    get isStaffSignaturePolicyRequired() {
+        return this.templateForm.staffSignaturePolicy === 'Required';
     }
 
     get accountFieldOptions() {
@@ -254,20 +380,64 @@ export default class InterviewBuilderHome extends LightningElement {
     get selectedFieldSummary() {
         const fieldIds = [...this.selectedAccountFields, ...this.selectedAssessmentFields];
         return fieldIds
-            .map((id) => this.fieldOptionCache[id])
-            .filter((field) => !!field)
-            .map((field) => ({
-                id: field.id,
-                label: `${field.objectApiName}: ${field.label}`
-            }));
+            .map((id) => {
+                const field = this.fieldOptionCache[id];
+                if (!field) return null;
+                
+                const isAlwaysIncluded = this.selectedAccountFields.includes(id); // Demographic fields always included
+                return {
+                    id: field.id,
+                    label: `${field.objectApiName}: ${field.label}`,
+                    apiName: field.apiName,
+                    objectApiName: field.objectApiName,
+                    includeInDocument: isAlwaysIncluded || this.selectedDocumentFields.has(id),
+                    isAlwaysIncluded: isAlwaysIncluded
+                };
+            })
+            .filter((field) => field !== null);
     }
 
     get hasSelectedFields() {
         return this.selectedFieldSummary.length > 0;
     }
 
+    // Combined fields for document builder (Account + Assessment fields in builder format)
+    get combinedAvailableFields() {
+        const accountFields = this.selectedAccountFields
+            .map(id => this.fieldOptionCache[id])
+            .filter(field => !!field)
+            .map(field => ({
+                id: field.id,
+                label: field.label,
+                apiName: field.apiName,
+                type: field.type,
+                objectApiName: field.objectApiName || 'Account'
+            }));
+
+        const assessmentFields = this.selectedAssessmentFields
+            .map(id => this.fieldOptionCache[id])
+            .filter(field => !!field)
+            .map(field => ({
+                id: field.id,
+                label: field.label,
+                apiName: field.apiName,
+                type: field.type,
+                objectApiName: field.objectApiName || 'Assessment'
+            }));
+
+        return [...accountFields, ...assessmentFields];
+    }
+
     get programSummary() {
         return this.templateForm.programId ? `Linked (Id: ${this.templateForm.programId})` : 'Not selected';
+    }
+
+    // Questions with document selection state (for Review step)
+    get questionsWithDocumentState() {
+        return this.questions.map(question => ({
+            ...question,
+            includeInDocument: this.selectedDocumentQuestions.has(question.key)
+        }));
     }
 
     get questionSections() {
@@ -478,19 +648,14 @@ export default class InterviewBuilderHome extends LightningElement {
             return;
         }
 
-        const commonFieldApiNames = [
-            'FirstName',
-            'LastName', 
-            'PersonEmail',
-            'Phone',
-            'Preferred_Name__pc'
-        ];
-
-        const preselectedIds = this.availableAccountFields
-            .filter(field => commonFieldApiNames.includes(field.apiName))
+        // Sort fields by their position in REQUIRED_ACCOUNT_FIELDS to maintain order
+        const preselectedIds = REQUIRED_ACCOUNT_FIELDS
+            .map(apiName => this.availableAccountFields.find(field => field.apiName === apiName))
+            .filter(field => field != null) // Remove any not found
             .map(field => field.id);
 
         if (preselectedIds.length > 0) {
+            // Set immediately - dual-listbox should handle reactivity
             this.selectedAccountFields = [...preselectedIds];
             // Sync questions after pre-selection
             this.scheduleFieldSync();
@@ -634,6 +799,33 @@ export default class InterviewBuilderHome extends LightningElement {
         const { name, value, type, checked } = event.target;
         const newValue = type === 'checkbox' ? checked : value;
         this.templateForm = { ...this.templateForm, [name]: newValue };
+        
+        // Regenerate version name if category changes
+        if (name === 'category') {
+            this.versionForm.name = generateVersionName(newValue, this.versionForm.variant);
+        }
+    }
+
+    handlePolicyEnabledToggle(event) {
+        const fieldName = event.currentTarget.dataset.field;
+        const isEnabled = event.target.checked;
+        
+        // If toggling off, set to Hidden
+        // If toggling on, set to Optional (unless it was already Required)
+        const currentValue = this.templateForm[fieldName];
+        const newValue = isEnabled ? (currentValue === 'Required' ? 'Required' : 'Optional') : 'Hidden';
+        
+        this.templateForm = { ...this.templateForm, [fieldName]: newValue };
+    }
+
+    handlePolicyRequiredToggle(event) {
+        const fieldName = event.currentTarget.dataset.field;
+        const isRequired = event.target.checked;
+        
+        // Toggle between Optional and Required (can only toggle if enabled)
+        const newValue = isRequired ? 'Required' : 'Optional';
+        
+        this.templateForm = { ...this.templateForm, [fieldName]: newValue };
     }
 
     handleVersionInput(event) {
@@ -645,6 +837,11 @@ export default class InterviewBuilderHome extends LightningElement {
         }
 
         this.versionForm = { ...this.versionForm, [name]: parsedValue };
+        
+        // Regenerate version name if variant changes
+        if (name === 'variant') {
+            this.versionForm.name = generateVersionName(this.templateForm.category, parsedValue);
+        }
     }
 
     handleProgramChange(event) {
@@ -653,7 +850,28 @@ export default class InterviewBuilderHome extends LightningElement {
     }
 
     handleAccountFieldChange(event) {
-        this.selectedAccountFields = event.detail.value || [];
+        const newSelection = event.detail.value || [];
+        
+        // Get IDs of required fields
+        const requiredFieldIds = this.availableAccountFields
+            .filter(field => REQUIRED_ACCOUNT_FIELDS.includes(field.apiName))
+            .map(field => field.id);
+        
+        // Check if user is trying to remove required fields
+        const missingRequired = requiredFieldIds.filter(id => !newSelection.includes(id));
+        
+        if (missingRequired.length > 0) {
+            // Add required fields back
+            this.selectedAccountFields = [...new Set([...newSelection, ...requiredFieldIds])];
+            this.showToast(
+                'Required Fields',
+                'First Name, Last Name, Goes By, Pronouns, Phone, Email, HMIS ID, and Medicaid ID are required and cannot be removed.',
+                'warning'
+            );
+        } else {
+            this.selectedAccountFields = newSelection;
+        }
+        
         this.scheduleFieldSync();
     }
 
@@ -662,12 +880,78 @@ export default class InterviewBuilderHome extends LightningElement {
         this.scheduleFieldSync();
     }
 
+    handleManifestSaved(event) {
+        // Called when docTemplateBuilder saves manifest
+        const { manifest, documentId } = event.detail;
+        this.builderManifest = manifest;
+        this.documentRecordId = documentId;
+        
+        this.showToast(
+            'Document Template Saved',
+            'Your document template has been saved successfully.',
+            'success'
+        );
+    }
+
     handleAccountFieldSearch(event) {
         this.accountFieldSearch = event.target.value || '';
     }
 
     handleAssessmentFieldSearch(event) {
         this.assessmentFieldSearch = event.target.value || '';
+    }
+
+    handleGenerateDocumentToggle(event) {
+        this.generateDocument = event.target.checked;
+        
+        // When toggled on, pre-select all demographic (Account) fields and all questions
+        if (this.generateDocument) {
+            // Pre-select all Account fields (always included)
+            this.selectedDocumentFields = new Set(this.selectedAccountFields);
+            
+            // Pre-select all Assessment fields
+            this.selectedAssessmentFields.forEach(id => {
+                this.selectedDocumentFields.add(id);
+            });
+            
+            // Pre-select all questions
+            this.selectedDocumentQuestions = new Set(this.questions.map(q => q.key));
+        } else {
+            // Clear selections when toggled off
+            this.selectedDocumentFields = new Set();
+            this.selectedDocumentQuestions = new Set();
+        }
+    }
+
+    handleFieldSelectionChange(event) {
+        const fieldId = event.target.dataset.fieldId;
+        const isChecked = event.target.checked;
+        
+        if (isChecked) {
+            this.selectedDocumentFields.add(fieldId);
+        } else {
+            // Don't allow unchecking demographic (Account) fields
+            if (!this.selectedAccountFields.includes(fieldId)) {
+                this.selectedDocumentFields.delete(fieldId);
+            }
+        }
+        
+        // Force re-render
+        this.selectedDocumentFields = new Set(this.selectedDocumentFields);
+    }
+
+    handleQuestionSelectionChange(event) {
+        const questionKey = event.target.dataset.questionKey;
+        const isChecked = event.target.checked;
+        
+        if (isChecked) {
+            this.selectedDocumentQuestions.add(questionKey);
+        } else {
+            this.selectedDocumentQuestions.delete(questionKey);
+        }
+        
+        // Force re-render
+        this.selectedDocumentQuestions = new Set(this.selectedDocumentQuestions);
     }
 
     handleSaveAsDraft() {
@@ -680,14 +964,92 @@ export default class InterviewBuilderHome extends LightningElement {
         this.performSave(false, true);
     }
 
-    handleSaveAndActivate() {
-        this.saveMode = 'activate';
-        // eslint-disable-next-line no-alert, no-restricted-globals
-        if (!confirm('Activate this template?\n\nOnce activated, the template will be immediately available for use on Cases and all questions will be saved to maintain the schema.')) {
+    async handleSaveAndActivate() {
+    this.isSaving = true;
+    this.isRunningGovernanceChecks = true;
+    
+    console.log('Save & Activate: Starting. editingTemplateId =', this.editingTemplateId);
+    
+    try {
+        let templateId;
+        
+        // Step 1: Save template (only if creating new, not editing)
+        if (this.editingTemplateId) {
+            // Use existing template ID when editing
+            console.log('Save & Activate: Using existing template (editing mode)');
+            templateId = this.editingTemplateId;
+        } else {
+            // Create new template
+            console.log('Save & Activate: Creating new template');
+            const payload = this.buildPayload();
+            console.log('Save & Activate: Payload built:', payload);
+            payload.template.active = true;
+            payload.version.status = 'Active';
+            
+            const savedTemplate = await saveTemplate({ payloadJson: JSON.stringify(payload) });
+            console.log('Save & Activate: saveTemplate returned:', savedTemplate);
+            templateId = savedTemplate.templateId;
+            console.log('Save & Activate: Using templateId for linter:', templateId);
+            this.templateId = templateId; // Store for future reference
+            this.editingTemplateId = templateId; // Track as editing this template
+        }
+        
+        // Step 2: Run linter
+        console.log('Save & Activate: About to run linter with templateId:', templateId);
+        const lintReport = await runTemplateLinter({ templateId });
+        
+        if (!lintReport.pass) {
+            this.showLinterFailureToast(lintReport);
+            this.versionForm.status = 'In Review';
+            this.isSaving = false;
+            this.isRunningGovernanceChecks = false;
             return;
         }
-        this.performSave(true, false);
+        
+        // Step 3: Generate manifest
+        const manifestResult = await generateTemplateManifest({ templateId });
+        
+        if (!manifestResult.success) {
+            this.showManifestFailureToast(manifestResult);
+            this.versionForm.status = 'In Review';
+            this.isSaving = false;
+            this.isRunningGovernanceChecks = false;
+            return;
+        }
+        
+        // Step 4: Update template with governance data
+        await updatePublishedTemplate({
+            templateId,
+            status: 'Active', // Use 'Active' instead of 'Published'
+            lintPassed: lintReport.pass,
+            lintReport: lintReport.reportJson,
+            manifest: manifestResult.manifestJson,
+            contentHash: manifestResult.contentHash,
+            mobileStatus: 'Active'
+        });
+        
+        // Step 5: Show success
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Success',
+            message: 'Template activated! All governance checks passed.',
+            variant: 'success'
+        }));
+        
+        this.versionForm.status = 'Active';
+        this.showWizard = false;
+        
+    } catch (error) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Error',
+            message: error.body?.message || 'Publish failed',
+            variant: 'error'
+        }));
+        this.versionForm.status = 'In Review';
+    } finally {
+        this.isSaving = false;
+        this.isRunningGovernanceChecks = false;
     }
+}
 
     scheduleFieldSync() {
         if (this.fieldSyncScheduled) {
@@ -1112,6 +1474,11 @@ export default class InterviewBuilderHome extends LightningElement {
     handleNext() {
         if (this.currentStepIndex < STEPS.length - 1 && this.canProceed) {
             this.currentStepIndex += 1;
+            
+            // Ensure required fields are selected when entering accountFields step
+            if (this.currentStep === 'accountFields' && this.selectedAccountFields.length === 0) {
+                this.preselectCommonFields();
+            }
         }
     }
 
@@ -1129,13 +1496,20 @@ export default class InterviewBuilderHome extends LightningElement {
             const payloadJson = JSON.stringify(payload);
             const result = await saveTemplate({ payloadJson });
             
-            const actionMessage = shouldActivate 
-                ? 'Template activated and ready for use on Cases.'
-                : shouldContinueEditing 
-                ? 'Template saved. Continue editing.'
-                : 'Template saved as draft.';
-            
-            this.showToast('Interview Template Saved', actionMessage, 'success');
+            // Check for errors in the response
+            if (result.errors && result.errors.length > 0) {
+                const errorMessage = result.errors.join('\n');
+                this.showToast('Template saved with warnings', errorMessage, 'warning');
+                console.warn('Save warnings:', result.errors);
+            } else {
+                const actionMessage = shouldActivate 
+                    ? 'Template activated and ready for use on Cases.'
+                    : shouldContinueEditing 
+                    ? 'Template saved. Continue editing.'
+                    : 'Template saved as draft.';
+                
+                this.showToast('Interview Template Saved', actionMessage, 'success');
+            }
             
             if (shouldContinueEditing) {
                 // Stay in the wizard, refresh with the saved template IDs
@@ -1157,6 +1531,8 @@ export default class InterviewBuilderHome extends LightningElement {
     resetWizard() {
         this.templateForm = { ...DEFAULT_TEMPLATE };
         this.versionForm = { ...DEFAULT_VERSION };
+        // Generate fresh version name each time (timestamp ensures uniqueness)
+        this.versionForm.name = generateVersionName(this.templateForm.category, this.versionForm.variant);
         this.questions = [];
         this.selectedAccountFields = [];
         this.selectedAssessmentFields = [];
@@ -1168,8 +1544,10 @@ export default class InterviewBuilderHome extends LightningElement {
     }
 
     handleCreateNew() {
+        console.log('handleCreateNew: Resetting wizard, clearing editingTemplateId');
         this.resetWizard();
         this.showWizard = true;
+        console.log('handleCreateNew: After reset, editingTemplateId =', this.editingTemplateId);
     }
 
     handleBackToManager() {
@@ -1189,6 +1567,7 @@ export default class InterviewBuilderHome extends LightningElement {
         
         this.editingTemplateId = templateId;
         this.editingVersionId = versionId;
+        this.templateId = templateId; // Store for docTemplateUpload
         
         try {
             // Load the template data from Apex
@@ -1320,12 +1699,19 @@ export default class InterviewBuilderHome extends LightningElement {
             });
         });
 
-        return {
+        const payload = {
             template: {
                 name: this.templateForm.name,
                 category: this.templateForm.category,
                 active: false, // Will be set by performSave based on save mode
-                programId: this.normalizeId(this.templateForm.programId)
+                programId: this.normalizeId(this.templateForm.programId),
+                // Template Features - Policy fields
+                goalsPolicy: this.templateForm.goalsPolicy,
+                diagnosesPolicy: this.templateForm.diagnosesPolicy,
+                housingBenefitPolicy: this.templateForm.housingBenefitPolicy,
+                clinicalBenefitPolicy: this.templateForm.clinicalBenefitPolicy,
+                clientSignaturePolicy: this.templateForm.clientSignaturePolicy,
+                staffSignaturePolicy: this.templateForm.staffSignaturePolicy
             },
             version: {
                 name: this.versionForm.name,
@@ -1336,6 +1722,69 @@ export default class InterviewBuilderHome extends LightningElement {
                 effectiveTo: this.versionForm.effectiveTo || null
             },
             questions: flattenedQuestions
+        };
+
+        // Add document template information if toggle is enabled
+        console.log('buildPayload: generateDocument =', this.generateDocument);
+        if (this.generateDocument) {
+            const dataMapping = this.buildDataMapping();
+            console.log('buildPayload: dataMapping object =', dataMapping);
+            payload.documentTemplate = {
+                enabled: true,
+                dataMapping: JSON.stringify(dataMapping)  // Convert to JSON string
+            };
+            console.log('buildPayload: payload.documentTemplate.dataMapping length =', payload.documentTemplate.dataMapping.length);
+        } else {
+            console.log('buildPayload: generateDocument is false, not adding documentTemplate to payload');
+        }
+
+        console.log('buildPayload: final payload has documentTemplate =', !!payload.documentTemplate);
+        return payload;
+    }
+
+    buildDataMapping() {
+        // Build the data mapping JSON for InterviewTemplateDocument
+        const fields = [];
+        const demographicFieldIds = [];
+
+        // Collect selected fields
+        this.selectedFieldSummary.forEach(field => {
+            if (field.includeInDocument) {
+                fields.push({
+                    id: field.id,
+                    apiName: field.apiName,
+                    label: field.label,
+                    objectApiName: field.objectApiName
+                });
+
+                // Track demographic fields (always included Account fields)
+                if (field.isAlwaysIncluded) {
+                    demographicFieldIds.push(field.id);
+                }
+            }
+        });
+
+        // Collect selected questions
+        const questions = [];
+        this.questionsWithDocumentState.forEach(question => {
+            if (question.includeInDocument) {
+                questions.push({
+                    key: question.key,
+                    label: question.label,
+                    apiName: question.apiName,
+                    responseType: question.responseType,
+                    section: question.section,
+                    mapsTo: question.mapsTo
+                });
+            }
+        });
+
+        return {
+            fields: fields,
+            questions: questions,
+            demographicFields: demographicFieldIds,
+            templateFormat: 'DOCX',
+            engineVersion: '1.0'
         };
     }
 
@@ -1435,5 +1884,25 @@ export default class InterviewBuilderHome extends LightningElement {
                 variant
             })
         );
+    }
+    showLinterFailureToast(lintReport) {
+    const errors = lintReport.findings.filter(f => f.severity === 'ERROR');
+    const errorList = errors.map(e => `• ${e.checkName}: ${e.message}`).join('\n');
+    
+    this.dispatchEvent(new ShowToastEvent({
+        title: `Governance Check Failed (${errors.length} error${errors.length > 1 ? 's' : ''})`,
+        message: errorList,
+        variant: 'error',
+        mode: 'sticky'
+    }));
+}
+
+    showManifestFailureToast(manifestResult) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: 'Manifest Generation Failed',
+            message: manifestResult.message,
+            variant: 'warning',
+            mode: 'sticky'
+        }));
     }
 }
