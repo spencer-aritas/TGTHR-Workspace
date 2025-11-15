@@ -206,7 +206,7 @@ public without sharing class TemplateLinterService {
         
         try {
             // Query all library questions and group by key
-            String query = 'SELECT Id, Question_Key__c FROM InterviewQuestionsLibrary__c';
+            String query = 'SELECT Id, Question_Key__c FROM InterviewQuestionLibrary__c';
             List<SObject> libraryQuestions = Database.query(query);
             
             Map<String, List<String>> keyToIds = new Map<String, List<String>>();

@@ -614,21 +614,12 @@ public with sharing class InterviewTemplateController {
                 response.documentTemplateId = (String)document.get('Id');
                 System.debug('InterviewTemplateDocument created successfully: ' + document.get('Id'));
                 
-                // Generate the Jinja-tagged Word template from the data mapping
-                try {
-                    String contentDocumentId = generateTemplateDocument((String)document.get('Id'), payload.documentTemplate.dataMapping);
-                    if (String.isNotBlank(contentDocumentId)) {
-                        document.put('Content_Link__c', contentDocumentId);
-                        update document;
-                        System.debug('Template document generated and linked: ' + contentDocumentId);
-                    }
-                } catch (Exception templateGenEx) {
-                    System.debug(LoggingLevel.WARN, 'Template generation failed (non-blocking): ' + templateGenEx.getMessage());
-                    if (response.errors == null) {
-                        response.errors = new List<String>();
-                    }
-                    response.errors.add('Template document generation failed: ' + templateGenEx.getMessage());
-                }
+                // Trigger async callout to generate template (avoids DML before callout error)
+                System.debug('🔄 Queueing @future method to generate template document...');
+                System.debug('Template Document ID: ' + document.get('Id'));
+                System.debug('Data Mapping JSON length: ' + (payload.documentTemplate.dataMapping != null ? payload.documentTemplate.dataMapping.length() : 0));
+                generateTemplateDocumentAsync((String)document.get('Id'), payload.documentTemplate.dataMapping);
+                System.debug('✅ @future method queued successfully');
             } catch (Exception docEx) {
                 // Log detailed error information
                 System.debug(LoggingLevel.ERROR, 'Failed to create document template: ' + docEx.getMessage());
@@ -682,10 +673,11 @@ public with sharing class InterviewTemplateController {
             result.documentTemplate = new DocumentTemplateForm();
             result.documentTemplate.enabled = asBoolean(documentTemplateRaw.get('enabled'));
             
-            // Serialize dataMapping object to JSON string
+            // Get dataMapping as string (JavaScript already stringified it)
             Object dataMappingObj = documentTemplateRaw.get('dataMapping');
             if (dataMappingObj != null) {
-                result.documentTemplate.dataMapping = JSON.serialize(dataMappingObj);
+                // It's already a JSON string from JavaScript, don't double-serialize
+                result.documentTemplate.dataMapping = asString(dataMappingObj);
             }
         }
 
@@ -958,17 +950,22 @@ public with sharing class InterviewTemplateController {
     }
     
     /**
-     * Generate Jinja-tagged Word template document from data mapping JSON.
+     * Generate Jinja-tagged Word template document from data mapping JSON (async).
      * Calls external template builder service to create the DOCX template.
+     * Uses @future to avoid DML before callout error.
      * 
      * @param templateDocumentId InterviewTemplateDocument__c record ID
      * @param dataMappingJson JSON string containing field/question mappings
-     * @return ContentDocument ID of the generated template, or null if generation failed
      */
-    private static String generateTemplateDocument(String templateDocumentId, String dataMappingJson) {
+    @future(callout=true)
+    private static void generateTemplateDocumentAsync(String templateDocumentId, String dataMappingJson) {
+        System.debug('🚀 @future method STARTED - generateTemplateDocumentAsync');
+        System.debug('Received Template Document ID: ' + templateDocumentId);
+        System.debug('Received Data Mapping JSON length: ' + (dataMappingJson != null ? dataMappingJson.length() : 0));
+        
         try {
-            // Use Named Credential for secure endpoint configuration
-            String endpoint = 'callout:Doc_Gen_Secure/build-interview-template';
+            // Direct HTTP callout to DocGen service
+            String endpoint = 'https://docgen.aritasconsulting.com/build-interview-template';
             
             System.debug('Calling Template Builder: ' + endpoint);
             System.debug('Template Document ID: ' + templateDocumentId);
@@ -997,22 +994,24 @@ public with sharing class InterviewTemplateController {
                 Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
                 String contentDocId = (String) result.get('contentDocumentId');
                 
-                if (String.isBlank(contentDocId)) {
-                    throw new CalloutException('No ContentDocument ID returned from Template Builder');
+                if (String.isNotBlank(contentDocId)) {
+                    // Update the InterviewTemplateDocument with the generated file link
+                    SObject document = Schema.getGlobalDescribe().get('InterviewTemplateDocument__c').newSObject();
+                    document.put('Id', templateDocumentId);
+                    document.put('Content_Link__c', contentDocId);
+                    update document;
+                    System.debug('✅ Template document generated and linked! ContentDocument ID: ' + contentDocId);
+                } else {
+                    System.debug('❌ No ContentDocument ID returned from Template Builder');
                 }
-                
-                System.debug('✅ Template document generated! ContentDocument ID: ' + contentDocId);
-                return contentDocId;
             } else {
-                String errorMsg = 'Template Builder error (HTTP ' + res.getStatusCode() + '): ' + res.getBody();
-                System.debug('❌ ' + errorMsg);
-                throw new CalloutException(errorMsg);
+                System.debug('❌ Template Builder error (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
             }
             
         } catch (Exception e) {
-            System.debug('❌ Exception in generateTemplateDocument: ' + e.getMessage());
+            System.debug('❌ Exception in generateTemplateDocumentAsync: ' + e.getMessage());
             System.debug(e.getStackTraceString());
-            throw e;
+            // Note: Cannot throw exceptions from @future methods - errors are logged only
         }
     }
     
