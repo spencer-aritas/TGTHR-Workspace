@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Audit_Notes__c</fullName>
+    <description>System-generated audit trail (immutable): timestamps of state changes, approver actions, etc.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Read-only audit trail of all changes to this approval</inlineHelpText>
+    <label>Audit Notes</label>
+    <length>32000</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>10</visibleLines>
+</CustomField>

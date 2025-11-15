@@ -1,0 +1,9 @@
+.slds-col_bump-left {
+    margin-left: auto;
+}
+
+.slds-theme_shade {
+    background-color: #f3f3f3;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}

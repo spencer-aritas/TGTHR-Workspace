@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>File_Naming_Pattern__c</fullName>
+    <inlineHelpText>{{ClientLast}} - {{TemplateName}}/{{TemplateVersion}} - {{date}}</inlineHelpText>
+    <label>File Naming Pattern</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>TextArea</type>
+</CustomField>

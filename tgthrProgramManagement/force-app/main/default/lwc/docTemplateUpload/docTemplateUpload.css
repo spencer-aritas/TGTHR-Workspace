@@ -1,0 +1,22 @@
+.slds-is-dragging {
+  background-color: #e3f2fd;
+  border-color: #1f68d6 !important;
+}
+
+code {
+  background-color: #f5f5f5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.slds-text-heading_small {
+  font-weight: 600;
+}
+
+.slds-list_horizontal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
