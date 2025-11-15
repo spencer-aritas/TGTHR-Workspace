@@ -1,0 +1,281 @@
+.template-builder {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f3f2f2;
+}
+
+/* ========== Toolbar ========== */
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-bottom: 1px solid #dddbda;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.toolbar__left,
+.toolbar__center,
+.toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ========== Builder Layout (3-pane) ========== */
+.builder {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ========== Panels ========== */
+.panel {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-right: 1px solid #dddbda;
+}
+
+.panel--left {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+.panel--center {
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel--right {
+    width: 300px;
+    flex-shrink: 0;
+    border-right: none;
+    border-left: 1px solid #dddbda;
+}
+
+.panel__header {
+    padding: 1rem;
+    border-bottom: 1px solid #dddbda;
+    background: #fafaf9;
+}
+
+.panel__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+/* ========== Blocks Palette (Left Panel) ========== */
+.block-category {
+    margin-bottom: 1.5rem;
+}
+
+.block-category h3 {
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.block-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    background: #f3f2f2;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.block-item:hover {
+    background: #e5e5e4;
+    border-color: #0176d3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.block-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.block-item span {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* ========== Canvas (Center Panel) ========== */
+.canvas {
+    min-height: 600px;
+    background: white;
+    border: 2px dashed #dddbda;
+    border-radius: 8px;
+    padding: 2rem;
+}
+
+.canvas--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.canvas__placeholder {
+    text-align: center;
+    max-width: 400px;
+}
+
+.canvas-block {
+    position: relative;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #fafaf9;
+    border: 2px solid #dddbda;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.canvas-block:hover {
+    border-color: #0176d3;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.canvas-block__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dddbda;
+}
+
+.canvas-block__type {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #706e6b;
+    letter-spacing: 0.5px;
+}
+
+.canvas-block__actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.canvas-block__content {
+    min-height: 2rem;
+}
+
+.block-preview-text {
+    padding: 0.5rem;
+    background: white;
+    border: 1px solid #e5e5e4;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+/* ========== Properties Panel (Right Panel) ========== */
+.property-group {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e5e4;
+}
+
+.property-group:last-child {
+    border-bottom: none;
+}
+
+.column-editor {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: #fafaf9;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+}
+
+.column-editor lightning-input {
+    flex: 1;
+}
+
+/* ========== Preview Mode ========== */
+.preview {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.preview__content {
+    flex: 1;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    background: white;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+/* ========== Validation Mode ========== */
+.validation {
+    padding: 1rem;
+}
+
+.validation h3 {
+    margin-bottom: 1rem;
+}
+
+.validation pre {
+    background: #fafaf9;
+    padding: 1rem;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+}
+
+/* ========== Page Config ========== */
+.page-config {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.page-config lightning-combobox,
+.page-config lightning-input {
+    flex: 1;
+}
+
+/* ========== Responsive Adjustments ========== */
+@media (max-width: 1024px) {
+    .panel--left {
+        width: 200px;
+    }
+
+    .panel--right {
+        width: 250px;
+    }
+}
+
+@media (max-width: 768px) {
+    .builder {
+        flex-direction: column;
+    }
+
+    .panel--left,
+    .panel--right {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #dddbda;
+    }
+
+    .panel--right {
+        border-left: none;
+    }
+}

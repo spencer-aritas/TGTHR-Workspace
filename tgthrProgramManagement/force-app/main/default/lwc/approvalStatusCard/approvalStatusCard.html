@@ -1,0 +1,174 @@
+<template>
+    <div class="slds-box slds-m-bottom_medium">
+        <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+            <div class="slds-col">
+                <h3 class="slds-text-heading_small slds-m-bottom_small">
+                    <lightning-icon
+                        icon-name={approvalStatusIcon}
+                        size="small"
+                        class="slds-m-right_x-small"
+                        variant={approvalStatusVariant}>
+                    </lightning-icon>
+                    Approval Status
+                </h3>
+                <p class="slds-text-body_small slds-text-color_weak">
+                    {approvalStatusLabel}
+                </p>
+                <p if:true={programDirectorName} class="slds-text-body_small slds-m-top_small">
+                    <strong>Program Director:</strong> {programDirectorName}
+                </p>
+            </div>
+
+            <div class="slds-col slds-col_bump-left">
+                <!-- Submit for Approval (if not already submitted) -->
+                <lightning-button
+                    if:true={canSubmitForApproval}
+                    variant="brand"
+                    label="Submit for Approval"
+                    onclick={handleSubmitForApproval}
+                    loading={isSubmittingForApproval}
+                    class="slds-m-bottom_x-small">
+                </lightning-button>
+
+                <!-- Approve Button (if user is approver) -->
+                <lightning-button
+                    if:true={canApproveOrReject}
+                    variant="success"
+                    label="Approve"
+                    onclick={handleOpenApprovalModal}
+                    disabled={isProcessingApproval}
+                    class="slds-m-right_x-small slds-m-bottom_x-small">
+                </lightning-button>
+
+                <!-- Reject Button (if user is approver) -->
+                <lightning-button
+                    if:true={canApproveOrReject}
+                    variant="destructive"
+                    label="Reject"
+                    onclick={handleOpenRejectionModal}
+                    disabled={isProcessingApproval}
+                    class="slds-m-bottom_x-small">
+                </lightning-button>
+            </div>
+        </div>
+
+        <!-- Approval History -->
+        <div if:true={hasApprovalHistory} class="slds-m-top_medium slds-border_top slds-pt_medium">
+            <p class="slds-text-heading_x-small slds-m-bottom_small">
+                History
+            </p>
+            <template for:each={approvalHistory} for:item="entry">
+                <div key={entry.approvalId} class="slds-box slds-box_small slds-m-bottom_x-small slds-theme_shade">
+                    <div class="slds-grid slds-grid_align-spread">
+                        <div class="slds-col">
+                            <p class="slds-text-body_small">
+                                <strong>{entry.status}</strong>
+                                <span class="slds-m-left_small">by {entry.approverName}</span>
+                            </p>
+                            <p class="slds-text-body_x-small slds-text-color_weak slds-m-top_x-small">
+                                {entry.decidedDate}
+                            </p>
+                        </div>
+                    </div>
+                    <p if:true={entry.comments} class="slds-text-body_x-small slds-m-top_small">
+                        <strong>Comments:</strong> {entry.comments}
+                    </p>
+                    <p if:true={entry.rejectionReason} class="slds-text-body_x-small slds-m-top_small">
+                        <strong>Reason:</strong> {entry.rejectionReason}
+                    </p>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Approval Modal -->
+    <lightning-modal
+        is-open={showApprovalModal}
+        label="Approve Template"
+        size="small"
+        onclose={handleCloseApprovalModal}>
+        <div slot="body">
+            <div class="slds-form-element slds-m-bottom_medium">
+                <label class="slds-form-element__label" for="approval-comments">
+                    <span class="slds-text-required">*</span>
+                    Comments (Optional)
+                </label>
+                <div class="slds-form-element__control">
+                    <textarea
+                        id="approval-comments"
+                        class="slds-textarea"
+                        value={approvalComments}
+                        onchange={handleCommentsChange}
+                        placeholder="Add any comments for the template creator...">
+                    </textarea>
+                </div>
+            </div>
+        </div>
+        <template slot="footer">
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                onclick={handleCloseApprovalModal}>
+            </lightning-button>
+            <lightning-button
+                variant="success"
+                label="Approve"
+                onclick={handleConfirmApproval}
+                loading={isProcessingApproval}>
+            </lightning-button>
+        </template>
+    </lightning-modal>
+
+    <!-- Rejection Modal -->
+    <lightning-modal
+        is-open={showRejectionModal}
+        label="Reject Template"
+        size="small"
+        onclose={handleCloseRejectionModal}>
+        <div slot="body">
+            <div class="slds-form-element slds-m-bottom_medium">
+                <label class="slds-form-element__label" for="rejection-reason">
+                    <span class="slds-text-required">*</span>
+                    Reason for Rejection
+                </label>
+                <div class="slds-form-element__control">
+                    <lightning-combobox
+                        id="rejection-reason"
+                        label=""
+                        value={rejectionReason}
+                        options={rejectionReasonOptions}
+                        onchange={handleRejectionReasonChange}>
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <div class="slds-form-element">
+                <label class="slds-form-element__label" for="rejection-comments">
+                    Additional Comments
+                </label>
+                <div class="slds-form-element__control">
+                    <textarea
+                        id="rejection-comments"
+                        class="slds-textarea"
+                        value={approvalComments}
+                        onchange={handleCommentsChange}
+                        placeholder="Explain what needs to be fixed...">
+                    </textarea>
+                </div>
+            </div>
+        </div>
+        <template slot="footer">
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                onclick={handleCloseRejectionModal}>
+            </lightning-button>
+            <lightning-button
+                variant="destructive"
+                label="Reject"
+                onclick={handleConfirmRejection}
+                loading={isProcessingApproval}>
+            </lightning-button>
+        </template>
+    </lightning-modal>
+</template>

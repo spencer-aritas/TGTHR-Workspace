@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Submitted_By__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>User who submitted the template for approval</description>
+    <externalId>false</externalId>
+    <inlineHelpText>The creator/publisher who submitted this template</inlineHelpText>
+    <label>Submitted By</label>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Template Approvals (Submitted By)</relationshipLabel>
+    <relationshipName>TemplateApprovals_Submitted_By</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

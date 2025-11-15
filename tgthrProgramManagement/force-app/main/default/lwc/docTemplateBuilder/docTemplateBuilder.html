@@ -1,0 +1,352 @@
+<template>
+    <div class="template-builder">
+        <!-- Top Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar__left">
+                <h1 class="slds-text-heading_medium">Template Builder</h1>
+            </div>
+            <div class="toolbar__center">
+                <lightning-button-group>
+                    <lightning-button 
+                        label="Edit" 
+                        variant={editButtonVariant}
+                        onclick={handleSwitchToEdit}
+                        icon-name="utility:edit"
+                    ></lightning-button>
+                    <lightning-button 
+                        label="Preview" 
+                        variant={previewButtonVariant}
+                        onclick={handleSwitchToPreview}
+                        icon-name="utility:preview"
+                    ></lightning-button>
+                    <lightning-button 
+                        label="Validate" 
+                        variant={validateButtonVariant}
+                        onclick={handleSwitchToValidate}
+                        icon-name="utility:check"
+                    ></lightning-button>
+                </lightning-button-group>
+            </div>
+            <div class="toolbar__right">
+                <lightning-button 
+                    label="Save" 
+                    variant="brand"
+                    onclick={handleSave}
+                    disabled={loading}
+                    icon-name="utility:save"
+                ></lightning-button>
+            </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <template if:true={successMessage}>
+            <div class="slds-notify slds-notify_alert slds-alert_success" role="alert">
+                <span class="slds-assistive-text">Success</span>
+                <h2>{successMessage}</h2>
+            </div>
+        </template>
+
+        <template if:true={error}>
+            <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                <span class="slds-assistive-text">Error</span>
+                <h2>{error}</h2>
+            </div>
+        </template>
+
+        <!-- Three-Pane Layout -->
+        <div class="builder">
+            <!-- Left Panel: Blocks Palette -->
+            <template if:true={isEditMode}>
+                <div class="panel panel--left">
+                    <div class="panel__header">
+                        <h2 class="slds-text-heading_small">Blocks</h2>
+                    </div>
+                    <div class="panel__content">
+                        <!-- Static Blocks -->
+                        <div class="block-category">
+                            <h3 class="slds-text-body_small slds-text-color_weak">Static</h3>
+                            <template for:each={staticBlocks} for:item="block">
+                                <div key={block.type} 
+                                     class="block-item" 
+                                     data-type={block.type} 
+                                     draggable="true"
+                                     ondragstart={handleDragStart}
+                                     ondragend={handleDragEnd}
+                                     onclick={handleAddBlock}>
+                                    <lightning-icon icon-name={block.icon} size="x-small"></lightning-icon>
+                                    <span>{block.label}</span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Data Blocks -->
+                        <div class="block-category">
+                            <h3 class="slds-text-body_small slds-text-color_weak">Data</h3>
+                            <template for:each={dataBlocks} for:item="block">
+                                <div key={block.type} 
+                                     class="block-item" 
+                                     data-type={block.type} 
+                                     draggable="true"
+                                     ondragstart={handleDragStart}
+                                     ondragend={handleDragEnd}
+                                     onclick={handleAddBlock}>
+                                    <lightning-icon icon-name={block.icon} size="x-small"></lightning-icon>
+                                    <span>{block.label}</span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Dynamic Blocks -->
+                        <div class="block-category">
+                            <h3 class="slds-text-body_small slds-text-color_weak">Dynamic</h3>
+                            <template for:each={dynamicBlocks} for:item="block">
+                                <div key={block.type} 
+                                     class="block-item" 
+                                     data-type={block.type} 
+                                     draggable="true"
+                                     ondragstart={handleDragStart}
+                                     ondragend={handleDragEnd}
+                                     onclick={handleAddBlock}>
+                                    <lightning-icon icon-name={block.icon} size="x-small"></lightning-icon>
+                                    <span>{block.label}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Center Panel: Canvas -->
+            <div class="panel panel--center">
+                <div class="panel__header">
+                    <h2 class="slds-text-heading_small">Canvas</h2>
+                    <div class="page-config">
+                        <lightning-combobox
+                            label="Page Size"
+                            value={pageConfig.size}
+                            options={pageSizeOptions}
+                            data-property="size"
+                            onchange={handlePageConfigChange}
+                        ></lightning-combobox>
+                        <lightning-input
+                            label="Margins"
+                            value={pageConfig.margins}
+                            data-property="margins"
+                            onchange={handlePageConfigChange}
+                        ></lightning-input>
+                    </div>
+                </div>
+                
+                <div class="panel__content">
+                    <template if:true={isEditMode}>
+                        <div class={canvasClass} 
+                             ondragover={handleDragOver}
+                             ondrop={handleDrop}>
+                            <template if:false={hasBlocks}>
+                                <div class="canvas__placeholder">
+                                    <p class="slds-text-heading_small slds-text-color_weak">
+                                        Drag blocks from the left panel or click to add them
+                                    </p>
+                                </div>
+                            </template>
+
+                            <template if:true={hasBlocks}>
+                                <template for:each={blocks} for:item="block" for:index="index">
+                                    <div key={block.id} class="canvas-block" data-index={index} onclick={handleSelectBlock}>
+                                        <div class="canvas-block__header">
+                                            <span class="canvas-block__type">{block.type}</span>
+                                            <div class="canvas-block__actions">
+                                                <lightning-button-icon
+                                                    icon-name="utility:up"
+                                                    variant="bare"
+                                                    title="Move Up"
+                                                    data-index={index}
+                                                    onclick={handleMoveBlockUp}
+                                                ></lightning-button-icon>
+                                                <lightning-button-icon
+                                                    icon-name="utility:down"
+                                                    variant="bare"
+                                                    title="Move Down"
+                                                    data-index={index}
+                                                    onclick={handleMoveBlockDown}
+                                                ></lightning-button-icon>
+                                                <lightning-button-icon
+                                                    icon-name="utility:copy"
+                                                    variant="bare"
+                                                    title="Duplicate"
+                                                    data-index={index}
+                                                    onclick={handleDuplicateBlock}
+                                                ></lightning-button-icon>
+                                                <lightning-button-icon
+                                                    icon-name="utility:delete"
+                                                    variant="bare"
+                                                    title="Delete"
+                                                    data-index={index}
+                                                    onclick={handleDeleteBlock}
+                                                ></lightning-button-icon>
+                                            </div>
+                                        </div>
+                                        <div class="canvas-block__content">
+                                            <!-- Block content preview based on type -->
+                                            <template if:true={block.label}>
+                                                <span class="slds-text-body_regular">{block.label}</span>
+                                            </template>
+                                            <template if:true={block.html}>
+                                                <div class="block-preview-text" lwc:dom="manual"></div>
+                                            </template>
+                                            <template if:true={block.title}>
+                                                <span class="slds-text-heading_small">{block.title}</span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Preview Mode -->
+                    <template if:true={isPreviewMode}>
+                        <div class="preview">
+                            <template if:true={previewHtml}>
+                                <div class="preview__content" lwc:dom="manual"></div>
+                            </template>
+                            <template if:false={previewHtml}>
+                                <p class="slds-text-color_weak">Generating preview...</p>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- Validate Mode -->
+                    <template if:true={isValidateMode}>
+                        <div class="validation">
+                            <template if:true={lintResults}>
+                                <h3 class="slds-text-heading_small">Lint Results</h3>
+                                <pre>{lintResults}</pre>
+                            </template>
+                            <template if:true={validationResults}>
+                                <h3 class="slds-text-heading_small">Validation Results</h3>
+                                <pre>{validationResults}</pre>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Right Panel: Properties -->
+            <template if:true={isEditMode}>
+                <div class="panel panel--right">
+                    <div class="panel__header">
+                        <h2 class="slds-text-heading_small">Properties</h2>
+                    </div>
+                    <div class="panel__content">
+                        <template if:false={selectedBlock}>
+                            <p class="slds-text-color_weak">Select a block to edit its properties</p>
+                        </template>
+
+                        <template if:true={selectedBlock}>
+                            <!-- Common properties for all blocks -->
+                            <div class="property-group">
+                                <h3 class="slds-text-body_small">Block Type: {selectedBlock.type}</h3>
+                            </div>
+
+                            <!-- Text Block Properties -->
+                            <template if:true={isTextBlock}>
+                                <div class="property-group">
+                                    <lightning-textarea
+                                        label="HTML Content"
+                                        value={selectedBlock.html}
+                                        data-property="html"
+                                        onchange={handlePropertyChange}>
+                                    </lightning-textarea>
+                                </div>
+                            </template>
+
+                            <!-- Field Block Properties -->
+                            <template if:true={isFieldBlock}>
+                                <div class="property-group">
+                                    <lightning-input
+                                        label="Label"
+                                        value={selectedBlock.label}
+                                        data-property="label"
+                                        onchange={handlePropertyChange}
+                                    ></lightning-input>
+                                    <lightning-combobox
+                                        label="Field"
+                                        value={selectedBlock.var}
+                                        options={availableFieldOptions}
+                                        data-property="var"
+                                        onchange={handlePropertyChange}
+                                        placeholder="Select a field..."
+                                    ></lightning-combobox>
+                                    <lightning-input
+                                        label="Format (optional)"
+                                        value={selectedBlock.format}
+                                        data-property="format"
+                                        onchange={handlePropertyChange}
+                                        placeholder="e.g., date:MM/DD/YYYY"
+                                    ></lightning-input>
+                                </div>
+                            </template>
+
+                            <!-- Table Block Properties -->
+                            <template if:true={isTableBlock}>
+                                <div class="property-group">
+                                    <lightning-input
+                                        label="Title"
+                                        value={selectedBlock.title}
+                                        data-property="title"
+                                        onchange={handlePropertyChange}
+                                    ></lightning-input>
+                                    <lightning-input
+                                        label="Collection (Object API Name)"
+                                        value={selectedBlock.collection}
+                                        data-property="collection"
+                                        onchange={handlePropertyChange}
+                                    ></lightning-input>
+                                    <lightning-textarea
+                                        label="WHERE Clause"
+                                        value={selectedBlock.where}
+                                        data-property="where"
+                                        onchange={handlePropertyChange}
+                                    ></lightning-textarea>
+                                    
+                                    <h4 class="slds-text-body_small slds-m-top_small">Columns</h4>
+                                    <template for:each={selectedBlock.columns} for:item="column">
+                                        <div key={column.id} class="column-editor">
+                                            <lightning-input
+                                                label="Header"
+                                                value={column.header}
+                                                data-property="header"
+                                            ></lightning-input>
+                                            <lightning-input
+                                                label="Value (Field API Name)"
+                                                value={column.value}
+                                                data-property="value"
+                                            ></lightning-input>
+                                            <lightning-button-icon
+                                                icon-name="utility:delete"
+                                                variant="bare"
+                                                onclick={handleTableColumnRemove}
+                                            ></lightning-button-icon>
+                                        </div>
+                                    </template>
+                                    <lightning-button
+                                        label="Add Column"
+                                        onclick={handleTableColumnAdd}
+                                    ></lightning-button>
+                                </div>
+                            </template>
+
+                            <!-- More property editors for other block types... -->
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Loading Spinner -->
+        <template if:true={loading}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+    </div>
+</template>

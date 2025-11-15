@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Approval Status Card</masterLabel>
+    <description>Displays template approval status and enables approve/reject workflow for Program Directors</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <property name="templateId" type="String" label="Template ID" description="The Interview Template ID" required="true"/>
+            <property name="templateName" type="String" label="Template Name" description="The Interview Template Name"/>
+            <property name="programDirectorName" type="String" label="Program Director Name" description="Name of the program director"/>
+            <property name="initialApprovalStatus" type="String" label="Initial Approval Status" description="Current approval status"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

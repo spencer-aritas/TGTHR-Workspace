@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>InterviewTemplate__c</fullName>
+    <deleteConstraint>Restrict</deleteConstraint>
+    <description>Reference to the interview template being approved</description>
+    <externalId>false</externalId>
+    <inlineHelpText>The template that requires approval</inlineHelpText>
+    <label>Interview Template</label>
+    <referenceTo>InterviewTemplate__c</referenceTo>
+    <relationshipLabel>Template Approvals</relationshipLabel>
+    <relationshipName>TemplateApprovals</relationshipName>
+    <required>true</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

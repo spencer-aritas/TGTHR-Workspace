@@ -1,0 +1,254 @@
+<template>
+  <div class="slds-box slds-p-around_medium">
+    <!-- Merge Table Index Section -->
+    <div class="slds-m-bottom_large">
+      <h2 class="slds-text-heading_medium slds-m-bottom_medium">
+        Merge Tag Reference
+      </h2>
+      
+      <p class="slds-m-bottom_medium slds-text-body_regular slds-text-color_weak">
+        Copy any tag below and paste into your DOCX template. Tags use Jinja format with double braces and tag name.
+      </p>
+      
+      <template if:true={mergeTags.length}>
+        <table class="slds-table slds-table_striped slds-table_bordered slds-table_cell-buffer">
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th scope="col">
+                <div class="slds-text-heading_label slds-truncate">API Name (Merge Tag)</div>
+              </th>
+              <th scope="col">
+                <div class="slds-text-heading_label slds-truncate">Question Label</div>
+              </th>
+              <th scope="col">
+                <div class="slds-text-heading_label slds-truncate">Action</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <template for:each={mergeTags} for:item="tag">
+              <tr key={tag.apiName}>
+                <td data-label="API Name">
+                  <div class="slds-truncate slds-code">{tag.apiName}</div>
+                </td>
+                <td data-label="Question Label">
+                  <div class="slds-truncate">{tag.displayName}</div>
+                </td>
+                <td data-label="Action">
+                  <button 
+                    class="slds-button slds-button_neutral slds-button_small"
+                    data-api-name={tag.apiName}
+                    onclick={handleCopyTag}
+                    title="Copy tag to clipboard"
+                  >
+                    Copy
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </template>
+      
+      <template if:false={mergeTags.length}>
+        <div class="slds-illustration slds-illustration_small">
+          <svg viewBox="0 0 60 60" aria-hidden="true" class="slds-illustration__svg">
+            <use xlink:href="/_slds/icons/illustration/empty-state_c/svg/symbol.svg#empty"></use>
+          </svg>
+          <h3 class="slds-text-heading_medium">No questions added yet</h3>
+        </div>
+      </template>
+    </div>
+
+    <!-- Document Upload Section -->
+    <div class="slds-border_top slds-p-top_large">
+      <h2 class="slds-text-heading_medium slds-m-bottom_medium">
+        Upload Merge Template
+      </h2>
+      
+      <p class="slds-m-bottom_medium slds-text-body_regular slds-text-color_weak">
+        Upload a DOCX file containing merge tags. Tags will be validated against available questions.
+      </p>
+
+      <!-- File Upload Area -->
+      <div 
+        class={uploadDropZoneClass}
+        ondrop={handleDrop}
+        ondragover={handleDragOver}
+        ondragleave={handleDragLeave}
+      >
+        <div class="slds-p-around_large slds-text-align_center">
+          <svg class="slds-icon slds-icon_large slds-m-bottom_small" aria-hidden="true">
+            <use xlink:href="/_slds/icons/utility/document_c.svg#document"></use>
+          </svg>
+          <p class="slds-m-bottom_small">
+            <strong>Drag file here or</strong>
+          </p>
+          <input 
+            type="file" 
+            accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onchange={handleFileSelect}
+            id="docFileInput"
+            style="display:none"
+          />
+          <button 
+            class="slds-button slds-button_brand"
+            onclick={triggerFileInput}
+            disabled={isUploading}
+          >
+            <template if:true={isUploading}>
+              Uploading...
+            </template>
+            <template if:false={isUploading}>
+              Browse Files
+            </template>
+          </button>
+          <p class="slds-text-body_small slds-m-top_small slds-text-color_weak">
+            .docx files only (DOCX format)
+          </p>
+        </div>
+      </div>
+
+      <!-- File Info / Status -->
+      <template if:true={selectedFileName}>
+        <div class="slds-box slds-m-top_medium slds-box_small">
+          <div class="slds-grid slds-wrap slds-gutters_small">
+            <div class="slds-col slds-size_1-of-2">
+              <p class="slds-text-body_small slds-text-color_weak">File Name</p>
+              <p class="slds-text-body_regular">{selectedFileName}</p>
+            </div>
+            <div class="slds-col slds-size_1-of-2">
+              <p class="slds-text-body_small slds-text-color_weak">Document Name (optional)</p>
+              <input 
+                type="text" 
+                class="slds-input"
+                placeholder="e.g., Medical Report Template"
+                value={documentName}
+                onchange={handleDocumentNameChange}
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Validation Results -->
+      <template if:true={validationResult}>
+        <div class={validationMessageClass}>
+          <div class="slds-p-medium">
+            <p class="slds-text-heading_small slds-m-bottom_small">
+              {validationResult.summary}
+            </p>
+
+            <!-- Error Tags -->
+            <template if:true={hasValidationErrors}>
+              <div class="slds-m-top_medium">
+                <p class="slds-text-body_small slds-text-color_error">
+                  <strong>Invalid tags:</strong>
+                </p>
+                <ul class="slds-list_dotted slds-m-top_small">
+                  <template for:each={validationResult.missingTags} for:item="tag">
+                    <li key={tag} class="slds-text-color_error">
+                      <code>{tag}</code> — not found in template questions
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </template>
+
+            <!-- Unused Questions -->
+            <template if:true={hasUnusedQuestions}>
+              <div class="slds-m-top_medium">
+                <p class="slds-text-body_small slds-text-color_weak">
+                  <strong>Questions not referenced in document (optional):</strong>
+                </p>
+                <ul class="slds-list_dotted slds-m-top_small">
+                  <template for:each={validationResult.unusedQuestions} for:item="tag">
+                    <li key={tag} class="slds-text-body_small slds-text-color_weak">
+                      {tag}
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+        <div class="slds-m-top_medium slds-text-align_center">
+          <button 
+            class="slds-button slds-button_brand"
+            onclick={handleUpload}
+            disabled={uploadButtonDisabled}
+          >
+            <template if:true={isUploading}>
+              Uploading...
+            </template>
+            <template if:false={isUploading}>
+              Upload Template
+            </template>
+          </button>
+          <button 
+            class="slds-button slds-button_neutral slds-m-left_small"
+            onclick={handleCancelUpload}
+            disabled={isUploading}
+          >
+            Cancel
+          </button>
+        </div>
+
+      <!-- Success Message -->
+      <template if:true={uploadSuccess}>
+        <div class="slds-notify slds-notify_alert slds-alert_success slds-m-top_medium" role="alert">
+          <span class="slds-assistive-text">success</span>
+          <svg class="slds-icon slds-icon_small" aria-hidden="true">
+            <use xlink:href="/_slds/icons/utility/success_c.svg#success"></use>
+          </svg>
+          <h2 class="slds-text-heading_small slds-hyphenate">
+            Document uploaded successfully! (ID: {uploadedDocumentId})
+          </h2>
+        </div>
+      </template>
+
+      <!-- Error Message -->
+      <template if:true={uploadError}>
+        <div class="slds-notify slds-notify_alert slds-alert_error slds-m-top_medium" role="alert">
+          <span class="slds-assistive-text">error</span>
+          <svg class="slds-icon slds-icon_small" aria-hidden="true">
+            <use xlink:href="/_slds/icons/utility/error_c.svg#error"></use>
+          </svg>
+          <h2 class="slds-text-heading_small slds-hyphenate">
+            {uploadError}
+          </h2>
+        </div>
+      </template>
+    </div>
+
+    <!-- Existing Document Info -->
+    <template if:true={existingDocument.hasDocument}>
+      <div class="slds-border_top slds-p-top_large">
+        <h3 class="slds-text-heading_small slds-m-bottom_small">Current Document</h3>
+        <dl class="slds-list_horizontal slds-has-dividers_around-space">
+          <dt class="slds-item_label">File</dt>
+          <dd class="slds-item_detail">{existingDocument.fileName}</dd>
+          <dt class="slds-item_label">Name</dt>
+          <dd class="slds-item_detail">{existingDocument.documentName}</dd>
+          <dt class="slds-item_label">Last Validated</dt>
+          <dd class="slds-item_detail">{formattedLastValidated}</dd>
+        </dl>
+        <button 
+          class="slds-button slds-button_destructive slds-m-top_medium"
+          onclick={handleDeleteDocument}
+          disabled={isDeleting}
+        >
+          <template if:true={isDeleting}>
+            Deleting...
+          </template>
+          <template if:false={isDeleting}>
+            Delete Document
+          </template>
+        </button>
+      </div>
+    </template>
+  </div>
+</template>
