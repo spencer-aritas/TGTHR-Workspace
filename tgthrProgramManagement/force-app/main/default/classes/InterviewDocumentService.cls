@@ -44,8 +44,8 @@ public with sharing class InterviewDocumentService {
      */
     private static String callDocGenService(Id interactionSummaryId, Boolean preview) {
         try {
-            // Use Named Credential for secure endpoint configuration
-            String endpoint = 'callout:Doc_Gen_Secure/trigger-interview-doc';
+            // Direct HTTP callout to DocGen service
+            String endpoint = 'https://docgen.aritasconsulting.com/trigger-interview-doc';
             
             System.debug('Calling DocGen: ' + endpoint);
             System.debug('InteractionSummary ID: ' + interactionSummaryId);
