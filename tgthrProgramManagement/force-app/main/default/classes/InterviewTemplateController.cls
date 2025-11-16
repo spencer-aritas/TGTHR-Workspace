@@ -1000,6 +1000,16 @@ public with sharing class InterviewTemplateController {
                     document.put('Id', templateDocumentId);
                     document.put('Content_Link__c', contentDocId);
                     update document;
+                    
+                    // Create ContentDocumentLink so file shows in Files related list
+                    ContentDocumentLink cdl = new ContentDocumentLink(
+                        ContentDocumentId = contentDocId,
+                        LinkedEntityId = templateDocumentId,
+                        ShareType = 'V',
+                        Visibility = 'AllUsers'
+                    );
+                    insert cdl;
+                    
                     System.debug('✅ Template document generated and linked! ContentDocument ID: ' + contentDocId);
                 } else {
                     System.debug('❌ No ContentDocument ID returned from Template Builder');
