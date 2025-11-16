@@ -61,6 +61,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - DUCKDB_PATH=/app/data/tgthr_program_data.duckdb
+      - SF_ENV=sandbox
     ports:
       - "8002:8000"
     volumes:
