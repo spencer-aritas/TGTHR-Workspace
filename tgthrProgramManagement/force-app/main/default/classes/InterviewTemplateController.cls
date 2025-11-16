@@ -989,18 +989,15 @@ public with sharing class InterviewTemplateController {
             HttpResponse res = http.send(req);
             
             System.debug('Template Builder response status: ' + res.getStatusCode());
+            System.debug('Template Builder response body: ' + res.getBody());
             
             if (res.getStatusCode() == 200) {
                 Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                System.debug('Parsed result: ' + JSON.serializePretty(result));
                 String contentDocId = (String) result.get('contentDocumentId');
+                System.debug('ContentDocumentId from response: ' + contentDocId);
                 
                 if (String.isNotBlank(contentDocId)) {
-                    // Update the InterviewTemplateDocument with the generated file link
-                    SObject document = Schema.getGlobalDescribe().get('InterviewTemplateDocument__c').newSObject();
-                    document.put('Id', templateDocumentId);
-                    document.put('Content_Link__c', contentDocId);
-                    update document;
-                    
                     // Create ContentDocumentLink so file shows in Files related list
                     ContentDocumentLink cdl = new ContentDocumentLink(
                         ContentDocumentId = contentDocId,
