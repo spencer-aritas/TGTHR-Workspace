@@ -1747,12 +1747,28 @@ export default class InterviewBuilderHome extends LightningElement {
         const fields = [];
         const demographicFieldIds = [];
 
+        // Build a map of mapsTo -> question apiName for field substitution
+        // This ensures fields use question apiNames for consistency
+        const mapsToQuestionApi = new Map();
+        this.questionsWithDocumentState.forEach(question => {
+            if (question.includeInDocument && question.mapsTo) {
+                // mapsTo format: "Account.FirstName" or "objectName.fieldName"
+                mapsToQuestionApi.set(question.mapsTo, question.apiName);
+            }
+        });
+
         // Collect selected fields
         this.selectedFieldSummary.forEach(field => {
             if (field.includeInDocument) {
+                // Check if this field has a corresponding question
+                // field.id format: "Account.FirstName"
+                const questionApiName = mapsToQuestionApi.get(field.id);
+                
                 fields.push({
                     id: field.id,
-                    apiName: field.apiName,
+                    // CRITICAL: Use question apiName if available, otherwise fall back to field apiName
+                    // This ensures {{ account_firstname }} is used everywhere, not {{ FirstName }}
+                    apiName: questionApiName || field.apiName,
                     label: field.label,
                     objectApiName: field.objectApiName
                 });
