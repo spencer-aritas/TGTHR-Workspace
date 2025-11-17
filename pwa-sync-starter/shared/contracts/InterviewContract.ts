@@ -1,226 +1,99 @@
 // shared/contracts/InterviewContract.ts
-// Contract between the PWA and Salesforce for dynamic Interviews
-
-export type InterviewTemplateCategory =
-  | 'Intake'
-  | 'Assessment'
-  | 'CaseManagement'
-  | 'Clinical'
-  | 'Compliance'
-  | 'Custom';
-
-export type InterviewTemplateStatus = 'Draft' | 'Active' | 'Inactive' | 'Archived';
-
-export type InterviewTemplateVariant =
-  | 'Standard'
-  | 'Clinician'
-  | 'CaseManager'
-  | 'PeerSpecialist'
-  | 'Supervisor'
-  | 'Custom';
-
-export interface InterviewTemplate {
-  id?: string;
-  uuid: string;
-  name: string;
-  programId?: string;
-  category?: InterviewTemplateCategory | string;
-  active: boolean;
-  ownerId?: string;
-  createdById?: string;
-  lastModifiedById?: string;
-}
-
-export interface InterviewTemplateVersion {
-  id?: string;
-  uuid: string;
-  templateId?: string;
-  templateUuid: string;
-  name: string;
-  versionNumber: number;
-  status: InterviewTemplateStatus;
-  variant: InterviewTemplateVariant | string;
-  effectiveFrom?: string;
-  effectiveTo?: string;
-  ownerId?: string;
-  createdById?: string;
-  lastModifiedById?: string;
-  template?: InterviewTemplate;
-  questions?: InterviewQuestion[];
-}
-
-export type InterviewResponseType =
-  | 'text'
-  | 'textarea'
-  | 'number'
-  | 'boolean'
-  | 'picklist'
-  | 'multi_picklist'
-  | 'date'
-  | 'datetime'
-  | 'score'
-  | 'signature'
-  | 'file';
-
-export interface InterviewQuestionPicklistValue {
-  value: string;
-  label?: string;
-  isDefault?: boolean;
-}
-
-export interface InterviewQuestion {
-  id?: string;
-  uuid: string;
-  name: string;
-  templateVersionId?: string;
-  templateVersionUuid: string;
-  apiName: string;
-  label: string;
-  section?: string;
-  helpText?: string;
-  mapsTo?: string;
-  order: number;
-  responseType: InterviewResponseType;
-  required: boolean;
-  sensitive?: boolean;
-  scoreWeight?: number;
-  picklistValues?: InterviewQuestionPicklistValue[];
-  ownerId?: string;
-  createdById?: string;
-  lastModifiedById?: string;
-}
+// Contract for Interview__c object from Salesforce
 
 export type InterviewStatus =
   | 'Draft'
   | 'InProgress'
   | 'PendingSignatures'
+  | 'Submitted'
   | 'Completed'
   | 'Archived';
 
 export type InterviewRiskLevel = 'Low' | 'Moderate' | 'High' | 'Critical';
 
+/**
+ * Interview__c - Completed interview instance with answers
+ * Maps to Salesforce custom object
+ */
 export interface Interview {
-  id?: string;
-  uuid: string;
-  name: string;
-  interviewTemplateVersionId?: string;
-  interviewTemplateVersionUuid: string;
-  caseId?: string;
-  clientId?: string;
-  programEnrollmentId?: string;
-  interactionSummaryId?: string;
-  status: InterviewStatus;
-  riskLevel?: InterviewRiskLevel;
-  startedOn?: string;
-  completedOn?: string;
-  startedById?: string;
-  ownerId?: string;
-  staffSigned?: boolean;
-  staffSignatureFileId?: string;
-  dateStaffSigned?: string;
-  clientSigned?: boolean;
-  clientSignatureFileId?: string;
-  dateClientSigned?: string;
-  pdfFileId?: string;
-  uuidExternalId?: string;
-}
+  // Standard Salesforce fields
+  Id?: string;
+  OwnerId?: string;
+  IsDeleted?: boolean;
+  Name?: string;
+  CreatedDate?: string;
+  CreatedById?: string;
+  LastModifiedDate?: string;
+  LastModifiedById?: string;
+  SystemModstamp?: string;
+  LastActivityDate?: string | null;
+  LastViewedDate?: string | null;
+  LastReferencedDate?: string | null;
 
-export interface InterviewAnswer {
-  id?: string;
-  uuid: string;
-  interviewId?: string;
-  interviewUuid: string;
-  interviewQuestionId?: string;
-  interviewQuestionUuid: string;
-  questionApiName: string;
-  section?: string;
-  responseBoolean?: boolean;
-  responseDate?: string;
-  responseDateTime?: string;
-  responseNumber?: number;
-  responsePicklist?: string | string[];
-  responseScore?: string;
-  responseText?: string;
-  isObfuscated?: boolean;
-  ownerId?: string;
-  createdById?: string;
-  lastModifiedById?: string;
-}
+  // Custom fields
+  Client__c?: string | null;
+  Case__c?: string | null;
+  Program_Enrollment__c?: string | null;
+  Interaction_Summary__c?: string | null;
+  InterviewTemplateVersion__c?: string | null;
+  Status__c?: InterviewStatus | string | null;
+  Started_On__c?: string | null;
+  Completed_On__c?: string | null;
+  Client_Signed__c?: boolean;
+  Staff_Signed__c?: boolean;
+  Date_Client_Signed__c?: string | null;
+  Date_Staff_Signed__c?: string | null;
+  Client_Signature_File_Id__c?: string | null;
+  Staff_Signature_File_Id__c?: string | null;
+  PDF_File_Id__c?: string | null;
+  Risk_Level__c?: InterviewRiskLevel | string | null;
+  UUID__c?: string | null;
 
-export interface InterviewTemplateDraft
-  extends Pick<InterviewTemplate, 'name' | 'programId' | 'category' | 'active'> {
-  uuid?: string;
-}
+  // Relationship fields (populated when queried with __r syntax)
+  Client__r?: {
+    Id: string;
+    Name: string;
+    FirstName?: string;
+    LastName?: string;
+    PersonPronouns?: string;
+    PersonBirthdate?: string;
+    MEDICAID_Number__pc?: string;
+  };
 
-export interface InterviewTemplateVersionDraft
-  extends Pick<
-    InterviewTemplateVersion,
-    'name' | 'versionNumber' | 'status' | 'variant' | 'effectiveFrom' | 'effectiveTo'
-  > {
-  uuid?: string;
-}
+  Case__r?: {
+    Id: string;
+    CaseNumber: string;
+    Status: string;
+    Owner?: {
+      Name: string;
+    };
+  };
 
-export interface InterviewQuestionDraft
-  extends Pick<
-    InterviewQuestion,
-    | 'name'
-    | 'apiName'
-    | 'label'
-    | 'section'
-    | 'helpText'
-    | 'mapsTo'
-    | 'order'
-    | 'responseType'
-    | 'required'
-    | 'sensitive'
-    | 'scoreWeight'
-    | 'picklistValues'
-  > {
-  uuid?: string;
-}
+  Interaction_Summary__r?: {
+    Id: string;
+    Name: string;
+    Date_of_Interaction__c?: string;
+    AccountId?: string;
+  };
 
-export interface InterviewTemplateUpsertRequest {
-  template: InterviewTemplateDraft;
-  version: InterviewTemplateVersionDraft;
-  questions: InterviewQuestionDraft[];
-}
+  InterviewTemplateVersion__r?: {
+    Id: string;
+    Name: string;
+    Version__c?: number;
+    Status__c?: string;
+    InterviewTemplate__c?: string;
+    InterviewTemplate__r?: {
+      Id: string;
+      Name: string;
+      Category__c?: string;
+    };
+  };
 
-export interface InterviewTemplateUpsertResult {
-  templateId: string;
-  templateUuid: string;
-  templateVersionId: string;
-  templateVersionUuid: string;
-  questionIds: string[];
-}
-
-export interface InterviewCreationRequest {
-  interviewTemplateVersionId?: string;
-  interviewTemplateVersionUuid: string;
-  caseId?: string;
-  clientId?: string;
-  programEnrollmentId?: string;
-  interactionSummaryId?: string;
-  startedOn?: string;
-  ownerId?: string;
-  createdById?: string;
-  answers?: InterviewAnswer[];
-}
-
-export interface InterviewCreationResult {
-  interviewId: string;
-  interviewUuid: string;
-  pdfFileId?: string;
-  staffSignatureRequired?: boolean;
-  clientSignatureRequired?: boolean;
-}
-
-export interface InterviewService {
-  listTemplates(params?: {
-    programId?: string;
-    variant?: InterviewTemplateVariant | string;
-    status?: InterviewTemplateStatus;
-    includeInactive?: boolean;
-  }): Promise<InterviewTemplateVersion[]>;
-  upsertTemplate(payload: InterviewTemplateUpsertRequest): Promise<InterviewTemplateUpsertResult>;
-  createInterview(request: InterviewCreationRequest): Promise<InterviewCreationResult>;
+  Program_Enrollment__r?: {
+    Id: string;
+    Name: string;
+    Status?: string;
+    ProgramId?: string;
+    AccountId?: string;
+  };
 }

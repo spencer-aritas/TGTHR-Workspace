@@ -51,10 +51,15 @@ public with sharing class InterviewDocumentService {
             System.debug('InteractionSummary ID: ' + interactionSummaryId);
             System.debug('Preview mode: ' + preview);
             
+            // Get current org instance URL to help DocGen determine environment
+            String instanceUrl = URL.getOrgDomainUrl().toExternalForm();
+            System.debug('Instance URL: ' + instanceUrl);
+            
             // Build request payload
             Map<String, Object> requestBody = new Map<String, Object>{
                 'record_id' => (String) interactionSummaryId,
-                'preview' => preview
+                'preview' => preview,
+                'instance_url' => instanceUrl
             };
             
             // Make HTTP callout
@@ -221,10 +226,18 @@ public with sharing class InterviewDocumentService {
             
             SObject interaction = interactions[0];
             
-            // Check for interview responses
-            String responseQuery = 
-                'SELECT COUNT() FROM InterviewResponse__c WHERE Interaction_Summary__c = :interactionSummaryId';
-            Integer responseCount = Database.countQuery(responseQuery);
+            // Check for interview via Interview__c and InterviewAnswer__c
+            String interviewQuery = 
+                'SELECT Id FROM Interview__c WHERE Interaction_Summary__c = :interactionSummaryId LIMIT 1';
+            List<SObject> interviews = Database.query(interviewQuery);
+            
+            Integer responseCount = 0;
+            if (!interviews.isEmpty()) {
+                String interviewId = (String) interviews[0].get('Id');
+                String answerQuery = 
+                    'SELECT COUNT() FROM InterviewAnswer__c WHERE Interview__c = :interviewId';
+                responseCount = Database.countQuery(answerQuery);
+            }
             
             Map<String, Object> validation = new Map<String, Object>{
                 'isValid' => true,

@@ -8,9 +8,14 @@ export * from './AssessmentContract';
 export * from './AuditLogContract';
 export * from './SSRSAssessmentContract';
 export * from './InterviewContract';
+export * from './InterviewTemplateContract';
+export * from './InterviewTemplateVersionContract';
+export * from './InterviewQuestionContract';
+export * from './InterviewAnswerContract';
+export * from './InterviewTemplateDocumentContract';
+export * from './InterviewQuestionLibraryContract';
 export * from './TaskContract';
 export * from './PwaEncounterContract';
-export * from './InterviewTemplateContract';
 
 // Common types used across contracts
 export interface BaseResponse {
@@ -30,3 +35,4 @@ export interface PaginatedResponse<T> {
   done: boolean;
   nextRecordsUrl?: string;
 }
+

@@ -178,7 +178,8 @@ public with sharing class InterviewSessionController {
                 interactionDate,
                 startTime,
                 endTime,
-                request.interaction != null ? request.interaction.meetingNotes : null
+                request.interaction != null ? request.interaction.meetingNotes : null,
+                request.interaction != null ? request.interaction.location : null
             );
             insert summary;
 
@@ -228,6 +229,9 @@ public with sharing class InterviewSessionController {
                     mapAnswersToAssessment(assessment, request.answers, templateVersion);
                     update assessment;
                 }
+                
+                // Map answers back to Account record for demographic fields
+                mapAnswersToAccount(accountId, request.answers, templateVersion);
             }
 
             result.success = true;
@@ -448,6 +452,119 @@ public with sharing class InterviewSessionController {
         }
     }
 
+    private static void mapAnswersToAccount(
+        Id accountId,
+        List<AnswerDTO> answerDtos,
+        SObject templateVersion
+    ) {
+        if (accountId == null || answerDtos == null || answerDtos.isEmpty()) {
+            return;
+        }
+
+        // Get Account field map
+        Schema.SObjectType accountType = Schema.getGlobalDescribe().get('Account');
+        if (accountType == null) {
+            return;
+        }
+        Map<String, Schema.SObjectField> accountFieldMap = accountType.getDescribe().fields.getMap();
+        
+        // Get template questions to find API names
+        Id templateVersionId = (Id)templateVersion.get('Id');
+        Map<Id, String> questionIdToApiName = new Map<Id, String>();
+        
+        List<SObject> questions = Database.query(
+            'SELECT Id, API_Name__c FROM InterviewQuestion__c WHERE InterviewTemplateVersion__c = :templateVersionId'
+        );
+        
+        for (SObject q : questions) {
+            String apiName = (String)q.get('API_Name__c');
+            if (String.isNotBlank(apiName)) {
+                questionIdToApiName.put((Id)q.get('Id'), apiName);
+            }
+        }
+
+        // Query the Account record
+        Account account = [SELECT Id FROM Account WHERE Id = :accountId LIMIT 1];
+
+        // Map answers to Account fields
+        Boolean accountModified = false;
+        for (AnswerDTO dto : answerDtos) {
+            if (dto == null || dto.questionId == null) {
+                continue;
+            }
+            
+            // Get API name from question
+            String apiName = questionIdToApiName.get(dto.questionId);
+            if (String.isBlank(apiName)) {
+                // Try from DTO directly
+                apiName = dto.apiName;
+            }
+            
+            if (String.isBlank(apiName)) {
+                continue;
+            }
+            
+            // Check if this field exists on Account
+            if (!accountFieldMap.containsKey(apiName)) {
+                continue;
+            }
+            
+            // Get field describe to determine data type and updateability
+            Schema.SObjectField fieldToken = accountFieldMap.get(apiName);
+            Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
+            
+            // Skip if field is not updateable
+            if (!fieldDescribe.isUpdateable()) {
+                continue;
+            }
+            
+            Schema.DisplayType fieldType = fieldDescribe.getType();
+            
+            // Map the value based on field type
+            try {
+                if (fieldType == Schema.DisplayType.STRING || fieldType == Schema.DisplayType.TEXTAREA || fieldType == Schema.DisplayType.EMAIL || fieldType == Schema.DisplayType.PHONE || fieldType == Schema.DisplayType.URL) {
+                    if (String.isNotBlank(dto.value)) {
+                        account.put(apiName, dto.value);
+                        accountModified = true;
+                    }
+                } else if (fieldType == Schema.DisplayType.DOUBLE || fieldType == Schema.DisplayType.INTEGER || fieldType == Schema.DisplayType.CURRENCY || fieldType == Schema.DisplayType.PERCENT) {
+                    if (String.isNotBlank(dto.value)) {
+                        account.put(apiName, Decimal.valueOf(dto.value));
+                        accountModified = true;
+                    }
+                } else if (fieldType == Schema.DisplayType.BOOLEAN) {
+                    if (String.isNotBlank(dto.value)) {
+                        account.put(apiName, dto.value.equalsIgnoreCase('true'));
+                        accountModified = true;
+                    }
+                } else if (fieldType == Schema.DisplayType.DATE) {
+                    if (String.isNotBlank(dto.value)) {
+                        account.put(apiName, Date.valueOf(dto.value));
+                        accountModified = true;
+                    }
+                } else if (fieldType == Schema.DisplayType.DATETIME) {
+                    if (String.isNotBlank(dto.value)) {
+                        account.put(apiName, Datetime.valueOf(dto.value));
+                        accountModified = true;
+                    }
+                } else if (fieldType == Schema.DisplayType.PICKLIST || fieldType == Schema.DisplayType.MULTIPICKLIST) {
+                    if (String.isNotBlank(dto.value)) {
+                        account.put(apiName, dto.value);
+                        accountModified = true;
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('Error mapping answer to Account field ' + apiName + ': ' + e.getMessage());
+            }
+        }
+        
+        // Update Account if any fields were modified
+        if (accountModified) {
+            update account;
+            System.debug('Account updated with interview answers');
+        }
+    }
+
     private static Id resolveAccountId(Id caseId, Id providedAccountId) {
         if (providedAccountId != null) {
             return providedAccountId;
@@ -528,7 +645,8 @@ public with sharing class InterviewSessionController {
         Date interactionDate,
         Time startTime,
         Time endTime,
-        String meetingNotes
+        String meetingNotes,
+        String location
     ) {
         SObject summary = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
         summary.put('AccountId', accountId);
@@ -538,6 +656,11 @@ public with sharing class InterviewSessionController {
         summary.put('Name', 'Interview - ' + interactionDate.format());
         summary.put('MeetingNotes', meetingNotes);
         putIfFieldExists(summary, 'ServiceDate', interactionDate);
+        
+        // Set POS__c (location) if provided
+        if (String.isNotBlank(location)) {
+            putIfFieldExists(summary, 'POS__c', location);
+        }
         
         // Convert Time to Datetime by combining with the interaction date
         if (startTime != null && interactionDate != null) {
