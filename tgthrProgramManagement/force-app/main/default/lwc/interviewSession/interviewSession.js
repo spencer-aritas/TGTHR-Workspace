@@ -2,9 +2,12 @@ import { LightningElement, api, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CurrentPageReference } from 'lightning/navigation';
+import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 import initializeSession from '@salesforce/apex/InterviewSessionController.initializeSession';
 import saveInterviewSession from '@salesforce/apex/InterviewSessionController.saveInterviewSession';
 import generateDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
+import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
+import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
 
 const STEPS = ['interaction', 'interview', 'review'];
 
@@ -21,9 +24,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track templateData = null;
     @track accountData = {};
     @track interactionInput = {
-        interactionDate: null,
-        startTime: null,
-        endTime: null,
+        startDateTime: null,
+        endDateTime: null,
         meetingNotes: '',
         location: ''
     };
@@ -31,6 +33,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track errorMessage = '';
     @track isSaving = false;
     @track isGeneratingDocument = false;
+    @track posOptions = [];
     parametersLoaded = false;
 
     @wire(CurrentPageReference)
@@ -55,10 +58,32 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return this.templateVersionId || this.urlTemplateVersionId;
     }
 
+    get recordTypeId() {
+        return this.objectInfo && this.objectInfo.data
+            ? this.objectInfo.data.defaultRecordTypeId
+            : undefined;
+    }
+
+    @wire(getObjectInfo, { objectApiName: INTERACTION_OBJECT })
+    objectInfo;
+
+    @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: POS_FIELD })
+    wiredPosValues({ data, error }) {
+        if (data) {
+            this.posOptions = data.values;
+        } else if (error) {
+            console.warn('Failed to load POS picklist', error);
+        }
+    }
+
     connectedCallback() {
-        // Set default interaction date to today
-        const today = new Date();
-        this.interactionInput.interactionDate = today.toISOString().split('T')[0];
+        // Set default start datetime to current time
+        const now = new Date();
+        this.interactionInput.startDateTime = this.formatDateTimeForInput(now);
+        
+        // Set default end datetime to 1 hour from now
+        const endTime = new Date(now.getTime() + 60 * 60 * 1000);
+        this.interactionInput.endDateTime = this.formatDateTimeForInput(endTime);
         
         // If parameters are already set via @api (from page configuration), load immediately
         if (this.effectiveCaseId && this.effectiveTemplateVersionId && !this.parametersLoaded) {
@@ -76,6 +101,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             });
             this.templateData = response.template;
             this.accountData = response.accountData || {};
+            console.log('=== ACCOUNT DATA LOADED ===');
+            console.log('Account Data:', this.accountData);
+            console.log('Account Data keys:', Object.keys(this.accountData));
             this.initializeAnswers();
             this.errorMessage = '';
         } catch (error) {
@@ -91,18 +119,43 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             return;
         }
 
+        console.log('=== INITIALIZING ANSWERS ===');
         this.templateData.sections.forEach(section => {
             section.questions.forEach(question => {
+                // Check if this question maps to an Account field with data
+                let initialValue = '';
+                let initialValues = [];
+                
+                if (question.apiName && this.accountData && this.accountData[question.apiName] !== undefined && this.accountData[question.apiName] !== null) {
+                    const accountValue = this.accountData[question.apiName];
+                    console.log(`Question "${question.label}" (API: ${question.apiName}) has Account value:`, accountValue);
+                    // Format the value based on type
+                    if (accountValue instanceof Date) {
+                        initialValue = accountValue.toISOString().split('T')[0];
+                    } else if (typeof accountValue === 'object') {
+                        initialValue = JSON.stringify(accountValue);
+                    } else if (typeof accountValue === 'boolean') {
+                        initialValue = accountValue ? 'true' : 'false';
+                    } else {
+                        initialValue = String(accountValue);
+                    }
+                    console.log(`  Set initial value to: "${initialValue}"`);
+                } else if (question.apiName) {
+                    console.log(`Question "${question.label}" (API: ${question.apiName}) - NO Account value found`);
+                }
+                
                 this.answers.set(question.questionId, {
                     questionId: question.questionId,
                     responseType: question.responseType,
-                    value: '',
-                    values: [],
+                    value: initialValue,
+                    values: initialValues,
                     apiName: question.apiName,
                     section: question.section
                 });
             });
         });
+        console.log('=== ANSWERS INITIALIZED ===');
+        console.log('Total answers:', this.answers.size);
     }
 
     get currentStep() {
@@ -180,10 +233,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                                           this.accountData[question.apiName] !== undefined && 
                                           this.accountData[question.apiName] !== null;
                     
-                    const isDemographic = hasAccountValue;
+                    // Demographic fields should be pre-filled and disabled EXCEPT when Category = 'Intake'
+                    const isIntake = this.templateCategory && this.templateCategory.toLowerCase() === 'intake';
+                    const isDemographic = hasAccountValue && !isIntake;
                     let demographicValue = null;
                     
-                    if (isDemographic) {
+                    if (hasAccountValue) {
                         demographicValue = this.accountData[question.apiName];
                         // Format the value for display
                         if (demographicValue instanceof Date) {
@@ -217,7 +272,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     get reviewData() {
         const data = {
-            interaction: { ...this.interactionInput },
+            interaction: { 
+                startDateTime: this.interactionInput.startDateTime ? this.formatDateTimeForDisplay(this.interactionInput.startDateTime) : '',
+                endDateTime: this.interactionInput.endDateTime ? this.formatDateTimeForDisplay(this.interactionInput.endDateTime) : '',
+                meetingNotes: this.interactionInput.meetingNotes,
+                location: this.interactionInput.location
+            },
             sections: []
         };
 
@@ -432,19 +492,67 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const answerList = Array.from(this.answers.values())
             .filter(answer => answer.value || (answer.values && answer.values.length > 0));
 
+        // Parse startDateTime and endDateTime to extract date and time components
+        let interactionDate = null;
+        let startTime = null;
+        let endTime = null;
+
+        if (this.interactionInput.startDateTime) {
+            const startDT = new Date(this.interactionInput.startDateTime);
+            interactionDate = startDT.toISOString().split('T')[0];
+            const startHours = String(startDT.getHours()).padStart(2, '0');
+            const startMinutes = String(startDT.getMinutes()).padStart(2, '0');
+            startTime = `${startHours}:${startMinutes}`;
+        }
+
+        if (this.interactionInput.endDateTime) {
+            const endDT = new Date(this.interactionInput.endDateTime);
+            const endHours = String(endDT.getHours()).padStart(2, '0');
+            const endMinutes = String(endDT.getMinutes()).padStart(2, '0');
+            endTime = `${endHours}:${endMinutes}`;
+        }
+
         return {
             caseId: this.effectiveCaseId,
             accountId: null, // Controller will resolve from Case
             templateVersionId: this.effectiveTemplateVersionId,
             interaction: {
-                interactionDate: this.interactionInput.interactionDate,
-                startTime: this.interactionInput.startTime,
-                endTime: this.interactionInput.endTime,
+                interactionDate: interactionDate,
+                startTime: startTime,
+                endTime: endTime,
                 meetingNotes: this.interactionInput.meetingNotes,
                 location: this.interactionInput.location
             },
             answers: answerList
         };
+    }
+
+    formatDateTimeForInput(date) {
+        if (!(date instanceof Date) || isNaN(date.getTime())) {
+            return '';
+        }
+        const pad = (n) => String(n).padStart(2, '0');
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    formatDateTimeForDisplay(dateTimeString) {
+        if (!dateTimeString) return '';
+        const date = new Date(dateTimeString);
+        if (isNaN(date.getTime())) return dateTimeString;
+        
+        const pad = (n) => String(n).padStart(2, '0');
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const year = date.getFullYear();
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        
+        return `${month}/${day}/${year} ${hours}:${minutes}`;
     }
 
     async generateInterviewDocument(interactionSummaryId, shouldDownload) {
