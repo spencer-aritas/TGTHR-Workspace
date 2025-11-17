@@ -77,7 +77,7 @@ export interface InterviewQuestion {
 
   // Convenience properties for PWA (camelCase)
   id?: string;
-  uuid?: string;
+  uuid: string; // Required for PWA
   name?: string;
   templateVersionId?: string;
   templateVersionUuid?: string;
