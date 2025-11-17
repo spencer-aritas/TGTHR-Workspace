@@ -3,6 +3,7 @@
 
 export type InterviewTemplateCategory = 'Intake' | 'Assessment' | 'CaseManagement' | 'Clinical' | 'Compliance' | 'Custom';
 export type InterviewTemplateStatus = 'Draft' | 'Active' | 'Inactive' | 'Archived';
+export type InterviewTemplateVariant = 'Standard' | 'Clinician' | 'CaseManager' | 'PeerSpecialist' | 'Supervisor' | 'Custom';
 
 /**
  * InterviewTemplate__c - Main template definition
