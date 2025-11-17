@@ -99,6 +99,31 @@ export interface Interview {
     ProgramId?: string;
     AccountId?: string;
   };
+
+  // Convenience properties for PWA (camelCase)
+  id?: string;
+  uuid?: string;
+  name?: string;
+  interviewTemplateVersionId?: string;
+  interviewTemplateVersionUuid?: string;
+  caseId?: string;
+  clientId?: string;
+  programEnrollmentId?: string;
+  interactionSummaryId?: string;
+  status?: string;
+  riskLevel?: string;
+  startedOn?: string;
+  completedOn?: string;
+  startedById?: string;
+  ownerId?: string;
+  staffSigned?: boolean;
+  staffSignatureFileId?: string;
+  dateStaffSigned?: string;
+  clientSigned?: boolean;
+  clientSignatureFileId?: string;
+  dateClientSigned?: string;
+  pdfFileId?: string;
+  uuidExternalId?: string;
 }
 
 // ============================================================================

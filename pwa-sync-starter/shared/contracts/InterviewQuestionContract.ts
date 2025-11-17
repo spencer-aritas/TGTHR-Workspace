@@ -74,6 +74,31 @@ export interface InterviewQuestion {
     Id: string;
     Name: string;
   };
+
+  // Convenience properties for PWA (camelCase)
+  id?: string;
+  uuid?: string;
+  name?: string;
+  templateVersionId?: string;
+  templateVersionUuid?: string;
+  apiName?: string;
+  label?: string;
+  section?: string;
+  helpText?: string;
+  mapsTo?: string;
+  order?: number;
+  responseType?: string;
+  required?: boolean;
+  sensitive?: boolean;
+  scoreWeight?: number;
+  picklistValues?: Array<{
+    value: string;
+    label?: string;
+    isDefault?: boolean;
+  }>;
+  ownerId?: string;
+  createdById?: string;
+  lastModifiedById?: string;
 }
 
 /**
