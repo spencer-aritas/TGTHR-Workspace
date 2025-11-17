@@ -1,8 +1,7 @@
 // shared/contracts/InterviewContract.ts
 // Contract for Interview__c object from Salesforce
 
-import type { InterviewTemplate } from './InterviewTemplateContract';
-import type { InterviewQuestion } from './InterviewQuestionContract';
+import type { InterviewTemplateVersion } from './InterviewTemplateVersionContract';
 
 export type InterviewStatus =
   | 'Draft'
@@ -212,6 +211,7 @@ export interface InterviewCreationRequest {
   ownerId?: string;
   createdById?: string;
   answers?: Array<{
+    id?: string;
     uuid?: string;
     interviewQuestionUuid: string;
     questionApiName: string;
@@ -244,20 +244,7 @@ export interface InterviewService {
     variant?: string;
     status?: string;
     includeInactive?: boolean;
-  }): Promise<Array<{
-    templateId: string;
-    templateVersionId: string;
-    templateName: string;
-    versionName: string;
-    category?: string;
-    variant?: string;
-    status?: string;
-    effectiveFrom?: string;
-    effectiveTo?: string;
-    template?: InterviewTemplate;
-    questions?: InterviewQuestion[];
-    uuid?: string;
-  }>>;
+  }): Promise<InterviewTemplateVersion[]>;
   upsertTemplate(payload: InterviewTemplateUpsertRequest): Promise<InterviewTemplateUpsertResult>;
   createInterview(request: InterviewCreationRequest): Promise<InterviewCreationResult>;
 }

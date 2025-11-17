@@ -43,13 +43,13 @@ export interface InterviewTemplateVersion {
 
   // Convenience properties for PWA (camelCase)
   id?: string;
-  uuid?: string;
+  uuid: string; // Required for PWA
   templateId?: string;
   templateUuid?: string;
   name?: string;
   versionNumber?: number;
-  status?: string;
-  variant?: string;
+  status: string; // Required for PWA
+  variant: string; // Required for PWA
   effectiveFrom?: string;
   effectiveTo?: string;
   ownerId?: string;
