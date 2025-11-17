@@ -55,6 +55,17 @@ export interface InterviewTemplate {
   Consent_Required__c?: boolean;
   Data_Retention_Days__c?: number | null;
   Approver__c?: string | null;
+
+  // Convenience properties for PWA (camelCase)
+  id?: string;
+  uuid?: string;
+  name?: string;
+  programId?: string;
+  category?: string;
+  active?: boolean;
+  ownerId?: string;
+  createdById?: string;
+  lastModifiedById?: string;
 }
 
 /**

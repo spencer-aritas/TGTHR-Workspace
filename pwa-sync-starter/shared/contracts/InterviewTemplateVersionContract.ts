@@ -40,4 +40,21 @@ export interface InterviewTemplateVersion {
     Program__c?: string;
     Active__c?: boolean;
   };
+
+  // Convenience properties for PWA (camelCase)
+  id?: string;
+  uuid?: string;
+  templateId?: string;
+  templateUuid?: string;
+  name?: string;
+  versionNumber?: number;
+  status?: string;
+  variant?: string;
+  effectiveFrom?: string;
+  effectiveTo?: string;
+  ownerId?: string;
+  createdById?: string;
+  lastModifiedById?: string;
+  template?: any; // InterviewTemplate
+  questions?: any[]; // InterviewQuestion[]
 }

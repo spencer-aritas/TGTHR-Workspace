@@ -60,4 +60,25 @@ export interface InterviewAnswer {
     Compliance_Flags__c?: string;
     Required__c?: boolean;
   };
+
+  // Convenience properties for PWA (camelCase)
+  id?: string;
+  uuid?: string;
+  interviewId?: string;
+  interviewUuid?: string;
+  interviewQuestionId?: string;
+  interviewQuestionUuid?: string;
+  questionApiName?: string;
+  section?: string;
+  responseBoolean?: boolean;
+  responseDate?: string;
+  responseDateTime?: string;
+  responseNumber?: number;
+  responsePicklist?: string | string[];
+  responseScore?: string;
+  responseText?: string;
+  isObfuscated?: boolean;
+  ownerId?: string;
+  createdById?: string;
+  lastModifiedById?: string;
 }
