@@ -208,7 +208,14 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         console.log('=== RENDERING SECTIONS ===');
         console.log('Total sections:', this.templateData.sections.length);
 
-        return this.templateData.sections.map(section => {
+        // Sort sections by the minimum order of their questions
+        const sortedSections = [...this.templateData.sections].sort((a, b) => {
+            const minOrderA = Math.min(...a.questions.map(q => q.order || 999));
+            const minOrderB = Math.min(...b.questions.map(q => q.order || 999));
+            return minOrderA - minOrderB;
+        });
+
+        return sortedSections.map(section => {
             console.log('Section:', section.label);
             console.log('Questions in section:', section.questions.length);
             
