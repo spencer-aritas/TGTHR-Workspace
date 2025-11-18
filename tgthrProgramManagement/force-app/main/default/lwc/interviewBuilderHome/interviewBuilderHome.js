@@ -1744,6 +1744,11 @@ export default class InterviewBuilderHome extends LightningElement {
 
     buildDataMapping() {
         // Build the data mapping JSON for InterviewTemplateDocument
+        console.log('🔍 buildDataMapping: selectedAccountFields =', this.selectedAccountFields);
+        console.log('🔍 buildDataMapping: selectedAssessmentFields =', this.selectedAssessmentFields);
+        console.log('🔍 buildDataMapping: questions.length =', this.questions.length);
+        console.log('🔍 buildDataMapping: questionsWithDocumentState.length =', this.questionsWithDocumentState.length);
+        
         const fields = [];
         const demographicFieldIds = [];
 
@@ -1790,7 +1795,8 @@ export default class InterviewBuilderHome extends LightningElement {
                     apiName: question.apiName,
                     responseType: question.responseType,
                     section: question.section,
-                    mapsTo: question.mapsTo
+                    mapsTo: question.mapsTo,
+                    order: question.order  // CRITICAL: Include order for proper section sorting
                 });
             }
         });
