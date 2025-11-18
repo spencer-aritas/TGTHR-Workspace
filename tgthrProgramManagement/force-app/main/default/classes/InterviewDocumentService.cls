@@ -38,6 +38,9 @@ public with sharing class InterviewDocumentService {
     /**
      * Internal method to call DocGen service.
      * 
+     * STATELESS MODE: Queries InterviewTemplate data mapping JSON and sends to DocGen.
+     * DocGen generates the template on-the-fly from JSON (avoiding Word XML corruption).
+     * 
      * @param interactionSummaryId InteractionSummary__c record ID
      * @param preview If true, returns base64; if false, uploads to SF and returns ContentDocument ID
      * @return Either ContentDocument ID or base64 string depending on preview flag
@@ -55,12 +58,44 @@ public with sharing class InterviewDocumentService {
             String instanceUrl = URL.getOrgDomainUrl().toExternalForm();
             System.debug('Instance URL: ' + instanceUrl);
             
+            // Query InterviewTemplate data mapping for stateless generation
+            String templateJson = null;
+            try {
+                String templateQuery = 
+                    'SELECT Interview_Template__r.Data_Mapping__c ' +
+                    'FROM InteractionSummary__c ' +
+                    'WHERE Id = :interactionSummaryId ' +
+                    'LIMIT 1';
+                
+                List<SObject> interactions = Database.query(templateQuery);
+                
+                if (!interactions.isEmpty()) {
+                    SObject template = (SObject) interactions[0].getSObject('Interview_Template__r');
+                    if (template != null) {
+                        templateJson = (String) template.get('Data_Mapping__c');
+                        System.debug('📊 Retrieved template data mapping JSON (' + 
+                            (templateJson != null ? templateJson.length() : 0) + ' chars)');
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('⚠️ Could not query template data mapping: ' + e.getMessage());
+                // Continue without template JSON (fallback to legacy mode - download from SF)
+            }
+            
             // Build request payload
             Map<String, Object> requestBody = new Map<String, Object>{
                 'record_id' => (String) interactionSummaryId,
                 'preview' => preview,
                 'instance_url' => instanceUrl
             };
+            
+            // Add template JSON for stateless generation (if available)
+            if (String.isNotBlank(templateJson)) {
+                requestBody.put('template_json', templateJson);
+                System.debug('✅ Including template JSON in request (stateless mode)');
+            } else {
+                System.debug('⚠️ No template JSON available, DocGen will use legacy download mode');
+            }
             
             // Make HTTP callout
             HttpRequest req = new HttpRequest();

@@ -105,7 +105,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             console.log('Account Data:', JSON.stringify(this.accountData, null, 2));
             console.log('Account Data keys:', Object.keys(this.accountData));
             console.log('Template Category:', response.template?.category);
-            this.templateCategory = response.template?.category;
             this.initializeAnswers();
             this.errorMessage = '';
         } catch (error) {
