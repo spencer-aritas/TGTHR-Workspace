@@ -409,11 +409,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 console.log('SUCCESS! Interview created with ID:', result.interviewId);
                 console.log('InteractionSummary created with ID:', result.interactionSummaryId);
                 
-                // Generate document if requested or on mobile
+                // ALWAYS generate document when interview is completed
+                // This creates the filled-out DOCX from the template and answers
                 const isMobile = this.isMobileDevice();
-                if (shouldDownload || isMobile) {
-                    await this.generateInterviewDocument(result.interactionSummaryId, shouldDownload && !isMobile);
-                }
+                await this.generateInterviewDocument(result.interactionSummaryId, shouldDownload && !isMobile);
                 
                 this.showToast('Interview Saved', 'Interview has been saved successfully.', 'success');
                 
