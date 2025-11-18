@@ -102,8 +102,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             this.templateData = response.template;
             this.accountData = response.accountData || {};
             console.log('=== ACCOUNT DATA LOADED ===');
-            console.log('Account Data:', this.accountData);
+            console.log('Account Data:', JSON.stringify(this.accountData, null, 2));
             console.log('Account Data keys:', Object.keys(this.accountData));
+            console.log('Template Category:', response.template?.category);
+            this.templateCategory = response.template?.category;
             this.initializeAnswers();
             this.errorMessage = '';
         } catch (error) {
@@ -123,12 +125,19 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         this.templateData.sections.forEach(section => {
             section.questions.forEach(question => {
                 // Check if this question maps to an Account field with data
-                let initialValue = '';
+                // Default boolean/radio to false instead of empty string
+                let initialValue = (question.responseType === 'boolean' || question.responseType === 'Checkbox') ? false : '';
                 let initialValues = [];
                 
-                if (question.apiName && this.accountData && this.accountData[question.apiName] !== undefined && this.accountData[question.apiName] !== null) {
-                    const accountValue = this.accountData[question.apiName];
-                    console.log(`Question "${question.label}" (API: ${question.apiName}) has Account value:`, accountValue);
+                // Extract Account field name from mapsTo (format: "Account.FirstName")
+                let accountFieldName = null;
+                if (question.mapsTo && question.mapsTo.startsWith('Account.')) {
+                    accountFieldName = question.mapsTo.split('.')[1]; // Get "FirstName" from "Account.FirstName"
+                }
+                
+                if (accountFieldName && this.accountData && this.accountData[accountFieldName] !== undefined && this.accountData[accountFieldName] !== null) {
+                    const accountValue = this.accountData[accountFieldName];
+                    console.log(`  Mapping question "${question.label}" (mapsTo: ${question.mapsTo}, field: ${accountFieldName}) to account value:`, accountValue);
                     // Format the value based on type
                     if (accountValue instanceof Date) {
                         initialValue = accountValue.toISOString().split('T')[0];
@@ -140,8 +149,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                         initialValue = String(accountValue);
                     }
                     console.log(`  Set initial value to: "${initialValue}"`);
-                } else if (question.apiName) {
-                    console.log(`Question "${question.label}" (API: ${question.apiName}) - NO Account value found`);
+                } else if (question.mapsTo) {
+                    console.log(`Question "${question.label}" (mapsTo: ${question.mapsTo}) - NO Account value found in accountData keys:`, Object.keys(this.accountData));
                 }
                 
                 this.answers.set(question.questionId, {
