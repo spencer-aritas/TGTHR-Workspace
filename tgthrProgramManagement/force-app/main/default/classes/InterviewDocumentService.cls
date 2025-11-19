@@ -127,6 +127,8 @@ public with sharing class InterviewDocumentService {
         
         Map<String, Object> interviewData = new Map<String, Object>{
             'id' => (String)interview.get('Id'),
+            'interactionSummaryId' => (String)interview.get('Interaction_Summary__c'),
+            'caseId' => (String)interview.get('Case__c'),
             'dateStarted' => String.valueOf(interview.get('Started_On__c')),
             'dateCompleted' => String.valueOf(interview.get('Completed_On__c')),
             'status' => (String)interview.get('Status__c'),
