@@ -58,27 +58,51 @@ public with sharing class InterviewDocumentService {
             String instanceUrl = URL.getOrgDomainUrl().toExternalForm();
             System.debug('Instance URL: ' + instanceUrl);
             
-            // Query InterviewTemplate data mapping for stateless generation
+            // Query InterviewTemplateDocument data mapping for stateless generation
+            // Path: Interview__c -> InterviewTemplateVersion__c -> InterviewTemplateDocument__c
             String templateJson = null;
             try {
-                String templateQuery = 
-                    'SELECT Interview_Template__r.Data_Mapping__c ' +
-                    'FROM InteractionSummary__c ' +
-                    'WHERE Id = :interactionSummaryId ' +
+                // First, get the Interview__c record to find the InterviewTemplateVersion
+                String interviewQuery = 
+                    'SELECT Id, InterviewTemplateVersion__c ' +
+                    'FROM Interview__c ' +
+                    'WHERE Interaction_Summary__c = :interactionSummaryId ' +
                     'LIMIT 1';
                 
-                List<SObject> interactions = Database.query(templateQuery);
+                List<SObject> interviews = Database.query(interviewQuery);
                 
-                if (!interactions.isEmpty()) {
-                    SObject template = (SObject) interactions[0].getSObject('Interview_Template__r');
-                    if (template != null) {
-                        templateJson = (String) template.get('Data_Mapping__c');
-                        System.debug('📊 Retrieved template data mapping JSON (' + 
-                            (templateJson != null ? templateJson.length() : 0) + ' chars)');
+                if (!interviews.isEmpty()) {
+                    String templateVersionId = (String) interviews[0].get('InterviewTemplateVersion__c');
+                    
+                    if (String.isNotBlank(templateVersionId)) {
+                        // Now query for the InterviewTemplateDocument with Data_Mapping__c
+                        // Note: Status can be 'Published' or 'Active'
+                        String docQuery = 
+                            'SELECT Id, Data_Mapping__c ' +
+                            'FROM InterviewTemplateDocument__c ' +
+                            'WHERE InterviewTemplateVersion__c = :templateVersionId ' +
+                            'AND Status__c IN (\'Active\', \'Published\') ' +
+                            'ORDER BY LastModifiedDate DESC ' +
+                            'LIMIT 1';
+                        
+                        List<SObject> templateDocs = Database.query(docQuery);
+                        
+                        if (!templateDocs.isEmpty()) {
+                            templateJson = (String) templateDocs[0].get('Data_Mapping__c');
+                            System.debug('📊 Retrieved template data mapping JSON (' + 
+                                (templateJson != null ? templateJson.length() : 0) + ' chars)');
+                        } else {
+                            System.debug('⚠️ No active/published InterviewTemplateDocument found for version: ' + templateVersionId);
+                        }
+                    } else {
+                        System.debug('⚠️ Interview has no InterviewTemplateVersion__c');
                     }
+                } else {
+                    System.debug('⚠️ No Interview__c found for InteractionSummary: ' + interactionSummaryId);
                 }
             } catch (Exception e) {
                 System.debug('⚠️ Could not query template data mapping: ' + e.getMessage());
+                System.debug(e.getStackTraceString());
                 // Continue without template JSON (fallback to legacy mode - download from SF)
             }
             
