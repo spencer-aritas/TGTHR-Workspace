@@ -52,7 +52,7 @@ public with sharing class InterviewDocumentService {
             'Client_Signature_File_Id__c, Staff_Signature_File_Id__c, ' +
             'Client__r.Name, Client__r.FirstName, Client__r.LastName, ' +
             'Client__r.PersonBirthdate, Client__r.PersonPronouns, ' +
-            'Program_Enrollment__r.Program__r.Name, Program_Enrollment__r.Program__c, ' +
+            'Program_Enrollment__r.ProgramId, Program_Enrollment__r.Program.Name, ' +
             'InterviewTemplateVersion__r.Id, InterviewTemplateVersion__r.Name, ' +
             'InterviewTemplateVersion__r.Version__c, InterviewTemplateVersion__r.Status__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Id, ' +
@@ -103,7 +103,7 @@ public with sharing class InterviewDocumentService {
         // Step 3: Build Participant & Interview Blocks
         SObject client = interview.getSObject('Client__r');
         SObject programEnrollment = interview.getSObject('Program_Enrollment__r');
-        SObject program = programEnrollment != null ? programEnrollment.getSObject('Program__r') : null;
+        SObject program = programEnrollment != null ? programEnrollment.getSObject('Program') : null;
         
         Integer ageAtInterview = null;
         if (client != null && client.get('PersonBirthdate') != null && interview.get('Completed_On__c') != null) {
