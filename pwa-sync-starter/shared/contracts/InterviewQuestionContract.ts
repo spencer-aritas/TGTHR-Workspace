@@ -4,7 +4,10 @@
 export type InterviewQuestionResponseType =
   | 'Text'
   | 'Textarea'
+  | 'LongText'
+  | 'RichText'
   | 'Number'
+  | 'Decimal'
   | 'Boolean'
   | 'Picklist'
   | 'Multi-Picklist'

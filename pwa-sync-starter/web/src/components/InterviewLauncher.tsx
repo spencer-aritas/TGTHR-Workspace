@@ -15,10 +15,15 @@ interface InterviewQuestion {
   Id: string;
   Name: string;
   QuestionText: string;
-  QuestionType: string;
+  QuestionType: string;  // Text, Textarea, LongText, RichText, Number, Decimal, Boolean, Picklist, Multi-Picklist, Date, DateTime, Score, Signature, File
   IsRequired: boolean;
-  FieldReference?: string;
-  Options?: string;
+  ApiName?: string;
+  MapsTo?: string;
+  HelpText?: string;
+  Section?: string;
+  Sensitive?: boolean;
+  ScoreWeight?: number;
+  Options?: string;  // Newline-separated picklist values
   DisplayOrder?: number;
 }
 
@@ -155,8 +160,14 @@ export function InterviewLauncher({
                       {question.QuestionText}
                       {question.IsRequired && <span style={{color: '#d32f2f'}}> *</span>}
                     </label>
+                    {question.HelpText && (
+                      <div className="slds-form-element__help" style={{fontSize: '0.75rem', color: '#706e6b', marginTop: '0.25rem'}}>
+                        {question.HelpText}
+                      </div>
+                    )}
                     <div className="slds-form-element__control">
-                      {question.QuestionType === 'text' || question.QuestionType === 'short-text' ? (
+                      {/* Text (Short Text) */}
+                      {question.QuestionType === 'Text' ? (
                         <input
                           id={`question-${question.Id}`}
                           type="text"
@@ -166,7 +177,20 @@ export function InterviewLauncher({
                           required={question.IsRequired}
                           placeholder={`Enter ${question.QuestionText.toLowerCase()}`}
                         />
-                      ) : question.QuestionType === 'long-text' || question.QuestionType === 'textarea' ? (
+                      ) : /* Textarea (Legacy) */
+                      question.QuestionType === 'Textarea' ? (
+                        <textarea
+                          id={`question-${question.Id}`}
+                          className="slds-textarea"
+                          rows={3}
+                          value={answers[question.Id] || ''}
+                          onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
+                          required={question.IsRequired}
+                          placeholder={`Enter ${question.QuestionText.toLowerCase()}`}
+                          style={{fontFamily: 'inherit', fontSize: '0.875rem'}}
+                        />
+                      ) : /* LongText (Long Text Area - 128KB max) */
+                      question.QuestionType === 'LongText' ? (
                         <textarea
                           id={`question-${question.Id}`}
                           className="slds-textarea"
@@ -177,7 +201,77 @@ export function InterviewLauncher({
                           placeholder={`Enter ${question.QuestionText.toLowerCase()}`}
                           style={{fontFamily: 'inherit', fontSize: '0.875rem'}}
                         />
-                      ) : question.QuestionType === 'select' ? (
+                      ) : /* RichText (Rich Text Area - HTML formatting) */
+                      question.QuestionType === 'RichText' ? (
+                        <textarea
+                          id={`question-${question.Id}`}
+                          className="slds-textarea"
+                          rows={5}
+                          value={answers[question.Id] || ''}
+                          onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
+                          required={question.IsRequired}
+                          placeholder={`Enter ${question.QuestionText.toLowerCase()} (rich text)`}
+                          style={{fontFamily: 'inherit', fontSize: '0.875rem'}}
+                        />
+                      ) : /* Number */
+                      question.QuestionType === 'Number' ? (
+                        <input
+                          id={`question-${question.Id}`}
+                          type="number"
+                          className="slds-input"
+                          value={answers[question.Id] || ''}
+                          onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
+                          required={question.IsRequired}
+                          placeholder="Enter a number"
+                        />
+                      ) : /* Decimal */
+                      question.QuestionType === 'Decimal' ? (
+                        <input
+                          id={`question-${question.Id}`}
+                          type="number"
+                          step="any"
+                          className="slds-input"
+                          value={answers[question.Id] || ''}
+                          onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
+                          required={question.IsRequired}
+                          placeholder="Enter a decimal number"
+                        />
+                      ) : /* Date */
+                      question.QuestionType === 'Date' ? (
+                        <input
+                          id={`question-${question.Id}`}
+                          type="date"
+                          className="slds-input"
+                          value={answers[question.Id] || ''}
+                          onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
+                          required={question.IsRequired}
+                        />
+                      ) : /* DateTime */
+                      question.QuestionType === 'DateTime' ? (
+                        <input
+                          id={`question-${question.Id}`}
+                          type="datetime-local"
+                          className="slds-input"
+                          value={answers[question.Id] || ''}
+                          onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
+                          required={question.IsRequired}
+                        />
+                      ) : /* Boolean (Checkbox) */
+                      question.QuestionType === 'Boolean' ? (
+                        <div className="slds-checkbox">
+                          <input
+                            id={`question-${question.Id}`}
+                            type="checkbox"
+                            checked={answers[question.Id] === 'true'}
+                            onChange={(e) => handleAnswerChange(question.Id, e.target.checked ? 'true' : 'false')}
+                          />
+                          <label className="slds-checkbox__label" htmlFor={`question-${question.Id}`}>
+                            <span className="slds-checkbox_faux"></span>
+                            <span className="slds-form-element__label">Yes</span>
+                          </label>
+                        </div>
+                      ) : /* Picklist (Dropdown) */
+                      question.QuestionType === 'Picklist' ? (
                         <select
                           id={`question-${question.Id}`}
                           className="slds-select"
@@ -190,15 +284,64 @@ export function InterviewLauncher({
                             <option key={opt.trim()} value={opt.trim()}>{opt.trim()}</option>
                           ))}
                         </select>
-                      ) : (
+                      ) : /* Multi-Picklist (Checkboxes) */
+                      question.QuestionType === 'Multi-Picklist' ? (
+                        <fieldset className="slds-form-element">
+                          <div className="slds-form-element__control">
+                            {question.Options?.split('\n').filter(opt => opt.trim()).map(opt => {
+                              const selectedValues = answers[question.Id]?.split(';') || [];
+                              const optValue = opt.trim();
+                              return (
+                                <div key={optValue} className="slds-checkbox" style={{marginBottom: '0.5rem'}}>
+                                  <input
+                                    id={`question-${question.Id}-${optValue}`}
+                                    type="checkbox"
+                                    checked={selectedValues.includes(optValue)}
+                                    onChange={(e) => {
+                                      const currentValues = answers[question.Id]?.split(';').filter(v => v) || [];
+                                      const newValues = e.target.checked
+                                        ? [...currentValues, optValue]
+                                        : currentValues.filter(v => v !== optValue);
+                                      handleAnswerChange(question.Id, newValues.join(';'));
+                                    }}
+                                  />
+                                  <label className="slds-checkbox__label" htmlFor={`question-${question.Id}-${optValue}`}>
+                                    <span className="slds-checkbox_faux"></span>
+                                    <span className="slds-form-element__label">{optValue}</span>
+                                  </label>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </fieldset>
+                      ) : /* Score */
+                      question.QuestionType === 'Score' ? (
                         <input
                           id={`question-${question.Id}`}
-                          type="text"
+                          type="number"
+                          min="0"
+                          max="100"
                           className="slds-input"
                           value={answers[question.Id] || ''}
                           onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
                           required={question.IsRequired}
+                          placeholder="Enter score (0-100)"
                         />
+                      ) : /* Default fallback - Text */
+                      (
+                        <div>
+                          <input
+                            id={`question-${question.Id}`}
+                            type="text"
+                            className="slds-input"
+                            value={answers[question.Id] || ''}
+                            onChange={(e) => handleAnswerChange(question.Id, e.target.value)}
+                            required={question.IsRequired}
+                          />
+                          <div className="slds-text-color_error" style={{fontSize: '0.75rem', marginTop: '0.25rem'}}>
+                            Unknown response type: {question.QuestionType}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
