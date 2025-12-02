@@ -39,6 +39,9 @@
                 <div class="slds-m-around_medium">
                     <lightning-progress-indicator current-step={currentStep} type="path" variant="base">
                         <lightning-progress-step label="Interaction Details" value="interaction"></lightning-progress-step>
+                        <template if:true={showDemographics}>
+                            <lightning-progress-step label="Demographics" value="demographics"></lightning-progress-step>
+                        </template>
                         <lightning-progress-step label="Interview Questions" value="interview"></lightning-progress-step>
                         <lightning-progress-step label="Review & Submit" value="review"></lightning-progress-step>
                     </lightning-progress-indicator>
@@ -94,20 +97,125 @@
                     </div>
                 </template>
 
-                <!-- Step 2: Interview Questions -->
+                <!-- Step 2: Demographics -->
+                <template if:true={isDemographicsStep}>
+                    <div class="slds-m-around_medium">
+                        <c-demographic-capture
+                            account-data={accountData}
+                            ondemographicschange={handleDemographicsChange}>
+                        </c-demographic-capture>
+                    </div>
+                </template>
+
+                <!-- Step 3: Interview Questions -->
                 <template if:true={isInterviewStep}>
                     <div class="slds-m-around_medium">
-                        <template for:each={sections} for:item="section">
-                            <lightning-card key={section.name} title={section.label} class="slds-m-bottom_medium">
+                        <!-- Goals Section -->
+                        <template if:true={showGoals}>
+                            <lightning-card title="Goals" icon-name="utility:list" class="slds-m-bottom_medium">
                                 <div class="slds-p-around_medium">
-                                    <template for:each={section.questions} for:item="question">
-                                        <div key={question.questionId} class="question-container slds-m-bottom_medium">
-                                            <c-interview-question-field
-                                                question={question}
-                                                onanswerchange={handleAnswerChange}>
-                                            </c-interview-question-field>
-                                        </div>
+                                    <c-goal-assignment-creator
+                                        case-id={effectiveCaseId}
+                                        account-id={accountData.Id}>
+                                    </c-goal-assignment-creator>
+                                </div>
+                            </lightning-card>
+                        </template>
+
+                        <!-- Housing Benefits Section -->
+                        <template if:true={showHousingBenefits}>
+                            <lightning-card title="Housing Benefits" icon-name="utility:home" class="slds-m-bottom_medium">
+                                <div class="slds-p-around_medium">
+                                    <lightning-dual-listbox
+                                        name="housingBenefits"
+                                        label="Select Housing Benefits Provided"
+                                        source-label="Available Benefits"
+                                        selected-label="Benefits Provided"
+                                        options={housingBenefitOptions}
+                                        value={housingBenefitIds}
+                                        onchange={handleHousingBenefitsChange}
+                                        required={requireHousingBenefits}>
+                                    </lightning-dual-listbox>
+                                    <template if:true={requireHousingBenefits}>
+                                        <p class="slds-text-color_weak slds-m-top_small">* Required - Please select at least one housing benefit</p>
                                     </template>
+                                </div>
+                            </lightning-card>
+                        </template>
+
+                        <!-- Clinical Benefits Section -->
+                        <template if:true={showClinicalBenefits}>
+                            <lightning-card title="Clinical Services" icon-name="utility:activity" class="slds-m-bottom_medium">
+                                <div class="slds-p-around_medium">
+                                    <lightning-dual-listbox
+                                        name="clinicalBenefits"
+                                        label="Select Clinical Services Provided"
+                                        source-label="Available Services"
+                                        selected-label="Services Provided"
+                                        options={clinicalBenefitOptions}
+                                        value={clinicalBenefitIds}
+                                        onchange={handleClinicalBenefitsChange}
+                                        required={requireClinicalBenefits}>
+                                    </lightning-dual-listbox>
+                                    <template if:true={requireClinicalBenefits}>
+                                        <p class="slds-text-color_weak slds-m-top_small">* Required - Please select at least one clinical service</p>
+                                    </template>
+                                </div>
+                            </lightning-card>
+                        </template>
+
+                        <!-- Question Sections with Accordion -->
+                        <lightning-accordion active-section-name={activeSections} allow-multiple-sections-open>
+                            <template for:each={sections} for:item="section">
+                                <lightning-accordion-section key={section.name} name={section.name} label={section.label}>
+                                    <!-- Use grid layout for better space utilization -->
+                                    <div class="slds-grid slds-wrap slds-gutters_small">
+                                        <template for:each={section.questions} for:item="item">
+                                            <!-- Field Set Group Card -->
+                                            <template if:true={item.isFieldSetGroup}>
+                                                <div key={item.groupName} class="slds-col slds-size_1-of-1">
+                                                    <lightning-card title={item.groupName} icon-name="utility:list" class="slds-m-bottom_small">
+                                                        <div class="slds-p-around_small">
+                                                            <div class="slds-grid slds-wrap slds-gutters_x-small">
+                                                                <template for:each={item.questions} for:item="question">
+                                                                    <div key={question.questionId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                                                                        <c-interview-question-field
+                                                                            question={question}
+                                                                            onanswerchange={handleAnswerChange}>
+                                                                        </c-interview-question-field>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                    </lightning-card>
+                                                </div>
+                                            </template>
+                                            
+                                            <!-- Regular Question (not in a field set group) -->
+                                            <template if:false={item.isFieldSetGroup}>
+                                                <div key={item.questionId} 
+                                                     class={item.columnClass}>
+                                                    <c-interview-question-field
+                                                        question={item}
+                                                        onanswerchange={handleAnswerChange}>
+                                                    </c-interview-question-field>
+                                                </div>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </lightning-accordion-section>
+                            </template>
+                        </lightning-accordion>
+
+                        <!-- Income & Benefits Section -->
+                        <template if:true={showIncomeBenefits}>
+                            <lightning-card title="Income & Benefits" icon-name="utility:currency" class="slds-m-top_medium">
+                                <div class="slds-p-around_medium">
+                                    <c-income-benefit-repeater
+                                        record-id={effectiveCaseId}
+                                        required={requireIncomeBenefits}
+                                        ondatachange={handleIncomeBenefitsChange}>
+                                    </c-income-benefit-repeater>
                                 </div>
                             </lightning-card>
                         </template>
@@ -158,34 +266,171 @@
                                     </dl>
                                 </div>
 
-                                <!-- Interview Answers by Section -->
-                                <template for:each={reviewData.sections} for:item="section">
-                                    <div key={section.name} class="slds-m-bottom_large">
-                                        <h3 class="slds-text-heading_small slds-m-bottom_medium slds-border_bottom slds-p-bottom_x-small">
-                                            {section.name}
-                                        </h3>
-                                        <div class="slds-form" role="list">
-                                            <template for:each={section.questions} for:item="question">
-                                                <div key={question.label} class="slds-form__row slds-m-bottom_small">
-                                                    <div class="slds-form__item" role="listitem">
-                                                        <div class="slds-form-element slds-form-element_stacked">
-                                                            <span class="slds-form-element__label slds-text-title_bold">
-                                                                {question.label}
-                                                            </span>
-                                                            <div class="slds-form-element__control">
-                                                                <div class="slds-form-element__static slds-text-longform">
-                                                                    {question.value}
+                                <!-- Interview Answers by Section (Accordion) -->
+                                <lightning-accordion active-section-name={reviewActiveSections} allow-multiple-sections-open>
+                                    <template for:each={reviewData.sections} for:item="section">
+                                        <lightning-accordion-section key={section.name} name={section.name} label={section.name}>
+                                            <div class="slds-form" role="list">
+                                                <template for:each={section.questions} for:item="question">
+                                                    <div key={question.label} class="slds-form__row slds-m-bottom_small">
+                                                        <div class="slds-form__item" role="listitem">
+                                                            <div class="slds-form-element slds-form-element_stacked">
+                                                                <span class="slds-form-element__label slds-text-title_bold">
+                                                                    {question.label}
+                                                                </span>
+                                                                <div class="slds-form-element__control">
+                                                                    <div class="slds-form-element__static slds-text-longform">
+                                                                        {question.value}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </template>
+                                            </div>
+                                        </lightning-accordion-section>
+                                    </template>
+
+                                    <!-- Goals Review Section -->
+                                    <template if:true={reviewData.goals.length}>
+                                        <lightning-accordion-section name="goals" label="Goals">
+                                            <div class="slds-m-bottom_medium">
+                                                <template for:each={reviewData.goals} for:item="goal">
+                                                    <div key={goal.id} class="slds-box slds-box_x-small slds-m-bottom_x-small">
+                                                        <div class="slds-grid slds-grid_align-spread">
+                                                            <div class="slds-col">
+                                                                <strong>{goal.name}</strong>
+                                                                <div class="slds-text-body_small">{goal.objective}</div>
+                                                            </div>
+                                                            <div class="slds-col slds-text-align_right">
+                                                                <span class="slds-badge">{goal.status}</span>
+                                                                <span class="slds-badge slds-theme_info">{goal.priority}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </lightning-accordion-section>
+                                    </template>
+
+                                    <!-- Income & Benefits Review Section -->
+                                    <template if:true={reviewData.incomeBenefits.hasData}>
+                                        <lightning-accordion-section name="incomeBenefits" label="Income & Benefits">
+                                            <!-- Income Items -->
+                                            <template if:true={reviewData.incomeBenefits.incomeItems}>
+                                                <div class="slds-m-bottom_medium">
+                                                    <h4 class="slds-text-heading_small slds-m-bottom_small">Income Sources</h4>
+                                                    <template for:each={reviewData.incomeBenefits.incomeItems} for:item="income">
+                                                        <div key={income.label} class="slds-box slds-box_x-small slds-m-bottom_x-small">
+                                                            <div class="slds-grid slds-grid_align-spread">
+                                                                <div class="slds-col">
+                                                                    <strong>{income.label}</strong>
+                                                                </div>
+                                                                <div class="slds-col slds-text-align_right">
+                                                                    <template if:true={income.amount}>
+                                                                        <span class="slds-text-color_success">{income.amount}/month</span>
+                                                                    </template>
+                                                                    <template if:true={income.hasFiles}>
+                                                                        <lightning-icon icon-name="utility:attached" size="x-small" 
+                                                                            alternative-text="Has documentation" 
+                                                                            title={income.fileCount} class="slds-m-left_x-small"></lightning-icon>
+                                                                        <span class="slds-text-color_weak slds-m-left_xx-small">({income.fileCount} file(s))</span>
+                                                                    </template>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </template>
-                                        </div>
-                                    </div>
-                                </template>
+
+                                            <!-- Benefit Items -->
+                                            <template if:true={reviewData.incomeBenefits.benefitItems}>
+                                                <div class="slds-m-bottom_medium">
+                                                    <h4 class="slds-text-heading_small slds-m-bottom_small">Non-Cash Benefits</h4>
+                                                    <template for:each={reviewData.incomeBenefits.benefitItems} for:item="benefit">
+                                                        <div key={benefit.label} class="slds-box slds-box_x-small slds-m-bottom_x-small">
+                                                            <div class="slds-grid slds-grid_align-spread">
+                                                                <div class="slds-col">
+                                                                    <strong>{benefit.label}</strong>
+                                                                </div>
+                                                                <div class="slds-col slds-text-align_right">
+                                                                    <template if:true={benefit.amount}>
+                                                                        <span class="slds-text-color_success">{benefit.amount}</span>
+                                                                    </template>
+                                                                    <template if:true={benefit.hasFiles}>
+                                                                        <lightning-icon icon-name="utility:attached" size="x-small" 
+                                                                            alternative-text="Has documentation" 
+                                                                            title={benefit.fileCount} class="slds-m-left_x-small"></lightning-icon>
+                                                                        <span class="slds-text-color_weak slds-m-left_xx-small">({benefit.fileCount} file(s))</span>
+                                                                    </template>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </lightning-accordion-section>
+                                    </template>
+                                </lightning-accordion>
                             </div>
                         </lightning-card>
+
+                        <!-- Signatures Section -->
+                        <template if:true={showClientSignature}>
+                            <lightning-card title="Client Signature" icon-name="utility:edit" class="slds-m-top_medium">
+                                <div class="slds-p-around_medium">
+                                    <c-signature-pad
+                                        title="Client Signature"
+                                        data-role="client"
+                                        filename={clientSignatureFilename}
+                                        onsignaturesaved={handleClientSignatureSaved}>
+                                    </c-signature-pad>
+                                    <template if:true={clientSignatureStatus}>
+                                        <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
+                                            <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                                            Signed by {clientSignatureStatus.signedBy}
+                                            <template if:true={clientSignatureStatus.title}>
+                                                ({clientSignatureStatus.title})
+                                            </template>
+                                            on {clientSignatureStatus.signedAt}
+                                        </div>
+                                    </template>
+                                    <template if:true={requireClientSignature}>
+                                        <template if:false={clientSignatureStatus}>
+                                            <p class="slds-text-color_error slds-m-top_small">* Required</p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </lightning-card>
+                        </template>
+
+                        <template if:true={showStaffSignature}>
+                            <lightning-card title="Staff Signature" icon-name="utility:edit" class="slds-m-top_medium">
+                                <div class="slds-p-around_medium">
+                                    <c-signature-pad
+                                        title="Staff Signature"
+                                        data-role="staff"
+                                        filename={staffSignatureFilename}
+                                        onsignaturesaved={handleStaffSignatureSaved}>
+                                    </c-signature-pad>
+                                    <template if:true={staffSignatureStatus}>
+                                        <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
+                                            <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                                            Signed by {staffSignatureStatus.signedBy}
+                                            <template if:true={staffSignatureStatus.title}>
+                                                ({staffSignatureStatus.title})
+                                            </template>
+                                            on {staffSignatureStatus.signedAt}
+                                        </div>
+                                    </template>
+                                    <template if:true={requireStaffSignature}>
+                                        <template if:false={staffSignatureStatus}>
+                                            <p class="slds-text-color_error slds-m-top_small">* Required</p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </lightning-card>
+                        </template>
                     </div>
                 </template>
 

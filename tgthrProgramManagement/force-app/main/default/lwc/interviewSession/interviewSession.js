@@ -5,11 +5,15 @@ import { CurrentPageReference } from 'lightning/navigation';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 import initializeSession from '@salesforce/apex/InterviewSessionController.initializeSession';
 import saveInterviewSession from '@salesforce/apex/InterviewSessionController.saveInterviewSession';
+import updateInterviewSignatures from '@salesforce/apex/InterviewSessionController.updateInterviewSignatures';
+import getCurrentUserInfo from '@salesforce/apex/InterviewSessionController.getCurrentUserInfo';
+import linkFilesToCase from '@salesforce/apex/InterviewSessionController.linkFilesToCase';
 import generateDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
+import getGoalAssignments from '@salesforce/apex/GoalAssignmentController.getGoalAssignments';
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
 
-const STEPS = ['interaction', 'interview', 'review'];
+const STEPS = ['interaction', 'demographics', 'interview', 'review'];
 
 export default class InterviewSession extends NavigationMixin(LightningElement) {
     @api caseId;
@@ -34,6 +38,24 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track isSaving = false;
     @track isGeneratingDocument = false;
     @track posOptions = [];
+    @track clientSignatureId = null;
+    @track staffSignatureId = null;
+    @track clientSignatureStatus = null; // { signedBy, signedAt, timestamp }
+    @track staffSignatureStatus = null; // { signedBy, signedAt, timestamp }
+    @track currentUser = null;
+    @track housingBenefitOptions = [];
+    @track clinicalBenefitOptions = [];
+    @track housingBenefitIds = [];
+    @track clinicalBenefitIds = [];
+    @track incomeBenefitsData = [];
+    @track incomeBenefitsFileIds = []; // ContentDocument IDs for Case linking
+    @track demographicsData = {}; // Demographics for Account update
+    @track goals = [];
+    
+    // Accordion state - open all sections by default for better UX
+    activeSections = [];
+    reviewActiveSections = [];
+    
     parametersLoaded = false;
 
     @wire(CurrentPageReference)
@@ -101,11 +123,25 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             });
             this.templateData = response.template;
             this.accountData = response.accountData || {};
+            this.housingBenefitOptions = response.housingBenefitOptions || [];
+            this.clinicalBenefitOptions = response.clinicalBenefitOptions || [];
             console.log('=== ACCOUNT DATA LOADED ===');
             console.log('Account Data:', JSON.stringify(this.accountData, null, 2));
             console.log('Account Data keys:', Object.keys(this.accountData));
             console.log('Template Category:', response.template?.category);
+            console.log('=== SIGNATURE POLICIES ===');
+            console.log('Client Signature Policy:', this.templateData?.clientSignaturePolicy);
+            console.log('Staff Signature Policy:', this.templateData?.staffSignaturePolicy);
+            console.log('Show Client Signature:', this.showClientSignature);
+            console.log('Show Staff Signature:', this.showStaffSignature);
             this.initializeAnswers();
+            
+            // Initialize accordion sections - open all by default for easier navigation
+            if (this.templateData && this.templateData.sections) {
+                this.activeSections = this.templateData.sections.map(s => s.label);
+                this.reviewActiveSections = [...this.activeSections, 'incomeBenefits'];
+            }
+            
             this.errorMessage = '';
         } catch (error) {
             this.errorMessage = this.normalizeError(error);
@@ -124,8 +160,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         this.templateData.sections.forEach(section => {
             section.questions.forEach(question => {
                 // Check if this question maps to an Account field with data
-                // Default boolean/radio to false instead of empty string
-                let initialValue = (question.responseType === 'boolean' || question.responseType === 'Checkbox') ? false : '';
+                // Default boolean/radio/checkbox to false instead of empty string
+                let initialValue = (question.responseType === 'boolean' || question.responseType === 'Checkbox' || question.responseType === 'checkbox') ? false : '';
                 let initialValues = [];
                 
                 // Extract Account field name from mapsTo (format: "Account.FirstName")
@@ -174,6 +210,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return this.currentStep === 'interaction';
     }
 
+    get isDemographicsStep() {
+        return this.currentStep === 'demographics';
+    }
+
     get isInterviewStep() {
         return this.currentStep === 'interview';
     }
@@ -190,6 +230,34 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return this.currentStepIndex === STEPS.length - 1;
     }
 
+    get showHousingBenefits() {
+        return this.templateData?.housingBenefitPolicy && this.templateData.housingBenefitPolicy !== 'Hidden';
+    }
+
+    get showGoals() {
+        return this.templateData?.goalsPolicy && this.templateData.goalsPolicy !== 'Hidden';
+    }
+
+    get showClinicalBenefits() {
+        return this.templateData?.clinicalBenefitPolicy && this.templateData.clinicalBenefitPolicy !== 'Hidden';
+    }
+
+    get requireHousingBenefits() {
+        return this.templateData?.housingBenefitPolicy === 'Required';
+    }
+
+    get requireClinicalBenefits() {
+        return this.templateData?.clinicalBenefitPolicy === 'Required';
+    }
+
+    handleHousingBenefitsChange(event) {
+        this.housingBenefitIds = event.detail.value;
+    }
+
+    handleClinicalBenefitsChange(event) {
+        this.clinicalBenefitIds = event.detail.value;
+    }
+
     get nextButtonLabel() {
         if (this.isInteractionStep) {
             return 'Begin Interview';
@@ -198,6 +266,48 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             return 'Review Answers';
         }
         return 'Next';
+    }
+
+    get showClientSignature() {
+        return this.templateData?.clientSignaturePolicy && this.templateData.clientSignaturePolicy !== 'Hidden';
+    }
+
+    get showStaffSignature() {
+        return this.templateData?.staffSignaturePolicy && this.templateData.staffSignaturePolicy !== 'Hidden';
+    }
+
+    get showIncomeBenefits() {
+        return this.templateData?.incomeBenefitsPolicy && this.templateData.incomeBenefitsPolicy !== 'Hidden';
+    }
+
+    get showDemographics() {
+        return this.templateData?.demographicsPolicy && this.templateData.demographicsPolicy !== 'Hidden';
+    }
+
+    get requireDemographics() {
+        return this.templateData?.demographicsPolicy === 'Required';
+    }
+
+    get requireClientSignature() {
+        return this.templateData?.clientSignaturePolicy === 'Required' || this.showGoals;
+    }
+
+    get requireStaffSignature() {
+        return this.templateData?.staffSignaturePolicy === 'Required' || this.showGoals;
+    }
+
+    get requireIncomeBenefits() {
+        return this.templateData?.incomeBenefitsPolicy === 'Required';
+    }
+
+    get clientSignatureFilename() {
+        const lastName = this.accountData?.lastName || this.accountData?.name?.split(' ').pop() || 'Client';
+        return `client_signature_${lastName}_${new Date().toISOString().split('T')[0]}.png`;
+    }
+
+    get staffSignatureFilename() {
+        // Will be set dynamically when user info is loaded
+        return this.currentUser?.alias ? `staff_signature_${this.currentUser.alias}_${new Date().toISOString().split('T')[0]}.png` : `staff_signature_${new Date().toISOString()}.png`;
     }
 
     get templateName() {
@@ -227,62 +337,187 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             console.log('Section:', section.label);
             console.log('Questions in section:', section.questions.length);
             
+            // Group questions by Field_Set_Group__c for checkbox questions
+            const fieldSetGroups = new Map();
+            const regularQuestions = [];
+            
+            section.questions.forEach((question, index, array) => {
+                const processedQuestion = this.processQuestion(question, index, array, section.label);
+                
+                // If checkbox with field set group, add to group
+                if (processedQuestion.fieldSetGroup && 
+                    (processedQuestion.responseType === 'Checkbox' || 
+                     processedQuestion.responseType === 'checkbox' || 
+                     processedQuestion.responseType === 'boolean')) {
+                    
+                    if (!fieldSetGroups.has(processedQuestion.fieldSetGroup)) {
+                        fieldSetGroups.set(processedQuestion.fieldSetGroup, {
+                            groupName: processedQuestion.fieldSetGroup,
+                            questions: [],
+                            isFieldSetGroup: true,
+                            // Use the order of the first question in the group
+                            order: processedQuestion.order || 999
+                        });
+                    }
+                    fieldSetGroups.get(processedQuestion.fieldSetGroup).questions.push(processedQuestion);
+                } else {
+                    regularQuestions.push(processedQuestion);
+                }
+            });
+            
+            // Convert field set groups to array and merge with regular questions
+            const allItems = [
+                ...regularQuestions,
+                ...Array.from(fieldSetGroups.values())
+            ];
+            
+            // Sort all items by order
+            allItems.sort((a, b) => {
+                const orderA = a.isFieldSetGroup ? a.order : (a.order || 999);
+                const orderB = b.isFieldSetGroup ? b.order : (b.order || 999);
+                return orderA - orderB;
+            });
+            
             return {
                 ...section,
-                questions: section.questions.map(question => {
-                    console.log('  Question:', question.label);
-                    console.log('  Response Type:', question.responseType);
-                    console.log('  Picklist Values:', question.picklistValues);
-                    
-                    const answer = this.answers.get(question.questionId);
-                    const picklistOptions = question.picklistValues 
-                        ? question.picklistValues.map(value => {
-                            console.log('    Creating picklist option - raw value:', value);
-                            return { label: value, value: value };
-                        })
-                        : [];
-                    
-                    // Check if this is a demographic field (has apiName, exists in accountData, and has a non-null value)
-                    const hasAccountValue = question.apiName && 
-                                          this.accountData && 
-                                          this.accountData[question.apiName] !== undefined && 
-                                          this.accountData[question.apiName] !== null;
-                    
-                    // Demographic fields should be pre-filled and disabled EXCEPT when Category = 'Intake'
-                    const isIntake = this.templateCategory && this.templateCategory.toLowerCase() === 'intake';
-                    const isDemographic = hasAccountValue && !isIntake;
-                    let demographicValue = null;
-                    
-                    if (hasAccountValue) {
-                        demographicValue = this.accountData[question.apiName];
-                        // Format the value for display
-                        if (demographicValue instanceof Date) {
-                            demographicValue = demographicValue.toISOString().split('T')[0];
-                        } else if (typeof demographicValue === 'object' && demographicValue !== null) {
-                            demographicValue = JSON.stringify(demographicValue);
-                        } else {
-                            demographicValue = String(demographicValue);
-                        }
-                    }
-                    
-                    if (question.responseType === 'radios' || question.responseType === 'Radios') {
-                        console.log('  *** RADIO QUESTION FOUND ***');
-                        console.log('  Label:', question.label);
-                        console.log('  Picklist Values:', question.picklistValues);
-                        console.log('  Options created:', picklistOptions);
-                    }
-                    
-                    return {
-                        ...question,
-                        answer: isDemographic ? demographicValue : (answer ? answer.value : ''),
-                        answerValues: answer ? answer.values : [],
-                        picklistOptions,
-                        isDemographic: isDemographic,
-                        isReadOnly: isDemographic
-                    };
-                })
+                questions: allItems
             };
         });
+    }
+    
+    processQuestion(question, index, array, sectionName) {
+        console.log('  Question:', question.label);
+        console.log('  Response Type:', question.responseType);
+        console.log('  Picklist Values:', question.picklistValues);
+        
+        const answer = this.answers.get(question.questionId);
+        const picklistOptions = question.picklistValues 
+            ? question.picklistValues.map(value => {
+                console.log('    Creating picklist option - raw value:', value);
+                return { label: value, value: value };
+            })
+            : [];
+        
+        // Check if this question maps to an Account field
+        const mapsToAccount = question.mapsTo && question.mapsTo.startsWith('Account.');
+        
+        // Check if Account field has existing data (non-null, non-empty)
+        const hasAccountValue = mapsToAccount && 
+                              question.apiName && 
+                              this.accountData && 
+                              this.accountData[question.apiName] !== undefined && 
+                              this.accountData[question.apiName] !== null &&
+                              this.accountData[question.apiName] !== '';
+        
+        // If Account field has data, it should be read-only to prevent overwriting
+        // If Account field is empty, allow editing and value will be written back to Account
+        const isDemographic = hasAccountValue;
+        let demographicValue = null;
+        
+        if (hasAccountValue) {
+            demographicValue = this.accountData[question.apiName];
+            // Format the value for display
+            if (demographicValue instanceof Date) {
+                demographicValue = demographicValue.toISOString().split('T')[0];
+            } else if (typeof demographicValue === 'object' && demographicValue !== null) {
+                demographicValue = JSON.stringify(demographicValue);
+            } else {
+                demographicValue = String(demographicValue);
+            }
+        }
+        
+        if (question.responseType === 'radios' || question.responseType === 'Radios') {
+            console.log('  *** RADIO QUESTION FOUND ***');
+            console.log('  Label:', question.label);
+            console.log('  Picklist Values:', question.picklistValues);
+            console.log('  Options created:', picklistOptions);
+        }
+        
+        // Determine column class for responsive layout
+        const columnClass = this.getColumnClass(question, index, array, sectionName);
+        
+        return {
+            ...question,
+            answer: isDemographic ? demographicValue : (answer ? answer.value : ''),
+            answerValues: answer ? answer.values : [],
+            picklistOptions,
+            isDemographic: isDemographic,
+            isReadOnly: isDemographic,
+            columnClass: columnClass,
+            isFieldSetGroup: false
+        };
+    }
+    
+    /**
+     * Determines the responsive column class for a question based on its type and context
+     * @param {Object} question - The question object
+     * @param {Number} index - Index in the questions array
+     * @param {Array} allQuestions - All questions in the section
+     * @param {String} sectionName - Name of the section
+     * @returns {String} - CSS class for column sizing
+     */
+    getColumnClass(question, index, allQuestions, sectionName) {
+        const apiName = question.apiName || '';
+        const responseType = question.responseType?.toLowerCase() || 'text';
+        
+        // Address fields - group in multi-column layout
+        if (sectionName === 'Housing History') {
+            // Last Permanent Address Type - full width (picklist with many options)
+            if (apiName === 'Last_Permanent_Address_Type__c') {
+                return 'slds-col slds-size_1-of-1';
+            }
+            // Address components - responsive 2-column layout
+            if (apiName === 'Last_Perm_Address_Street__c') {
+                return 'slds-col slds-size_1-of-1'; // Street full width
+            }
+            if (apiName === 'Last_Perm_Address_City__c') {
+                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2'; // City half width on desktop
+            }
+            if (apiName === 'Last_Perm_Address_County__c') {
+                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2'; // County half width on desktop
+            }
+            if (apiName === 'Last_Perm_Address_State__c') {
+                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-3'; // State third width on desktop
+            }
+            if (apiName === 'Last_Perm_Address_Zip__c') {
+                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-3'; // Zip third width on desktop
+            }
+        }
+        
+        // Long text fields (Textarea, LongText, RichText) - always full width
+        if (responseType === 'textarea' || responseType === 'longtext' || responseType === 'richtext') {
+            return 'slds-col slds-size_1-of-1';
+        }
+        
+        // Picklist with many options - full width for readability
+        if (responseType === 'picklist' && question.picklistValues && question.picklistValues.length > 8) {
+            return 'slds-col slds-size_1-of-1';
+        }
+        
+        // Short text fields can be half-width on larger screens
+        if (responseType === 'text' || responseType === 'number' || responseType === 'decimal') {
+            // Check if next question is also a short field - if so, make them half-width
+            const nextQuestion = allQuestions[index + 1];
+            if (nextQuestion) {
+                const nextType = nextQuestion.responseType?.toLowerCase() || '';
+                if (nextType === 'text' || nextType === 'number' || nextType === 'decimal' || nextType === 'date') {
+                    return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
+                }
+            }
+        }
+        
+        // Date fields - can be half width
+        if (responseType === 'date' || responseType === 'datetime') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
+        }
+        
+        // Boolean/Checkbox - can be half width
+        if (responseType === 'boolean' || responseType === 'checkbox' || responseType === 'Checkbox') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
+        }
+        
+        // Default - full width
+        return 'slds-col slds-size_1-of-1';
     }
 
     get reviewData() {
@@ -293,7 +528,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 meetingNotes: this.interactionInput.meetingNotes,
                 location: this.interactionInput.location
             },
-            sections: []
+            sections: [],
+            incomeBenefits: this.formatIncomeBenefitsForReview(),
+            goals: this.goals || []
         };
 
         if (!this.templateData || !this.templateData.sections) {
@@ -314,12 +551,44 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return data;
     }
 
+    formatIncomeBenefitsForReview() {
+        if (!this.incomeBenefitsData || this.incomeBenefitsData.length === 0) {
+            return { hasData: false, incomeItems: [], benefitItems: [] };
+        }
+
+        const incomeItems = [];
+        const benefitItems = [];
+
+        this.incomeBenefitsData.forEach(item => {
+            if (!item.checked) return;
+
+            const displayItem = {
+                label: item.label,
+                amount: item.statedIncome ? `$${parseFloat(item.statedIncome).toFixed(2)}` : null,
+                hasFiles: item.fileIds && item.fileIds.length > 0,
+                fileCount: item.fileIds ? item.fileIds.length : 0
+            };
+
+            if (item.category === 'income') {
+                incomeItems.push(displayItem);
+            } else if (item.category === 'benefit') {
+                benefitItems.push(displayItem);
+            }
+        });
+
+        return {
+            hasData: incomeItems.length > 0 || benefitItems.length > 0,
+            incomeItems,
+            benefitItems
+        };
+    }
+
     formatAnswerForReview(question, answer) {
         if (!answer || (!answer.value && (!answer.values || answer.values.length === 0))) {
             return '(No response)';
         }
 
-        if (question.responseType === 'boolean') {
+        if (question.responseType === 'boolean' || question.responseType === 'Checkbox' || question.responseType === 'checkbox') {
             return answer.value === 'true' || answer.value === true ? 'Yes' : 'No';
         }
 
@@ -339,6 +608,25 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         };
     }
 
+    handleIncomeBenefitsChange(event) {
+        // Store income & benefits data for later processing
+        // Component returns { value: [...], allFileIds: [...], isValid: boolean }
+        console.log('Handler: Received event.detail:', JSON.parse(JSON.stringify(event.detail)));
+        const data = event.detail.value || [];
+        console.log('Handler: Extracted data:', data);
+        // Clean the data by serializing/deserializing to remove Proxy objects
+        this.incomeBenefitsData = JSON.parse(JSON.stringify(data));
+        this.incomeBenefitsFileIds = event.detail.allFileIds || [];
+        console.log('Income & Benefits Data:', this.incomeBenefitsData);
+        console.log('Income & Benefits File IDs:', this.incomeBenefitsFileIds);
+    }
+
+    handleDemographicsChange(event) {
+        // Clean the data by serializing/deserializing to remove Proxy objects
+        this.demographicsData = JSON.parse(JSON.stringify(event.detail));
+        console.log('Demographics Data:', this.demographicsData);
+    }
+
     handleAnswerChange(event) {
         const detail = event.detail;
         const questionId = detail.questionId;
@@ -349,7 +637,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             return;
         }
 
-        if (responseType === 'boolean') {
+        if (responseType === 'boolean' || responseType === 'Checkbox' || responseType === 'checkbox') {
             answer.value = detail.checked ? 'true' : 'false';
         } else if (responseType === 'radios' || responseType === 'Radios') {
             // Handle radio toggles (checkboxes)
@@ -373,12 +661,33 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     handlePrev() {
         if (this.currentStepIndex > 0) {
             this.currentStepIndex -= 1;
+            // Scroll to top when changing steps
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
 
     handleNext() {
         if (this.currentStepIndex < STEPS.length - 1) {
             this.currentStepIndex += 1;
+            // Scroll to top when changing steps
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (this.isReviewStep) {
+                this.fetchGoalsForReview();
+            }
+        }
+    }
+
+    async fetchGoalsForReview() {
+        if (this.showGoals && this.effectiveCaseId) {
+            try {
+                this.goals = await getGoalAssignments({ 
+                    caseId: this.effectiveCaseId, 
+                    accountId: this.accountData?.Id 
+                });
+            } catch (error) {
+                console.error('Error fetching goals for review:', error);
+            }
         }
     }
 
@@ -390,8 +699,128 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         await this.performSave(true);
     }
 
+    validateRequiredSignatures() {
+        const clientPad = this.template.querySelector('[data-role="client"]');
+        const staffPad = this.template.querySelector('[data-role="staff"]');
+
+        if (this.requireClientSignature && clientPad && !clientPad.hasSignature()) {
+            this.showToast('Client Signature Required', 'Please provide a client signature before saving.', 'error');
+            return false;
+        }
+
+        if (this.requireStaffSignature && staffPad && !staffPad.hasSignature()) {
+            this.showToast('Staff Signature Required', 'Please provide a staff signature before saving.', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    async saveSignaturesToInterview(interviewId) {
+        const clientPad = this.template.querySelector('[data-role="client"]');
+        const staffPad = this.template.querySelector('[data-role="staff"]');
+
+        let clientSigId = null;
+        let staffSigId = null;
+
+        // Save client signature if present
+        if (this.showClientSignature && clientPad && clientPad.hasSignature()) {
+            try {
+                const result = await clientPad.saveSignature(interviewId, true);
+                if (result.success) {
+                    console.log('Client signature saved:', result.contentVersionId);
+                    clientSigId = result.contentVersionId;
+                }
+            } catch (error) {
+                console.error('Failed to save client signature:', error);
+                // Don't fail the whole save if signature fails
+            }
+        }
+
+        // Save staff signature if present
+        if (this.showStaffSignature && staffPad && staffPad.hasSignature()) {
+            try {
+                const result = await staffPad.saveSignature(interviewId, true);
+                if (result.success) {
+                    console.log('Staff signature saved:', result.contentVersionId);
+                    staffSigId = result.contentVersionId;
+                }
+            } catch (error) {
+                console.error('Failed to save staff signature:', error);
+                // Don't fail the whole save if signature fails
+            }
+        }
+
+        // Update Interview record with signature ContentDocument IDs
+        if (clientSigId || staffSigId) {
+            try {
+                await updateInterviewSignatures({
+                    interviewId: interviewId,
+                    clientSignatureId: clientSigId,
+                    staffSignatureId: staffSigId
+                });
+                console.log('Interview signatures updated successfully');
+            } catch (error) {
+                console.error('Failed to update interview signatures:', error);
+                // Don't fail if update fails
+            }
+        }
+    }
+
+    async handleClientSignatureSaved(event) {
+        console.log('Client signature saved:', event.detail);
+        console.log('Account Data for signature:', this.accountData);
+        this.clientSignatureId = event.detail.contentVersionId;
+        
+        // Use client (Person Account) info for client signature
+        // Check various possible field name formats (Name, name, FirstName, firstname, etc.)
+        const clientName = this.accountData?.Name || 
+                          this.accountData?.name || 
+                          ((this.accountData?.FirstName || this.accountData?.firstname || '') + ' ' + 
+                           (this.accountData?.LastName || this.accountData?.lastname || '')).trim() ||
+                          'Client';
+        
+        console.log('Client name resolved to:', clientName);
+        const now = new Date();
+        this.clientSignatureStatus = {
+            signedBy: clientName,
+            title: '', // Clients don't have titles
+            signedAt: now.toLocaleString(),
+            timestamp: now.getTime()
+        };
+    }
+
+    async handleStaffSignatureSaved(event) {
+        console.log('Staff signature saved:', event.detail);
+        this.staffSignatureId = event.detail.contentVersionId;
+        
+        // Get current user info if not already loaded
+        if (!this.currentUser) {
+            try {
+                this.currentUser = await getCurrentUserInfo();
+            } catch (error) {
+                console.error('Failed to get user info:', error);
+            }
+        }
+        
+        // Update signature status
+        const now = new Date();
+        this.staffSignatureStatus = {
+            signedBy: this.currentUser?.name || 'Unknown User',
+            title: this.currentUser?.title || '',
+            signedAt: now.toLocaleString(),
+            timestamp: now.getTime()
+        };
+    }
+
     async performSave(shouldDownload) {
         console.log('Save button clicked, shouldDownload:', shouldDownload);
+        
+        // First validate required signatures are present
+        if (!this.validateRequiredSignatures()) {
+            return;
+        }
+        
         this.isSaving = true;
         try {
             const requestData = this.buildSaveRequest();
@@ -407,6 +836,23 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             if (result.success) {
                 console.log('SUCCESS! Interview created with ID:', result.interviewId);
                 console.log('InteractionSummary created with ID:', result.interactionSummaryId);
+                
+                // Save signatures after Interview is created
+                await this.saveSignaturesToInterview(result.interviewId);
+                
+                // Link uploaded income/benefit files to Case for quick access
+                if (this.incomeBenefitsFileIds && this.incomeBenefitsFileIds.length > 0) {
+                    try {
+                        await linkFilesToCase({ 
+                            caseId: this.effectiveCaseId, 
+                            contentDocumentIds: this.incomeBenefitsFileIds 
+                        });
+                        console.log('✅ Linked income/benefit files to Case');
+                    } catch (error) {
+                        console.error('⚠️ Failed to link files to Case:', error);
+                        // Don't block the save for file linking errors
+                    }
+                }
                 
                 // ALWAYS generate document when interview is completed
                 // This creates the filled-out DOCX from the template and answers
@@ -459,7 +905,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             }
         } catch (error) {
             console.error('Save error:', error);
-            this.showToast('Error Saving Interview', this.normalizeError(error), 'error');
+            console.error('Save error message:', error.message);
+            console.error('Save error body:', JSON.stringify(error.body));
+            console.error('Save error stack:', error.stack);
+            const errorMsg = error.body?.message || error.message || 'Unknown error occurred';
+            this.showToast('Error Saving Interview', errorMsg, 'error');
         } finally {
             this.isSaving = false;
         }
@@ -526,6 +976,13 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             endTime = `${endHours}:${endMinutes}`;
         }
 
+        // Clean demographics and incomeBenefits by serializing/deserializing to remove Proxy objects
+        const cleanDemographics = this.demographicsData ? JSON.parse(JSON.stringify(this.demographicsData)) : {};
+        const cleanIncomeBenefits = this.incomeBenefitsData ? JSON.parse(JSON.stringify(this.incomeBenefitsData)) : [];
+
+        console.log('buildSaveRequest - demographics:', cleanDemographics);
+        console.log('buildSaveRequest - incomeBenefits:', cleanIncomeBenefits);
+
         return {
             caseId: this.effectiveCaseId,
             accountId: null, // Controller will resolve from Case
@@ -537,7 +994,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 meetingNotes: this.interactionInput.meetingNotes,
                 location: this.interactionInput.location
             },
-            answers: answerList
+            answers: answerList,
+            housingBenefitIds: this.housingBenefitIds,
+            clinicalBenefitIds: this.clinicalBenefitIds,
+            demographicsJson: JSON.stringify(cleanDemographics),
+            incomeBenefitsJson: JSON.stringify(cleanIncomeBenefits)
+            // Note: Signatures are saved after Interview creation, not in initial request
         };
     }
 

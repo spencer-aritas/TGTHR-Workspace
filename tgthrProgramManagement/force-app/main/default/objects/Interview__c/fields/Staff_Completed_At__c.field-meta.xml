@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Staff_Completed_At__c</fullName>
+    <label>Staff Completed At</label>
+    <description>Timestamp when staff clicked Complete button. Used to determine Completed_On when no signatures are required.</description>
+    <inlineHelpText>Records when staff manually marked this interview as complete, regardless of signature status.</inlineHelpText>
+    <type>DateTime</type>
+    <required>false</required>
+</CustomField>

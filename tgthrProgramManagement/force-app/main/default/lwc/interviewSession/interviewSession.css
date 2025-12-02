@@ -1,21 +1,73 @@
 .interview-session {
-    background-color: #f3f3f3;
+    background-color: #f7f9fb;
     min-height: 100vh;
-    padding-bottom: 2rem;
+    padding-bottom: 3rem;
 }
 
 .interview-header {
-    background-color: white;
-    border-bottom: 1px solid #dddbda;
-    margin-bottom: 1rem;
+    background-color: #1589ee;
+    color: white;
+    border-bottom: 3px solid #0b5cab;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 1.5rem;
+}
+
+.interview-header .slds-text-heading_large {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.interview-header .slds-text-body_regular {
+    font-size: 1rem;
+    opacity: 0.95;
 }
 
 .question-container {
     padding: 0.5rem 0;
 }
 
+.question-container:last-child {
+    border-bottom: none;
+}
+
 .question-field {
     width: 100%;
+}
+
+/* Grid layout support for multi-column questions */
+.slds-gutters_small > .slds-col {
+    padding: 0.5rem;
+}
+
+/* Ensure question fields within grid items fill container */
+.slds-col .question-container {
+    height: 100%;
+    padding: 0;
+    border-bottom: none;
+}
+
+/* Address field grouping visual enhancement */
+.slds-col[data-question-type="text"] + .slds-col[data-question-type="text"] {
+    /* Visually connect related text fields */
+}
+
+/* Section card styling - clean separation with subtle elevation */
+.section-card {
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: white;
+    border: 1px solid #e5e5e5;
+}
+
+/* Section header enhancement */
+.slds-section__title-action {
+    padding: 1.25rem 1rem;
+    font-weight: 600;
+    font-size: 1.125rem;
+    color: #0b5cab;
 }
 
 /* Review page improvements */
@@ -23,31 +75,70 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     max-width: 100%;
+    line-height: 1.6;
 }
 
 .slds-form-element__static {
     min-height: 1.5rem;
-    padding: 0.5rem 0;
+    padding: 0.75rem 0;
+    line-height: 1.6;
 }
 
-/* Better spacing for cards */
-lightning-card {
-    margin-bottom: 1rem;
+/* Form element enhancements with better spacing */
+.slds-form-element {
+    margin-bottom: 1.75rem;
+}
+
+.slds-form-element__label {
+    font-weight: 500;
+    color: #3e3e3c;
+    margin-bottom: 0.5rem;
+}
+
+.slds-form-element__help {
+    color: #706e6b;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* Progress indicator styling */
+.slds-progress {
+    margin-bottom: 2rem;
+}
+
+/* Button styling for better visual hierarchy */
+.slds-button_brand {
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slds-button_neutral {
+    font-weight: 500;
 }
 
 /* Responsive layout - better desktop spacing */
 @media (min-width: 768px) {
     .slds-m-around_medium {
-        margin: 1rem auto;
+        margin: 2rem auto;
         max-width: 900px;
     }
     
-    lightning-card {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    .question-container {
+        padding: 1.25rem 0;
     }
 }
 
 @media (min-width: 1024px) {
+    .slds-m-around_medium {
+        max-width: 1000px;
+    }
+    
+    .section-card {
+        margin-bottom: 2.5rem;
+    }
+}
+
+@media (min-width: 1200px) {
     .slds-m-around_medium {
         max-width: 1100px;
     }

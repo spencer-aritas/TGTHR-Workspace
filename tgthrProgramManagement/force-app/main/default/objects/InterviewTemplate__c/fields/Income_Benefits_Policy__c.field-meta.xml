@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Income_Benefits_Policy__c</fullName>
+    <description>Controls whether the Income &amp; Benefits repeating table section is shown in interviews based on this template. Hidden = not shown, Optional = shown but not required, Required = shown and must have at least one entry.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Choose when to display the Income &amp; Benefits section with repeating rows for income sources/benefits, stated income amounts, and documentation uploads.</inlineHelpText>
+    <label>Income &amp; Benefits Policy</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Hidden</fullName>
+                <default>true</default>
+                <label>Hidden</label>
+            </value>
+            <value>
+                <fullName>Optional</fullName>
+                <default>false</default>
+                <label>Optional</label>
+            </value>
+            <value>
+                <fullName>Required</fullName>
+                <default>false</default>
+                <label>Required</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

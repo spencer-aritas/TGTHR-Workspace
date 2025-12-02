@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Length_of_Stay_Prior_Situation__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>How long was the client in their prior living situation?</inlineHelpText>
+    <label>Length of Stay in Prior Situation</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>One night or less</fullName><default>false</default><label>One night or less</label></value>
+            <value><fullName>Two to six nights</fullName><default>false</default><label>Two to six nights</label></value>
+            <value><fullName>One week or more, but less than one month</fullName><default>false</default><label>One week or more, but less than one month</label></value>
+            <value><fullName>One month or more, but less than 90 days</fullName><default>false</default><label>One month or more, but less than 90 days</label></value>
+            <value><fullName>90 days or more, but less than one year</fullName><default>false</default><label>90 days or more, but less than one year</label></value>
+            <value><fullName>One year or longer</fullName><default>false</default><label>One year or longer</label></value>
+            <value><fullName>Client doesn&apos;t know</fullName><default>false</default><label>Client doesn&apos;t know</label></value>
+            <value><fullName>Client refused</fullName><default>false</default><label>Client refused</label></value>
+            <value><fullName>Data not collected</fullName><default>false</default><label>Data not collected</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

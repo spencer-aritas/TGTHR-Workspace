@@ -2,7 +2,7 @@
     <div class="note-shell">
         <template if:true={isLoading}>
             <div class="loading-overlay">
-                <lightning-spinner alternative-text="Loading clinical note" size="medium"></lightning-spinner>
+                <lightning-spinner alternative-text="Loading case note" size="medium"></lightning-spinner>
             </div>
         </template>
 
@@ -44,15 +44,22 @@
                         <span class="value">{header.medicaidId}</span>
                     </div>
                     <div class="field-block">
-                        <span class="label">Note Date</span>
-                        <span class="value">{form.interactionDate}</span>
+                        <lightning-input
+                            type="date"
+                            name="interactionDate"
+                            label="Note Date"
+                            value={form.interactionDate}
+                            onchange={handleInputChange}
+                            variant="label-stacked"
+                            class="date-input-override">
+                        </lightning-input>
                     </div>
                 </div>
             </section>
 
             <div class="note-layout">
                 <aside class="note-sidebar">
-                    <nav class="sidebar-nav" role="navigation" aria-label="Clinical note sections">
+                    <nav class="sidebar-nav" role="navigation" aria-label="Case note sections">
                         <template for:each={navigationSteps} for:item="item">
                             <button
                                 type="button"
@@ -275,7 +282,7 @@
                         </lightning-button>
                         <lightning-button
                             variant="brand"
-                            label="Save Clinical Note"
+                            label="Save Case Note"
                             class="submit-button"
                             onclick={handleSave}
                             disabled={isSaving}>

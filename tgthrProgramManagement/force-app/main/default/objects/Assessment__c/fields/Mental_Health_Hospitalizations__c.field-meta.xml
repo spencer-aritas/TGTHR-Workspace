@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Mental_Health_Hospitalizations__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Number of times hospitalized for mental health reasons.</inlineHelpText>
+    <label>Mental Health Hospitalizations</label>
+    <precision>3</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

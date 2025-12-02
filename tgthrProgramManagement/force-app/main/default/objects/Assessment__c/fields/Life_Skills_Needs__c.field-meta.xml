@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Life_Skills_Needs__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Select all life skills areas where support is needed.</inlineHelpText>
+    <label>Life Skills Needs</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Budgeting</fullName><default>false</default><label>Budgeting</label></value>
+            <value><fullName>Cooking</fullName><default>false</default><label>Cooking</label></value>
+            <value><fullName>Cleaning</fullName><default>false</default><label>Cleaning</label></value>
+            <value><fullName>Grocery Shopping</fullName><default>false</default><label>Grocery Shopping</label></value>
+            <value><fullName>Transportation</fullName><default>false</default><label>Transportation</label></value>
+            <value><fullName>Healthcare</fullName><default>false</default><label>Healthcare</label></value>
+            <value><fullName>Housing</fullName><default>false</default><label>Housing</label></value>
+            <value><fullName>Employment</fullName><default>false</default><label>Employment</label></value>
+            <value><fullName>Education</fullName><default>false</default><label>Education</label></value>
+            <value><fullName>Legal</fullName><default>false</default><label>Legal</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>6</visibleLines>
+</CustomField>

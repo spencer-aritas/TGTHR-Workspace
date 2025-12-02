@@ -816,6 +816,38 @@ export default class InterviewBuilderHome extends LightningElement {
         const newValue = isEnabled ? (currentValue === 'Required' ? 'Required' : 'Optional') : 'Hidden';
         
         this.templateForm = { ...this.templateForm, [fieldName]: newValue };
+        
+        console.log(`🔵 Policy Enabled Toggle: ${fieldName} = ${newValue}`);
+        console.log('🔵 Current templateForm:', JSON.stringify(this.templateForm, null, 2));
+
+        if (fieldName === 'goalsPolicy') {
+            this.handleGoalsPolicyChange(isEnabled);
+        }
+    }
+
+    handleGoalsPolicyChange(isEnabled) {
+        const GOAL_KEY = 'goals-placeholder';
+        if (isEnabled) {
+            // Check if already exists
+            if (!this.questions.find(q => q.key === GOAL_KEY)) {
+                const goalPlaceholder = {
+                    key: GOAL_KEY,
+                    uuid: GOAL_KEY,
+                    label: 'Goals Section',
+                    apiName: 'Goals_Section_Placeholder',
+                    section: 'Goals',
+                    responseType: 'component-goals',
+                    required: false,
+                    order: this.questions.length + 1,
+                    iconName: 'utility:list',
+                    cardClass: 'question-card slds-card slds-m-bottom_medium slds-card_boundary'
+                };
+                this.setQuestions([...this.questions, goalPlaceholder]);
+            }
+        } else {
+            // Remove
+            this.setQuestions(this.questions.filter(q => q.key !== GOAL_KEY));
+        }
     }
 
     handlePolicyRequiredToggle(event) {
@@ -826,6 +858,9 @@ export default class InterviewBuilderHome extends LightningElement {
         const newValue = isRequired ? 'Required' : 'Optional';
         
         this.templateForm = { ...this.templateForm, [fieldName]: newValue };
+        
+        console.log(`🟢 Policy Required Toggle: ${fieldName} = ${newValue}`);
+        console.log('🟢 Current templateForm:', JSON.stringify(this.templateForm, null, 2));
     }
 
     handleVersionInput(event) {
@@ -1138,6 +1173,7 @@ export default class InterviewBuilderHome extends LightningElement {
         decorated.picklistDisplayMode = decorated.splitIntoRadios ? 'radios' : 'dropdown';
         decorated.iconName = this.getIconForResponseType(decorated.responseType);
         decorated.cardClass = `question-card slds-card slds-m-bottom_medium ${this.getCardAccentClass(decorated.responseType)}`;
+        decorated.isComponent = decorated.responseType && decorated.responseType.startsWith('component-');
         return decorated;
     }
 
@@ -1156,6 +1192,8 @@ export default class InterviewBuilderHome extends LightningElement {
             case 'date':
             case 'datetime':
                 return 'question-card--date';
+            case 'component-goals':
+                return 'question-card--component';
             default:
                 return 'question-card--text';
         }
@@ -1174,6 +1212,8 @@ export default class InterviewBuilderHome extends LightningElement {
                 return 'utility:event';
             case 'signature':
                 return 'utility:brush';
+            case 'component-goals':
+                return 'utility:list';
             default:
                 return 'utility:record';
         }
@@ -1489,12 +1529,26 @@ export default class InterviewBuilderHome extends LightningElement {
 
         this.isSaving = true;
         try {
+            console.log('🚀🚀🚀 ABOUT TO BUILD PAYLOAD 🚀🚀🚀');
+            console.log('📋 templateForm BEFORE buildPayload:', JSON.stringify(this.templateForm, null, 2));
+            
             const payload = this.buildPayload();
+            
+            console.log('📦 PAYLOAD BUILT:', JSON.stringify(payload, null, 2));
+            console.log('🔑 Signature Policies in Payload:');
+            console.log('   clientSignaturePolicy:', payload.template.clientSignaturePolicy);
+            console.log('   staffSignaturePolicy:', payload.template.staffSignaturePolicy);
+            
             payload.template.active = shouldActivate;
             payload.version.status = shouldActivate ? 'Active' : 'Draft';
             
             const payloadJson = JSON.stringify(payload);
+            
+            console.log('📤 SENDING TO APEX:', payloadJson.substring(0, 500) + '...');
+            
             const result = await saveTemplate({ payloadJson });
+            
+            console.log('✅ APEX RESULT:', result);
             
             // Check for errors in the response
             if (result.errors && result.errors.length > 0) {
@@ -1578,7 +1632,14 @@ export default class InterviewBuilderHome extends LightningElement {
                 name: templateData.template.name,
                 category: templateData.template.category,
                 active: templateData.template.active,
-                programId: templateData.template.programId
+                programId: templateData.template.programId,
+                // Template Features - Policy fields
+                goalsPolicy: templateData.template.goalsPolicy || 'Hidden',
+                diagnosesPolicy: templateData.template.diagnosesPolicy || 'Hidden',
+                housingBenefitPolicy: templateData.template.housingBenefitPolicy || 'Hidden',
+                clinicalBenefitPolicy: templateData.template.clinicalBenefitPolicy || 'Hidden',
+                clientSignaturePolicy: templateData.template.clientSignaturePolicy || 'Hidden',
+                staffSignaturePolicy: templateData.template.staffSignaturePolicy || 'Hidden'
             };
             
             // Populate version form
@@ -1611,6 +1672,29 @@ export default class InterviewBuilderHome extends LightningElement {
                 splitIntoRadios: q.responseType === 'radios',
                 picklistDisplayMode: q.responseType === 'radios' ? 'radios' : 'dropdown'
             }));
+
+            // Ensure Goals placeholder exists if policy is enabled (fixes missing component issue)
+            if (this.templateForm.goalsPolicy !== 'Hidden') {
+                const hasGoals = this.questions.some(q => q.responseType === 'component-goals');
+                if (!hasGoals) {
+                    console.log('Goals policy enabled but placeholder missing - injecting it');
+                    const GOAL_KEY = 'goals-placeholder';
+                    const goalPlaceholder = {
+                        key: GOAL_KEY,
+                        uuid: GOAL_KEY,
+                        label: 'Goals Section',
+                        apiName: 'Goals_Section_Placeholder',
+                        section: 'Goals',
+                        responseType: 'component-goals',
+                        required: false,
+                        order: this.questions.length + 1,
+                        iconName: 'utility:list',
+                        cardClass: 'question-card slds-card slds-m-bottom_medium slds-card_boundary'
+                    };
+                    // Use setQuestions to ensure decoration (isComponent flag, etc.)
+                    this.setQuestions([...this.questions, goalPlaceholder]);
+                }
+            }
             
             // Jump to appropriate step
             if (resumeEditing) {
@@ -1640,7 +1724,14 @@ export default class InterviewBuilderHome extends LightningElement {
                 name: `${templateData.template.name} (Copy)`,
                 category: templateData.template.category,
                 active: false, // Default to inactive for clones
-                programId: templateData.template.programId
+                programId: templateData.template.programId,
+                // Template Features - Policy fields
+                goalsPolicy: templateData.template.goalsPolicy || 'Hidden',
+                diagnosesPolicy: templateData.template.diagnosesPolicy || 'Hidden',
+                housingBenefitPolicy: templateData.template.housingBenefitPolicy || 'Hidden',
+                clinicalBenefitPolicy: templateData.template.clinicalBenefitPolicy || 'Hidden',
+                clientSignaturePolicy: templateData.template.clientSignaturePolicy || 'Hidden',
+                staffSignaturePolicy: templateData.template.staffSignaturePolicy || 'Hidden'
             };
             
             this.versionForm = {
@@ -1699,6 +1790,8 @@ export default class InterviewBuilderHome extends LightningElement {
             });
         });
 
+        console.log('🔍 buildPayload: this.templateForm =', JSON.stringify(this.templateForm, null, 2));
+        
         const payload = {
             template: {
                 name: this.templateForm.name,

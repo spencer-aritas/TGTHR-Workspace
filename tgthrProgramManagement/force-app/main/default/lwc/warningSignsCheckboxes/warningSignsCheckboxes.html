@@ -1,0 +1,31 @@
+<template>
+    <div class="warning-signs-container">
+        <div class="slds-text-heading_small slds-m-bottom_small">
+            Please describe your warning signs, what your body feels when you are losing control, what other people can see changing:
+        </div>
+        
+        <div class="slds-grid slds-wrap slds-gutters_small">
+            <template for:each={selectedSigns} for:item="sign">
+                <div key={sign.value} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                    <div class="slds-form-element">
+                        <div class="slds-form-element__control">
+                            <span class="slds-checkbox">
+                                <input 
+                                    type="checkbox" 
+                                    id={sign.value}
+                                    value={sign.value}
+                                    checked={sign.checked}
+                                    onchange={handleCheckboxChange}
+                                />
+                                <label class="slds-checkbox__label" for={sign.value}>
+                                    <span class="slds-checkbox_faux"></span>
+                                    <span class="slds-form-element__label">{sign.label}</span>
+                                </label>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

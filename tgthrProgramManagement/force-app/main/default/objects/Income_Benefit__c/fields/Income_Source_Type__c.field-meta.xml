@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Income_Source_Type__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>HUD/HMIS-compliant income source type.</inlineHelpText>
+    <label>Income Source Type</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Earned Income (Wages, Self-Employment)</fullName>
+                <default>false</default>
+                <label>Earned Income (Wages, Self-Employment)</label>
+            </value>
+            <value>
+                <fullName>Unemployment Insurance</fullName>
+                <default>false</default>
+                <label>Unemployment Insurance</label>
+            </value>
+            <value>
+                <fullName>SSI (Supplemental Security Income)</fullName>
+                <default>false</default>
+                <label>SSI (Supplemental Security Income)</label>
+            </value>
+            <value>
+                <fullName>SSDI (Social Security Disability Insurance)</fullName>
+                <default>false</default>
+                <label>SSDI (Social Security Disability Insurance)</label>
+            </value>
+            <value>
+                <fullName>VA Disability Compensation</fullName>
+                <default>false</default>
+                <label>VA Disability Compensation</label>
+            </value>
+            <value>
+                <fullName>VA Pension</fullName>
+                <default>false</default>
+                <label>VA Pension</label>
+            </value>
+            <value>
+                <fullName>Private Disability Insurance</fullName>
+                <default>false</default>
+                <label>Private Disability Insurance</label>
+            </value>
+            <value>
+                <fullName>Workers Compensation</fullName>
+                <default>false</default>
+                <label>Workers Compensation</label>
+            </value>
+            <value>
+                <fullName>TANF (Temporary Assistance for Needy Families)</fullName>
+                <default>false</default>
+                <label>TANF (Temporary Assistance for Needy Families)</label>
+            </value>
+            <value>
+                <fullName>General Assistance (GA)</fullName>
+                <default>false</default>
+                <label>General Assistance (GA)</label>
+            </value>
+            <value>
+                <fullName>Retirement Income (Social Security, Pension)</fullName>
+                <default>false</default>
+                <label>Retirement Income (Social Security, Pension)</label>
+            </value>
+            <value>
+                <fullName>Pension from Former Job</fullName>
+                <default>false</default>
+                <label>Pension from Former Job</label>
+            </value>
+            <value>
+                <fullName>Child Support</fullName>
+                <default>false</default>
+                <label>Child Support</label>
+            </value>
+            <value>
+                <fullName>Alimony</fullName>
+                <default>false</default>
+                <label>Alimony</label>
+            </value>
+            <value>
+                <fullName>Other Income Source</fullName>
+                <default>false</default>
+                <label>Other Income Source</label>
+            </value>
+            <value>
+                <fullName>Client Doesn&apos;t Know</fullName>
+                <default>false</default>
+                <label>Client Doesn&apos;t Know</label>
+            </value>
+            <value>
+                <fullName>Prefers Not to Answer</fullName>
+                <default>false</default>
+                <label>Prefers Not to Answer</label>
+            </value>
+            <value>
+                <fullName>Data Not Collected</fullName>
+                <default>false</default>
+                <label>Data Not Collected</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

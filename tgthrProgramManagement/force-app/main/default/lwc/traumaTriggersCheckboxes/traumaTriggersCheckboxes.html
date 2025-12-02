@@ -1,0 +1,44 @@
+<template>
+    <div class="trauma-triggers-container">
+        <div class="slds-text-heading_small slds-m-bottom_small">What are your trauma reminders or triggers?</div>
+        
+        <div class="slds-grid slds-wrap slds-gutters_small">
+            <template for:each={selectedTriggers} for:item="trigger">
+                <div key={trigger.value} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                    <div class="slds-form-element">
+                        <div class="slds-form-element__control">
+                            <span class="slds-checkbox">
+                                <input 
+                                    type="checkbox" 
+                                    id={trigger.value}
+                                    value={trigger.value}
+                                    checked={trigger.checked}
+                                    onchange={handleCheckboxChange}
+                                />
+                                <label class="slds-checkbox__label" for={trigger.value}>
+                                    <span class="slds-checkbox_faux"></span>
+                                    <span class="slds-form-element__label">{trigger.label}</span>
+                                </label>
+                            </span>
+                        </div>
+                        <template if:true={trigger.hasDetail}>
+                            <template if:true={trigger.checked}>
+                                <div class="slds-m-left_large slds-m-top_xx-small">
+                                    <lightning-input
+                                        type="text"
+                                        label={trigger.detailLabel}
+                                        value={trigger.detailValue}
+                                        data-trigger-value={trigger.value}
+                                        onchange={handleDetailChange}
+                                        variant="label-inline"
+                                        class="detail-input"
+                                    ></lightning-input>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

@@ -134,13 +134,13 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     async loadInitialData() {
         if (!this.recordId) {
-            this.loadError = 'Record Id is required to launch the clinical note experience.';
+            this.loadError = 'Record Id is required to launch the case note experience.';
             return;
         }
         this.isLoading = true;
         this.loadError = null;
         try {
-            console.log('Loading clinical note for case:', this.recordId);
+            console.log('Loading case note for case:', this.recordId);
             const data = await initClinicalNote({ caseId: this.recordId });
             this._initializeFromResponse(data);
             
@@ -166,7 +166,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 this.benefitOptions = [];
             }
         } catch (error) {
-            console.error('Error loading clinical note data:', error);
+            console.error('Error loading case note data:', error);
             this.loadError = this._reduceErrors(error).join(', ');
         } finally {
             this.isLoading = false;
@@ -416,7 +416,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             });
             if (!result || !result.success) {
                 const errorMessage =
-                    result && result.errorMessage ? result.errorMessage : 'Unable to save clinical note.';
+                    result && result.errorMessage ? result.errorMessage : 'Unable to save case note.';
                 throw new Error(errorMessage);
             }
 
@@ -429,10 +429,10 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 }
             }
 
-            this._showToast('Success', 'Clinical note saved successfully.', 'success');
+            this._showToast('Success', 'Case note saved successfully.', 'success');
             this._navigateToRecord(this.interactionId);
         } catch (error) {
-            this._showToast('Error', this._reduceErrors(error).join(', ') || 'Unexpected error saving clinical note.', 'error');
+            this._showToast('Error', this._reduceErrors(error).join(', ') || 'Unexpected error saving case note.', 'error');
         } finally {
             this.isSaving = false;
         }

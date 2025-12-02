@@ -3,20 +3,20 @@
         <div class="button-row">
             <lightning-button
                 variant="brand"
-                label="Clinical Note"
+                label={caseNoteLabel}
                 onclick={openClinicalNote}>
             </lightning-button>
             <lightning-button
                 class="slds-m-left_small"
                 variant="neutral"
-                label="SSRS Assessment"
+                label="Risk Assessment"
                 onclick={openSsrsAssessment}
                 disabled={isSsrsDisabled}>
             </lightning-button>
             <lightning-button
                 class="slds-m-left_small"
                 variant="neutral"
-                label="New Available Interview"
+                label="Other Available Documentation"
                 onclick={openInterviewModal}
                 disabled={isInterviewDisabled}>
             </lightning-button>
@@ -43,7 +43,7 @@
                         onclick={closeClinicalNote}>
                     </lightning-button-icon>
                     <h2 id="clinical-note-modal-heading" class="slds-text-heading_medium">
-                        Clinical Note
+                        {caseNoteLabel}
                     </h2>
                 </header>
                 <div class="slds-modal__content modal-body">
