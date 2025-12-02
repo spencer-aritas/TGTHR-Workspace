@@ -10,6 +10,7 @@ export default class SignaturePad extends LightningElement {
     @api recordId;
     @api title = 'Please sign below';
     @api hideControls = false;
+    @api filename; // Custom filename for the signature
 
     @track isEmpty = true;
     @track loadError;
@@ -188,10 +189,11 @@ export default class SignaturePad extends LightningElement {
 
     _translateEventToCanvasPoint(event) {
         const rect = this.canvas.getBoundingClientRect();
-        const ratio = this.canvas.width / rect.width;
+        // Since context is already transformed by devicePixelRatio in _setCanvasSize(),
+        // we just need to translate from viewport to canvas coordinates without scaling
         return {
-            x: (event.clientX - rect.left) * ratio,
-            y: (event.clientY - rect.top) * ratio
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
         };
     }
 
@@ -230,9 +232,10 @@ export default class SignaturePad extends LightningElement {
 
         try {
             const base64Data = this.canvas.toDataURL('image/png').split(',')[1];
+            const filenameToUse = this.filename || `signature_${new Date().toISOString()}.png`;
             const result = await createContentVersion({
                 base64Data,
-                filename: `signature_${new Date().toISOString()}.png`,
+                filename: filenameToUse,
                 recordId: targetRecordId
             });
 

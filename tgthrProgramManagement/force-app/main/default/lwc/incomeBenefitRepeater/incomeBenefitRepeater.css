@@ -1,0 +1,47 @@
+.income-benefit-container {
+    padding: 1rem;
+}
+
+.checkbox-grid {
+    margin-top: 0.5rem;
+}
+
+.slds-section__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    padding: 0.75rem 0;
+}
+
+.slds-table th {
+    background-color: #f3f3f3;
+    font-weight: 600;
+}
+
+.slds-table td {
+    vertical-align: middle;
+}
+
+/* Compact table styling */
+.slds-table_cell-buffer td,
+.slds-table_cell-buffer th {
+    padding: 0.5rem;
+}
+
+/* Visual indication for checked items */
+.slds-checkbox input:checked ~ .slds-checkbox__faux {
+    background-color: #0070d2;
+    border-color: #0070d2;
+}
+
+.slds-checkbox input:checked ~ .slds-checkbox__label .slds-form-element__label {
+    font-weight: 600;
+    color: #0070d2;
+}
+
+/* Highlight the entire checkbox container when checked */
+.slds-form-element:has(input:checked) {
+    background-color: #f3f9ff;
+    border-radius: 4px;
+    padding: 0.25rem;
+    transition: background-color 0.2s ease;
+}

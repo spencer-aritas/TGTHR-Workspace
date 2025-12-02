@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Income_Source__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Select all income sources that apply.</inlineHelpText>
+    <label>Income Source</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Earned Income</fullName><default>false</default><label>Earned Income</label></value>
+            <value><fullName>Unemployment</fullName><default>false</default><label>Unemployment</label></value>
+            <value><fullName>SSI</fullName><default>false</default><label>SSI</label></value>
+            <value><fullName>SSDI</fullName><default>false</default><label>SSDI</label></value>
+            <value><fullName>Veteran&apos;s Disability</fullName><default>false</default><label>Veteran&apos;s Disability</label></value>
+            <value><fullName>Private Disability</fullName><default>false</default><label>Private Disability</label></value>
+            <value><fullName>Worker&apos;s Comp</fullName><default>false</default><label>Worker&apos;s Comp</label></value>
+            <value><fullName>TANF</fullName><default>false</default><label>TANF</label></value>
+            <value><fullName>General Assistance</fullName><default>false</default><label>General Assistance</label></value>
+            <value><fullName>Retirement (Social Security)</fullName><default>false</default><label>Retirement (Social Security)</label></value>
+            <value><fullName>Pension</fullName><default>false</default><label>Pension</label></value>
+            <value><fullName>Child Support</fullName><default>false</default><label>Child Support</label></value>
+            <value><fullName>Alimony</fullName><default>false</default><label>Alimony</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+            <value><fullName>No Income</fullName><default>false</default><label>No Income</label></value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>6</visibleLines>
+</CustomField>

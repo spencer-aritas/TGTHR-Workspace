@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Chronic_Homelessness_Qualifier__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Does this person meet HUD chronic homelessness criteria? (Disabled + 12+ months homeless or 4+ episodes in 3 years totaling 12+ months)</inlineHelpText>
+    <label>Chronic Homelessness Qualifier</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Yes</fullName><default>false</default><label>Yes</label></value>
+            <value><fullName>No</fullName><default>false</default><label>No</label></value>
+            <value><fullName>Pending Verification</fullName><default>false</default><label>Pending Verification</label></value>
+            <value><fullName>Client Doesn&apos;t Know</fullName><default>false</default><label>Client Doesn&apos;t Know</label></value>
+            <value><fullName>Data Not Collected</fullName><default>false</default><label>Data Not Collected</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

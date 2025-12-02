@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Substance_Use_Frequency__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>How frequently does this person use substances?</inlineHelpText>
+    <label>Substance Use Frequency</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Daily</fullName><default>false</default><label>Daily</label></value>
+            <value><fullName>Weekly</fullName><default>false</default><label>Weekly</label></value>
+            <value><fullName>Monthly</fullName><default>false</default><label>Monthly</label></value>
+            <value><fullName>Less than monthly</fullName><default>false</default><label>Less than monthly</label></value>
+            <value><fullName>Not currently using</fullName><default>false</default><label>Not currently using</label></value>
+            <value><fullName>Client doesn&apos;t know</fullName><default>false</default><label>Client doesn&apos;t know</label></value>
+            <value><fullName>Client refused</fullName><default>false</default><label>Client refused</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

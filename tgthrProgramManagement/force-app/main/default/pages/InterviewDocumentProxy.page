@@ -1,0 +1,48 @@
+<apex:page controller="InterviewDocumentProxyController" showHeader="false" sidebar="false" standardStylesheets="false" applyHtmlTag="false" applyBodyTag="false">
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Interview Document Preview</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+        .error {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            color: #c23934;
+        }
+    </style>
+</head>
+<body>
+    <apex:outputPanel rendered="{!hasError}">
+        <div class="error">
+            <h3>Error Loading Document</h3>
+            <p>{!errorMessage}</p>
+        </div>
+    </apex:outputPanel>
+    
+    <apex:outputPanel rendered="{!NOT(hasError)}">
+        <div class="loading" id="loading">Loading document preview...</div>
+        <iframe id="docFrame" src="{!previewUrl}" style="display:none;" onload="document.getElementById('loading').style.display='none'; this.style.display='block';"></iframe>
+    </apex:outputPanel>
+</body>
+</html>
+</apex:page>

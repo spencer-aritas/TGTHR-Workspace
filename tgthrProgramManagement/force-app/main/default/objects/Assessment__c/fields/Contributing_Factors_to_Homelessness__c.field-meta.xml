@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Contributing_Factors_to_Homelessness__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Select all factors that contributed to this person becoming homeless.</inlineHelpText>
+    <label>Contributing Factors to Homelessness</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Sexual/Physical Abuse</fullName><default>false</default><label>Sexual/Physical Abuse</label></value>
+            <value><fullName>Substance Use</fullName><default>false</default><label>Substance Use</label></value>
+            <value><fullName>Relationship Issues with Family</fullName><default>false</default><label>Relationship Issues with Family</label></value>
+            <value><fullName>Aging Out of Foster Care</fullName><default>false</default><label>Aging Out of Foster Care</label></value>
+            <value><fullName>Family Couldn&apos;t Afford Housing</fullName><default>false</default><label>Family Couldn&apos;t Afford Housing</label></value>
+            <value><fullName>Eviction</fullName><default>false</default><label>Eviction</label></value>
+            <value><fullName>Job Loss/Unemployment</fullName><default>false</default><label>Job Loss/Unemployment</label></value>
+            <value><fullName>Lost Housing Assistance</fullName><default>false</default><label>Lost Housing Assistance</label></value>
+            <value><fullName>Incarceration</fullName><default>false</default><label>Incarceration</label></value>
+            <value><fullName>Mental Health Issues</fullName><default>false</default><label>Mental Health Issues</label></value>
+            <value><fullName>Physical Health Issues</fullName><default>false</default><label>Physical Health Issues</label></value>
+            <value><fullName>Disability</fullName><default>false</default><label>Disability</label></value>
+            <value><fullName>Domestic Violence</fullName><default>false</default><label>Domestic Violence</label></value>
+            <value><fullName>Death of Parent/Guardian</fullName><default>false</default><label>Death of Parent/Guardian</label></value>
+            <value><fullName>Gender Identity/Sexual Orientation</fullName><default>false</default><label>Gender Identity/Sexual Orientation</label></value>
+            <value><fullName>Natural Disaster</fullName><default>false</default><label>Natural Disaster</label></value>
+            <value><fullName>Immigration Status</fullName><default>false</default><label>Immigration Status</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+            <value><fullName>Client Doesn&apos;t Know</fullName><default>false</default><label>Client Doesn&apos;t Know</label></value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>6</visibleLines>
+</CustomField>

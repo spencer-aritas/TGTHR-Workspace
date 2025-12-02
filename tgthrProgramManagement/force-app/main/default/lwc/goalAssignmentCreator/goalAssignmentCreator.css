@@ -1,0 +1,19 @@
+.goal-card {
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.goal-card:active {
+    cursor: grabbing;
+}
+
+.drag-over {
+    border: 2px dashed #0070d2;
+    background-color: #f4f6f9;
+    transform: scale(1.02);
+}
+
+.slds-card {
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+}

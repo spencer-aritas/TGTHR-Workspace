@@ -29,6 +29,35 @@
             </lightning-textarea>
         </template>
 
+        <!-- LongText (same as Textarea but can handle more characters) -->
+        <template if:true={isLongText}>
+            <lightning-textarea
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}
+                max-length="131072">
+            </lightning-textarea>
+        </template>
+
+        <!-- RichText -->
+        <template if:true={isRichText}>
+            <lightning-input-rich-text
+                label={question.label}
+                value={question.answer}
+                data-question-id={question.questionId}
+                data-response-type={question.responseType}
+                onchange={handleChange}
+                required={question.required}
+                disabled={question.isReadOnly}
+                field-level-help={question.helpText}>
+            </lightning-input-rich-text>
+        </template>
+
         <!-- Number -->
         <template if:true={isNumber}>
             <lightning-input
@@ -40,7 +69,9 @@
                 onchange={handleChange}
                 required={question.required}
                 disabled={question.isReadOnly}
-                field-level-help={question.helpText}>
+                field-level-help={question.helpText}
+                step="any"
+                formatter="decimal">
             </lightning-input>
         </template>
 
@@ -87,28 +118,15 @@
                 </template>
                 <div class="slds-form-element__control">
                     <template for:each={radioOptions} for:item="option">
-                        <div key={option.value} class="slds-checkbox">
-                            <template if:true={option.checked}>
-                                <input
-                                    type="checkbox"
-                                    id={option.value}
-                                    data-value={option.value}
-                                    checked
-                                    disabled={question.isReadOnly}
-                                    onchange={handleRadioChange} />
-                            </template>
-                            <template if:false={option.checked}>
-                                <input
-                                    type="checkbox"
-                                    id={option.value}
-                                    data-value={option.value}
-                                    disabled={question.isReadOnly}
-                                    onchange={handleRadioChange} />
-                            </template>
-                            <label class="slds-checkbox__label" for={option.value}>
-                                <span class="slds-checkbox__faux"></span>
-                                <span class="slds-form-element__label">{option.label}</span>
-                            </label>
+                        <div key={option.value} class="slds-checkbox slds-m-bottom_x-small">
+                            <lightning-input
+                                type="checkbox"
+                                label={option.label}
+                                checked={option.checked}
+                                disabled={question.isReadOnly}
+                                data-value={option.value}
+                                onchange={handleRadioChange}>
+                            </lightning-input>
                         </div>
                     </template>
                 </div>

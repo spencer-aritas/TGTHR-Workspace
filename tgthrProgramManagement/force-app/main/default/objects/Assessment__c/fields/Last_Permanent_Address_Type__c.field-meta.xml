@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_Permanent_Address_Type__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>HMIS-compliant housing type for last permanent address.</inlineHelpText>
+    <label>Last Permanent Address Type</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Foster care home or foster care group home</fullName><default>false</default><label>Foster care home or foster care group home</label></value>
+            <value><fullName>Jail, Prison or Other Juvenile Facility</fullName><default>false</default><label>Jail, Prison or Other Juvenile Facility</label></value>
+            <value><fullName>Substance Abuse Treatment Facility or Detox Center</fullName><default>false</default><label>Substance Abuse Treatment Facility or Detox Center</label></value>
+            <value><fullName>Residential project of halfway house with no homeless criteria</fullName><default>false</default><label>Residential project of halfway house with no homeless criteria</label></value>
+            <value><fullName>Owned by Client, No Housing Subsidy</fullName><default>false</default><label>Owned by Client, No Housing Subsidy</label></value>
+            <value><fullName>Owned by Client, With Housing Subsidy</fullName><default>false</default><label>Owned by Client, With Housing Subsidy</label></value>
+            <value><fullName>Rental by client, with no ongoing housing subsidy</fullName><default>false</default><label>Rental by client, with no ongoing housing subsidy</label></value>
+            <value><fullName>Rental by Client, with other ongoing housing subsidy</fullName><default>false</default><label>Rental by Client, with other ongoing housing subsidy</label></value>
+            <value><fullName>Staying or Living in a Family Member's Room, Apartment or House</fullName><default>false</default><label>Staying or Living in a Family Member's Room, Apartment or House</label></value>
+            <value><fullName>Staying or Living in a Friend's Room, Apartment, or House</fullName><default>false</default><label>Staying or Living in a Friend's Room, Apartment, or House</label></value>
+            <value><fullName>Permanent Housing for Formerly Homeless Persons</fullName><default>false</default><label>Permanent Housing for Formerly Homeless Persons</label></value>
+            <value><fullName>Transitional Housing for Homeless Persons (including homeless youth)</fullName><default>false</default><label>Transitional Housing for Homeless Persons (including homeless youth)</label></value>
+            <value><fullName>Client Doesn't Know</fullName><default>false</default><label>Client Doesn't Know</label></value>
+            <value><fullName>Client Refused</fullName><default>false</default><label>Client Refused</label></value>
+            <value><fullName>Data not collected</fullName><default>false</default><label>Data not collected</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

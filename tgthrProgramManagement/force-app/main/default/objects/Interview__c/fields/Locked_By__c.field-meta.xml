@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Locked_By__c</fullName>
+    <label>Locked By</label>
+    <description>User who locked this interview (typically SYSTEM for automatic locks).</description>
+    <inlineHelpText>Shows which user or system process locked this interview.</inlineHelpText>
+    <type>Lookup</type>
+    <required>false</required>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Locked Interviews</relationshipLabel>
+    <relationshipName>Locked_Interviews</relationshipName>
+    <deleteConstraint>SetNull</deleteConstraint>
+</CustomField>

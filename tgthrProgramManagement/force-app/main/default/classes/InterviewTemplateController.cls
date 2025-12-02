@@ -2,7 +2,7 @@ public with sharing class InterviewTemplateController {
     /**
      * Field metadata option exposed to the LWC so users can choose Account/Case fields.
      */
-        public class FieldOption implements Comparable {
+    public class FieldOption implements Comparable {
         @AuraEnabled public String id;
         @AuraEnabled public String apiName;
         @AuraEnabled public String label;
@@ -26,7 +26,8 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public List<FieldOption> assessmentFields;
     }
 
-        public class TemplateForm {
+    public class TemplateForm {
+        @AuraEnabled public String id; // Added ID for updates
         @AuraEnabled public String name;
         @AuraEnabled public String category;
         @AuraEnabled public Boolean active;
@@ -39,7 +40,8 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public String staffSignaturePolicy;
     }
 
-        public class VersionForm {
+    public class VersionForm {
+        @AuraEnabled public String id; // Added ID for updates
         @AuraEnabled public String name;
         @AuraEnabled public Decimal versionNumber;
         @AuraEnabled public String status;
@@ -48,7 +50,7 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public Date effectiveTo;
     }
 
-        public class QuestionForm {
+    public class QuestionForm {
         @AuraEnabled public String uuid;
         @AuraEnabled public String name;
         @AuraEnabled public String apiName;
@@ -65,7 +67,7 @@ public with sharing class InterviewTemplateController {
         @AuraEnabled public String libraryQuestionId;
     }
 
-        public class TemplateRequest {
+    public class TemplateRequest {
         @AuraEnabled public TemplateForm template;
         @AuraEnabled public VersionForm version;
         @AuraEnabled public List<QuestionForm> questions;
@@ -379,7 +381,13 @@ public with sharing class InterviewTemplateController {
                    InterviewTemplate__r.Name,
                    InterviewTemplate__r.Category__c,
                    InterviewTemplate__r.Active__c,
-                   InterviewTemplate__r.Program__c
+                   InterviewTemplate__r.Program__c,
+                   InterviewTemplate__r.Goals_Policy__c,
+                   InterviewTemplate__r.Diagnoses_Policy__c,
+                   InterviewTemplate__r.Housing_Benefit_Policy__c,
+                   InterviewTemplate__r.Clinical_Benefit_Policy__c,
+                   InterviewTemplate__r.Client_Signature_Policy__c,
+                   InterviewTemplate__r.Staff_Signature_Policy__c
             FROM InterviewTemplateVersion__c
             WHERE Id = :templateVersionId
             LIMIT 1
@@ -405,7 +413,13 @@ public with sharing class InterviewTemplateController {
             'name' => version.InterviewTemplate__r.Name,
             'category' => version.InterviewTemplate__r.Category__c,
             'active' => version.InterviewTemplate__r.Active__c,
-            'programId' => version.InterviewTemplate__r.Program__c
+            'programId' => version.InterviewTemplate__r.Program__c,
+            'goalsPolicy' => version.InterviewTemplate__r.Goals_Policy__c,
+            'diagnosesPolicy' => version.InterviewTemplate__r.Diagnoses_Policy__c,
+            'housingBenefitPolicy' => version.InterviewTemplate__r.Housing_Benefit_Policy__c,
+            'clinicalBenefitPolicy' => version.InterviewTemplate__r.Clinical_Benefit_Policy__c,
+            'clientSignaturePolicy' => version.InterviewTemplate__r.Client_Signature_Policy__c,
+            'staffSignaturePolicy' => version.InterviewTemplate__r.Staff_Signature_Policy__c
         };
         templateData.put('template', templateInfo);
 
@@ -474,16 +488,22 @@ public with sharing class InterviewTemplateController {
             String variantFilter = payload.version.variant;
             Id programFilter = String.isBlank(payload.template.programId) ? null : Id.valueOf(payload.template.programId);
             
-            List<InterviewTemplateVersion__c> existingActive = [
-                SELECT Id, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, Variant__c
-                FROM InterviewTemplateVersion__c
-                WHERE InterviewTemplate__r.Active__c = true
-                AND Status__c = 'Active'
-                AND InterviewTemplate__r.Category__c = :categoryFilter
-                AND Variant__c = :variantFilter
-                AND InterviewTemplate__r.Program__c = :programFilter
-                LIMIT 1
-            ];
+            // Exclude current template if updating
+            String excludeIdClause = '';
+            if (String.isNotBlank(payload.template.id)) {
+                excludeIdClause = ' AND InterviewTemplate__c != \'' + String.escapeSingleQuotes(payload.template.id) + '\'';
+            }
+            
+            String query = 'SELECT Id, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, Variant__c ' +
+                           'FROM InterviewTemplateVersion__c ' +
+                           'WHERE InterviewTemplate__r.Active__c = true ' +
+                           'AND Status__c = \'Active\' ' +
+                           'AND InterviewTemplate__r.Category__c = :categoryFilter ' +
+                           'AND Variant__c = :variantFilter ' +
+                           'AND InterviewTemplate__r.Program__c = :programFilter' +
+                           excludeIdClause + ' LIMIT 1';
+            
+            List<InterviewTemplateVersion__c> existingActive = Database.query(query);
             
             if (!existingActive.isEmpty()) {
                 String programName = programFilter != null ? ' for this Program' : ' (Global)';
@@ -494,36 +514,71 @@ public with sharing class InterviewTemplateController {
             }
         }
         
-        InterviewTemplate__c template = new InterviewTemplate__c(
-            Name = payload.template.name,
-            Program__c = String.isBlank(payload.template.programId) ? null : payload.template.programId,
-            Category__c = payload.template.category,
-            Active__c = payload.template.active == null ? true : payload.template.active,
-            UUID__c = generateUuid(),
-            Goals_Policy__c = payload.template.goalsPolicy,
-            Diagnoses_Policy__c = payload.template.diagnosesPolicy,
-            Housing_Benefit_Policy__c = payload.template.housingBenefitPolicy,
-            Clinical_Benefit_Policy__c = payload.template.clinicalBenefitPolicy,
-            Client_Signature_Policy__c = payload.template.clientSignaturePolicy,
-            Staff_Signature_Policy__c = payload.template.staffSignaturePolicy
-        );
+        InterviewTemplate__c template;
+        if (String.isNotBlank(payload.template.id)) {
+            // Update existing template
+            template = new InterviewTemplate__c(
+                Id = payload.template.id,
+                Name = payload.template.name,
+                Program__c = String.isBlank(payload.template.programId) ? null : payload.template.programId,
+                Category__c = payload.template.category,
+                Active__c = payload.template.active == null ? true : payload.template.active,
+                Goals_Policy__c = payload.template.goalsPolicy,
+                Diagnoses_Policy__c = payload.template.diagnosesPolicy,
+                Housing_Benefit_Policy__c = payload.template.housingBenefitPolicy,
+                Clinical_Benefit_Policy__c = payload.template.clinicalBenefitPolicy,
+                Client_Signature_Policy__c = payload.template.clientSignaturePolicy,
+                Staff_Signature_Policy__c = payload.template.staffSignaturePolicy
+            );
+            update template;
+        } else {
+            // Create new template
+            template = new InterviewTemplate__c(
+                Name = payload.template.name,
+                Program__c = String.isBlank(payload.template.programId) ? null : payload.template.programId,
+                Category__c = payload.template.category,
+                Active__c = payload.template.active == null ? true : payload.template.active,
+                UUID__c = generateUuid(),
+                Goals_Policy__c = payload.template.goalsPolicy,
+                Diagnoses_Policy__c = payload.template.diagnosesPolicy,
+                Housing_Benefit_Policy__c = payload.template.housingBenefitPolicy,
+                Clinical_Benefit_Policy__c = payload.template.clinicalBenefitPolicy,
+                Client_Signature_Policy__c = payload.template.clientSignaturePolicy,
+                Staff_Signature_Policy__c = payload.template.staffSignaturePolicy
+            );
+            insert template;
+        }
+
         InterviewTemplateVersion__c version;
         List<InterviewQuestion__c> questionsToInsert = new List<InterviewQuestion__c>();
 
         try {
-            insert template;
-
-            version = new InterviewTemplateVersion__c(
-                Name = payload.version.name,
-                InterviewTemplate__c = template.Id,
-                Version__c = payload.version.versionNumber != null ? payload.version.versionNumber : 1,
-                Status__c = payload.version.status,
-                Variant__c = payload.version.variant,
-                Effective_From__c = payload.version.effectiveFrom,
-                Effective_To__c = payload.version.effectiveTo,
-                UUID__c = generateUuid()
-            );
-            insert version;
+            if (String.isNotBlank(payload.version.id)) {
+                // Update existing version
+                version = new InterviewTemplateVersion__c(
+                    Id = payload.version.id,
+                    Name = payload.version.name,
+                    Version__c = payload.version.versionNumber != null ? payload.version.versionNumber : 1,
+                    Status__c = payload.version.status,
+                    Variant__c = payload.version.variant,
+                    Effective_From__c = payload.version.effectiveFrom,
+                    Effective_To__c = payload.version.effectiveTo
+                );
+                update version;
+            } else {
+                // Create new version
+                version = new InterviewTemplateVersion__c(
+                    Name = payload.version.name,
+                    InterviewTemplate__c = template.Id,
+                    Version__c = payload.version.versionNumber != null ? payload.version.versionNumber : 1,
+                    Status__c = payload.version.status,
+                    Variant__c = payload.version.variant,
+                    Effective_From__c = payload.version.effectiveFrom,
+                    Effective_To__c = payload.version.effectiveTo,
+                    UUID__c = generateUuid()
+                );
+                insert version;
+            }
 
             // Delete any existing questions for this version (in case we're re-saving a draft)
             // This ensures deleted questions are removed and prevents duplicates
@@ -596,10 +651,22 @@ public with sharing class InterviewTemplateController {
             System.debug('Creating InterviewTemplateDocument - enabled: ' + payload.documentTemplate.enabled);
             System.debug('Data mapping length: ' + (payload.documentTemplate.dataMapping != null ? payload.documentTemplate.dataMapping.length() : 0));
             try {
-                SObject document = Schema.getGlobalDescribe().get('InterviewTemplateDocument__c').newSObject();
-                document.put('InterviewTemplate__c', template.Id);
-                document.put('InterviewTemplateVersion__c', version.Id);
-                document.put('Program__c', template.Program__c);
+                // Check if document template already exists for this version
+                List<SObject> existingDocs = Database.query(
+                    'SELECT Id FROM InterviewTemplateDocument__c WHERE InterviewTemplateVersion__c = :versionId LIMIT 1'
+                    .replace(':versionId', '\'' + version.Id + '\'')
+                );
+                
+                SObject document;
+                if (!existingDocs.isEmpty()) {
+                    document = existingDocs[0];
+                } else {
+                    document = Schema.getGlobalDescribe().get('InterviewTemplateDocument__c').newSObject();
+                    document.put('InterviewTemplate__c', template.Id);
+                    document.put('InterviewTemplateVersion__c', version.Id);
+                    document.put('Program__c', template.Program__c);
+                }
+                
                 document.put('Status__c', 'Published'); // Valid values: Draft, Reviewed, Published, Archived
                 document.put('Template_Format__c', 'DOCX');
                 document.put('Data_Mapping__c', payload.documentTemplate.dataMapping);
@@ -610,9 +677,9 @@ public with sharing class InterviewTemplateController {
                 document.put('Primary_Object__c', 'Interview__c');
                 document.put('Category__c', template.Category__c);
                 
-                insert document;
+                upsert document;
                 response.documentTemplateId = (String)document.get('Id');
-                System.debug('InterviewTemplateDocument created successfully: ' + document.get('Id'));
+                System.debug('InterviewTemplateDocument created/updated successfully: ' + document.get('Id'));
                 
                 // Trigger async callout to generate template (avoids DML before callout error)
                 System.debug('🔄 Queueing @future method to generate template document...');
@@ -650,16 +717,25 @@ public with sharing class InterviewTemplateController {
         if (templateRaw == null) {
             throw new AuraHandledException('Template section missing from payload');
         }
+        result.template.id = asString(templateRaw.get('id')); // Added ID extraction
         result.template.name = asString(templateRaw.get('name'));
         result.template.category = asString(templateRaw.get('category'));
         result.template.active = asBoolean(templateRaw.get('active'));
         result.template.programId = asString(templateRaw.get('programId'));
+        // Template Features - Policy fields
+        result.template.goalsPolicy = asString(templateRaw.get('goalsPolicy'));
+        result.template.diagnosesPolicy = asString(templateRaw.get('diagnosesPolicy'));
+        result.template.housingBenefitPolicy = asString(templateRaw.get('housingBenefitPolicy'));
+        result.template.clinicalBenefitPolicy = asString(templateRaw.get('clinicalBenefitPolicy'));
+        result.template.clientSignaturePolicy = asString(templateRaw.get('clientSignaturePolicy'));
+        result.template.staffSignaturePolicy = asString(templateRaw.get('staffSignaturePolicy'));
 
         result.version = new VersionForm();
         Map<String, Object> versionRaw = (Map<String, Object>)raw.get('version');
         if (versionRaw == null) {
             throw new AuraHandledException('Version section missing from payload');
         }
+        result.version.id = asString(versionRaw.get('id')); // Added ID extraction
         result.version.name = asString(versionRaw.get('name'));
         result.version.versionNumber = asDecimal(versionRaw.get('versionNumber'));
         result.version.status = asString(versionRaw.get('status'));

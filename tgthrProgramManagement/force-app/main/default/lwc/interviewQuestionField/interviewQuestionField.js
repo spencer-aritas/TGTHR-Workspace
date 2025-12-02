@@ -17,12 +17,23 @@ export default class InterviewQuestionField extends LightningElement {
         return this.normalizedResponseType === 'textarea';
     }
 
+    get isLongText() {
+        return this.normalizedResponseType === 'longtext';
+    }
+
+    get isRichText() {
+        return this.normalizedResponseType === 'richtext';
+    }
+
     get isNumber() {
-        return this.normalizedResponseType === 'number' || this.normalizedResponseType === 'score';
+        return this.normalizedResponseType === 'number' || 
+               this.normalizedResponseType === 'decimal' || 
+               this.normalizedResponseType === 'score';
     }
 
     get isBoolean() {
-        return this.normalizedResponseType === 'boolean';
+        return this.normalizedResponseType === 'boolean' || 
+               this.normalizedResponseType === 'checkbox';
     }
 
     get isPicklist() {
@@ -43,8 +54,9 @@ export default class InterviewQuestionField extends LightningElement {
 
     get showDefault() {
         // Show default text input if no other type matches
-        return this.question && !this.isText && !this.isTextarea && !this.isNumber && 
-               !this.isBoolean && !this.isPicklist && !this.isRadios && !this.isDate && !this.isDatetime;
+        return this.question && !this.isText && !this.isTextarea && !this.isLongText && 
+               !this.isRichText && !this.isNumber && !this.isBoolean && !this.isPicklist && 
+               !this.isRadios && !this.isDate && !this.isDatetime;
     }
 
     get radioOptions() {
@@ -80,8 +92,9 @@ export default class InterviewQuestionField extends LightningElement {
     }
 
     handleRadioChange(event) {
-        const optionValue = event.target.dataset.value;
-        const checked = event.target.checked;
+        // lightning-input checkbox uses event.detail.checked
+        const optionValue = event.currentTarget.dataset.value;
+        const checked = event.detail ? event.detail.checked : event.target.checked;
         
         // Get current selected values
         const currentValues = this.question.answerValues || [];

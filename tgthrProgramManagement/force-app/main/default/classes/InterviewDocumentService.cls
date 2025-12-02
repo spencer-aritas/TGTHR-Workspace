@@ -42,7 +42,7 @@ public with sharing class InterviewDocumentService {
      * @param interactionSummaryId InteractionSummary__c record ID
      * @return Complete payload Map ready for DocGen
      */
-    private static Map<String, Object> buildInterviewDocumentPayload(Id interactionSummaryId) {
+    public static Map<String, Object> buildInterviewDocumentPayload(Id interactionSummaryId) {
         // Step 1: Load Interview & Related Records
         String interviewQuery = 
             'SELECT Id, Name, Status__c, Started_On__c, Completed_On__c, ' +
@@ -52,7 +52,9 @@ public with sharing class InterviewDocumentService {
             'Client_Signature_File_Id__c, Staff_Signature_File_Id__c, ' +
             'Client__r.Name, Client__r.FirstName, Client__r.LastName, ' +
             'Client__r.PersonBirthdate, Client__r.PersonPronouns, ' +
-            'Program_Enrollment__r.ProgramId, Program_Enrollment__r.Program.Name, ' +
+            'Program_Enrollment__r.ProgramId, Program_Enrollment__r.Program.Name, ';
+            
+        interviewQuery += 
             'InterviewTemplateVersion__r.Id, InterviewTemplateVersion__r.Name, ' +
             'InterviewTemplateVersion__r.Version__c, InterviewTemplateVersion__r.Status__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Id, ' +
@@ -61,6 +63,9 @@ public with sharing class InterviewDocumentService {
             'InterviewTemplateVersion__r.InterviewTemplate__r.Client_Signature_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Staff_Signature_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Allow_Benefits_Disbursement__c, ' +
+            'InterviewTemplateVersion__r.InterviewTemplate__r.Housing_Benefit_Policy__c, ' +
+            'InterviewTemplateVersion__r.InterviewTemplate__r.Clinical_Benefit_Policy__c, ' +
+            'InterviewTemplateVersion__r.InterviewTemplate__r.Income_Benefits_Policy__c, ' +
             'CreatedBy.Name, CreatedById, CreatedDate, ' +
             'LastModifiedBy.Name, LastModifiedById, LastModifiedDate ' +
             'FROM Interview__c ' +
@@ -79,6 +84,9 @@ public with sharing class InterviewDocumentService {
         String clientSigPolicy = 'Hidden';
         String staffSigPolicy = 'Hidden';
         Boolean allowBenefits = false;
+        String housingBenefitPolicy = 'Hidden';
+        String clinicalBenefitPolicy = 'Hidden';
+        String incomeBenefitsPolicy = 'Hidden';
         
         SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
         if (templateVersion != null) {
@@ -87,9 +95,15 @@ public with sharing class InterviewDocumentService {
                 clientSigPolicy = String.valueOf(template.get('Client_Signature_Policy__c'));
                 staffSigPolicy = String.valueOf(template.get('Staff_Signature_Policy__c'));
                 allowBenefits = Boolean.valueOf(template.get('Allow_Benefits_Disbursement__c'));
+                housingBenefitPolicy = String.valueOf(template.get('Housing_Benefit_Policy__c'));
+                clinicalBenefitPolicy = String.valueOf(template.get('Clinical_Benefit_Policy__c'));
+                incomeBenefitsPolicy = String.valueOf(template.get('Income_Benefits_Policy__c'));
                 
                 if (String.isBlank(clientSigPolicy)) clientSigPolicy = 'Hidden';
                 if (String.isBlank(staffSigPolicy)) staffSigPolicy = 'Hidden';
+                if (String.isBlank(housingBenefitPolicy)) housingBenefitPolicy = 'Hidden';
+                if (String.isBlank(clinicalBenefitPolicy)) clinicalBenefitPolicy = 'Hidden';
+                if (String.isBlank(incomeBenefitsPolicy)) incomeBenefitsPolicy = 'Hidden';
             }
         }
         
@@ -97,7 +111,10 @@ public with sharing class InterviewDocumentService {
             'clientSignaturePolicy' => clientSigPolicy,
             'staffSignaturePolicy' => staffSigPolicy,
             'showProgramHeader' => true,
-            'allowBenefitsDisbursement' => allowBenefits
+            'allowBenefitsDisbursement' => allowBenefits,
+            'housingBenefitPolicy' => housingBenefitPolicy,
+            'clinicalBenefitPolicy' => clinicalBenefitPolicy,
+            'incomeBenefitsPolicy' => incomeBenefitsPolicy
         };
         
         // Step 3: Build Participant & Interview Blocks
@@ -156,6 +173,42 @@ public with sharing class InterviewDocumentService {
         // Step 5: Build signatures[] based on policies
         List<Object> signatures = buildSignatures(interview, client, features);
         
+        // Step 5.5: Build services_provided section if benefits were disbursed
+        List<Object> servicesProvided = buildServicesProvided(interview);
+        if (!servicesProvided.isEmpty()) {
+            sections.add(new Map<String, Object>{
+                'id' => 'SERVICES_PROVIDED',
+                'label' => 'Services Provided',
+                'kind' => 'services',
+                'layout' => 'list',
+                'items' => servicesProvided
+            });
+        }
+
+        // Step 5.6: Build income_benefits section if present
+        List<Object> incomeBenefits = buildIncomeBenefits(interview);
+        if (!incomeBenefits.isEmpty()) {
+            sections.add(new Map<String, Object>{
+                'id' => 'INCOME_BENEFITS',
+                'label' => 'Income & Benefits',
+                'kind' => 'income_benefits',
+                'layout' => 'list',
+                'items' => incomeBenefits
+            });
+        }
+
+        // Step 5.7: Build goals section if present
+        List<Object> goals = buildGoals(interview);
+        if (!goals.isEmpty()) {
+            sections.add(new Map<String, Object>{
+                'id' => 'GOALS',
+                'label' => 'Goals',
+                'kind' => 'goals',
+                'layout' => 'list',
+                'items' => goals
+            });
+        }
+        
         // Add signature_block section if signatures exist
         if (!signatures.isEmpty()) {
             List<Object> signatureItems = new List<Object>();
@@ -169,7 +222,8 @@ public with sharing class InterviewDocumentService {
                     'displayName' => sigMap.get('displayName'),
                     'dateSigned' => sigMap.get('dateSigned'),
                     'contentDocumentId' => sigMap.get('contentDocumentId'),
-                    'sourceField' => sigMap.get('sourceField')
+                    'sourceField' => sigMap.get('sourceField'),
+                    'imageBase64' => sigMap.get('imageBase64')  // Include base64 image data
                 });
             }
             
@@ -332,8 +386,17 @@ public with sharing class InterviewDocumentService {
         String clientPolicy = (String)features.get('clientSignaturePolicy');
         String staffPolicy = (String)features.get('staffSignaturePolicy');
         
+        System.debug('=== Building Signatures ===');
+        System.debug('Client Policy: ' + clientPolicy);
+        System.debug('Staff Policy: ' + staffPolicy);
+        
         // Client signature
         if (clientPolicy != 'Hidden') {
+            String contentDocId = (String)interview.get('Client_Signature_File_Id__c');
+            System.debug('Client ContentDocument ID: ' + contentDocId);
+            String signatureBase64 = getSignatureImageBase64(contentDocId);
+            System.debug('Client signature base64 length: ' + (signatureBase64 != null ? signatureBase64.length() : 0));
+            
             signatures.add(new Map<String, Object>{
                 'id' => 'CLIENT',
                 'role' => 'Client',
@@ -341,13 +404,19 @@ public with sharing class InterviewDocumentService {
                 'signed' => interview.get('Client_Signed__c'),
                 'displayName' => client != null ? (String)client.get('Name') : '',
                 'dateSigned' => String.valueOf(interview.get('Date_Client_Signed__c')),
-                'contentDocumentId' => interview.get('Client_Signature_File_Id__c'),
+                'contentDocumentId' => contentDocId,
+                'imageBase64' => signatureBase64,
                 'sourceField' => 'Client_Signature_File_Id__c'
             });
         }
         
         // Staff signature
         if (staffPolicy != 'Hidden') {
+            String contentDocId = (String)interview.get('Staff_Signature_File_Id__c');
+            System.debug('Staff ContentDocument ID: ' + contentDocId);
+            String signatureBase64 = getSignatureImageBase64(contentDocId);
+            System.debug('Staff signature base64 length: ' + (signatureBase64 != null ? signatureBase64.length() : 0));
+            
             signatures.add(new Map<String, Object>{
                 'id' => 'STAFF',
                 'role' => 'Staff',
@@ -355,7 +424,8 @@ public with sharing class InterviewDocumentService {
                 'signed' => interview.get('Staff_Signed__c'),
                 'displayName' => UserInfo.getName(),
                 'dateSigned' => String.valueOf(interview.get('Date_Staff_Signed__c')),
-                'contentDocumentId' => interview.get('Staff_Signature_File_Id__c'),
+                'contentDocumentId' => contentDocId,
+                'imageBase64' => signatureBase64,
                 'sourceField' => 'Staff_Signature_File_Id__c'
             });
         }
@@ -367,6 +437,211 @@ public with sharing class InterviewDocumentService {
         }
         
         return signatures;
+    }
+
+    /**
+     * Build services provided list from benefit disbursements linked to the interview.
+     * 
+     * @param interview Interview__c SObject
+     * @return List of service items
+     */
+    private static List<Object> buildServicesProvided(SObject interview) {
+        List<Object> services = new List<Object>();
+        
+        try {
+            Id interviewId = (Id)interview.get('Id');
+            Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
+            
+            if (interactionSummaryId == null) {
+                return services;
+            }
+            
+            // Query benefit disbursements linked to the same interaction date/participant
+            Id accountId = (Id)interview.get('Client__c');
+            Date interviewDate = Date.today();
+            if (interview.get('Started_On__c') != null) {
+                Datetime startedOn = (Datetime)interview.get('Started_On__c');
+                interviewDate = startedOn.date();
+            }
+            
+            String disbursementQuery = 
+                'SELECT Id, Name, Benefit.Name, Benefit.Type__c, DisbursedQuantity, ServiceDate__c ' +
+                'FROM BenefitDisbursement ' +
+                'WHERE AccountId = :accountId AND ServiceDate__c = :interviewDate ' +
+                'ORDER BY Benefit.Name';
+            
+            List<SObject> disbursements = Database.query(disbursementQuery);
+            
+            for (SObject disbursement : disbursements) {
+                SObject benefit = disbursement.getSObject('Benefit');
+                String benefitName = benefit != null ? (String)benefit.get('Name') : 'Unknown';
+                String benefitType = benefit != null ? (String)benefit.get('Type__c') : '';
+                Decimal quantity = (Decimal)disbursement.get('DisbursedQuantity');
+                
+                services.add(new Map<String, Object>{
+                    'type' => 'service',
+                    'name' => benefitName,
+                    'category' => benefitType,
+                    'quantity' => quantity,
+                    'disbursementId' => (String)disbursement.get('Id')
+                });
+            }
+        } catch (Exception e) {
+            System.debug('Error building services provided: ' + e.getMessage());
+        }
+        
+        return services;
+    }
+    
+    /**
+     * Build income benefits list from Income_Benefit__c records linked to the interview's assessment.
+     * 
+     * @param interview Interview__c SObject
+     * @return List of income benefit items
+     */
+    private static List<Object> buildIncomeBenefits(SObject interview) {
+        List<Object> items = new List<Object>();
+        
+        try {
+            Id interviewId = (Id)interview.get('Id');
+            
+            // Query Assessment linked to this Interview
+            // Relationship is Assessment__c.Interview__c -> Interview__c
+            String assessmentQuery = 
+                'SELECT Id FROM Assessment__c WHERE Interview__c = :interviewId LIMIT 1';
+            
+            List<SObject> assessments = Database.query(assessmentQuery);
+            
+            if (assessments.isEmpty()) {
+                System.debug('buildIncomeBenefits: No Assessment found for Interview ' + interviewId);
+                return items;
+            }
+            
+            Id assessmentId = (Id)assessments[0].get('Id');
+            System.debug('buildIncomeBenefits: Found Assessment ID = ' + assessmentId);
+            
+            String query = 'SELECT Id, Income_Type__c ';
+            
+            // Check if Stated_Monthly_Amount__c exists before adding to query
+            Boolean hasAmountField = Schema.getGlobalDescribe().get('Income_Benefit__c').getDescribe().fields.getMap().containsKey('Stated_Monthly_Amount__c');
+            if (hasAmountField) {
+                query += ', Stated_Monthly_Amount__c ';
+            }
+            
+            query += 'FROM Income_Benefit__c ' +
+                'WHERE Assessment__c = :assessmentId ' +
+                'ORDER BY Income_Type__c';
+            
+            List<SObject> records = Database.query(query);
+            System.debug('buildIncomeBenefits: Found ' + records.size() + ' records');
+            
+            for (SObject record : records) {
+                String type = (String)record.get('Income_Type__c');
+                Decimal amount = 0;
+                
+                if (hasAmountField) {
+                    amount = (Decimal)record.get('Stated_Monthly_Amount__c');
+                }
+                
+                items.add(new Map<String, Object>{
+                    'type' => 'income',
+                    'label' => type,
+                    'amount' => amount,
+                    'id' => (String)record.get('Id')
+                });
+            }
+        } catch (Exception e) {
+            System.debug('Error building income benefits: ' + e.getMessage());
+        }
+        
+        return items;
+    }
+    
+    /**
+     * Build goals list from GoalAssignment records linked to the interview's Case.
+     * 
+     * @param interview Interview__c SObject
+     * @return List of goal items
+     */
+    private static List<Object> buildGoals(SObject interview) {
+        List<Object> items = new List<Object>();
+        
+        try {
+            Id caseId = (Id)interview.get('Case__c');
+            
+            if (caseId == null) {
+                System.debug('buildGoals: No Case found for Interview');
+                return items;
+            }
+            
+            String query = 'SELECT Id, Name, Description, ' +
+                           'StartDate, TargetCompletionDate, Priority, Status ' +
+                           'FROM GoalAssignment ' +
+                           'WHERE Case__c = :caseId ' +
+                           'ORDER BY CreatedDate DESC';
+            
+            List<SObject> records = Database.query(query);
+            System.debug('buildGoals: Found ' + records.size() + ' records');
+            
+            for (SObject record : records) {
+                items.add(new Map<String, Object>{
+                    'type' => 'goal',
+                    'name' => (String)record.get('Name'),
+                    'description' => (String)record.get('Description'),
+                    'startDate' => String.valueOf(record.get('StartDate')),
+                    'targetDate' => String.valueOf(record.get('TargetCompletionDate')),
+                    'priority' => (String)record.get('Priority'),
+                    'status' => (String)record.get('Status'),
+                    'id' => (String)record.get('Id')
+                });
+            }
+        } catch (Exception e) {
+            System.debug('Error building goals: ' + e.getMessage());
+        }
+        
+        return items;
+    }
+    
+    /**
+     * Get base64-encoded signature image from ContentDocument ID.
+     * 
+     * @param contentDocumentId The ContentDocument ID
+     * @return Base64-encoded image string or null if not found
+     */
+    private static String getSignatureImageBase64(String contentDocumentId) {
+        if (String.isBlank(contentDocumentId)) {
+            System.debug('getSignatureImageBase64: contentDocumentId is blank');
+            return null;
+        }
+        
+        System.debug('getSignatureImageBase64: Looking up ContentDocument: ' + contentDocumentId);
+        
+        try {
+            // Query the latest ContentVersion for this ContentDocument
+            List<ContentVersion> cvList = [
+                SELECT VersionData
+                FROM ContentVersion
+                WHERE ContentDocumentId = :contentDocumentId
+                AND IsLatest = true
+                LIMIT 1
+            ];
+            
+            System.debug('getSignatureImageBase64: Found ' + cvList.size() + ' ContentVersion records');
+            
+            if (!cvList.isEmpty() && cvList[0].VersionData != null) {
+                Blob imageBlob = cvList[0].VersionData;
+                String base64 = EncodingUtil.base64Encode(imageBlob);
+                System.debug('getSignatureImageBase64: Successfully encoded, length: ' + base64.length());
+                return base64;
+            } else {
+                System.debug('getSignatureImageBase64: No VersionData found');
+            }
+        } catch (Exception e) {
+            System.debug('getSignatureImageBase64: Error - ' + e.getMessage());
+            System.debug('getSignatureImageBase64: Stack trace - ' + e.getStackTraceString());
+        }
+        
+        return null;
     }
     
     /**
@@ -405,12 +680,28 @@ public with sharing class InterviewDocumentService {
             
             System.debug('✅ Including complete InterviewDocumentPayload in request (stateless mode)');
             
+            // Debug: Check signatures in payload before serialization
+            Map<String, Object> payloadCheck = (Map<String, Object>) requestBody.get('payload');
+            List<Object> signaturesCheck = (List<Object>) payloadCheck.get('signatures');
+            System.debug('🔍 BEFORE SERIALIZE - Number of signatures: ' + (signaturesCheck != null ? signaturesCheck.size() : 0));
+            if (signaturesCheck != null && !signaturesCheck.isEmpty()) {
+                Map<String, Object> firstSig = (Map<String, Object>) signaturesCheck[0];
+                System.debug('🔍 BEFORE SERIALIZE - First signature has imageBase64: ' + firstSig.containsKey('imageBase64'));
+                System.debug('🔍 BEFORE SERIALIZE - First signature imageBase64 length: ' + 
+                    (firstSig.get('imageBase64') != null ? String.valueOf(firstSig.get('imageBase64')).length() : 0));
+            }
+            
             // Make HTTP callout
             HttpRequest req = new HttpRequest();
             req.setEndpoint(endpoint);
             req.setMethod('POST');
             req.setHeader('Content-Type', 'application/json');
-            req.setBody(JSON.serialize(requestBody));
+            
+            String jsonBody = JSON.serialize(requestBody);
+            System.debug('🔍 JSON body length: ' + jsonBody.length());
+            System.debug('🔍 JSON contains imageBase64: ' + jsonBody.contains('imageBase64'));
+            
+            req.setBody(jsonBody);
             req.setTimeout(120000); // 2 minutes (rendering can take time)
             
             Http http = new Http();
@@ -546,6 +837,131 @@ public with sharing class InterviewDocumentService {
     }
 
     /**
+     * Create or update InterviewDocument__c record after document generation.
+     * Called by docgen callback to track document metadata.
+     * 
+     * @param interviewId Interview__c record ID
+     * @param contentDocumentId ContentDocument ID (if cached)
+     * @param renderingMode Rendering mode from template policy
+     * @param documentStatus Document status (Draft, Final, Void)
+     * @return InterviewDocument__c record ID
+     */
+    @AuraEnabled
+    public static Id upsertInterviewDocument(
+        Id interviewId,
+        String contentDocumentId,
+        String renderingMode,
+        String documentStatus
+    ) {
+        try {
+            // Query Interview to get related context records
+            String interviewQuery =
+                'SELECT Id, Case__c, Interaction_Summary__c, ' +
+                'InterviewTemplateVersion__r.InterviewTemplate__c ' +
+                'FROM Interview__c ' +
+                'WHERE Id = :interviewId ' +
+                'LIMIT 1';
+            
+            List<SObject> interviews = Database.query(interviewQuery);
+            
+            if (interviews.isEmpty()) {
+                throw new CalloutException('Interview not found: ' + interviewId);
+            }
+            
+            SObject interview = interviews[0];
+            Id caseId = (Id) interview.get('Case__c');
+            Id interactionSummaryId = (Id) interview.get('Interaction_Summary__c');
+            
+            SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
+            Id templateId = templateVersion != null ? (Id) templateVersion.get('InterviewTemplate__c') : null;
+            
+            // Check if InterviewDocument already exists for this Interview
+            String docQuery =
+                'SELECT Id FROM InterviewDocument__c ' +
+                'WHERE Interview__c = :interviewId ' +
+                'LIMIT 1';
+            
+            List<SObject> existingDocs = Database.query(docQuery);
+            
+            SObject interviewDoc;
+            
+            if (!existingDocs.isEmpty()) {
+                // Update existing
+                interviewDoc = existingDocs[0];
+            } else {
+                // Create new
+                interviewDoc = Schema.getGlobalDescribe().get('InterviewDocument__c').newSObject();
+                interviewDoc.put('Interview__c', interviewId);
+            }
+            
+            // Set/update fields
+            if (caseId != null) {
+                interviewDoc.put('Case__c', caseId);
+            }
+            
+            if (interactionSummaryId != null) {
+                interviewDoc.put('Interaction_Summary__c', interactionSummaryId);
+            }
+            
+            if (templateId != null) {
+                interviewDoc.put('InterviewTemplate__c', templateId);
+            }
+            
+            if (String.isNotBlank(contentDocumentId)) {
+                interviewDoc.put('ContentDocumentId__c', contentDocumentId);
+            }
+            
+            if (String.isNotBlank(renderingMode)) {
+                interviewDoc.put('Rendering_Mode__c', renderingMode);
+            }
+            
+            if (String.isNotBlank(documentStatus)) {
+                interviewDoc.put('Document_Status__c', documentStatus);
+            }
+            
+            upsert interviewDoc;
+            
+            // Generate UUID for Interview if not present
+            String interviewUUID = (String) interview.get('UUID__c');
+            if (String.isBlank(interviewUUID)) {
+                // Generate UUID using crypto random
+                Blob randomBlob = Crypto.generateAesKey(128);
+                String hexString = EncodingUtil.convertToHex(randomBlob);
+                interviewUUID = hexString.substring(0, 32); // 32-char UUID
+                interview.put('UUID__c', interviewUUID);
+                System.debug('Generated UUID for Interview: ' + interviewUUID);
+            }
+            
+            // Update Interview.Latest_Document__c reference
+            interview.put('Latest_Document__c', interviewDoc.Id);
+            
+            if (String.isNotBlank(contentDocumentId)) {
+                // Query ContentVersion ID from ContentDocument
+                String cvQuery =
+                    'SELECT Id FROM ContentVersion ' +
+                    'WHERE ContentDocumentId = :contentDocumentId ' +
+                    'AND IsLatest = true ' +
+                    'LIMIT 1';
+                
+                List<SObject> contentVersions = Database.query(cvQuery);
+                
+                if (!contentVersions.isEmpty()) {
+                    String contentVersionId = (String) contentVersions[0].get('Id');
+                    interview.put('Latest_DocumentContentVersionId__c', contentVersionId);
+                }
+            }
+            
+            update interview;
+            
+            return (Id) interviewDoc.get('Id');
+            
+        } catch (Exception e) {
+            System.debug('Failed to upsert InterviewDocument: ' + e.getMessage());
+            throw e;
+        }
+    }
+    
+    /**
      * Test helper: Validate InteractionSummary has required data.
      * Uses dynamic SOQL to avoid schema dependencies.
      * 
@@ -564,7 +980,7 @@ public with sharing class InterviewDocumentService {
             List<SObject> interactions = Database.query(interactionQuery);
             
             if (interactions.isEmpty()) {
-                throw new AuraHandledException('InteractionSummary not found: ' + interactionSummaryId);
+                throw new CalloutException('InteractionSummary not found: ' + interactionSummaryId);
             }
             
             SObject interaction = interactions[0];
@@ -617,7 +1033,8 @@ public with sharing class InterviewDocumentService {
             return validation;
             
         } catch (Exception e) {
-            throw new AuraHandledException('Validation failed: ' + e.getMessage());
+            System.debug('Validation failed: ' + e.getMessage());
+            throw e;
         }
     }
 }

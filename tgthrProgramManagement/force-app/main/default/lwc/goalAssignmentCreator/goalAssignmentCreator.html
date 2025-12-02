@@ -1,58 +1,115 @@
 <template>
-    <template if:true={isOpen}>
-        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
-            <div class="slds-modal__container">
-                <header class="slds-modal__header">
-                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" 
-                            title="Close" onclick={close}>
-                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
-                        <span class="slds-assistive-text">Close</span>
-                    </button>
-                    <h2 class="slds-modal__title slds-hyphenate">Create Goal Assignment</h2>
-                </header>
-                
-                <div class="slds-modal__content slds-p-around_medium">
-                    <lightning-input
-                        label="Goal Name"
-                        value={goalName}
-                        onchange={handleGoalNameChange}
-                        required>
-                    </lightning-input>
-                    
-                    <lightning-textarea
-                        label="Description"
-                        value={description}
-                        onchange={handleDescriptionChange}
-                        class="slds-m-top_small">
-                    </lightning-textarea>
-                    
-                    <lightning-input
-                        type="date"
-                        label="Target Date"
-                        value={targetDate}
-                        onchange={handleTargetDateChange}
-                        class="slds-m-top_small">
-                    </lightning-input>
-                    
-                    <lightning-combobox
-                        label="Status"
-                        value={status}
-                        options={statusOptions}
-                        onchange={handleStatusChange}
-                        class="slds-m-top_small">
-                    </lightning-combobox>
+    <div class="goal-manager">
+        <div class="slds-grid slds-grid_align-spread slds-m-bottom_medium">
+            <h2 class="slds-text-heading_medium">Goals</h2>
+            <lightning-button label="Add Goal" icon-name="utility:add" onclick={handleOpenModal}></lightning-button>
+        </div>
+
+        <div class="goal-list" ondragover={handleDragOver} ondrop={handleDragEnd}>
+            <template if:true={goals.length}>
+                <template for:each={goals} for:item="goal">
+                    <div key={goal.id} 
+                         class="goal-card slds-card slds-p-around_small slds-m-bottom_small" 
+                         draggable="true" 
+                         data-id={goal.id}
+                         ondragstart={handleDragStart}
+                         ondragend={handleDragEnd}>
+                        <div class="slds-grid slds-grid_align-spread">
+                            <div class="slds-col">
+                                <h3 class="slds-text-heading_small">
+                                    <lightning-icon icon-name="utility:drag_and_drop" size="x-small" class="slds-m-right_small" style="cursor: grab;"></lightning-icon>
+                                    {goal.name}
+                                </h3>
+                                <p class="slds-text-body_small slds-text-color_weak">Priority: {goal.priority} | Status: {goal.status}</p>
+                                <template if:true={goal.objective}>
+                                    <p class="slds-m-top_x-small"><strong>Objective:</strong> {goal.objective}</p>
+                                </template>
+                                <template if:true={goal.description}>
+                                    <p class="slds-m-top_x-small"><strong>Service:</strong> {goal.description}</p>
+                                </template>
+                            </div>
+                            <div class="slds-col slds-no-flex">
+                                <lightning-button-icon icon-name="utility:edit" variant="border-filled" class="slds-m-right_x-small" data-id={goal.id} onclick={handleEditGoal}></lightning-button-icon>
+                                <lightning-button-icon icon-name="utility:delete" variant="border-filled" data-id={goal.id} onclick={handleDeleteGoal}></lightning-button-icon>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </template>
+            <template if:false={goals.length}>
+                <div class="slds-text-align_center slds-text-color_weak slds-p-around_medium">
+                    No goals assigned yet. Click "Add Goal" to create one.
                 </div>
+            </template>
+        </div>
+
+        <!-- Care Plan Details Section -->
+        <div class="slds-section slds-is-open slds-m-top_large">
+            <h3 class="slds-section__title slds-theme_shade">
+                <span class="slds-truncate slds-p-horizontal_small" title="Care Plan Details">Care Plan Details</span>
+            </h3>
+            <div aria-hidden="false" class="slds-section__content slds-p-horizontal_small">
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input type="date" label="Expected Date of Discharge" value={carePlan.dischargeDate} data-field="dischargeDate" onchange={handleCarePlanChange}></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2">
+                        <!-- Placeholder for Next Review Date if needed -->
+                    </div>
+                </div>
+                <lightning-textarea label="Discharge Plan" value={carePlan.dischargePlan} data-field="dischargePlan" onchange={handleCarePlanChange} class="slds-m-top_small"></lightning-textarea>
                 
-                <footer class="slds-modal__footer">
-                    <button class="slds-button slds-button_neutral" onclick={close}>Cancel</button>
-                    <button class="slds-button slds-button_brand" 
-                            onclick={handleSave}
-                            disabled={isSaving}>
-                        {saveButtonLabel}
-                    </button>
-                </footer>
+                <div class="slds-m-top_medium">
+                    <lightning-input type="checkbox" label="I participated in the creation of the plan and agree with the above" checked={carePlan.consentParticipated} data-field="consentParticipated" onchange={handleCarePlanChange}></lightning-input>
+                    <lightning-input type="checkbox" label="I was offered a copy of the Treatment plan" checked={carePlan.consentOffered} data-field="consentOffered" onchange={handleCarePlanChange} class="slds-m-top_x-small"></lightning-input>
+                </div>
+
+                <div class="slds-m-top_medium slds-text-align_right">
+                    <lightning-button label="Save Care Plan Details" variant="brand" onclick={handleSaveCarePlan} disabled={isSavingCarePlan}></lightning-button>
+                </div>
             </div>
-        </section>
-        <div class="slds-backdrop slds-backdrop_open"></div>
-    </template>
+        </div>
+
+        <template if:true={isModalOpen}>
+            <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseModal}>
+                            <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
+                            <span class="slds-assistive-text">Close</span>
+                        </button>
+                        <h2 class="slds-modal__title slds-hyphenate">{modalTitle}</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-input label="Goal Name" value={currentGoal.name} data-field="name" onchange={handleInputChange} required></lightning-input>
+                        <lightning-textarea label="Objective" value={currentGoal.objective} data-field="objective" onchange={handleInputChange} class="slds-m-top_small"></lightning-textarea>
+                        <lightning-textarea label="Service Description/Modality" value={currentGoal.description} data-field="description" onchange={handleInputChange} class="slds-m-top_small"></lightning-textarea>
+                        <div class="slds-grid slds-gutters slds-m-top_small">
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input type="date" label="Start Date" value={currentGoal.startDate} data-field="startDate" onchange={handleInputChange}></lightning-input>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-input type="date" label="Target Completion Date" value={currentGoal.targetDate} data-field="targetDate" onchange={handleInputChange}></lightning-input>
+                            </div>
+                        </div>
+                        <div class="slds-grid slds-gutters slds-m-top_small">
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-combobox label="Frequency" value={currentGoal.frequency} options={frequencyOptions} data-field="frequency" onchange={handleInputChange}></lightning-combobox>
+                            </div>
+                            <div class="slds-col slds-size_1-of-2">
+                                <lightning-combobox label="Priority" value={currentGoal.priority} options={priorityOptions} data-field="priority" onchange={handleInputChange}></lightning-combobox>
+                            </div>
+                        </div>
+                        <lightning-combobox label="Status" value={currentGoal.status} options={statusOptions} data-field="status" onchange={handleInputChange} class="slds-m-top_small"></lightning-combobox>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <button class="slds-button slds-button_neutral" onclick={handleCloseModal}>Cancel</button>
+                        <button class="slds-button slds-button_neutral" onclick={handleSaveAndNew} disabled={isSaving}>Save &amp; New</button>
+                        <button class="slds-button slds-button_brand" onclick={handleSave} disabled={isSaving}>Save</button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
+    </div>
 </template>

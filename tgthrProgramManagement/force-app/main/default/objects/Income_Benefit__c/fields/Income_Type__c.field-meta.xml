@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Income_Type__c</fullName>
+    <label>Income/Benefit Type</label>
+    <required>true</required>
+    <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>No Financial Resources</fullName>
+                <default>false</default>
+                <label>No Financial Resources</label>
+            </value>
+            <value>
+                <fullName>Earned Income (i.e. employment income)</fullName>
+                <default>false</default>
+                <label>Earned Income (i.e. employment income)</label>
+            </value>
+            <value>
+                <fullName>Unemployment Insurance</fullName>
+                <default>false</default>
+                <label>Unemployment Insurance</label>
+            </value>
+            <value>
+                <fullName>Supplemental Security Income (SSI)</fullName>
+                <default>false</default>
+                <label>Supplemental Security Income (SSI)</label>
+            </value>
+            <value>
+                <fullName>Social Security Disability Income (SSDI)</fullName>
+                <default>false</default>
+                <label>Social Security Disability Income (SSDI)</label>
+            </value>
+            <value>
+                <fullName>Veteran's Service-Connected Disability Compensation</fullName>
+                <default>false</default>
+                <label>Veteran's Service-Connected Disability Compensation</label>
+            </value>
+            <value>
+                <fullName>Veteran's Non-Service-Connected Disability Compensation</fullName>
+                <default>false</default>
+                <label>Veteran's Non-Service-Connected Disability Compensation</label>
+            </value>
+            <value>
+                <fullName>Private Disability Insurance</fullName>
+                <default>false</default>
+                <label>Private Disability Insurance</label>
+            </value>
+            <value>
+                <fullName>Worker's Compensation</fullName>
+                <default>false</default>
+                <label>Worker's Compensation</label>
+            </value>
+            <value>
+                <fullName>Temporary Assistance for Needy Families (TANF)</fullName>
+                <default>false</default>
+                <label>Temporary Assistance for Needy Families (TANF)</label>
+            </value>
+            <value>
+                <fullName>General Assistance (GA)</fullName>
+                <default>false</default>
+                <label>General Assistance (GA)</label>
+            </value>
+            <value>
+                <fullName>Retirement Income from Social Security</fullName>
+                <default>false</default>
+                <label>Retirement Income from Social Security</label>
+            </value>
+            <value>
+                <fullName>Pension from Former Job</fullName>
+                <default>false</default>
+                <label>Pension from Former Job</label>
+            </value>
+            <value>
+                <fullName>Child Support</fullName>
+                <default>false</default>
+                <label>Child Support</label>
+            </value>
+            <value>
+                <fullName>Alimony/Other Spousal Support</fullName>
+                <default>false</default>
+                <label>Alimony/Other Spousal Support</label>
+            </value>
+            <value>
+                <fullName>Aid to the Needy and Disabled (AND)</fullName>
+                <default>false</default>
+                <label>Aid to the Needy and Disabled (AND)</label>
+            </value>
+            <value>
+                <fullName>Old Age Pension (OAP)</fullName>
+                <default>false</default>
+                <label>Old Age Pension (OAP)</label>
+            </value>
+            <value>
+                <fullName>Other Sources</fullName>
+                <default>false</default>
+                <label>Other Sources</label>
+            </value>
+            <value>
+                <fullName>Client Doesn't Know</fullName>
+                <default>false</default>
+                <label>Client Doesn't Know</label>
+            </value>
+            <value>
+                <fullName>Prefers not to answer</fullName>
+                <default>false</default>
+                <label>Prefers not to answer</label>
+            </value>
+            <value>
+                <fullName>None</fullName>
+                <default>false</default>
+                <label>None</label>
+            </value>
+            <value>
+                <fullName>Food Stamps/SNAP</fullName>
+                <default>false</default>
+                <label>Food Stamps/SNAP</label>
+            </value>
+            <value>
+                <fullName>TANF Child Care</fullName>
+                <default>false</default>
+                <label>TANF Child Care</label>
+            </value>
+            <value>
+                <fullName>Temporary Rental Assistance</fullName>
+                <default>false</default>
+                <label>Temporary Rental Assistance</label>
+            </value>
+            <value>
+                <fullName>TANF Transportation Services</fullName>
+                <default>false</default>
+                <label>TANF Transportation Services</label>
+            </value>
+            <value>
+                <fullName>Section 8 or Rental Assistance</fullName>
+                <default>false</default>
+                <label>Section 8 or Rental Assistance</label>
+            </value>
+            <value>
+                <fullName>WIC (Women, Infants and Children)</fullName>
+                <default>false</default>
+                <label>WIC (Women, Infants and Children)</label>
+            </value>
+            <value>
+                <fullName>Other TANF-funded Services</fullName>
+                <default>false</default>
+                <label>Other TANF-funded Services</label>
+            </value>
+            <value>
+                <fullName>Other Benefit Source</fullName>
+                <default>false</default>
+                <label>Other Benefit Source</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

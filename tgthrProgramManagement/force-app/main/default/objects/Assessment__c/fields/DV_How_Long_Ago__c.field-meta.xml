@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DV_How_Long_Ago__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>When did the domestic violence occur?</inlineHelpText>
+    <label>DV How Long Ago</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Within the past 3 months</fullName><default>false</default><label>Within the past 3 months</label></value>
+            <value><fullName>3 to 6 months ago</fullName><default>false</default><label>3 to 6 months ago</label></value>
+            <value><fullName>6 months to 1 year ago</fullName><default>false</default><label>6 months to 1 year ago</label></value>
+            <value><fullName>More than 1 year ago</fullName><default>false</default><label>More than 1 year ago</label></value>
+            <value><fullName>Client Doesn&apos;t Know</fullName><default>false</default><label>Client Doesn&apos;t Know</label></value>
+            <value><fullName>Prefers Not to Answer</fullName><default>false</default><label>Prefers Not to Answer</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

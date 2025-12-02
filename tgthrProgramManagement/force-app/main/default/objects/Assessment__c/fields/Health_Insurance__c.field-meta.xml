@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Health_Insurance__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Select all health insurance types that apply.</inlineHelpText>
+    <label>Health Insurance</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Medicaid</fullName><default>false</default><label>Medicaid</label></value>
+            <value><fullName>Medicare</fullName><default>false</default><label>Medicare</label></value>
+            <value><fullName>VA Medical</fullName><default>false</default><label>VA Medical</label></value>
+            <value><fullName>Private Insurance</fullName><default>false</default><label>Private Insurance</label></value>
+            <value><fullName>No Insurance</fullName><default>false</default><label>No Insurance</label></value>
+            <value><fullName>Client doesn&apos;t know</fullName><default>false</default><label>Client doesn&apos;t know</label></value>
+            <value><fullName>Client refused</fullName><default>false</default><label>Client refused</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>6</visibleLines>
+</CustomField>

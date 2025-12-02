@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Rendering_Mode__c</fullName>
+    <description>Determines how and where this document should be cached</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Stateless = always render on-the-fly; CachedOnInterview = cache on Interview only; CachedAlways = cache and attach to Case/Files for compliance</inlineHelpText>
+    <label>Rendering Mode</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Stateless</fullName>
+                <default>true</default>
+                <label>Stateless</label>
+            </value>
+            <value>
+                <fullName>CachedOnInterview</fullName>
+                <default>false</default>
+                <label>Cached On Interview</label>
+            </value>
+            <value>
+                <fullName>CachedAlways</fullName>
+                <default>false</default>
+                <label>Cached Always</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

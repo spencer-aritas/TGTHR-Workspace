@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Demographic Capture</masterLabel>
+    <description>Reusable component for capturing client demographic information during interviews. Pre-fills existing Account data and disables those fields. New data is written back to the Person Account.</description>
+</LightningComponentBundle>

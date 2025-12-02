@@ -32,12 +32,22 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public String variant;
         @AuraEnabled public String status;
         @AuraEnabled public List<TemplateSectionDTO> sections;
+        @AuraEnabled public String clientSignaturePolicy;
+        @AuraEnabled public String staffSignaturePolicy;
+        @AuraEnabled public String incomeBenefitsPolicy;
+        @AuraEnabled public String housingBenefitPolicy;
+        @AuraEnabled public String clinicalBenefitPolicy;
+        @AuraEnabled public String demographicsPolicy;
+        @AuraEnabled public String goalsPolicy; // Added
+        @AuraEnabled public String diagnosesPolicy; // Added
     }
 
     public class SessionInitResponse {
         @AuraEnabled public Object context;
         @AuraEnabled public TemplateDTO template;
         @AuraEnabled public Map<String, Object> accountData;
+        @AuraEnabled public List<Map<String, String>> housingBenefitOptions;
+        @AuraEnabled public List<Map<String, String>> clinicalBenefitOptions;
     }
 
     public class InteractionInput {
@@ -71,6 +81,12 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public Id templateVersionId;
         @AuraEnabled public InteractionInput interaction;
         @AuraEnabled public List<AnswerDTO> answers;
+        @AuraEnabled public String clientSignatureId;
+        @AuraEnabled public String staffSignatureId;
+        @AuraEnabled public List<Id> housingBenefitIds;
+        @AuraEnabled public List<Id> clinicalBenefitIds;
+        @AuraEnabled public String demographicsJson;
+        @AuraEnabled public String incomeBenefitsJson;
         
         public SaveRequest() {
             // No-arg constructor for proper deserialization
@@ -102,19 +118,33 @@ public with sharing class InterviewSessionController {
         response.context = null;
         response.template = loadTemplate(templateVersionId);
         response.accountData = fetchAccountData(caseId);
+        response.housingBenefitOptions = fetchHousingBenefits(caseId, response.template);
+        response.clinicalBenefitOptions = fetchClinicalBenefits(caseId, response.template);
         return response;
     }
 
     @AuraEnabled
     public static SaveResult saveInterviewSession(String requestJson) {
-        System.debug('saveInterviewSession called');
-        System.debug('requestJson: ' + requestJson);
+        // Force recompile - v4 - better error logging
+        System.debug('=== SAVE INTERVIEW SESSION START ===');
+        System.debug('requestJson length: ' + requestJson.length());
+        System.debug('requestJson first 500 chars: ' + requestJson.substring(0, Math.min(500, requestJson.length())));
         
         SaveResult result = new SaveResult();
         
-        // Deserialize the JSON manually
-        SaveRequest request = (SaveRequest) JSON.deserialize(requestJson, SaveRequest.class);
-        System.debug('Deserialized request: ' + JSON.serialize(request));
+        // Deserialize without serializing back
+        SaveRequest request;
+        try {
+            request = (SaveRequest) JSON.deserialize(requestJson, SaveRequest.class);
+            System.debug('Request deserialized successfully');
+        } catch (Exception e) {
+            System.debug('Deserialization error: ' + e.getMessage());
+            System.debug('Error stack trace: ' + e.getStackTraceString());
+            System.debug('Error type: ' + e.getTypeName());
+            result.success = false;
+            result.errorMessage = 'Invalid request format: ' + e.getMessage();
+            return result;
+        }
         
         if (request == null) {
             System.debug('Request is null');
@@ -216,6 +246,24 @@ public with sharing class InterviewSessionController {
                 update assessment;
             }
 
+            // Parse and update Account demographics if provided
+            if (String.isNotBlank(request.demographicsJson)) {
+                System.debug('Updating Account demographics...');
+                Map<String, Object> demographics = (Map<String, Object>) JSON.deserializeUntyped(request.demographicsJson);
+                updateAccountDemographics(accountId, demographics);
+            }
+
+            // Parse and create Income & Benefit records
+            if (String.isNotBlank(request.incomeBenefitsJson) && assessmentId != null) {
+                List<Object> incomeBenefitsRaw = (List<Object>) JSON.deserializeUntyped(request.incomeBenefitsJson);
+                List<Map<String, Object>> incomeBenefits = new List<Map<String, Object>>();
+                for (Object obj : incomeBenefitsRaw) {
+                    incomeBenefits.add((Map<String, Object>) obj);
+                }
+                System.debug('Creating Income & Benefit records: ' + incomeBenefits.size());
+                createIncomeBenefitRecords(assessmentId, incomeBenefits);
+            }
+
             System.debug('Answers to process: ' + (request.answers != null ? request.answers.size() : 0));
             if (request.answers != null && !request.answers.isEmpty()) {
                 System.debug('Building answer records...');
@@ -234,6 +282,30 @@ public with sharing class InterviewSessionController {
                 mapAnswersToAccount(accountId, request.answers, templateVersion);
             }
 
+            // Create benefit disbursements if benefits were selected
+            if (request.housingBenefitIds != null && !request.housingBenefitIds.isEmpty()) {
+                System.debug('Creating housing benefit disbursements for ' + request.housingBenefitIds.size() + ' benefits');
+                createBenefitDisbursements(
+                    accountId,
+                    request.housingBenefitIds,
+                    interactionDate,
+                    startTime != null ? Datetime.newInstance(interactionDate, startTime) : null,
+                    endTime != null ? Datetime.newInstance(interactionDate, endTime) : null,
+                    request.caseId
+                );
+            }
+            if (request.clinicalBenefitIds != null && !request.clinicalBenefitIds.isEmpty()) {
+                System.debug('Creating clinical benefit disbursements for ' + request.clinicalBenefitIds.size() + ' benefits');
+                createBenefitDisbursements(
+                    accountId,
+                    request.clinicalBenefitIds,
+                    interactionDate,
+                    startTime != null ? Datetime.newInstance(interactionDate, startTime) : null,
+                    endTime != null ? Datetime.newInstance(interactionDate, endTime) : null,
+                    request.caseId
+                );
+            }
+
             result.success = true;
             result.interviewId = (Id)interview.get('Id');
             result.interactionSummaryId = (Id)summary.get('Id');
@@ -247,10 +319,154 @@ public with sharing class InterviewSessionController {
         }
     }
 
+    @AuraEnabled
+    public static Boolean updateInterviewSignatures(Id interviewId, String clientSignatureId, String staffSignatureId) {
+        try {
+            if (interviewId == null) {
+                return false;
+            }
+
+            SObject interview = Database.query(
+                'SELECT Id FROM Interview__c WHERE Id = :interviewId LIMIT 1'
+            )[0];
+
+            Boolean updated = false;
+
+            // Convert ContentVersion IDs to ContentDocument IDs
+            if (!String.isBlank(clientSignatureId)) {
+                String contentDocId = getContentDocumentId(clientSignatureId);
+                if (!String.isBlank(contentDocId)) {
+                    putIfFieldExists(interview, 'Client_Signature_File_Id__c', contentDocId);
+                    putIfFieldExists(interview, 'Client_Signed__c', true);
+                    putIfFieldExists(interview, 'Date_Client_Signed__c', Datetime.now());
+                    putIfFieldExists(interview, 'Client_Signed_By__c', UserInfo.getUserId());
+                    updated = true;
+                }
+            }
+
+            if (!String.isBlank(staffSignatureId)) {
+                String contentDocId = getContentDocumentId(staffSignatureId);
+                if (!String.isBlank(contentDocId)) {
+                    putIfFieldExists(interview, 'Staff_Signature_File_Id__c', contentDocId);
+                    putIfFieldExists(interview, 'Staff_Signed__c', true);
+                    putIfFieldExists(interview, 'Date_Staff_Signed__c', Datetime.now());
+                    putIfFieldExists(interview, 'Staff_Signed_By__c', UserInfo.getUserId());
+                    updated = true;
+                }
+            }
+
+            if (updated) {
+                update interview;
+            }
+
+            return true;
+        } catch (Exception e) {
+            System.debug('Error updating interview signatures: ' + e.getMessage());
+            return false;
+        }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Map<String, String> getCurrentUserInfo() {
+        User currentUser = [
+            SELECT Id, Name, Title, Email, Alias
+            FROM User
+            WHERE Id = :UserInfo.getUserId()
+            LIMIT 1
+        ];
+        
+        return new Map<String, String>{
+            'id' => currentUser.Id,
+            'name' => currentUser.Name,
+            'title' => currentUser.Title,
+            'email' => currentUser.Email,
+            'alias' => currentUser.Alias
+        };
+    }
+
+    /**
+     * Link uploaded ContentDocuments to Case record for Files related list access.
+     * Uses the established pattern from InterviewTemplateController.
+     * 
+     * @param caseId The Case record ID to link files to
+     * @param contentDocumentIds List of ContentDocument IDs from file uploads
+     * @return Boolean indicating success
+     */
+    @AuraEnabled
+    public static Boolean linkFilesToCase(Id caseId, List<String> contentDocumentIds) {
+        if (caseId == null || contentDocumentIds == null || contentDocumentIds.isEmpty()) {
+            return false;
+        }
+
+        try {
+            List<ContentDocumentLink> linksToInsert = new List<ContentDocumentLink>();
+            
+            for (String contentDocId : contentDocumentIds) {
+                if (String.isBlank(contentDocId)) {
+                    continue;
+                }
+                
+                // Create ContentDocumentLink following established pattern
+                ContentDocumentLink cdl = new ContentDocumentLink(
+                    ContentDocumentId = contentDocId,
+                    LinkedEntityId = caseId,
+                    ShareType = 'V',  // Viewer permission
+                    Visibility = 'AllUsers'
+                );
+                linksToInsert.add(cdl);
+            }
+            
+            if (!linksToInsert.isEmpty()) {
+                insert linksToInsert;
+                System.debug('✅ Linked ' + linksToInsert.size() + ' files to Case: ' + caseId);
+            }
+            
+            return true;
+        } catch (Exception e) {
+            System.debug('❌ Error linking files to Case: ' + e.getMessage());
+            System.debug(e.getStackTraceString());
+            return false;
+        }
+    }
+
+    /**
+     * Convert ContentVersion ID to ContentDocument ID
+     */
+    private static String getContentDocumentId(String contentVersionId) {
+        if (String.isBlank(contentVersionId)) {
+            return null;
+        }
+        
+        try {
+            List<ContentVersion> cvList = [
+                SELECT ContentDocumentId 
+                FROM ContentVersion 
+                WHERE Id = :contentVersionId 
+                LIMIT 1
+            ];
+            
+            if (!cvList.isEmpty()) {
+                return cvList[0].ContentDocumentId;
+            }
+        } catch (Exception e) {
+            System.debug('Error getting ContentDocument ID: ' + e.getMessage());
+        }
+        
+        return null;
+    }
+
     private static TemplateDTO loadTemplate(Id templateVersionId) {
         InterviewTemplateVersion__c versionRecord = [
             SELECT Id, Name, Version__c, Status__c, Variant__c, Effective_From__c, Effective_To__c,
-                   InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c
+                   InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c,
+                   InterviewTemplate__r.Client_Signature_Policy__c,
+                   InterviewTemplate__r.Staff_Signature_Policy__c,
+                   InterviewTemplate__r.Income_Benefits_Policy__c,
+                   InterviewTemplate__r.Housing_Benefit_Policy__c,
+                   InterviewTemplate__r.Clinical_Benefit_Policy__c,
+                   InterviewTemplate__r.Demographics_Policy__c,
+                   InterviewTemplate__r.Goals_Policy__c, // Added
+                   InterviewTemplate__r.Diagnoses_Policy__c // Added
             FROM InterviewTemplateVersion__c
             WHERE Id = :templateVersionId
             LIMIT 1
@@ -265,6 +481,14 @@ public with sharing class InterviewSessionController {
         template.category = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Category__c : null;
         template.variant = versionRecord.Variant__c;
         template.status = versionRecord.Status__c;
+        template.clientSignaturePolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Client_Signature_Policy__c : 'Hidden';
+        template.staffSignaturePolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Staff_Signature_Policy__c : 'Hidden';
+        template.incomeBenefitsPolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Income_Benefits_Policy__c : 'Hidden';
+        template.housingBenefitPolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Housing_Benefit_Policy__c : 'Hidden';
+        template.clinicalBenefitPolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Clinical_Benefit_Policy__c : 'Hidden';
+        template.demographicsPolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Demographics_Policy__c : 'Optional';
+        template.goalsPolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Goals_Policy__c : 'Hidden'; // Added
+        template.diagnosesPolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Diagnoses_Policy__c : 'Hidden'; // Added
         template.sections = new List<TemplateSectionDTO>();
 
         Map<String, TemplateSectionDTO> sectionsByName = new Map<String, TemplateSectionDTO>();
@@ -334,6 +558,25 @@ public with sharing class InterviewSessionController {
         if (String.isBlank(rawValues)) {
             return values;
         }
+        
+        // Check if it's a JSON array (starts with '[' and ends with ']')
+        String trimmed = rawValues.trim();
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                // Parse as JSON array
+                List<Object> parsedList = (List<Object>)JSON.deserializeUntyped(trimmed);
+                for (Object item : parsedList) {
+                    if (item != null) {
+                        values.add(String.valueOf(item));
+                    }
+                }
+                return values;
+            } catch (Exception e) {
+                System.debug('Failed to parse picklist as JSON, falling back to newline parsing: ' + e.getMessage());
+            }
+        }
+        
+        // Fall back to newline-separated parsing
         for (String value : rawValues.split('\\n')) {
             if (!String.isBlank(value)) {
                 values.add(value.trim());
@@ -468,23 +711,52 @@ public with sharing class InterviewSessionController {
         }
         Map<String, Schema.SObjectField> accountFieldMap = accountType.getDescribe().fields.getMap();
         
-        // Get template questions to find API names
+        // Get template questions to find API names and mapsTo references
         Id templateVersionId = (Id)templateVersion.get('Id');
         Map<Id, String> questionIdToApiName = new Map<Id, String>();
+        Map<Id, String> questionIdToMapsTo = new Map<Id, String>();
         
         List<SObject> questions = Database.query(
-            'SELECT Id, API_Name__c FROM InterviewQuestion__c WHERE InterviewTemplateVersion__c = :templateVersionId'
+            'SELECT Id, API_Name__c, Maps_To__c FROM InterviewQuestion__c WHERE InterviewTemplateVersion__c = :templateVersionId'
         );
         
         for (SObject q : questions) {
             String apiName = (String)q.get('API_Name__c');
+            String mapsTo = (String)q.get('Maps_To__c');
             if (String.isNotBlank(apiName)) {
                 questionIdToApiName.put((Id)q.get('Id'), apiName);
             }
+            if (String.isNotBlank(mapsTo)) {
+                questionIdToMapsTo.put((Id)q.get('Id'), mapsTo);
+            }
         }
 
-        // Query the Account record
-        Account account = [SELECT Id FROM Account WHERE Id = :accountId LIMIT 1];
+        // Query the Account record with ALL updateable fields to check existing values
+        List<String> queryFields = new List<String>{'Id'};
+        for (String fieldName : accountFieldMap.keySet()) {
+            Schema.DescribeFieldResult fieldDescribe = accountFieldMap.get(fieldName).getDescribe();
+            if (fieldDescribe.isUpdateable() && fieldDescribe.isAccessible()) {
+                queryFields.add(fieldName);
+            }
+        }
+        String accountQuery = 'SELECT ' + String.join(queryFields, ', ') + ' FROM Account WHERE Id = :accountId LIMIT 1';
+        List<Account> accounts = Database.query(accountQuery);
+        
+        if (accounts.isEmpty()) {
+            return;
+        }
+        
+        Account account = accounts[0];
+
+        // Special mapping for Address fields that might be mapped to Assessment__c but should also update Account
+        Map<String, String> assessmentToAccountMap = new Map<String, String>{
+            'Last_Perm_Address_Street__c' => 'Last_Permanent_Address_Street__pc',
+            'Last_Perm_Address_City__c' => 'Last_Permanent_Address_City__pc',
+            'Last_Perm_Address_State__c' => 'Last_Permanent_Address_State__pc',
+            'Last_Perm_Address_Zip__c' => 'Last_Permanent_Address_Zip__pc',
+            'Last_Permanent_Address_Type__c' => 'Last_Permanent_Address_Type__pc',
+            'Last_Perm_Address_County__c' => 'Last_Permanent_Address_County__pc'
+        };
 
         // Map answers to Account fields
         Boolean accountModified = false;
@@ -493,29 +765,54 @@ public with sharing class InterviewSessionController {
                 continue;
             }
             
-            // Get API name from question
-            String apiName = questionIdToApiName.get(dto.questionId);
-            if (String.isBlank(apiName)) {
-                // Try from DTO directly
-                apiName = dto.apiName;
+            String mapsTo = questionIdToMapsTo.get(dto.questionId);
+            String targetApiName = null;
+            Boolean forceUpdate = false;
+
+            // Check standard Account mapping
+            if (String.isNotBlank(mapsTo) && mapsTo.startsWith('Account.')) {
+                // Get API name from question or DTO
+                targetApiName = questionIdToApiName.get(dto.questionId);
+                if (String.isBlank(targetApiName)) {
+                    targetApiName = dto.apiName;
+                }
+            } 
+            // Check special Assessment -> Account mapping for Address fields
+            else if (String.isNotBlank(mapsTo) && mapsTo.startsWith('Assessment__c.')) {
+                String assessmentField = mapsTo.substringAfter('Assessment__c.');
+                if (assessmentToAccountMap.containsKey(assessmentField)) {
+                    targetApiName = assessmentToAccountMap.get(assessmentField);
+                    forceUpdate = true; // Allow overwriting address fields
+                    System.debug('Mapping Assessment field ' + assessmentField + ' to Account field ' + targetApiName);
+                }
             }
             
-            if (String.isBlank(apiName)) {
+            if (String.isBlank(targetApiName)) {
                 continue;
             }
             
             // Check if this field exists on Account
-            if (!accountFieldMap.containsKey(apiName)) {
+            if (!accountFieldMap.containsKey(targetApiName)) {
+                System.debug('Account field not found: ' + targetApiName);
                 continue;
             }
             
             // Get field describe to determine data type and updateability
-            Schema.SObjectField fieldToken = accountFieldMap.get(apiName);
+            Schema.SObjectField fieldToken = accountFieldMap.get(targetApiName);
             Schema.DescribeFieldResult fieldDescribe = fieldToken.getDescribe();
             
             // Skip if field is not updateable
             if (!fieldDescribe.isUpdateable()) {
                 continue;
+            }
+            
+            // CRITICAL: Only update if Account field is currently null/empty OR if forceUpdate is true
+            if (!forceUpdate) {
+                Object currentValue = account.get(targetApiName);
+                if (currentValue != null && String.valueOf(currentValue) != '') {
+                    System.debug('Skipping Account field ' + targetApiName + ' - already has value: ' + currentValue);
+                    continue;
+                }
             }
             
             Schema.DisplayType fieldType = fieldDescribe.getType();
@@ -524,37 +821,37 @@ public with sharing class InterviewSessionController {
             try {
                 if (fieldType == Schema.DisplayType.STRING || fieldType == Schema.DisplayType.TEXTAREA || fieldType == Schema.DisplayType.EMAIL || fieldType == Schema.DisplayType.PHONE || fieldType == Schema.DisplayType.URL) {
                     if (String.isNotBlank(dto.value)) {
-                        account.put(apiName, dto.value);
+                        account.put(targetApiName, dto.value);
                         accountModified = true;
                     }
                 } else if (fieldType == Schema.DisplayType.DOUBLE || fieldType == Schema.DisplayType.INTEGER || fieldType == Schema.DisplayType.CURRENCY || fieldType == Schema.DisplayType.PERCENT) {
                     if (String.isNotBlank(dto.value)) {
-                        account.put(apiName, Decimal.valueOf(dto.value));
+                        account.put(targetApiName, Decimal.valueOf(dto.value));
                         accountModified = true;
                     }
                 } else if (fieldType == Schema.DisplayType.BOOLEAN) {
                     if (String.isNotBlank(dto.value)) {
-                        account.put(apiName, dto.value.equalsIgnoreCase('true'));
+                        account.put(targetApiName, dto.value.equalsIgnoreCase('true'));
                         accountModified = true;
                     }
                 } else if (fieldType == Schema.DisplayType.DATE) {
                     if (String.isNotBlank(dto.value)) {
-                        account.put(apiName, Date.valueOf(dto.value));
+                        account.put(targetApiName, Date.valueOf(dto.value));
                         accountModified = true;
                     }
                 } else if (fieldType == Schema.DisplayType.DATETIME) {
                     if (String.isNotBlank(dto.value)) {
-                        account.put(apiName, Datetime.valueOf(dto.value));
+                        account.put(targetApiName, Datetime.valueOf(dto.value));
                         accountModified = true;
                     }
                 } else if (fieldType == Schema.DisplayType.PICKLIST || fieldType == Schema.DisplayType.MULTIPICKLIST) {
                     if (String.isNotBlank(dto.value)) {
-                        account.put(apiName, dto.value);
+                        account.put(targetApiName, dto.value);
                         accountModified = true;
                     }
                 }
             } catch (Exception e) {
-                System.debug('Error mapping answer to Account field ' + apiName + ': ' + e.getMessage());
+                System.debug('Error mapping answer to Account field ' + targetApiName + ': ' + e.getMessage());
             }
         }
         
@@ -718,8 +1015,11 @@ public with sharing class InterviewSessionController {
         interview.put('Interaction_Summary__c', interactionSummaryId);
         putIfFieldExists(interview, 'Assessment__c', assessmentId);
         interview.put('Status__c', 'In Progress');
-        interview.put('Name', formatInterviewName(templateVersion, interactionDate));
+        interview.put('Name', formatInterviewName(templateVersion, accountId, interactionDate));
         putIfFieldExists(interview, 'Started_On__c', Datetime.now());
+        
+        // Note: Signatures are saved separately after Interview creation via updateInterviewSignatures()
+        
         return interview;
     }
 
@@ -847,21 +1147,490 @@ public with sharing class InterviewSessionController {
         Map<String, Schema.SObjectField> fields = record.getSObjectType().getDescribe().fields.getMap();
         if (fields.containsKey(fieldApiName)) {
             record.put(fieldApiName, value);
+        } else {
+            System.debug('Field not found on ' + record.getSObjectType() + ': ' + fieldApiName);
         }
     }
 
-    private static String formatInterviewName(SObject templateVersion, Date interactionDate) {
+    private static List<Map<String, String>> fetchHousingBenefits(Id caseId, TemplateDTO template) {
+        List<Map<String, String>> options = new List<Map<String, String>>();
+        
+        // Only fetch if housing benefits are enabled
+        if (template == null || template.housingBenefitPolicy == null || template.housingBenefitPolicy == 'Hidden') {
+            return options;
+        }
+        
+        try {
+            // Get Program from ProgramEnrollment (Case doesn't have direct Program lookup)
+            Id programId;
+            try {
+                String enrollmentQuery = 'SELECT Id, ProgramId FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                List<SObject> enrollments = Database.query(enrollmentQuery);
+                if (!enrollments.isEmpty()) {
+                    programId = (Id) enrollments[0].get('ProgramId');
+                }
+            } catch (Exception e1) {
+                System.debug('ProgramId field not found, trying Program__c: ' + e1.getMessage());
+                String enrollmentQuery = 'SELECT Id, Program__c FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                List<SObject> enrollments = Database.query(enrollmentQuery);
+                if (!enrollments.isEmpty()) {
+                    programId = (Id) enrollments[0].get('Program__c');
+                }
+            }
+            
+            if (programId == null) {
+                return options;
+            }
+            
+            // Query Benefits with Available_for_Housing__c = true
+            String query = 'SELECT Id, Name FROM Benefit WHERE ProgramId = :programId AND IsActive = TRUE AND Available_for_Housing__c = TRUE ORDER BY Name';
+            List<SObject> benefits = Database.query(query);
+            
+            for (SObject benefit : benefits) {
+                Map<String, String> option = new Map<String, String>();
+                option.put('label', (String)benefit.get('Name'));
+                option.put('value', (String)benefit.get('Id'));
+                options.add(option);
+            }
+        } catch (Exception e) {
+            System.debug('Error fetching housing benefits: ' + e.getMessage());
+        }
+        
+        return options;
+    }
+
+    private static List<Map<String, String>> fetchClinicalBenefits(Id caseId, TemplateDTO template) {
+        List<Map<String, String>> options = new List<Map<String, String>>();
+        
+        // Only fetch if clinical benefits are enabled
+        if (template == null || template.clinicalBenefitPolicy == null || template.clinicalBenefitPolicy == 'Hidden') {
+            return options;
+        }
+        
+        try {
+            // Get Program from ProgramEnrollment (Case doesn't have direct Program lookup)
+            Id programId;
+            try {
+                String enrollmentQuery = 'SELECT Id, ProgramId FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                List<SObject> enrollments = Database.query(enrollmentQuery);
+                if (!enrollments.isEmpty()) {
+                    programId = (Id) enrollments[0].get('ProgramId');
+                }
+            } catch (Exception e1) {
+                System.debug('ProgramId field not found, trying Program__c: ' + e1.getMessage());
+                String enrollmentQuery = 'SELECT Id, Program__c FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                List<SObject> enrollments = Database.query(enrollmentQuery);
+                if (!enrollments.isEmpty()) {
+                    programId = (Id) enrollments[0].get('Program__c');
+                }
+            }
+            
+            if (programId == null) {
+                return options;
+            }
+            
+            // Query Benefits with Available_for_Clinical__c = true
+            String query = 'SELECT Id, Name FROM Benefit WHERE ProgramId = :programId AND IsActive = TRUE AND Available_for_Clinical__c = TRUE ORDER BY Name';
+            List<SObject> benefits = Database.query(query);
+            
+            for (SObject benefit : benefits) {
+                Map<String, String> option = new Map<String, String>();
+                option.put('label', (String)benefit.get('Name'));
+                option.put('value', (String)benefit.get('Id'));
+                options.add(option);
+            }
+        } catch (Exception e) {
+            System.debug('Error fetching clinical benefits: ' + e.getMessage());
+        }
+        
+        return options;
+    }
+
+    private static String formatInterviewName(SObject templateVersion, Id accountId, Date interactionDate) {
+        // Format: TemplateName - LastName - Date (to stay under 80 char limit)
         List<String> parts = new List<String>();
+        
+        // Add template name
         SObject template = (SObject)templateVersion.getSObject('InterviewTemplate__r');
         if (template != null && template.get('Name') != null) {
             parts.add((String)template.get('Name'));
         }
-        if (!String.isBlank((String)templateVersion.get('Name'))) {
-            parts.add((String)templateVersion.get('Name'));
+        
+        // Add person account last name
+        if (accountId != null) {
+            try {
+                Account client = [SELECT LastName FROM Account WHERE Id = :accountId LIMIT 1];
+                if (client != null && !String.isBlank(client.LastName)) {
+                    parts.add(client.LastName);
+                }
+            } catch (Exception e) {
+                System.debug('Could not query Account LastName: ' + e.getMessage());
+            }
         }
+        
+        // Add date
         String datePart = interactionDate != null ? interactionDate.format() : Date.today().format();
-        parts.add('Interview');
         parts.add(datePart);
+        
         return String.join(parts, ' - ');
+    }
+
+    private static void createBenefitDisbursements(
+        Id accountId,
+        List<Id> benefitIds,
+        Date serviceDate,
+        Datetime startDateTime,
+        Datetime endDateTime,
+        Id caseId
+    ) {
+        try {
+            // Get program from ProgramEnrollment
+            Id programId;
+            String enrollmentStatus;
+            Id enrollmentId;
+            
+            try {
+                String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                List<SObject> enrollments = Database.query(enrollmentQuery);
+                if (!enrollments.isEmpty()) {
+                    programId = (Id) enrollments[0].get('ProgramId');
+                    enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
+                    enrollmentId = enrollments[0].Id;
+                }
+            } catch (Exception e1) {
+                System.debug('ProgramId field not found, trying Program__c: ' + e1.getMessage());
+                String enrollmentQuery = 'SELECT Id, Program__c, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                List<SObject> enrollments = Database.query(enrollmentQuery);
+                if (!enrollments.isEmpty()) {
+                    programId = (Id) enrollments[0].get('Program__c');
+                    enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
+                    enrollmentId = enrollments[0].Id;
+                }
+            }
+            
+            if (programId == null) {
+                System.debug('No active ProgramEnrollment found for case: ' + caseId);
+                return;
+            }
+            
+            if (enrollmentStatus != 'Enrolled' && enrollmentStatus != 'Active') {
+                System.debug('Participant enrollment status is "' + enrollmentStatus + '" - skipping benefit disbursements');
+                return;
+            }
+            
+            // Format datetime for BenefitDisbursementService
+            String startDateTimeStr = startDateTime != null 
+                ? startDateTime.format('yyyy-MM-dd') + 'T' + startDateTime.format('HH:mm')
+                : null;
+            String endDateTimeStr = endDateTime != null 
+                ? endDateTime.format('yyyy-MM-dd') + 'T' + endDateTime.format('HH:mm')
+                : null;
+            String serviceDateStr = serviceDate != null 
+                ? serviceDate.format()
+                : Date.today().format();
+            
+            for (Id benefitId : benefitIds) {
+                try {
+                    List<String> participantIds = new List<String>{ String.valueOf(accountId) };
+                    
+                    // Check if BenefitAssignment exists
+                    BenefitDisbursementService.BenefitAssignmentCheckResult checkResult = 
+                        BenefitDisbursementService.checkBenefitAssignmentsWithParams(
+                            participantIds,
+                            String.valueOf(benefitId)
+                        );
+                    
+                    // Create missing BenefitAssignments if needed
+                    if (!checkResult.allParticipantsReady) {
+                        BenefitDisbursementService.createMissingBenefitAssignments(
+                            participantIds,
+                            String.valueOf(benefitId),
+                            String.valueOf(programId),
+                            null
+                        );
+                    }
+                    
+                    // Create disbursement
+                    List<BenefitDisbursementService.DisburseResult> results = 
+                        BenefitDisbursementService.createDisbursementsWithParamsExt(
+                            participantIds,
+                            String.valueOf(benefitId),
+                            String.valueOf(programId),
+                            null,  // programName
+                            serviceDateStr,
+                            1,  // quantity
+                            'Interview Session',  // notes
+                            startDateTimeStr,
+                            endDateTimeStr,
+                            null,  // caseNotes
+                            null,  // eventType
+                            null,  // individualCaseNotesByParticipant
+                            false  // isClinical
+                        );
+                    
+                    for (BenefitDisbursementService.DisburseResult result : results) {
+                        if (!result.success) {
+                            System.debug('Disbursement failed for benefit ' + benefitId + ': ' + result.message);
+                        } else {
+                            System.debug('Disbursement created: ' + result.disbursementId);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.debug('Error creating disbursement for benefit ' + benefitId + ': ' + e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            System.debug('Error in createBenefitDisbursements: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * Updates Account record with demographic data captured during interview
+     */
+    private static void updateAccountDemographics(Id accountId, Map<String, Object> demographics) {
+        if (accountId == null || demographics == null || demographics.isEmpty()) {
+            return;
+        }
+
+        try {
+            Account acc = new Account(Id = accountId);
+            
+            // Map demographics to Account fields - only update if new value provided and not empty
+            if (demographics.containsKey('FirstName') && demographics.get('FirstName') != null && String.valueOf(demographics.get('FirstName')) != '') {
+                acc.put('FirstName', demographics.get('FirstName'));
+            }
+            if (demographics.containsKey('MiddleName') && demographics.get('MiddleName') != null && String.valueOf(demographics.get('MiddleName')) != '') {
+                acc.put('MiddleName', demographics.get('MiddleName'));
+            }
+            if (demographics.containsKey('LastName') && demographics.get('LastName') != null && String.valueOf(demographics.get('LastName')) != '') {
+                acc.put('LastName', demographics.get('LastName'));
+            }
+            if (demographics.containsKey('Preferred_Name__c') && demographics.get('Preferred_Name__c') != null && String.valueOf(demographics.get('Preferred_Name__c')) != '') {
+                putIfFieldExists(acc, 'Preferred_Name__c', demographics.get('Preferred_Name__c'));
+            }
+            if (demographics.containsKey('PersonBirthdate') && demographics.get('PersonBirthdate') != null && String.valueOf(demographics.get('PersonBirthdate')) != '' && String.valueOf(demographics.get('PersonBirthdate')) != 'null') {
+                try {
+                    acc.put('PersonBirthdate', Date.valueOf(String.valueOf(demographics.get('PersonBirthdate'))));
+                } catch (Exception e) {
+                    System.debug('Error parsing PersonBirthdate: ' + e.getMessage());
+                }
+            }
+            if (demographics.containsKey('SSN__c') && demographics.get('SSN__c') != null && String.valueOf(demographics.get('SSN__c')) != '') {
+                putIfFieldExists(acc, 'SSN__c', demographics.get('SSN__c'));
+            }
+            if (demographics.containsKey('Translation_Assistance_Needed__c') && demographics.get('Translation_Assistance_Needed__c') != null && String.valueOf(demographics.get('Translation_Assistance_Needed__c')) != '') {
+                putIfFieldExists(acc, 'Translation_Assistance_Needed__c', demographics.get('Translation_Assistance_Needed__c'));
+            }
+            if (demographics.containsKey('Referral_Source__c') && demographics.get('Referral_Source__c') != null && String.valueOf(demographics.get('Referral_Source__c')) != '') {
+                putIfFieldExists(acc, 'Referral_Source__c', demographics.get('Referral_Source__c'));
+            }
+            if (demographics.containsKey('Gender_Identity__c') && demographics.get('Gender_Identity__c') != null && String.valueOf(demographics.get('Gender_Identity__c')) != '') {
+                putIfFieldExists(acc, 'Gender_Identity__c', demographics.get('Gender_Identity__c'));
+            }
+            if (demographics.containsKey('Gender_Identity_Other__c') && demographics.get('Gender_Identity_Other__c') != null && String.valueOf(demographics.get('Gender_Identity_Other__c')) != '') {
+                putIfFieldExists(acc, 'Gender_Identity_Other__c', demographics.get('Gender_Identity_Other__c'));
+            }
+            if (demographics.containsKey('Preferred_Pronouns__c') && demographics.get('Preferred_Pronouns__c') != null && String.valueOf(demographics.get('Preferred_Pronouns__c')) != '') {
+                putIfFieldExists(acc, 'Preferred_Pronouns__c', demographics.get('Preferred_Pronouns__c'));
+                // Also map to standard PersonPronouns field if available
+                putIfFieldExists(acc, 'PersonPronouns', demographics.get('Preferred_Pronouns__c'));
+            }
+            if (demographics.containsKey('Pronouns_Other__c') && demographics.get('Pronouns_Other__c') != null && String.valueOf(demographics.get('Pronouns_Other__c')) != '') {
+                putIfFieldExists(acc, 'Pronouns_Other__c', demographics.get('Pronouns_Other__c'));
+                // Also map to standard Pronouns_Other_Description__pc field if available
+                putIfFieldExists(acc, 'Pronouns_Other_Description__pc', demographics.get('Pronouns_Other__c'));
+            }
+            if (demographics.containsKey('Race_Ethnicity__c') && demographics.get('Race_Ethnicity__c') != null) {
+                // Handle multi-select picklist (List<String> -> semicolon-separated)
+                Object raceValue = demographics.get('Race_Ethnicity__c');
+                Set<String> selectedRaces = new Set<String>();
+                
+                if (raceValue instanceof List<Object>) {
+                    for (Object val : (List<Object>)raceValue) {
+                        selectedRaces.add(String.valueOf(val));
+                    }
+                    // Also save the raw multi-picklist value if the field exists
+                    String joinedValue = String.join(new List<String>(selectedRaces), ';');
+                    if (joinedValue != '') {
+                        putIfFieldExists(acc, 'Race_Ethnicity__c', joinedValue);
+                    }
+                } else if (String.valueOf(raceValue) != '') {
+                    String raceStr = String.valueOf(raceValue);
+                    selectedRaces.addAll(raceStr.split(';'));
+                    putIfFieldExists(acc, 'Race_Ethnicity__c', raceValue);
+                }
+                
+                // Map to individual boolean fields on Person Account
+                // Note: These mappings must match the picklist values in the LWC
+                
+                // Normalize strings for comparison (handle slight variations)
+                Boolean isIndigenous = selectedRaces.contains('American Indian or Alaska Native, Indigenous') || 
+                                      selectedRaces.contains('American Indian, Alaska Native, or Indigenous');
+                
+                Boolean isAsian = selectedRaces.contains('Asian or Asian American');
+                
+                Boolean isBlack = selectedRaces.contains('Black, African, or African-American') || 
+                                 selectedRaces.contains('Black, African American, or African');
+                
+                Boolean isMENA = selectedRaces.contains('Middle Eastern/North African') || 
+                                selectedRaces.contains('Middle Eastern or North African');
+                
+                Boolean isPacific = selectedRaces.contains('Native Hawaiian or Other Pacific Islander');
+                
+                Boolean isWhite = selectedRaces.contains('White');
+                
+                Boolean isOther = selectedRaces.contains('Other') || 
+                                 selectedRaces.contains('Different Identity');
+
+                putIfFieldExists(acc, 'Race_American_Indian_or_Alaska_Native__pc', isIndigenous);
+                putIfFieldExists(acc, 'Race_Asian_or_Asian_American__pc', isAsian);
+                putIfFieldExists(acc, 'Race_Black_African_American_or_African__pc', isBlack);
+                putIfFieldExists(acc, 'Race_Middle_Eastern_or_North_African__pc', isMENA);
+                putIfFieldExists(acc, 'Race_Native_Hawaiian_or_Other_Pacific__pc', isPacific);
+                putIfFieldExists(acc, 'Race_White__pc', isWhite);
+                putIfFieldExists(acc, 'Race_Other__pc', isOther);
+                // Race_Unknown__pc and Race_BIPOC__pc are calculated fields
+            }
+            if (demographics.containsKey('Race_Ethnicity_Detail__c') && demographics.get('Race_Ethnicity_Detail__c') != null && String.valueOf(demographics.get('Race_Ethnicity_Detail__c')) != '') {
+                putIfFieldExists(acc, 'Race_Ethnicity_Detail__c', demographics.get('Race_Ethnicity_Detail__c'));
+            }
+            if (demographics.containsKey('Sexual_Orientation__c') && demographics.get('Sexual_Orientation__c') != null && String.valueOf(demographics.get('Sexual_Orientation__c')) != '') {
+                putIfFieldExists(acc, 'Sexual_Orientation__c', demographics.get('Sexual_Orientation__c'));
+            }
+            if (demographics.containsKey('Sexual_Orientation_Other__c') && demographics.get('Sexual_Orientation_Other__c') != null && String.valueOf(demographics.get('Sexual_Orientation_Other__c')) != '') {
+                putIfFieldExists(acc, 'Sexual_Orientation_Other__c', demographics.get('Sexual_Orientation_Other__c'));
+            }
+            if (demographics.containsKey('PersonMobilePhone') && demographics.get('PersonMobilePhone') != null && String.valueOf(demographics.get('PersonMobilePhone')) != '') {
+                acc.put('PersonMobilePhone', demographics.get('PersonMobilePhone'));
+            }
+            if (demographics.containsKey('PersonEmail') && demographics.get('PersonEmail') != null && String.valueOf(demographics.get('PersonEmail')) != '') {
+                acc.put('PersonEmail', demographics.get('PersonEmail'));
+            }
+            if (demographics.containsKey('Emergency_Contact_Name__c') && demographics.get('Emergency_Contact_Name__c') != null && String.valueOf(demographics.get('Emergency_Contact_Name__c')) != '') {
+                putIfFieldExists(acc, 'Emergency_Contact_Name__c', demographics.get('Emergency_Contact_Name__c'));
+            }
+            if (demographics.containsKey('Emergency_Contact_Relationship__c') && demographics.get('Emergency_Contact_Relationship__c') != null && String.valueOf(demographics.get('Emergency_Contact_Relationship__c')) != '') {
+                putIfFieldExists(acc, 'Emergency_Contact_Relationship__c', demographics.get('Emergency_Contact_Relationship__c'));
+            }
+            if (demographics.containsKey('Place_of_Birth__c') && demographics.get('Place_of_Birth__c') != null && String.valueOf(demographics.get('Place_of_Birth__c')) != '') {
+                putIfFieldExists(acc, 'Place_of_Birth__c', demographics.get('Place_of_Birth__c'));
+            }
+            if (demographics.containsKey('Is_Veteran__c') && demographics.get('Is_Veteran__c') != null && String.valueOf(demographics.get('Is_Veteran__c')) != '') {
+                putIfFieldExists(acc, 'Is_Veteran__c', demographics.get('Is_Veteran__c'));
+            }
+            if (demographics.containsKey('Known_Allergies__c') && demographics.get('Known_Allergies__c') != null && String.valueOf(demographics.get('Known_Allergies__c')) != '') {
+                putIfFieldExists(acc, 'Known_Allergies__c', demographics.get('Known_Allergies__c'));
+            }
+            if (demographics.containsKey('Known_Diagnoses__c') && demographics.get('Known_Diagnoses__c') != null && String.valueOf(demographics.get('Known_Diagnoses__c')) != '') {
+                putIfFieldExists(acc, 'Known_Diagnoses__c', demographics.get('Known_Diagnoses__c'));
+            }
+            if (demographics.containsKey('Taking_Medications__c') && demographics.get('Taking_Medications__c') != null && String.valueOf(demographics.get('Taking_Medications__c')) != '') {
+                putIfFieldExists(acc, 'Taking_Medications__c', demographics.get('Taking_Medications__c'));
+            }
+            if (demographics.containsKey('Needs_Medication_Refill_Help__c') && demographics.get('Needs_Medication_Refill_Help__c') != null && String.valueOf(demographics.get('Needs_Medication_Refill_Help__c')) != '') {
+                putIfFieldExists(acc, 'Needs_Medication_Refill_Help__c', demographics.get('Needs_Medication_Refill_Help__c'));
+            }
+            if (demographics.containsKey('Medication_Notes__c') && demographics.get('Medication_Notes__c') != null && String.valueOf(demographics.get('Medication_Notes__c')) != '') {
+                putIfFieldExists(acc, 'Medication_Notes__c', demographics.get('Medication_Notes__c'));
+            }
+
+            update acc;
+            System.debug('Account demographics updated successfully for Account: ' + accountId);
+        } catch (Exception e) {
+            System.debug('Error updating Account demographics: ' + e.getMessage());
+            // Don't throw - allow interview to save even if Account update fails
+        }
+    }
+
+    private static void createIncomeBenefitRecords(Id assessmentId, List<Map<String, Object>> incomeBenefits) {
+        if (assessmentId == null || incomeBenefits == null || incomeBenefits.isEmpty()) {
+            System.debug('Skipping Income & Benefit creation: assessmentId=' + assessmentId + ', list size=' + (incomeBenefits == null ? 0 : incomeBenefits.size()));
+            return;
+        }
+
+        System.debug('Processing ' + incomeBenefits.size() + ' Income & Benefit items for Assessment ' + assessmentId);
+        List<SObject> recordsToInsert = new List<SObject>();
+        Schema.SObjectType incomeBenefitType = Schema.getGlobalDescribe().get('Income_Benefit__c');
+        
+        if (incomeBenefitType == null) {
+            System.debug('Income_Benefit__c object not found in org');
+            return;
+        }
+
+        for (Map<String, Object> itemMap : incomeBenefits) {
+            try {
+                // Only process items that are checked/selected
+                // Handle boolean check safely
+                Boolean isChecked = false;
+                if (itemMap.containsKey('checked')) {
+                    Object checkedVal = itemMap.get('checked');
+                    if (checkedVal instanceof Boolean) {
+                        isChecked = (Boolean)checkedVal;
+                    } else if (checkedVal instanceof String) {
+                        isChecked = Boolean.valueOf(checkedVal);
+                    }
+                }
+                
+                // If checked is missing, assume true if it's in the list (since the list usually only contains selected items)
+                // But if checked is explicitly false, skip it.
+                if (itemMap.containsKey('checked') && !isChecked) {
+                    System.debug('Skipping unchecked item: ' + itemMap.get('label'));
+                    continue;
+                }
+
+                SObject record = incomeBenefitType.newSObject();
+                record.put('Assessment__c', assessmentId);
+                
+                // Map the income/benefit type (label) to Income_Type__c field
+                if (itemMap.containsKey('label')) {
+                    record.put('Income_Type__c', String.valueOf(itemMap.get('label')));
+                }
+                
+                // Map the stated monthly amount if provided
+                if (itemMap.containsKey('statedIncome') && itemMap.get('statedIncome') != null) {
+                    Object incomeValue = itemMap.get('statedIncome');
+                    Decimal amount = null;
+                    
+                    if (incomeValue instanceof String && String.isNotBlank((String)incomeValue)) {
+                        // Remove currency symbols and commas if present
+                        String cleanValue = ((String)incomeValue).replaceAll('[^0-9.]', '');
+                        if (String.isNotBlank(cleanValue)) {
+                            amount = Decimal.valueOf(cleanValue);
+                        }
+                    } else if (incomeValue instanceof Decimal) {
+                        amount = (Decimal)incomeValue;
+                    } else if (incomeValue instanceof Integer) {
+                        amount = Decimal.valueOf((Integer)incomeValue);
+                    } else if (incomeValue instanceof Double) {
+                        amount = Decimal.valueOf((Double)incomeValue);
+                    }
+                    
+                    if (amount != null) {
+                        // Check if Stated_Monthly_Amount__c exists before putting
+                        if (Schema.getGlobalDescribe().get('Income_Benefit__c').getDescribe().fields.getMap().containsKey('Stated_Monthly_Amount__c')) {
+                            record.put('Stated_Monthly_Amount__c', amount);
+                        } else {
+                            System.debug('Stated_Monthly_Amount__c field missing on Income_Benefit__c - skipping amount');
+                        }
+                    }
+                }
+                
+                recordsToInsert.add(record);
+            } catch (Exception e) {
+                System.debug('Error preparing Income & Benefit record: ' + e.getMessage());
+            }
+        }
+        
+        if (!recordsToInsert.isEmpty()) {
+            try {
+                insert recordsToInsert;
+                System.debug('Successfully created ' + recordsToInsert.size() + ' Income & Benefit records');
+            } catch (Exception e) {
+                System.debug('Failed to insert Income & Benefit records: ' + e.getMessage());
+                // Don't throw, allow the rest of the save to proceed
+            }
+        } else {
+            System.debug('No Income & Benefit records to insert after processing');
+        }
     }
 }

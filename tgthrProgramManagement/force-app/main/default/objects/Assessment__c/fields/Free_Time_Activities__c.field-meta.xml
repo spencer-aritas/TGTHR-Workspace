@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Free_Time_Activities__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>What do you do in your free time? What are your hobbies and interests?</inlineHelpText>
+    <label>Free Time Activities</label>
+    <length>32768</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>3</visibleLines>
+</CustomField>

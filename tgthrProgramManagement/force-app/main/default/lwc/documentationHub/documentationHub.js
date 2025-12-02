@@ -47,6 +47,10 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         return this.isSsrsDisabled;
     }
 
+    get caseNoteLabel() {
+        return 'Case Note';
+    }
+
     get hasInterviewTemplates() {
         return Array.isArray(this.interviewTemplates) && this.interviewTemplates.length > 0;
     }

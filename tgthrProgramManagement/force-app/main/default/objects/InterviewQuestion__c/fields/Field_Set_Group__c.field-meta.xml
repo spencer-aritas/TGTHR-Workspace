@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Field_Set_Group__c</fullName>
+    <description>Groups related questions together for display (e.g., &quot;Health Insurance&quot;, &quot;Non-Cash Benefits&quot;). When set, questions with the same group name will be displayed together in a card during interviews.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Optional: Group name for related fields. Questions with the same group name will display together in a card. Examples: Health Insurance, Non-Cash Benefits, Trauma Triggers, Warning Signs</inlineHelpText>
+    <label>Field Set Group</label>
+    <length>80</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

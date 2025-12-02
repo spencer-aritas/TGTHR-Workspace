@@ -1,0 +1,29 @@
+<template>
+    <div class="health-insurance-container">
+        <div class="slds-text-heading_small slds-m-bottom_small">Health Insurance (select all that apply)</div>
+        
+        <div class="slds-grid slds-wrap slds-gutters_small">
+            <template for:each={selectedInsurance} for:item="insurance">
+                <div key={insurance.value} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                    <div class="slds-form-element">
+                        <div class="slds-form-element__control">
+                            <span class="slds-checkbox">
+                                <input 
+                                    type="checkbox" 
+                                    id={insurance.value}
+                                    value={insurance.value}
+                                    checked={insurance.checked}
+                                    onchange={handleCheckboxChange}
+                                />
+                                <label class="slds-checkbox__label" for={insurance.value}>
+                                    <span class="slds-checkbox_faux"></span>
+                                    <span class="slds-form-element__label">{insurance.label}</span>
+                                </label>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>
