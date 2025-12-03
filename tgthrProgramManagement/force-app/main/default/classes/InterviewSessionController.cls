@@ -733,7 +733,12 @@ public with sharing class InterviewSessionController {
 
         // Query the Account record with ALL updateable fields to check existing values
         List<String> queryFields = new List<String>{'Id'};
+        // Fields to explicitly exclude from query (read-only on Person Accounts)
+        Set<String> excludedFields = new Set<String>{'name', 'isdeleted'};
         for (String fieldName : accountFieldMap.keySet()) {
+            if (excludedFields.contains(fieldName.toLowerCase())) {
+                continue;
+            }
             Schema.DescribeFieldResult fieldDescribe = accountFieldMap.get(fieldName).getDescribe();
             if (fieldDescribe.isUpdateable() && fieldDescribe.isAccessible()) {
                 queryFields.add(fieldName);
@@ -771,10 +776,14 @@ public with sharing class InterviewSessionController {
 
             // Check standard Account mapping
             if (String.isNotBlank(mapsTo) && mapsTo.startsWith('Account.')) {
-                // Get API name from question or DTO
-                targetApiName = questionIdToApiName.get(dto.questionId);
-                if (String.isBlank(targetApiName)) {
-                    targetApiName = dto.apiName;
+                // Extract the field API name from Maps_To__c (e.g., 'Account.FirstName' -> 'FirstName')
+                targetApiName = mapsTo.substringAfter('Account.');
+                
+                // CRITICAL: Skip the compound 'Name' field - it's read-only on Person Accounts
+                // Use FirstName/LastName instead
+                if (targetApiName == 'Name') {
+                    System.debug('Skipping Account.Name - compound field is read-only on Person Accounts');
+                    continue;
                 }
             } 
             // Check special Assessment -> Account mapping for Address fields
@@ -857,6 +866,13 @@ public with sharing class InterviewSessionController {
         
         // Update Account if any fields were modified
         if (accountModified) {
+            // Debug: List all fields being updated
+            Map<String, Object> populatedFields = account.getPopulatedFieldsAsMap();
+            System.debug('=== Account fields to update ===');
+            for (String fieldName : populatedFields.keySet()) {
+                System.debug('  ' + fieldName + ' = ' + populatedFields.get(fieldName));
+            }
+            
             update account;
             System.debug('Account updated with interview answers');
         }
@@ -952,7 +968,7 @@ public with sharing class InterviewSessionController {
         summary.put('Date_of_Interaction__c', interactionDate);
         summary.put('Name', 'Interview - ' + interactionDate.format());
         summary.put('MeetingNotes', meetingNotes);
-        putIfFieldExists(summary, 'ServiceDate', interactionDate);
+        // Note: Date_of_Interaction__c is the correct field, not ServiceDate
         
         // Set POS__c (location) if provided
         if (String.isNotBlank(location)) {
@@ -1013,7 +1029,7 @@ public with sharing class InterviewSessionController {
         interview.put('Client__c', accountId);
         interview.put('InterviewTemplateVersion__c', templateVersion.get('Id'));
         interview.put('Interaction_Summary__c', interactionSummaryId);
-        putIfFieldExists(interview, 'Assessment__c', assessmentId);
+        // Note: Assessment__c relationship is on Assessment, not Interview (Assessment__c.Interview__c)
         interview.put('Status__c', 'In Progress');
         interview.put('Name', formatInterviewName(templateVersion, accountId, interactionDate));
         putIfFieldExists(interview, 'Started_On__c', Datetime.now());
@@ -1393,6 +1409,15 @@ public with sharing class InterviewSessionController {
         }
 
         try {
+            System.debug('=== updateAccountDemographics ===');
+            System.debug('Demographics keys: ' + demographics.keySet());
+            
+            // CRITICAL: Remove 'Name' from demographics if present - it's read-only on Person Accounts
+            if (demographics.containsKey('Name')) {
+                System.debug('Removing read-only Name field from demographics');
+                demographics.remove('Name');
+            }
+            
             Account acc = new Account(Id = accountId);
             
             // Map demographics to Account fields - only update if new value provided and not empty
@@ -1406,7 +1431,7 @@ public with sharing class InterviewSessionController {
                 acc.put('LastName', demographics.get('LastName'));
             }
             if (demographics.containsKey('Preferred_Name__c') && demographics.get('Preferred_Name__c') != null && String.valueOf(demographics.get('Preferred_Name__c')) != '') {
-                putIfFieldExists(acc, 'Preferred_Name__c', demographics.get('Preferred_Name__c'));
+                putIfFieldExists(acc, 'Preferred_Name__pc', demographics.get('Preferred_Name__c'));
             }
             if (demographics.containsKey('PersonBirthdate') && demographics.get('PersonBirthdate') != null && String.valueOf(demographics.get('PersonBirthdate')) != '' && String.valueOf(demographics.get('PersonBirthdate')) != 'null') {
                 try {
@@ -1482,14 +1507,9 @@ public with sharing class InterviewSessionController {
                 Boolean isOther = selectedRaces.contains('Other') || 
                                  selectedRaces.contains('Different Identity');
 
-                putIfFieldExists(acc, 'Race_American_Indian_or_Alaska_Native__pc', isIndigenous);
-                putIfFieldExists(acc, 'Race_Asian_or_Asian_American__pc', isAsian);
-                putIfFieldExists(acc, 'Race_Black_African_American_or_African__pc', isBlack);
-                putIfFieldExists(acc, 'Race_Middle_Eastern_or_North_African__pc', isMENA);
-                putIfFieldExists(acc, 'Race_Native_Hawaiian_or_Other_Pacific__pc', isPacific);
-                putIfFieldExists(acc, 'Race_White__pc', isWhite);
-                putIfFieldExists(acc, 'Race_Other__pc', isOther);
-                // Race_Unknown__pc and Race_BIPOC__pc are calculated fields
+                // NOTE: Individual race boolean fields (Race_American_Indian_or_Alaska_Native__pc, etc.)
+                // are FORMULA FIELDS derived from Race_Ethnicity__c - do not update directly
+                // The Race_Ethnicity__c multi-select picklist is the source of truth
             }
             if (demographics.containsKey('Race_Ethnicity_Detail__c') && demographics.get('Race_Ethnicity_Detail__c') != null && String.valueOf(demographics.get('Race_Ethnicity_Detail__c')) != '') {
                 putIfFieldExists(acc, 'Race_Ethnicity_Detail__c', demographics.get('Race_Ethnicity_Detail__c'));
@@ -1532,6 +1552,18 @@ public with sharing class InterviewSessionController {
             }
             if (demographics.containsKey('Medication_Notes__c') && demographics.get('Medication_Notes__c') != null && String.valueOf(demographics.get('Medication_Notes__c')) != '') {
                 putIfFieldExists(acc, 'Medication_Notes__c', demographics.get('Medication_Notes__c'));
+            }
+
+            // Debug: List all fields being updated on Account before update
+            Map<String, Object> populatedMap = acc.getPopulatedFieldsAsMap();
+            System.debug('=== updateAccountDemographics: Fields to update ===');
+            for (String fieldName : populatedMap.keySet()) {
+                System.debug('  ' + fieldName + ' = ' + populatedMap.get(fieldName));
+            }
+            
+            // Check if Name is somehow in the populated fields (it shouldn't be)
+            if (populatedMap.containsKey('Name')) {
+                System.debug('ERROR: Name field is populated - this will fail!');
             }
 
             update acc;
