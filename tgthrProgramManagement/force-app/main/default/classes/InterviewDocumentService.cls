@@ -308,6 +308,9 @@ public with sharing class InterviewDocumentService {
         
         // Query interview questions and answers
         String interviewId = (String)interview.get('Id');
+        System.debug('=== Building Sections ===');
+        System.debug('Interview ID for answers query: ' + interviewId);
+        
         String answerQuery = 
             'SELECT Id, Response_Text__c, Response_Number__c, Response_Date__c, ' +
             'Response_Boolean__c, Response_Picklist__c, ' +
@@ -318,6 +321,7 @@ public with sharing class InterviewDocumentService {
             'ORDER BY InterviewQuestion__r.Section__c, InterviewQuestion__r.Order__c';
         
         List<SObject> answers = Database.query(answerQuery);
+        System.debug('Answers found: ' + answers.size());
         
         // Group answers by section
         Map<String, List<Object>> sectionGroups = new Map<String, List<Object>>();
@@ -363,6 +367,12 @@ public with sharing class InterviewDocumentService {
                 'kind' => 'question_group',
                 'items' => sectionGroups.get(sectionName)
             });
+        }
+        
+        System.debug('Total sections built: ' + sections.size());
+        for (Object sec : sections) {
+            Map<String, Object> secMap = (Map<String, Object>)sec;
+            System.debug('  Section: ' + secMap.get('label') + ' (kind=' + secMap.get('kind') + ')');
         }
         
         return sections;
@@ -574,7 +584,7 @@ public with sharing class InterviewDocumentService {
                 return items;
             }
             
-            String query = 'SELECT Id, Name, Description, ' +
+            String query = 'SELECT Id, Name, CustomGoalName, Description, ' +
                            'StartDate, TargetCompletionDate, Priority, Status ' +
                            'FROM GoalAssignment ' +
                            'WHERE Case__c = :caseId ' +
@@ -584,9 +594,15 @@ public with sharing class InterviewDocumentService {
             System.debug('buildGoals: Found ' + records.size() + ' records');
             
             for (SObject record : records) {
+                // Use CustomGoalName if available, fallback to Name (auto-number)
+                String goalName = (String)record.get('CustomGoalName');
+                if (String.isBlank(goalName)) {
+                    goalName = (String)record.get('Name');
+                }
+                
                 items.add(new Map<String, Object>{
                     'type' => 'goal',
-                    'name' => (String)record.get('Name'),
+                    'name' => goalName,
                     'description' => (String)record.get('Description'),
                     'startDate' => String.valueOf(record.get('StartDate')),
                     'targetDate' => String.valueOf(record.get('TargetCompletionDate')),
