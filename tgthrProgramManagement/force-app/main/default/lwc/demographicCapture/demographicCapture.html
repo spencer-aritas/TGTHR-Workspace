@@ -40,8 +40,8 @@
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                             <lightning-input
                                 label="Preferred Name"
-                                value={demographics.Preferred_Name__c}
-                                data-field="Preferred_Name__c"
+                                value={demographics.Preferred_Name__pc}
+                                data-field="Preferred_Name__pc"
                                 onchange={handleInputChange}
                                 disabled={preferredNameDisabled}>
                             </lightning-input>
@@ -76,6 +76,15 @@
                                 message-when-pattern-mismatch="Enter SSN in format: XXX-XX-XXXX">
                             </lightning-input>
                         </div>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                            <lightning-input
+                                label="Medicaid Number"
+                                value={demographics.MEDICAID_Number__pc}
+                                data-field="MEDICAID_Number__pc"
+                                onchange={handleInputChange}
+                                disabled={medicaidDisabled}>
+                            </lightning-input>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -94,7 +103,7 @@
                                 options={translationOptions}
                                 data-field="Translation_Assistance_Needed__c"
                                 onchange={handleInputChange}
->
+                                disabled={translationAssistanceDisabled}>
                             </lightning-combobox>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
@@ -104,7 +113,7 @@
                                 options={referralSourceOptions}
                                 data-field="Referral_Source__c"
                                 onchange={handleInputChange}
->
+                                disabled={referralSourceDisabled}>
                             </lightning-combobox>
                         </div>
                     </div>
@@ -125,7 +134,7 @@
                                 options={genderIdentityOptions}
                                 data-field="Gender_Identity__c"
                                 onchange={handleInputChange}
->
+                                disabled={genderIdentityDisabled}>
                             </lightning-combobox>
                         </div>
                         <template if:true={showGenderOther}>
@@ -135,7 +144,7 @@
                                     value={demographics.Gender_Identity_Other__c}
                                     data-field="Gender_Identity_Other__c"
                                     onchange={handleInputChange}
->
+                                    disabled={genderIdentityOtherDisabled}>
                                 </lightning-input>
                             </div>
                         </template>
@@ -146,7 +155,7 @@
                                 options={pronounOptions}
                                 data-field="Preferred_Pronouns__c"
                                 onchange={handleInputChange}
->
+                                disabled={preferredPronounsDisabled}>
                             </lightning-combobox>
                         </div>
                         <template if:true={showPronounsOther}>
@@ -156,7 +165,7 @@
                                     value={demographics.Pronouns_Other__c}
                                     data-field="Pronouns_Other__c"
                                     onchange={handleInputChange}
->
+                                    disabled={pronounsOtherDisabled}>
                                 </lightning-input>
                             </div>
                         </template>
@@ -180,7 +189,7 @@
                                 options={raceEthnicityOptions}
                                 data-field="Race_Ethnicity__c"
                                 onchange={handleMultiSelectChange}
->
+                                disabled={raceEthnicityDisabled}>
                             </lightning-dual-listbox>
                         </div>
                         <div class="slds-col slds-size_1-of-1">
@@ -189,7 +198,7 @@
                                 value={demographics.Race_Ethnicity_Detail__c}
                                 data-field="Race_Ethnicity_Detail__c"
                                 onchange={handleInputChange}
->
+                                disabled={raceEthnicityDetailDisabled}>
                             </lightning-input>
                         </div>
                     </div>
@@ -210,7 +219,7 @@
                                 options={sexualOrientationOptions}
                                 data-field="Sexual_Orientation__c"
                                 onchange={handleInputChange}
->
+                                disabled={sexualOrientationDisabled}>
                             </lightning-combobox>
                         </div>
                         <template if:true={showSexualOrientationOther}>
@@ -220,7 +229,7 @@
                                     value={demographics.Sexual_Orientation_Other__c}
                                     data-field="Sexual_Orientation_Other__c"
                                     onchange={handleInputChange}
->
+                                    disabled={sexualOrientationOtherDisabled}>
                                 </lightning-input>
                             </div>
                         </template>
@@ -242,7 +251,7 @@
                                 value={demographics.PersonMobilePhone}
                                 data-field="PersonMobilePhone"
                                 onchange={handleInputChange}
->
+                                disabled={personMobilePhoneDisabled}>
                             </lightning-input>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
@@ -252,7 +261,7 @@
                                 value={demographics.PersonEmail}
                                 data-field="PersonEmail"
                                 onchange={handleInputChange}
->
+                                disabled={personEmailDisabled}>
                             </lightning-input>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
@@ -261,7 +270,7 @@
                                 value={demographics.Emergency_Contact_Name__c}
                                 data-field="Emergency_Contact_Name__c"
                                 onchange={handleInputChange}
->
+                                disabled={emergencyContactNameDisabled}>
                             </lightning-input>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
@@ -270,7 +279,7 @@
                                 value={demographics.Emergency_Contact_Relationship__c}
                                 data-field="Emergency_Contact_Relationship__c"
                                 onchange={handleInputChange}
->
+                                disabled={emergencyContactRelationshipDisabled}>
                             </lightning-input>
                         </div>
                         <div class="slds-col slds-size_1-of-1">
@@ -279,7 +288,7 @@
                                 value={demographics.Place_of_Birth__c}
                                 data-field="Place_of_Birth__c"
                                 onchange={handleInputChange}
->
+                                disabled={placeOfBirthDisabled}>
                             </lightning-input>
                         </div>
                     </div>
@@ -300,7 +309,7 @@
                                 options={yesNoOptions}
                                 data-field="Is_Veteran__c"
                                 onchange={handleInputChange}
->
+                                disabled={isVeteranDisabled}>
                             </lightning-combobox>
                         </div>
                         <div class="slds-col slds-size_1-of-1">
@@ -309,7 +318,7 @@
                                 value={demographics.Known_Allergies__c}
                                 data-field="Known_Allergies__c"
                                 onchange={handleInputChange}
->
+                                disabled={knownAllergiesDisabled}>
                             </lightning-textarea>
                         </div>
                         <div class="slds-col slds-size_1-of-1">
@@ -318,7 +327,7 @@
                                 value={demographics.Known_Diagnoses__c}
                                 data-field="Known_Diagnoses__c"
                                 onchange={handleInputChange}
->
+                                disabled={knownDiagnosesDisabled}>
                             </lightning-textarea>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
@@ -328,7 +337,7 @@
                                 options={yesNoOptions}
                                 data-field="Taking_Medications__c"
                                 onchange={handleInputChange}
->
+                                disabled={takingMedicationsDisabled}>
                             </lightning-combobox>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
@@ -338,7 +347,7 @@
                                 options={yesNoOptions}
                                 data-field="Needs_Medication_Refill_Help__c"
                                 onchange={handleInputChange}
->
+                                disabled={needsMedicationRefillHelpDisabled}>
                             </lightning-combobox>
                         </div>
                         <div class="slds-col slds-size_1-of-1">
@@ -347,7 +356,7 @@
                                 value={demographics.Medication_Notes__c}
                                 data-field="Medication_Notes__c"
                                 onchange={handleInputChange}
->
+                                disabled={medicationNotesDisabled}>
                             </lightning-textarea>
                         </div>
                     </div>

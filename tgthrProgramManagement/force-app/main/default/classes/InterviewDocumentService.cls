@@ -52,6 +52,8 @@ public with sharing class InterviewDocumentService {
             'Client_Signature_File_Id__c, Staff_Signature_File_Id__c, ' +
             'Client__r.Name, Client__r.FirstName, Client__r.LastName, ' +
             'Client__r.PersonBirthdate, Client__r.PersonPronouns, ' +
+            'Client__r.PersonMobilePhone, Client__r.PersonEmail, ' +
+            'Client__r.MEDICAID_Number__pc, ' +
             'Program_Enrollment__r.ProgramId, Program_Enrollment__r.Program.Name, ';
             
         interviewQuery += 
@@ -132,9 +134,14 @@ public with sharing class InterviewDocumentService {
         Map<String, Object> participant = new Map<String, Object>{
             'id' => interview.get('Client__c'),
             'displayName' => client != null ? (String)client.get('Name') : '',
+            'firstName' => client != null ? (String)client.get('FirstName') : '',
+            'lastName' => client != null ? (String)client.get('LastName') : '',
             'dob' => client != null ? String.valueOf(client.get('PersonBirthdate')) : null,
             'ageAtInterview' => ageAtInterview,
             'pronouns' => client != null ? (String)client.get('PersonPronouns') : null,
+            'phone' => client != null ? (String)client.get('PersonMobilePhone') : null,
+            'email' => client != null ? (String)client.get('PersonEmail') : null,
+            'medicaidId' => client != null ? (String)client.get('MEDICAID_Number__pc') : null,
             'program' => new Map<String, Object>{
                 'id' => program != null ? (String)program.get('Id') : null,
                 'name' => program != null ? (String)program.get('Name') : '',
@@ -199,14 +206,29 @@ public with sharing class InterviewDocumentService {
 
         // Step 5.7: Build goals section if present
         List<Object> goals = buildGoals(interview);
-        if (!goals.isEmpty()) {
-            sections.add(new Map<String, Object>{
+        Map<String, Object> carePlanConsent = buildCarePlanConsent(interview);
+        
+        System.debug('=== GOALS DEBUG ===');
+        System.debug('Goals count: ' + goals.size());
+        System.debug('CarePlan consent: ' + (carePlanConsent != null ? 'Present' : 'NULL'));
+        System.debug('Condition check: goals.isEmpty()=' + goals.isEmpty() + ', carePlanConsent!=null=' + (carePlanConsent != null));
+        
+        if (!goals.isEmpty() || carePlanConsent != null) {
+            System.debug('>>> Adding GOALS section to payload <<<');
+            Map<String, Object> goalsSection = new Map<String, Object>{
                 'id' => 'GOALS',
                 'label' => 'Goals',
                 'kind' => 'goals',
                 'layout' => 'list',
                 'items' => goals
-            });
+            };
+            
+            // Add CarePlan consent info if available
+            if (carePlanConsent != null) {
+                goalsSection.put('carePlanConsent', carePlanConsent);
+            }
+            
+            sections.add(goalsSection);
         }
         
         // Add signature_block section if signatures exist
@@ -246,6 +268,14 @@ public with sharing class InterviewDocumentService {
                 (String)interview.getSObject('LastModifiedBy').get('Name') : '',
             'lastModifiedDate' => String.valueOf(interview.get('LastModifiedDate'))
         };
+        
+        // Debug: Log final section count before payload assembly
+        System.debug('=== FINAL PAYLOAD SECTIONS ===');
+        System.debug('Total sections in payload: ' + sections.size());
+        for (Object sec : sections) {
+            Map<String, Object> secMap = (Map<String, Object>)sec;
+            System.debug('  - ' + secMap.get('id') + ' (kind=' + secMap.get('kind') + ')');
+        }
         
         // Assemble complete payload
         return new Map<String, Object>{
@@ -315,7 +345,7 @@ public with sharing class InterviewDocumentService {
             'SELECT Id, Response_Text__c, Response_Number__c, Response_Date__c, ' +
             'Response_Boolean__c, Response_Picklist__c, ' +
             'InterviewQuestion__r.Label__c, InterviewQuestion__r.Section__c, ' +
-            'InterviewQuestion__r.Order__c ' +
+            'InterviewQuestion__r.Order__c, InterviewQuestion__r.Response_Type__c ' +
             'FROM InterviewAnswer__c ' +
             'WHERE Interview__c = :interviewId ' +
             'ORDER BY InterviewQuestion__r.Section__c, InterviewQuestion__r.Order__c';
@@ -329,6 +359,7 @@ public with sharing class InterviewDocumentService {
         for (SObject answer : answers) {
             SObject question = answer.getSObject('InterviewQuestion__r');
             String sectionName = (String)question.get('Section__c');
+            String responseType = (String)question.get('Response_Type__c');
             
             if (String.isBlank(sectionName)) {
                 sectionName = 'General';
@@ -342,6 +373,14 @@ public with sharing class InterviewDocumentService {
             String answerText = '';
             if (answer.get('Response_Text__c') != null) {
                 answerText = (String)answer.get('Response_Text__c');
+                // Format time fields (stored as text in HH:MM or HH:MM:SS format)
+                if (responseType == 'Time' && answerText.contains(':')) {
+                    // Keep just HH:MM for display (strip seconds if present)
+                    String[] parts = answerText.split(':');
+                    if (parts.size() >= 2) {
+                        answerText = parts[0] + ':' + parts[1];
+                    }
+                }
             } else if (answer.get('Response_Boolean__c') != null) {
                 answerText = String.valueOf(answer.get('Response_Boolean__c'));
             } else if (answer.get('Response_Number__c') != null) {
@@ -355,7 +394,8 @@ public with sharing class InterviewDocumentService {
             sectionGroups.get(sectionName).add(new Map<String, Object>{
                 'type' => 'qna',
                 'questionLabel' => (String)question.get('Label__c'),
-                'answerText' => answerText
+                'answerText' => answerText,
+                'responseType' => responseType
             });
         }
         
@@ -569,6 +609,7 @@ public with sharing class InterviewDocumentService {
     
     /**
      * Build goals list from GoalAssignment records linked to the interview's Case.
+     * Also includes CarePlan consent information.
      * 
      * @param interview Interview__c SObject
      * @return List of goal items
@@ -584,6 +625,8 @@ public with sharing class InterviewDocumentService {
                 return items;
             }
             
+            System.debug('buildGoals: Querying GoalAssignment for Case ' + caseId);
+            
             String query = 'SELECT Id, Name, CustomGoalName, Description, ' +
                            'StartDate, TargetCompletionDate, Priority, Status ' +
                            'FROM GoalAssignment ' +
@@ -591,7 +634,7 @@ public with sharing class InterviewDocumentService {
                            'ORDER BY CreatedDate DESC';
             
             List<SObject> records = Database.query(query);
-            System.debug('buildGoals: Found ' + records.size() + ' records');
+            System.debug('buildGoals: Found ' + records.size() + ' GoalAssignment records');
             
             for (SObject record : records) {
                 // Use CustomGoalName if available, fallback to Name (auto-number)
@@ -613,9 +656,58 @@ public with sharing class InterviewDocumentService {
             }
         } catch (Exception e) {
             System.debug('Error building goals: ' + e.getMessage());
+            System.debug('Stack trace: ' + e.getStackTraceString());
         }
         
         return items;
+    }
+    
+    /**
+     * Build CarePlan consent information for Treatment Plan documents.
+     * 
+     * @param interview Interview__c SObject
+     * @return Map with consent fields or null if no CarePlan
+     */
+    private static Map<String, Object> buildCarePlanConsent(SObject interview) {
+        try {
+            Id caseId = (Id)interview.get('Case__c');
+            
+            if (caseId == null) {
+                return null;
+            }
+            
+            // Query CarePlan linked to Case
+            String query = 'SELECT Id, Discharge_Plan__c, Expected_Discharge_Date__c ' +
+                           'FROM CarePlan ' +
+                           'WHERE Case__c = :caseId ' +
+                           'LIMIT 1';
+            
+            List<SObject> carePlans = Database.query(query);
+            
+            if (carePlans.isEmpty()) {
+                System.debug('buildCarePlanConsent: No CarePlan found for Case ' + caseId);
+                return null;
+            }
+            
+            SObject carePlan = carePlans[0];
+            String dischargePlan = (String)carePlan.get('Discharge_Plan__c');
+            
+            // Parse consent checkboxes from Discharge_Plan__c text
+            Boolean consentParticipated = dischargePlan != null && 
+                dischargePlan.contains('[x] I participated in the creation of the plan');
+            Boolean consentOffered = dischargePlan != null && 
+                dischargePlan.contains('[x] I was offered a copy of the Treatment plan');
+            
+            return new Map<String, Object>{
+                'consentParticipated' => consentParticipated,
+                'consentOffered' => consentOffered,
+                'dischargePlan' => dischargePlan,
+                'expectedDischargeDate' => String.valueOf(carePlan.get('Expected_Discharge_Date__c'))
+            };
+        } catch (Exception e) {
+            System.debug('Error building CarePlan consent: ' + e.getMessage());
+            return null;
+        }
     }
     
     /**
@@ -872,7 +964,7 @@ public with sharing class InterviewDocumentService {
         try {
             // Query Interview to get related context records
             String interviewQuery =
-                'SELECT Id, Case__c, Interaction_Summary__c, ' +
+                'SELECT Id, Case__c, Interaction_Summary__c, UUID__c, ' +
                 'InterviewTemplateVersion__r.InterviewTemplate__c ' +
                 'FROM Interview__c ' +
                 'WHERE Id = :interviewId ' +
