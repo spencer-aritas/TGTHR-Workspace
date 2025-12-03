@@ -1443,6 +1443,9 @@ public with sharing class InterviewSessionController {
             if (demographics.containsKey('SSN__c') && demographics.get('SSN__c') != null && String.valueOf(demographics.get('SSN__c')) != '') {
                 putIfFieldExists(acc, 'SSN__c', demographics.get('SSN__c'));
             }
+            if (demographics.containsKey('MEDICAID_Number__pc') && demographics.get('MEDICAID_Number__pc') != null && String.valueOf(demographics.get('MEDICAID_Number__pc')) != '') {
+                putIfFieldExists(acc, 'MEDICAID_Number__pc', demographics.get('MEDICAID_Number__pc'));
+            }
             if (demographics.containsKey('Translation_Assistance_Needed__c') && demographics.get('Translation_Assistance_Needed__c') != null && String.valueOf(demographics.get('Translation_Assistance_Needed__c')) != '') {
                 putIfFieldExists(acc, 'Translation_Assistance_Needed__c', demographics.get('Translation_Assistance_Needed__c'));
             }
