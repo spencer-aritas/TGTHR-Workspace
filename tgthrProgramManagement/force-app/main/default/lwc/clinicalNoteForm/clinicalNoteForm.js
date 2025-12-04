@@ -6,6 +6,7 @@ import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
 import saveClinicalNote from '@salesforce/apex/ClinicalNoteController.saveClinicalNote';
 import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
+import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
@@ -44,6 +45,11 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     @track codeOptions = [];
     @track benefitOptions = [];
     @track posOptions = [];
+
+    // Rich goal data for card-based UI
+    @track activeGoals = [];
+    // Track work done on each goal: { [goalId]: { workedOn, narrative, progressBefore, progressAfter, timeSpentMinutes, expanded } }
+    @track goalWorkState = {};
 
     @track signatureContext = {
         signerName: '',
@@ -86,6 +92,37 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     get hasBenefits() {
         return this.benefitOptions && this.benefitOptions.length > 0;
+    }
+
+    get hasActiveGoals() {
+        return this.activeGoals && this.activeGoals.length > 0;
+    }
+
+    get goalsWorkedOnCount() {
+        return Object.values(this.goalWorkState).filter(g => g.workedOn).length;
+    }
+
+    /**
+     * Returns goals enriched with their current work state for template rendering.
+     */
+    get goalsWithWorkState() {
+        return this.activeGoals.map(goal => {
+            const workState = this.goalWorkState[goal.id] || {};
+            const isExpanded = workState.expanded || false;
+            return {
+                ...goal,
+                workedOn: workState.workedOn || false,
+                narrative: workState.narrative || '',
+                progressBefore: workState.progressBefore ?? goal.currentProgress ?? 0,
+                progressAfter: workState.progressAfter ?? goal.currentProgress ?? 0,
+                timeSpentMinutes: workState.timeSpentMinutes,
+                expanded: isExpanded,
+                expandIcon: isExpanded ? 'utility:chevronup' : 'utility:chevrondown',
+                cardClass: workState.workedOn 
+                    ? 'goal-card goal-card-selected' 
+                    : 'goal-card'
+            };
+        });
     }
 
     get durationDisplay() {
@@ -184,6 +221,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             defaultStartTime,
             defaultEndTime,
             goalAssignments,
+            activeGoals,
             codeAssignments,
             currentUserName,
             accountId
@@ -216,6 +254,35 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             value: item.id,
             description: item.description
         }));
+        
+        // Initialize rich goal data and work state
+        this.activeGoals = (activeGoals || []).map(goal => ({
+            ...goal,
+            // Computed display properties
+            priorityClass: this._getPriorityClass(goal.priority),
+            progressDisplay: goal.currentProgress != null ? `${goal.currentProgress}%` : '0%',
+            hasObjective: !!goal.objective,
+            hasModality: !!goal.modality,
+            hasCategory: !!goal.category && goal.category !== goal.name,
+            hasCategoryDescription: !!goal.categoryDescription,
+            hasFrequency: !!goal.frequency,
+            hasLastWorked: !!goal.lastWorkedOn,
+            sessionsDisplay: goal.totalSessions || 0
+        }));
+        
+        // Initialize goal work state for each goal
+        this.goalWorkState = {};
+        this.activeGoals.forEach(goal => {
+            this.goalWorkState[goal.id] = {
+                workedOn: false,
+                narrative: '',
+                progressBefore: goal.currentProgress || 0,
+                progressAfter: goal.currentProgress || 0,
+                timeSpentMinutes: null,
+                expanded: false
+            };
+        });
+        
         this.codeOptions = (codeAssignments || []).map((item) => ({
             label: item.label,
             value: item.id,
@@ -227,6 +294,14 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         };
         this.originalFormState = JSON.parse(JSON.stringify(this.form));
         this.activeSection = 'visit';
+    }
+    
+    _getPriorityClass(priority) {
+        if (!priority) return 'slds-badge';
+        const p = priority.toLowerCase();
+        if (p === 'high' || p === 'critical') return 'slds-badge slds-theme_error';
+        if (p === 'medium') return 'slds-badge slds-theme_warning';
+        return 'slds-badge';
     }
 
     handleInputChange(event) {
@@ -264,6 +339,100 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     handleBenefitsChange(event) {
         this.form = { ...this.form, benefitIds: event.detail.value || [] };
+    }
+    
+    // ========================================
+    // Goal Work Tracking Handlers
+    // ========================================
+    
+    /**
+     * Toggle goal card expansion to show/hide work inputs
+     */
+    handleGoalCardClick(event) {
+        const goalId = event.currentTarget.dataset.goalId;
+        if (!goalId) return;
+        
+        // Toggle expanded state
+        this.goalWorkState = {
+            ...this.goalWorkState,
+            [goalId]: {
+                ...this.goalWorkState[goalId],
+                expanded: !this.goalWorkState[goalId]?.expanded
+            }
+        };
+    }
+    
+    /**
+     * Toggle "Worked On" checkbox for a goal
+     */
+    handleGoalWorkedOnChange(event) {
+        const goalId = event.target.dataset.goalId;
+        const checked = event.target.checked;
+        
+        this.goalWorkState = {
+            ...this.goalWorkState,
+            [goalId]: {
+                ...this.goalWorkState[goalId],
+                workedOn: checked,
+                // Auto-expand when checked
+                expanded: checked ? true : this.goalWorkState[goalId]?.expanded
+            }
+        };
+    }
+    
+    /**
+     * Update narrative for a goal
+     */
+    handleGoalNarrativeChange(event) {
+        const goalId = event.target.dataset.goalId;
+        const value = event.target.value;
+        
+        this.goalWorkState = {
+            ...this.goalWorkState,
+            [goalId]: {
+                ...this.goalWorkState[goalId],
+                narrative: value
+            }
+        };
+    }
+    
+    /**
+     * Update progress slider for a goal
+     */
+    handleGoalProgressChange(event) {
+        const goalId = event.target.dataset.goalId;
+        const value = parseInt(event.target.value, 10);
+        
+        this.goalWorkState = {
+            ...this.goalWorkState,
+            [goalId]: {
+                ...this.goalWorkState[goalId],
+                progressAfter: value
+            }
+        };
+    }
+    
+    /**
+     * Update time spent for a goal
+     */
+    handleGoalTimeChange(event) {
+        const goalId = event.target.dataset.goalId;
+        const value = event.target.value ? parseInt(event.target.value, 10) : null;
+        
+        this.goalWorkState = {
+            ...this.goalWorkState,
+            [goalId]: {
+                ...this.goalWorkState[goalId],
+                timeSpentMinutes: value
+            }
+        };
+    }
+    
+    /**
+     * Prevent click propagation (used on checkbox inside clickable card)
+     */
+    stopPropagation(event) {
+        event.stopPropagation();
     }
     
     // Goal Assignment Creator handlers
@@ -422,12 +591,16 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
             this.interactionId = result.interactionSummaryId;
 
+            // Save signature
             if (signaturePad && typeof signaturePad.saveSignature === 'function') {
                 const signatureResult = await signaturePad.saveSignature(this.interactionId, true);
                 if (!signatureResult.success) {
                     throw new Error(signatureResult.error || 'Failed to save signature image.');
                 }
             }
+
+            // Save goal assignment details for goals worked on
+            await this._saveGoalWork(this.interactionId);
 
             this._showToast('Success', 'Case note saved successfully.', 'success');
             this._navigateToRecord(this.interactionId);
@@ -440,6 +613,54 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     handleSignatureSaved() {
         // placeholder to react to signature saved event if we need additional flows later
+    }
+
+    /**
+     * Save GoalAssignmentDetail records for goals that were worked on.
+     * Called after the main clinical note is saved.
+     */
+    async _saveGoalWork(interactionSummaryId) {
+        // Collect goals that were marked as worked on
+        const goalWorkItems = [];
+        
+        for (const [goalId, workState] of Object.entries(this.goalWorkState)) {
+            if (workState.workedOn) {
+                goalWorkItems.push({
+                    goalAssignmentId: goalId,
+                    narrative: workState.narrative || '',
+                    progressBefore: workState.progressBefore ?? 0,
+                    progressAfter: workState.progressAfter ?? 0,
+                    timeSpentMinutes: workState.timeSpentMinutes || null
+                });
+            }
+        }
+        
+        if (goalWorkItems.length === 0) {
+            console.log('No goals were marked as worked on - skipping goal details save');
+            return;
+        }
+        
+        console.log('Saving goal work for ' + goalWorkItems.length + ' goals');
+        
+        try {
+            const results = await saveGoalAssignmentDetails({
+                goalWorkItems: goalWorkItems,
+                interactionSummaryId: interactionSummaryId
+            });
+            
+            console.log('Goal work save results:', results);
+            
+            // Check for any failures
+            const failures = Object.entries(results).filter(([, msg]) => msg.startsWith('Error'));
+            if (failures.length > 0) {
+                console.warn('Some goal details failed to save:', failures);
+                // Don't throw - the main note was saved successfully
+            }
+        } catch (error) {
+            console.error('Error saving goal work:', error);
+            // Don't throw - the main note was saved successfully
+            this._showToast('Warning', 'Goal progress details could not be saved. The case note was saved.', 'warning');
+        }
     }
 
     _validateForm() {

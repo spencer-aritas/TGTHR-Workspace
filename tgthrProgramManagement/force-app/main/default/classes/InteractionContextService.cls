@@ -14,12 +14,34 @@ public with sharing class InteractionContextService {
         @AuraEnabled public String description;
     }
 
+    /**
+     * Rich DTO for GoalAssignment with full context for case note UI.
+     * Includes goal definition context, current progress, and session history.
+     */
+    public class GoalAssignmentDTO {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String name;              // CustomGoalName or GoalDefinition.Name
+        @AuraEnabled public String category;          // GoalDefinition.Name (for grouping)
+        @AuraEnabled public String categoryDescription; // GoalDefinition.Description (guidance text)
+        @AuraEnabled public String objective;         // Goal_Notes__c
+        @AuraEnabled public String modality;          // Description (service modality)
+        @AuraEnabled public String frequency;         // Frequency__c
+        @AuraEnabled public String status;            // Status
+        @AuraEnabled public String priority;          // Priority
+        @AuraEnabled public String startDate;         // StartDate
+        @AuraEnabled public String targetDate;        // TargetCompletionDate
+        @AuraEnabled public Decimal currentProgress;  // CurrentProgress__c (0-100)
+        @AuraEnabled public Integer totalSessions;    // TotalSessions__c
+        @AuraEnabled public String lastWorkedOn;      // LastWorkedOnDate__c
+    }
+
     public class InteractionContextData {
         @AuraEnabled public HeaderDTO header;
         @AuraEnabled public String today;
         @AuraEnabled public String defaultStartTime;
         @AuraEnabled public String defaultEndTime;
-        @AuraEnabled public List<OptionDTO> goalAssignments;
+        @AuraEnabled public List<OptionDTO> goalAssignments;        // Legacy - for dual listbox
+        @AuraEnabled public List<GoalAssignmentDTO> activeGoals;    // New - rich goal data for cards
         @AuraEnabled public List<OptionDTO> codeAssignments;
         @AuraEnabled public String currentUserName;
         @AuraEnabled public Id accountId;
@@ -52,6 +74,7 @@ public with sharing class InteractionContextService {
         response.defaultStartTime = formatTime(currentTime);
         response.defaultEndTime = formatTime(System.now().addMinutes(30).time());
         response.goalAssignments = fetchGoalAssignments(accountId);
+        response.activeGoals = fetchActiveGoals(accountId);
         response.codeAssignments = fetchCodeAssignments(accountId);
         response.currentUserName = UserInfo.getName();
         response.accountId = accountId;
@@ -154,6 +177,77 @@ public with sharing class InteractionContextService {
             System.debug('Failed to query Code_Assignment__c: ' + ex.getMessage());
         }
         return options;
+    }
+
+    /**
+     * Fetch active GoalAssignments from standard NPC GoalAssignment object
+     * with full context for case note goal tracking UI.
+     */
+    private static List<GoalAssignmentDTO> fetchActiveGoals(Id accountId) {
+        List<GoalAssignmentDTO> goals = new List<GoalAssignmentDTO>();
+        
+        try {
+            // Query standard GoalAssignment with GoalDefinition relationship and custom rollup fields
+            String query = 'SELECT Id, Name, CustomGoalName, ' +
+                           'GoalDefinitionId, GoalDefinition.Name, GoalDefinition.Description, ' +
+                           'Goal_Notes__c, Description, Frequency__c, ' +
+                           'Status, Priority, StartDate, TargetCompletionDate, ' +
+                           'CurrentProgress__c, TotalSessions__c, LastWorkedOnDate__c ' +
+                           'FROM GoalAssignment ' +
+                           'WHERE GoalAssigneeId = :accountId ' +
+                           'AND Status IN (\'Active\', \'In Progress\', \'Not Started\') ' +
+                           'ORDER BY Priority DESC NULLS LAST, CreatedDate DESC ' +
+                           'LIMIT 50';
+            
+            List<SObject> records = Database.query(query);
+            System.debug('fetchActiveGoals: Found ' + records.size() + ' active goals for account ' + accountId);
+            
+            for (SObject record : records) {
+                GoalAssignmentDTO dto = new GoalAssignmentDTO();
+                dto.id = (Id)record.get('Id');
+                
+                // Build display name: CustomGoalName > GoalDefinition.Name > Name (auto-number)
+                String customName = (String)record.get('CustomGoalName');
+                SObject goalDef = record.getSObject('GoalDefinition');
+                String defName = goalDef != null ? (String)goalDef.get('Name') : null;
+                String defDescription = goalDef != null ? (String)goalDef.get('Description') : null;
+                
+                dto.name = String.isNotBlank(customName) ? customName 
+                         : (String.isNotBlank(defName) ? defName : (String)record.get('Name'));
+                dto.category = defName;
+                dto.categoryDescription = defDescription;
+                
+                // Goal details
+                dto.objective = (String)record.get('Goal_Notes__c');
+                dto.modality = (String)record.get('Description');
+                dto.frequency = (String)record.get('Frequency__c');
+                dto.status = (String)record.get('Status');
+                dto.priority = (String)record.get('Priority');
+                
+                // Dates
+                Date startDt = (Date)record.get('StartDate');
+                Date targetDt = (Date)record.get('TargetCompletionDate');
+                dto.startDate = startDt != null ? String.valueOf(startDt) : null;
+                dto.targetDate = targetDt != null ? String.valueOf(targetDt) : null;
+                
+                // Progress tracking
+                Decimal progress = (Decimal)record.get('CurrentProgress__c');
+                dto.currentProgress = progress != null ? progress : 0;
+                
+                Decimal sessions = (Decimal)record.get('TotalSessions__c');
+                dto.totalSessions = sessions != null ? sessions.intValue() : 0;
+                
+                Date lastWorked = (Date)record.get('LastWorkedOnDate__c');
+                dto.lastWorkedOn = lastWorked != null ? lastWorked.format() : null;
+                
+                goals.add(dto);
+            }
+        } catch (Exception ex) {
+            System.debug('Error fetching active goals: ' + ex.getMessage());
+            System.debug('Stack trace: ' + ex.getStackTraceString());
+        }
+        
+        return goals;
     }
 
     private static Object resolveFieldValue(SObject record, List<String> fieldNames) {

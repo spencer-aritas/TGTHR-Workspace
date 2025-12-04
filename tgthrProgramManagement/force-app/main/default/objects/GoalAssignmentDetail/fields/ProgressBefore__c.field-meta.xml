@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ProgressBefore__c</fullName>
+    <label>Progress Before</label>
+    <description>Progress percentage at the start of this session (before working on the goal).</description>
+    <inlineHelpText>Goal progress (0-100) at the start of this interaction.</inlineHelpText>
+    <type>Percent</type>
+    <precision>5</precision>
+    <scale>0</scale>
+    <required>false</required>
+</CustomField>

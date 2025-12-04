@@ -8,7 +8,6 @@
  * 
  * @author TGTHR Development Team
  * @date 2024
- * @updated 2024-12 - Added GoalAssignment support
  */
 public with sharing class InterviewDocumentService {
     
@@ -662,11 +661,9 @@ public with sharing class InterviewDocumentService {
             System.debug('buildGoals: Querying GoalAssignment for GoalAssigneeId (Account) ' + accountId);
             
             // Query GoalAssignment with all relevant fields and related GoalDefinition
-            // Goal_Name__c is the custom field for client-specific goal name
-            // Goal_Notes__c is used for the objective/notes about the goal
-            String query = 'SELECT Id, Name, GoalDefinitionId, ' +
+            String query = 'SELECT Id, Name, GoalDefinitionId, CustomGoalName, ' +
                            'GoalDefinition.Name, GoalDefinition.Description, ' +
-                           'Goal_Name__c, Goal_Notes__c, Description, Frequency__c, ' +
+                           'Goal_Notes__c, Description, Frequency__c, ' +
                            'StartDate, TargetCompletionDate, Priority, Status ' +
                            'FROM GoalAssignment ' +
                            'WHERE GoalAssigneeId = :accountId ' +
@@ -676,13 +673,13 @@ public with sharing class InterviewDocumentService {
             System.debug('buildGoals: Found ' + records.size() + ' GoalAssignment records');
             
             for (SObject record : records) {
-                // Get GoalDefinition info for categorization
+                // Priority: CustomGoalName (client-specific) > GoalDefinition.Name > Name (auto-number)
+                String goalName = (String)record.get('CustomGoalName');
                 SObject goalDef = record.getSObject('GoalDefinition');
                 String goalDefName = goalDef != null ? (String)goalDef.get('Name') : null;
                 String goalDefDescription = goalDef != null ? (String)goalDef.get('Description') : null;
                 
-                // Use Goal_Name__c as goal name, fall back to GoalDefinition.Name
-                String goalName = (String)record.get('Goal_Name__c');
+                // Use CustomGoalName if set, otherwise fall back to GoalDefinition.Name
                 if (String.isBlank(goalName)) {
                     goalName = String.isNotBlank(goalDefName) ? goalDefName : (String)record.get('Name');
                 }
@@ -692,7 +689,7 @@ public with sharing class InterviewDocumentService {
                     'name' => goalName,
                     'category' => goalDefName,  // GoalDefinition.Name for reporting/grouping
                     'categoryDescription' => goalDefDescription,  // GoalDefinition.Description for guidance
-                    'objective' => (String)record.get('Goal_Notes__c'),  // Client-specific objective/notes
+                    'objective' => (String)record.get('Goal_Notes__c'),  // Client-specific objective
                     'serviceModality' => (String)record.get('Description'),  // Service description/modality
                     'frequency' => (String)record.get('Frequency__c'),
                     'startDate' => String.valueOf(record.get('StartDate')),
