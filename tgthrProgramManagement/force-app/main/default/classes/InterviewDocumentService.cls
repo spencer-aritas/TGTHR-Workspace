@@ -8,6 +8,7 @@
  * 
  * @author TGTHR Development Team
  * @date 2024
+ * @updated 2024-12 - Added GoalAssignment support
  */
 public with sharing class InterviewDocumentService {
     
@@ -54,6 +55,11 @@ public with sharing class InterviewDocumentService {
             'Client__r.PersonBirthdate, Client__r.PersonPronouns, ' +
             'Client__r.PersonMobilePhone, Client__r.PersonEmail, ' +
             'Client__r.MEDICAID_Number__pc, ' +
+            'Interaction_Summary__r.MeetingNotes, ' +  // Interaction details for document
+            'Interaction_Summary__r.Start_Time__c, ' +
+            'Interaction_Summary__r.End_Time__c, ' +
+            'Interaction_Summary__r.POS__c, ' +
+            'Interaction_Summary__r.Date_of_Interaction__c, ' +
             'Program_Enrollment__r.ProgramId, Program_Enrollment__r.Program.Name, ';
             
         interviewQuery += 
@@ -149,6 +155,9 @@ public with sharing class InterviewDocumentService {
             }
         };
         
+        // Get InteractionSummary data for document
+        SObject interactionSummary = interview.getSObject('Interaction_Summary__r');
+        
         Map<String, Object> interviewData = new Map<String, Object>{
             'id' => (String)interview.get('Id'),
             'interactionSummaryId' => (String)interview.get('Interaction_Summary__c'),
@@ -156,8 +165,14 @@ public with sharing class InterviewDocumentService {
             'dateStarted' => String.valueOf(interview.get('Started_On__c')),
             'dateCompleted' => String.valueOf(interview.get('Completed_On__c')),
             'status' => (String)interview.get('Status__c'),
-            'location' => '', // TODO: Add location field
-            'channel' => 'In Person' // TODO: Add channel field
+            'location' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : '', // Place of Service
+            'channel' => 'In Person', // TODO: Add channel field
+            // InteractionSummary details
+            'meetingNotes' => interactionSummary != null ? (String)interactionSummary.get('MeetingNotes') : null,
+            'startTime' => interactionSummary != null ? String.valueOf(interactionSummary.get('Start_Time__c')) : null,
+            'endTime' => interactionSummary != null ? String.valueOf(interactionSummary.get('End_Time__c')) : null,
+            'placeOfService' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : null,
+            'dateOfInteraction' => interactionSummary != null ? String.valueOf(interactionSummary.get('Date_of_Interaction__c')) : null
         };
         
         Map<String, Object> staff = new Map<String, Object>{
@@ -205,8 +220,26 @@ public with sharing class InterviewDocumentService {
         }
 
         // Step 5.7: Build goals section if present
-        List<Object> goals = buildGoals(interview);
-        Map<String, Object> carePlanConsent = buildCarePlanConsent(interview);
+        List<Object> goals = new List<Object>();
+        Map<String, Object> carePlanConsent = null;
+        
+        try {
+            System.debug('=== CALLING buildGoals ===');
+            goals = buildGoals(interview);
+            System.debug('=== buildGoals returned ' + goals.size() + ' goals ===');
+        } catch (Exception e) {
+            System.debug('!!! EXCEPTION in buildGoals: ' + e.getMessage());
+            System.debug('!!! Stack: ' + e.getStackTraceString());
+        }
+        
+        try {
+            System.debug('=== CALLING buildCarePlanConsent ===');
+            carePlanConsent = buildCarePlanConsent(interview);
+            System.debug('=== buildCarePlanConsent returned: ' + (carePlanConsent != null ? 'Present' : 'NULL') + ' ===');
+        } catch (Exception e) {
+            System.debug('!!! EXCEPTION in buildCarePlanConsent: ' + e.getMessage());
+            System.debug('!!! Stack: ' + e.getStackTraceString());
+        }
         
         System.debug('=== GOALS DEBUG ===');
         System.debug('Goals count: ' + goals.size());
@@ -608,8 +641,8 @@ public with sharing class InterviewDocumentService {
     }
     
     /**
-     * Build goals list from GoalAssignment records linked to the interview's Case.
-     * Also includes CarePlan consent information.
+     * Build goals list from GoalAssignment records linked to the participant Account.
+     * GoalAssigneeId is a polymorphic lookup that accepts Account or Contact - we use Account.
      * 
      * @param interview Interview__c SObject
      * @return List of goal items
@@ -618,35 +651,50 @@ public with sharing class InterviewDocumentService {
         List<Object> items = new List<Object>();
         
         try {
-            Id caseId = (Id)interview.get('Case__c');
+            // GoalAssignment links via GoalAssigneeId which accepts Account (Person Account)
+            Id accountId = (Id)interview.get('Client__c');
             
-            if (caseId == null) {
-                System.debug('buildGoals: No Case found for Interview');
+            if (accountId == null) {
+                System.debug('buildGoals: No Client (Account) found for Interview');
                 return items;
             }
             
-            System.debug('buildGoals: Querying GoalAssignment for Case ' + caseId);
+            System.debug('buildGoals: Querying GoalAssignment for GoalAssigneeId (Account) ' + accountId);
             
-            String query = 'SELECT Id, Name, CustomGoalName, Description, ' +
+            // Query GoalAssignment with all relevant fields and related GoalDefinition
+            // Goal_Name__c is the custom field for client-specific goal name
+            // Goal_Notes__c is used for the objective/notes about the goal
+            String query = 'SELECT Id, Name, GoalDefinitionId, ' +
+                           'GoalDefinition.Name, GoalDefinition.Description, ' +
+                           'Goal_Name__c, Goal_Notes__c, Description, Frequency__c, ' +
                            'StartDate, TargetCompletionDate, Priority, Status ' +
                            'FROM GoalAssignment ' +
-                           'WHERE Case__c = :caseId ' +
-                           'ORDER BY CreatedDate DESC';
+                           'WHERE GoalAssigneeId = :accountId ' +
+                           'ORDER BY Priority DESC, CreatedDate DESC';
             
             List<SObject> records = Database.query(query);
             System.debug('buildGoals: Found ' + records.size() + ' GoalAssignment records');
             
             for (SObject record : records) {
-                // Use CustomGoalName if available, fallback to Name (auto-number)
-                String goalName = (String)record.get('CustomGoalName');
+                // Get GoalDefinition info for categorization
+                SObject goalDef = record.getSObject('GoalDefinition');
+                String goalDefName = goalDef != null ? (String)goalDef.get('Name') : null;
+                String goalDefDescription = goalDef != null ? (String)goalDef.get('Description') : null;
+                
+                // Use Goal_Name__c as goal name, fall back to GoalDefinition.Name
+                String goalName = (String)record.get('Goal_Name__c');
                 if (String.isBlank(goalName)) {
-                    goalName = (String)record.get('Name');
+                    goalName = String.isNotBlank(goalDefName) ? goalDefName : (String)record.get('Name');
                 }
                 
                 items.add(new Map<String, Object>{
                     'type' => 'goal',
                     'name' => goalName,
-                    'description' => (String)record.get('Description'),
+                    'category' => goalDefName,  // GoalDefinition.Name for reporting/grouping
+                    'categoryDescription' => goalDefDescription,  // GoalDefinition.Description for guidance
+                    'objective' => (String)record.get('Goal_Notes__c'),  // Client-specific objective/notes
+                    'serviceModality' => (String)record.get('Description'),  // Service description/modality
+                    'frequency' => (String)record.get('Frequency__c'),
                     'startDate' => String.valueOf(record.get('StartDate')),
                     'targetDate' => String.valueOf(record.get('TargetCompletionDate')),
                     'priority' => (String)record.get('Priority'),
@@ -664,6 +712,7 @@ public with sharing class InterviewDocumentService {
     
     /**
      * Build CarePlan consent information for Treatment Plan documents.
+     * Includes review dates and consent checkboxes.
      * 
      * @param interview Interview__c SObject
      * @return Map with consent fields or null if no CarePlan
@@ -676,10 +725,11 @@ public with sharing class InterviewDocumentService {
                 return null;
             }
             
-            // Query CarePlan linked to Case
-            String query = 'SELECT Id, Discharge_Plan__c, Expected_Discharge_Date__c ' +
+            // Query CarePlan linked to Case (using CaseId, not Case__c)
+            String query = 'SELECT Id, Discharge_Plan__c, Expected_Discharge_Date__c, ' +
+                           'Last_Review_Date__c, Next_Review_Date__c, Review_Frequency_Days__c ' +
                            'FROM CarePlan ' +
-                           'WHERE Case__c = :caseId ' +
+                           'WHERE CaseId = :caseId ' +
                            'LIMIT 1';
             
             List<SObject> carePlans = Database.query(query);
@@ -702,7 +752,10 @@ public with sharing class InterviewDocumentService {
                 'consentParticipated' => consentParticipated,
                 'consentOffered' => consentOffered,
                 'dischargePlan' => dischargePlan,
-                'expectedDischargeDate' => String.valueOf(carePlan.get('Expected_Discharge_Date__c'))
+                'expectedDischargeDate' => String.valueOf(carePlan.get('Expected_Discharge_Date__c')),
+                'lastReviewDate' => String.valueOf(carePlan.get('Last_Review_Date__c')),
+                'nextReviewDate' => String.valueOf(carePlan.get('Next_Review_Date__c')),
+                'reviewFrequencyDays' => carePlan.get('Review_Frequency_Days__c')
             };
         } catch (Exception e) {
             System.debug('Error building CarePlan consent: ' + e.getMessage());
@@ -767,6 +820,9 @@ public with sharing class InterviewDocumentService {
             // Direct HTTP callout to DocGen service
             String endpoint = 'https://docgen.aritasconsulting.com/trigger-interview-doc';
             
+            System.debug('========================================');
+            System.debug('=== INTERVIEW DOCUMENT SERVICE START ===');
+            System.debug('========================================');
             System.debug('Calling DocGen: ' + endpoint);
             System.debug('InteractionSummary ID: ' + interactionSummaryId);
             System.debug('Preview mode: ' + preview);
@@ -777,6 +833,18 @@ public with sharing class InterviewDocumentService {
             
             // Build complete InterviewDocumentPayload
             Map<String, Object> payload = buildInterviewDocumentPayload(interactionSummaryId);
+            
+            // Debug: Log sections count in payload
+            List<Object> sectionsInPayload = (List<Object>) payload.get('sections');
+            System.debug('========================================');
+            System.debug('=== PAYLOAD SECTIONS COUNT: ' + (sectionsInPayload != null ? sectionsInPayload.size() : 0) + ' ===');
+            System.debug('========================================');
+            if (sectionsInPayload != null) {
+                for (Object sec : sectionsInPayload) {
+                    Map<String, Object> secMap = (Map<String, Object>) sec;
+                    System.debug('>>> Section: ' + secMap.get('id') + ' kind=' + secMap.get('kind'));
+                }
+            }
             
             // Build request payload
             Map<String, Object> requestBody = new Map<String, Object>{

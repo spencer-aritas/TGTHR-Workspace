@@ -236,3 +236,118 @@ lightning-accordion-section [data-section] {
     }
 }
 
+/* ================================
+   Goal Cards Styles
+   ================================ */
+
+.goal-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.goal-card {
+    border: 1px solid var(--lwc-colorBorder, #e5e5e5);
+    border-radius: 0.5rem;
+    background: var(--lwc-colorBackgroundAlt, #ffffff);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.goal-card:hover {
+    border-color: #0176d3;
+}
+
+.goal-card-selected {
+    border-color: #0176d3;
+    box-shadow: 0 0 0 1px #0176d3;
+    background: rgba(1, 118, 211, 0.03);
+}
+
+.goal-card-header {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.goal-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--lwc-colorTextDefault, #080707);
+    margin: 0;
+    line-height: 1.3;
+}
+
+.goal-category {
+    font-size: 0.75rem;
+    color: var(--lwc-colorTextLabel, #5f6a7d);
+    margin: 0.125rem 0 0 0;
+}
+
+.goal-progress-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextDefault, #080707);
+    margin: 0.25rem 0 0 0;
+}
+
+.goal-card-body {
+    padding: 0 1rem 1rem 1rem;
+    border-top: 1px solid var(--lwc-colorBorder, #e5e5e5);
+}
+
+.goal-context {
+    padding-top: 0.75rem;
+    background: var(--lwc-colorBackgroundShade, #f3f2f2);
+    margin: 0 -1rem;
+    padding: 0.75rem 1rem;
+}
+
+.goal-context p {
+    margin: 0 0 0.25rem 0;
+}
+
+.goal-context p:last-child {
+    margin-bottom: 0;
+}
+
+.goal-work-inputs {
+    padding-top: 1rem;
+}
+
+/* Progress slider styling */
+.progress-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--lwc-colorBackgroundShade, #e5e5e5);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.progress-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0176d3;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.progress-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #0176d3;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.progress-slider:focus {
+    box-shadow: 0 0 0 2px rgba(1, 118, 211, 0.3);
+}
+

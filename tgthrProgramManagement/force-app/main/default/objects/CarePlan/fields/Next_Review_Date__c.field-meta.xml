@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Next_Review_Date__c</fullName>
+    <label>Next Review Date</label>
+    <type>Date</type>
+    <description>Date when the next Care Plan review is due. Calculated based on review frequency when a review is completed.</description>
+    <inlineHelpText>The scheduled date for the next Care Plan review.</inlineHelpText>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+</CustomField>

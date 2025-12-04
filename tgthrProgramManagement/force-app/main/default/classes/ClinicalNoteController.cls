@@ -23,6 +23,18 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public String errorMessage;
     }
 
+    /**
+     * DTO for goal work input from the UI.
+     * Captures per-goal notes and progress during a clinical session.
+     */
+    public class GoalWorkInput {
+        @AuraEnabled public Id goalAssignmentId;
+        @AuraEnabled public String narrative;         // Per-goal notes
+        @AuraEnabled public Decimal progressBefore;   // Progress at start (0-100)
+        @AuraEnabled public Decimal progressAfter;    // Progress at end (0-100)
+        @AuraEnabled public Integer timeSpentMinutes; // Time spent on this goal
+    }
+
     @AuraEnabled(cacheable=true)
     public static InteractionContextService.InteractionContextData initClinicalNote(Id caseId) {
         return InteractionContextService.initInteractionContext(caseId);
@@ -447,8 +459,223 @@ public with sharing class ClinicalNoteController {
         }
     }
 
+    /**
+     * Save GoalAssignmentDetail records for goals worked on during a clinical session.
+     * Creates one GoalAssignmentDetail per goal with narrative, progress, and time tracking.
+     * The trigger on GoalAssignmentDetail will automatically roll up progress to GoalAssignment.
+     * 
+     * @param goalWorkItems List of GoalWorkInput objects with per-goal data
+     * @param interactionSummaryId The InteractionSummary this work is linked to
+     * @return Map of goalAssignmentId -> success/error message
+     */
+    @AuraEnabled
+    public static Map<String, String> saveGoalAssignmentDetails(
+        List<GoalWorkInput> goalWorkItems,
+        Id interactionSummaryId
+    ) {
+        Map<String, String> results = new Map<String, String>();
+        
+        if (goalWorkItems == null || goalWorkItems.isEmpty()) {
+            return results;
+        }
+        
+        System.debug('saveGoalAssignmentDetails: Processing ' + goalWorkItems.size() + ' goal work items');
+        
+        List<SObject> detailsToInsert = new List<SObject>();
+        
+        for (GoalWorkInput item : goalWorkItems) {
+            if (item.goalAssignmentId == null) {
+                continue;
+            }
+            
+            try {
+                // Create GoalAssignmentDetail record using dynamic SObject
+                SObject detail = Schema.getGlobalDescribe().get('GoalAssignmentDetail').newSObject();
+                
+                // Standard field - links to GoalAssignment
+                detail.put('GoalAssignmentId', item.goalAssignmentId);
+                
+                // Link to InteractionSummary via DetailRecordId (polymorphic lookup)
+                if (interactionSummaryId != null) {
+                    detail.put('DetailRecordId', interactionSummaryId);
+                }
+                
+                // Custom fields for progress tracking
+                if (String.isNotBlank(item.narrative)) {
+                    detail.put('Narrative__c', item.narrative);
+                }
+                
+                if (item.progressBefore != null) {
+                    // Convert percentage (0-100) to decimal (0-1) for Percent field
+                    detail.put('ProgressBefore__c', item.progressBefore / 100);
+                }
+                
+                if (item.progressAfter != null) {
+                    // Convert percentage (0-100) to decimal (0-1) for Percent field
+                    detail.put('ProgressAfter__c', item.progressAfter / 100);
+                }
+                
+                if (item.timeSpentMinutes != null && item.timeSpentMinutes > 0) {
+                    detail.put('TimeSpentMinutes__c', item.timeSpentMinutes);
+                }
+                
+                // Set detail type to indicate this came from a clinical session
+                detail.put('DetailType__c', 'ClinicalSession');
+                
+                detailsToInsert.add(detail);
+                
+            } catch (Exception e) {
+                results.put(String.valueOf(item.goalAssignmentId), 'Error: ' + e.getMessage());
+                System.debug('Error preparing GoalAssignmentDetail for ' + item.goalAssignmentId + ': ' + e.getMessage());
+            }
+        }
+        
+        if (!detailsToInsert.isEmpty()) {
+            Database.SaveResult[] saveResults = Database.insert(detailsToInsert, false);
+            
+            for (Integer i = 0; i < saveResults.size(); i++) {
+                Database.SaveResult sr = saveResults[i];
+                SObject detail = detailsToInsert[i];
+                Id goalAssignmentId = (Id)detail.get('GoalAssignmentId');
+                
+                if (sr.isSuccess()) {
+                    results.put(String.valueOf(goalAssignmentId), 'Success');
+                    System.debug('✓ Created GoalAssignmentDetail for ' + goalAssignmentId + ': ' + sr.getId());
+                } else {
+                    String errorMsg = '';
+                    for (Database.Error err : sr.getErrors()) {
+                        errorMsg += err.getMessage() + ' ';
+                    }
+                    results.put(String.valueOf(goalAssignmentId), 'Error: ' + errorMsg.trim());
+                    System.debug('✗ Failed to create GoalAssignmentDetail for ' + goalAssignmentId + ': ' + errorMsg);
+                }
+            }
+        }
+        
+        System.debug('saveGoalAssignmentDetails complete. Results: ' + results);
+        return results;
+    }
+
+    /**
+     * Update CarePlan review dates when a Care Plan Review clinical note is completed.
+     * Sets Last_Review_Date__c to today and calculates Next_Review_Date__c based on frequency.
+     * 
+     * @param caseId The Case ID to find the associated CarePlan
+     * @param reviewFrequencyDays Optional override for review frequency (days). If null, uses CarePlan's default or 90 days.
+     * @return Map with success status and updated dates
+     */
+    @AuraEnabled
+    public static Map<String, Object> updateCarePlanReviewDates(Id caseId, Integer reviewFrequencyDays) {
+        Map<String, Object> result = new Map<String, Object>();
+        
+        try {
+            if (caseId == null) {
+                result.put('success', false);
+                result.put('errorMessage', 'Case ID is required');
+                return result;
+            }
+            
+            // Find CarePlan linked to the Case
+            String query = 'SELECT Id, Name, Last_Review_Date__c, Next_Review_Date__c, Review_Frequency_Days__c ' +
+                           'FROM CarePlan WHERE CaseId = :caseId LIMIT 1';
+            List<SObject> carePlans = Database.query(query);
+            
+            if (carePlans.isEmpty()) {
+                result.put('success', false);
+                result.put('errorMessage', 'No Care Plan found for this Case');
+                return result;
+            }
+            
+            SObject carePlan = carePlans[0];
+            
+            // Determine review frequency
+            Integer frequency = reviewFrequencyDays;
+            if (frequency == null || frequency <= 0) {
+                // Use CarePlan's stored frequency or default to 90 days
+                Decimal storedFrequency = (Decimal)carePlan.get('Review_Frequency_Days__c');
+                frequency = (storedFrequency != null && storedFrequency > 0) ? storedFrequency.intValue() : 90;
+            }
+            
+            // Update dates
+            Date today = Date.today();
+            Date nextReview = today.addDays(frequency);
+            
+            carePlan.put('Last_Review_Date__c', today);
+            carePlan.put('Next_Review_Date__c', nextReview);
+            
+            // Also update the frequency if a new one was provided
+            if (reviewFrequencyDays != null && reviewFrequencyDays > 0) {
+                carePlan.put('Review_Frequency_Days__c', reviewFrequencyDays);
+            }
+            
+            update carePlan;
+            
+            result.put('success', true);
+            result.put('carePlanId', carePlan.get('Id'));
+            result.put('carePlanName', carePlan.get('Name'));
+            result.put('lastReviewDate', String.valueOf(today));
+            result.put('nextReviewDate', String.valueOf(nextReview));
+            result.put('reviewFrequencyDays', frequency);
+            
+            System.debug('CarePlan review dates updated: Last=' + today + ', Next=' + nextReview + ' (frequency: ' + frequency + ' days)');
+            
+        } catch (Exception e) {
+            result.put('success', false);
+            result.put('errorMessage', e.getMessage());
+            System.debug('Error updating CarePlan review dates: ' + e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Get CarePlan details for a Case, including review dates.
+     * 
+     * @param caseId The Case ID to find the associated CarePlan
+     * @return Map with CarePlan details or null if not found
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getCarePlanDetails(Id caseId) {
+        Map<String, Object> result = new Map<String, Object>();
+        
+        try {
+            if (caseId == null) {
+                return null;
+            }
+            
+            String query = 'SELECT Id, Name, Last_Review_Date__c, Next_Review_Date__c, ' +
+                           'Review_Frequency_Days__c, Discharge_Plan__c, Expected_Discharge_Date__c ' +
+                           'FROM CarePlan WHERE CaseId = :caseId LIMIT 1';
+            List<SObject> carePlans = Database.query(query);
+            
+            if (carePlans.isEmpty()) {
+                return null;
+            }
+            
+            SObject carePlan = carePlans[0];
+            
+            result.put('id', carePlan.get('Id'));
+            result.put('name', carePlan.get('Name'));
+            result.put('lastReviewDate', carePlan.get('Last_Review_Date__c'));
+            result.put('nextReviewDate', carePlan.get('Next_Review_Date__c'));
+            result.put('reviewFrequencyDays', carePlan.get('Review_Frequency_Days__c'));
+            result.put('dischargePlan', carePlan.get('Discharge_Plan__c'));
+            result.put('expectedDischargeDate', carePlan.get('Expected_Discharge_Date__c'));
+            
+            // Calculate days until next review
+            Date nextReview = (Date)carePlan.get('Next_Review_Date__c');
+            if (nextReview != null) {
+                Integer daysUntilReview = Date.today().daysBetween(nextReview);
+                result.put('daysUntilNextReview', daysUntilReview);
+                result.put('reviewOverdue', daysUntilReview < 0);
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.debug('Error getting CarePlan details: ' + e.getMessage());
+            return null;
+        }
+    }
+
 }
-
-
-
-

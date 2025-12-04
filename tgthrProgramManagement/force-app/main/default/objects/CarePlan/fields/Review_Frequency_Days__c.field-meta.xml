@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Review_Frequency_Days__c</fullName>
+    <label>Review Frequency (Days)</label>
+    <type>Number</type>
+    <precision>3</precision>
+    <scale>0</scale>
+    <defaultValue>90</defaultValue>
+    <description>Number of days between Care Plan reviews. Used to calculate Next Review Date when a review is completed.</description>
+    <inlineHelpText>How many days between scheduled Care Plan reviews (default: 90 days).</inlineHelpText>
+    <required>false</required>
+</CustomField>

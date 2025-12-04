@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CurrentProgress__c</fullName>
+    <label>Current Progress</label>
+    <description>Current progress toward goal completion (0-100%). Updated automatically when GoalAssignmentDetail records are created.</description>
+    <inlineHelpText>Progress percentage (0-100) toward completing this goal.</inlineHelpText>
+    <type>Percent</type>
+    <precision>5</precision>
+    <scale>0</scale>
+    <required>false</required>
+    <defaultValue>0</defaultValue>
+</CustomField>

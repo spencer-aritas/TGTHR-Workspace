@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Narrative__c</fullName>
+    <label>Narrative</label>
+    <description>Per-goal narrative notes from the interaction session describing work done on this goal.</description>
+    <inlineHelpText>Notes about progress or work done on this goal during the session.</inlineHelpText>
+    <type>LongTextArea</type>
+    <length>32000</length>
+    <visibleLines>4</visibleLines>
+    <required>false</required>
+</CustomField>

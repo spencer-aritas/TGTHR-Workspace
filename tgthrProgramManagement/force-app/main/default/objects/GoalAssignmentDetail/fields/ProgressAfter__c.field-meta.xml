@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ProgressAfter__c</fullName>
+    <label>Progress After</label>
+    <description>Progress percentage at the end of this session (after working on the goal). This value is rolled up to GoalAssignment.CurrentProgress__c.</description>
+    <inlineHelpText>Goal progress (0-100) at the end of this interaction.</inlineHelpText>
+    <type>Percent</type>
+    <precision>5</precision>
+    <scale>0</scale>
+    <required>false</required>
+</CustomField>

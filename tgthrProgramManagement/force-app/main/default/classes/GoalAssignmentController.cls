@@ -74,7 +74,8 @@ public with sharing class GoalAssignmentController {
                 goalRecord.put('Id', goal.id);
             }
             
-            if (String.isNotBlank(goal.name)) goalRecord.put('CustomGoalName', goal.name);
+            // Use Goal_Name__c for the goal name (CustomGoalName has FLS issues from Apex)
+            if (String.isNotBlank(goal.name)) goalRecord.put('Goal_Name__c', goal.name);
             if (String.isNotBlank(goal.description)) goalRecord.put('Description', goal.description);
             if (String.isNotBlank(goal.objective)) goalRecord.put('Goal_Notes__c', goal.objective);
             if (goal.startDate != null) goalRecord.put('StartDate', goal.startDate);
@@ -92,34 +93,17 @@ public with sharing class GoalAssignmentController {
                 } 
                 
                 // If not resolved from Case, try using the provided accountId
+                // Use Account ID directly for GoalAssigneeId (polymorphic lookup accepts Account)
                 if (assigneeId == null && String.isNotBlank(goal.accountId)) {
-                    try {
-                        // Check if the provided accountId is actually a Contact (just in case)
-                        Id accId = (Id)goal.accountId;
-                        if (accId.getSobjectType() == Schema.Contact.SObjectType) {
-                            assigneeId = accId;
-                            System.debug('Provided accountId is actually a ContactId: ' + assigneeId);
-                        } else {
-                            Account acc = [SELECT PersonContactId, IsPersonAccount FROM Account WHERE Id = :goal.accountId LIMIT 1];
-                            if (acc.IsPersonAccount == true && acc.PersonContactId != null) {
-                                assigneeId = acc.PersonContactId;
-                                System.debug('Resolved Assignee from provided Account.PersonContactId: ' + assigneeId);
-                            } else {
-                                assigneeId = goal.accountId;
-                                System.debug('Using provided AccountId: ' + assigneeId);
-                            }
-                        }
-                    } catch (Exception e) {
-                        assigneeId = goal.accountId;
-                        System.debug('Error resolving from AccountId, using raw value: ' + assigneeId);
-                    }
+                    assigneeId = goal.accountId;
+                    System.debug('Using provided AccountId for GoalAssigneeId: ' + assigneeId);
                 }
                 
                 if (assigneeId != null) {
                     goalRecord.put('GoalAssigneeId', assigneeId);
                 } else {
                     System.debug('CRITICAL: Failed to resolve GoalAssigneeId. CaseId: ' + goal.caseId + ', AccountId: ' + goal.accountId);
-                    throw new AuraHandledException('Could not resolve a valid Goal Assignee (Contact) from the provided Case or Account.');
+                    throw new AuraHandledException('Could not resolve a valid Goal Assignee (Account) from the provided Case or Account.');
                 }
                 
                 if (String.isNotBlank(goal.caseId)) {
@@ -175,13 +159,15 @@ public with sharing class GoalAssignmentController {
         }
     }
 
+    /**
+     * Resolve the Account ID from a Case for use as GoalAssigneeId.
+     * Person Account paradigm: Always use the Account ID, not Contact.
+     */
     private static Id resolveAssigneeId(Id caseId) {
         if (caseId == null) return null;
         try {
-            Case c = [SELECT ContactId, AccountId, Account.PersonContactId, Account.IsPersonAccount FROM Case WHERE Id = :caseId LIMIT 1];
-            if (c.ContactId != null) return c.ContactId;
-            if (c.Account.IsPersonAccount == true && c.Account.PersonContactId != null) return c.Account.PersonContactId;
-            return c.AccountId;
+            Case c = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+            return c.AccountId;  // Always return Account ID for Person Account paradigm
         } catch (Exception e) {
             System.debug('Error resolving assignee: ' + e.getMessage());
             return null;

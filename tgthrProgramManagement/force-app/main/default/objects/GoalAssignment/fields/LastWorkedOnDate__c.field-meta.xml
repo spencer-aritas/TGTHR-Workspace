@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>LastWorkedOnDate__c</fullName>
+    <label>Last Worked On Date</label>
+    <description>Date when this goal was last addressed in an interaction. Updated automatically when GoalAssignmentDetail records are created.</description>
+    <inlineHelpText>The most recent date this goal was worked on during an interaction.</inlineHelpText>
+    <type>Date</type>
+    <required>false</required>
+</CustomField>

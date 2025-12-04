@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TotalSessions__c</fullName>
+    <label>Total Sessions</label>
+    <description>Count of interactions where this goal was addressed. Incremented automatically when GoalAssignmentDetail records are created.</description>
+    <inlineHelpText>Number of sessions/interactions where this goal was worked on.</inlineHelpText>
+    <type>Number</type>
+    <precision>5</precision>
+    <scale>0</scale>
+    <required>false</required>
+    <defaultValue>0</defaultValue>
+</CustomField>
