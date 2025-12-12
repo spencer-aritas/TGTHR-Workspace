@@ -15,6 +15,7 @@
             <value><fullName>Yes</fullName><default>false</default><label>Yes</label></value>
             <value><fullName>No</fullName><default>false</default><label>No</label></value>
             <value><fullName>Client Doesn&apos;t Know</fullName><default>false</default><label>Client Doesn&apos;t Know</label></value>
+            <value><fullName>Client Does Not Know</fullName><default>false</default><label>Client Does Not Know</label></value>
             <value><fullName>Prefers Not to Answer</fullName><default>false</default><label>Prefers Not to Answer</label></value>
             <value><fullName>Data Not Collected</fullName><default>false</default><label>Data Not Collected</label></value>
         </valueSetDefinition>

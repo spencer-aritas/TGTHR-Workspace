@@ -2,7 +2,6 @@ import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getDocumentsForContext from '@salesforce/apex/InterviewDocumentController.getDocumentsForContext';
-import getPreviewUrl from '@salesforce/apex/InterviewDocumentController.getPreviewUrl';
 import getDownloadUrl from '@salesforce/apex/InterviewDocumentController.getDownloadUrl';
 
 export default class InterviewDocumentViewer extends NavigationMixin(LightningElement) {
@@ -11,13 +10,18 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     documents = [];
     selectedDocumentId = null;
     selectedDocument = null;
-    previewUrl = null;
     isLoading = true;
-    isPreviewLoading = false;
+    hasInitialized = false; // Track if we've attempted to load data at least once
     
     // Wire to load documents based on context
     @wire(getDocumentsForContext, { recordId: '$recordId' })
     wiredDocuments({ error, data }) {
+        // Don't process if recordId isn't set yet (prevents premature error toasts)
+        if (!this.recordId) {
+            return;
+        }
+        
+        this.hasInitialized = true;
         this.isLoading = false;
         
         if (data) {
@@ -31,6 +35,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         } else if (error) {
             console.error('Error loading documents:', error);
             
+            // Only show error toast if we've actually tried to load (not initial wire firing)
             // Extract error message
             let errorMessage = 'Failed to load documents';
             if (error.body) {
@@ -118,31 +123,14 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     }
     
     /**
-     * Select a document and load its preview
+     * Select a document and show its metadata
      */
-    async selectDocument(docId) {
+    selectDocument(docId) {
         this.selectedDocumentId = docId;
         this.selectedDocument = this.documents.find(d => d.id === docId);
         
         // Update selection state in list
         this.updateDocumentClasses();
-        
-        if (!this.selectedDocument) {
-            return;
-        }
-        
-        // Load preview URL
-        this.isPreviewLoading = true;
-        
-        try {
-            const url = await getPreviewUrl({ interviewDocumentId: docId });
-            this.previewUrl = url;
-        } catch (error) {
-            console.error('Error loading preview:', error);
-            this.showToast('Error', 'Failed to load document preview', 'error');
-        } finally {
-            this.isPreviewLoading = false;
-        }
     }
     
     /**
@@ -230,6 +218,92 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         }
         const currentIndex = this.documents.findIndex(d => d.id === this.selectedDocumentId);
         return currentIndex === this.documents.length - 1;
+    }
+    
+    /**
+     * Computed properties for document metadata display
+     */
+    get documentName() {
+        return this.selectedDocument?.templateName || 'Document';
+    }
+    
+    get documentCategory() {
+        return this.selectedDocument?.templateCategory || 'Uncategorized';
+    }
+    
+    get documentStatus() {
+        return this.selectedDocument?.status || 'Unknown';
+    }
+    
+    get documentStatusClass() {
+        const status = this.selectedDocument?.status;
+        if (status === 'Completed') {
+            return 'slds-badge slds-theme_success';
+        } else if (status === 'Draft' || status === 'In Progress') {
+            return 'slds-badge slds-theme_warning';
+        }
+        return 'slds-badge';
+    }
+    
+    get startDateFormatted() {
+        return this.selectedDocument?.startDateFormatted || '--';
+    }
+    
+    get completedDateFormatted() {
+        return this.selectedDocument?.completedDateFormatted || '--';
+    }
+    
+    get clientName() {
+        return this.selectedDocument?.clientName || '--';
+    }
+    
+    get clientSignedStatus() {
+        return this.selectedDocument?.clientSigned ? 'Signed' : 'Pending';
+    }
+    
+    get clientSignedClass() {
+        return this.selectedDocument?.clientSigned ? 'slds-text-color_success' : 'slds-text-color_weak';
+    }
+    
+    get staffSignedStatus() {
+        return this.selectedDocument?.staffSigned ? 'Signed' : 'Pending';
+    }
+    
+    get staffSignedClass() {
+        return this.selectedDocument?.staffSigned ? 'slds-text-color_success' : 'slds-text-color_weak';
+    }
+    
+    get templateName() {
+        return this.selectedDocument?.templateName || '--';
+    }
+    
+    get templateId() {
+        return this.selectedDocument?.templateId || null;
+    }
+    
+    get hasContentDocument() {
+        return !!this.selectedDocument?.contentDocumentId;
+    }
+    
+    get hasNoContentDocument() {
+        return !this.selectedDocument?.contentDocumentId;
+    }
+    
+    get statusBadgeClass() {
+        const status = this.selectedDocument?.status;
+        if (status === 'Completed') {
+            return 'slds-badge slds-theme_success';
+        } else if (status === 'Draft' || status === 'In Progress') {
+            return 'slds-badge slds-theme_warning';
+        }
+        return 'slds-badge';
+    }
+    
+    get interviewRecordUrl() {
+        if (!this.selectedDocument?.interviewId) {
+            return '#';
+        }
+        return '/' + this.selectedDocument.interviewId;
     }
     
     getDocumentItemClass(doc) {

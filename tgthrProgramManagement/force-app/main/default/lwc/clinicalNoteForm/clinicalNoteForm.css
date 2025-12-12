@@ -351,3 +351,26 @@ lightning-accordion-section [data-section] {
     box-shadow: 0 0 0 2px rgba(1, 118, 211, 0.3);
 }
 
+/* Assessment Section Styles */
+.assessment-section {
+    padding: 1rem;
+    background: var(--lwc-colorBackgroundShade, #f3f2f2);
+    border-radius: 0.5rem;
+}
+
+/* SSRS Modal Styles */
+.ssrs-modal .slds-modal__container {
+    width: 90%;
+    max-width: 70rem;
+    height: 92vh;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    margin: 1vh auto;
+}
+
+.ssrs-modal .slds-modal__content {
+    flex: 1;
+    overflow: hidden;
+}
+

@@ -1,5 +1,5 @@
 <template>
-    <lightning-card title="Interview Documents" icon-name="custom:custom63">
+    <lightning-card title="Completed Documentation" icon-name="custom:custom63">
         <div class="slds-grid slds-gutters">
             <!-- Left Panel: Document List -->
             <div class="slds-col slds-size_1-of-3 document-list-panel">
@@ -28,7 +28,7 @@
                                                     </div>
                                                     <div class="slds-text-body_small">
                                                         <template if:true={doc.clientSigned}>
-                                                            <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+                                                            <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_xx-small success-icon"></lightning-icon>
                                                         </template>
                                                         <template if:false={doc.clientSigned}>
                                                             <lightning-icon icon-name="utility:close" size="xx-small" class="slds-m-right_xx-small text-muted"></lightning-icon>
@@ -49,36 +49,25 @@
                         <template if:false={hasDocuments}>
                             <div class="slds-text-align_center slds-p-around_large">
                                 <lightning-icon icon-name="utility:page" size="large" class="slds-m-bottom_small text-muted"></lightning-icon>
-                                <p class="slds-text-body_regular text-muted">No interview documents found</p>
+                                <p class="slds-text-body_regular text-muted">No completed documentation found</p>
                             </div>
                         </template>
                     </template>
                 </div>
             </div>
             
-            <!-- Right Panel: Document Preview & Navigation -->
+            <!-- Right Panel: Document Details -->
             <div class="slds-col slds-size_2-of-3 preview-panel">
                 <template if:true={selectedDocument}>
-                    <div class="slds-p-around_small">
-                        <!-- Document Header with Navigation and Metadata -->
-                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap slds-m-bottom_small">
-                            <!-- Left: Document Name and Metadata -->
+                    <div class="slds-p-around_medium">
+                        <!-- Document Header -->
+                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap slds-m-bottom_medium">
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
-                                <h2 class="slds-text-heading_medium slds-m-bottom_xx-small">{selectedDocument.templateName}</h2>
-                                <div class="slds-text-body_small text-muted">
-                                    <span>{selectedDocument.templateCategory}</span>
-                                    <template if:true={selectedDocument.startDateFormatted}>
-                                        <span class="slds-m-left_small">• Started: {selectedDocument.startDateFormatted}</span>
-                                    </template>
-                                    <template if:true={selectedDocument.completedDateFormatted}>
-                                        <span class="slds-m-left_small">• Completed: {selectedDocument.completedDateFormatted}</span>
-                                    </template>
-                                    <template if:true={selectedDocument.status}>
-                                        <span class="slds-m-left_small">• Status: {selectedDocument.status}</span>
-                                    </template>
-                                </div>
+                                <h2 class="slds-text-heading_medium">{selectedDocument.templateName}</h2>
+                                <template if:true={selectedDocument.templateCategory}>
+                                    <span class="slds-badge slds-m-top_xx-small">{selectedDocument.templateCategory}</span>
+                                </template>
                             </div>
-                            <!-- Right: Navigation and Download Buttons -->
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right slds-m-top_small slds-medium-m-top_none">
                                 <lightning-button-group>
                                     <lightning-button 
@@ -94,30 +83,81 @@
                                         onclick={handleNext}
                                         disabled={isLastDocument}>
                                     </lightning-button>
-                                    <lightning-button 
-                                        label="Download" 
-                                        icon-name="utility:download" 
-                                        onclick={handleDownload}>
-                                    </lightning-button>
                                 </lightning-button-group>
                             </div>
                         </div>
-                        
-                        <!-- Preview Frame -->
-                        <div class="preview-container">
-                            <template if:true={isPreviewLoading}>
-                                <div class="slds-text-align_center slds-p-around_large">
-                                    <lightning-spinner alternative-text="Loading preview" size="medium"></lightning-spinner>
+
+                        <!-- Document Metadata Card -->
+                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                            <div class="slds-grid slds-wrap">
+                                <!-- Status -->
+                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
+                                    <div class="slds-text-title_caps text-muted">Status</div>
+                                    <div class="slds-text-body_regular">
+                                        <span class={statusBadgeClass}>{selectedDocument.status}</span>
+                                    </div>
                                 </div>
-                            </template>
-                            
-                            <template if:false={isPreviewLoading}>
-                                <iframe 
-                                    src={previewUrl}
-                                    class="preview-iframe"
-                                    title="Document Preview">
-                                </iframe>
-                            </template>
+                                
+                                <!-- Signatures -->
+                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
+                                    <div class="slds-text-title_caps text-muted">Signatures</div>
+                                    <div class="slds-text-body_regular">
+                                        <template if:true={selectedDocument.clientSigned}>
+                                            <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_xx-small success-icon"></lightning-icon>
+                                            <span class="slds-m-right_small">Client</span>
+                                        </template>
+                                        <template if:false={selectedDocument.clientSigned}>
+                                            <lightning-icon icon-name="utility:close" size="x-small" class="slds-m-right_xx-small text-muted"></lightning-icon>
+                                            <span class="slds-m-right_small text-muted">Client</span>
+                                        </template>
+                                        <template if:true={selectedDocument.staffSigned}>
+                                            <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_xx-small success-icon"></lightning-icon>
+                                            <span>Staff</span>
+                                        </template>
+                                        <template if:false={selectedDocument.staffSigned}>
+                                            <lightning-icon icon-name="utility:close" size="x-small" class="slds-m-right_xx-small text-muted"></lightning-icon>
+                                            <span class="text-muted">Staff</span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Started -->
+                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
+                                    <div class="slds-text-title_caps text-muted">Started</div>
+                                    <div class="slds-text-body_regular">{selectedDocument.startDateFormatted}</div>
+                                </div>
+                                
+                                <!-- Completed -->
+                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
+                                    <div class="slds-text-title_caps text-muted">Completed</div>
+                                    <div class="slds-text-body_regular">{selectedDocument.completedDateFormatted}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="slds-grid slds-grid_align-center slds-m-top_medium">
+                            <lightning-button 
+                                variant="brand"
+                                label="Download Document" 
+                                icon-name="utility:download" 
+                                onclick={handleDownload}
+                                class="slds-m-right_small">
+                            </lightning-button>
+                            <lightning-button 
+                                variant="neutral"
+                                label="Open in Files" 
+                                icon-name="utility:new_window" 
+                                onclick={handleOpenInFiles}
+                                disabled={hasNoContentDocument}>
+                            </lightning-button>
+                        </div>
+
+                        <!-- Interview Record Link -->
+                        <div class="slds-text-align_center slds-m-top_large">
+                            <a href={interviewRecordUrl} class="slds-text-link">
+                                View Interview Record
+                            </a>
                         </div>
                     </div>
                 </template>
@@ -125,7 +165,7 @@
                 <template if:false={selectedDocument}>
                     <div class="slds-text-align_center slds-p-around_xx-large">
                         <lightning-icon icon-name="utility:preview" size="large" class="slds-m-bottom_small text-muted"></lightning-icon>
-                        <p class="slds-text-heading_small text-muted">Select a document to preview</p>
+                        <p class="slds-text-heading_small text-muted">Select a document to view details</p>
                     </div>
                 </template>
             </div>

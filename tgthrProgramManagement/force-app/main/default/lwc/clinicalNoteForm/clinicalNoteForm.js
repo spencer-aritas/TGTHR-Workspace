@@ -7,16 +7,24 @@ import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinic
 import saveClinicalNote from '@salesforce/apex/ClinicalNoteController.saveClinicalNote';
 import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
+import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
 
 const DEFAULT_RICH_TEXT_FORMATS = ['bold', 'italic', 'underline', 'strike', 'list', 'link'];
 
+// Note type identifier for Case Notes
+const NOTE_TYPE = 'Case';
+const DRAFT_TYPE = 'CaseNote';
+
 export default class ClinicalNoteForm extends NavigationMixin(LightningElement) {
     accountId;
     @track activeSection = 'visit';
     @api recordId; // Case Id
+
+    // Note type identifier
+    noteType = NOTE_TYPE;
 
     @track header = {
         personName: '',
@@ -61,12 +69,22 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     @track loadError;
     @track interactionId;
 
+    // SSRS Assessment integration
+    @track showSsrsModal = false;
+    @track ssrsAssessmentData = null;
+
+    // Draft/Save for Later support
+    @track draftId = null;
+    @track hasDraft = false;
+    @track isSavingDraft = false;
+
     originalFormState;
 
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
         { name: 'visit', label: 'Visit Details' },
         { name: 'narrative', label: 'Notes' },
+        { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
         { name: 'goals', label: 'Goals Addressed' },
         { name: 'codes', label: 'Code Assignments' },
@@ -100,6 +118,23 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     get goalsWorkedOnCount() {
         return Object.values(this.goalWorkState).filter(g => g.workedOn).length;
+    }
+
+    // SSRS Assessment getters
+    get canLaunchSsrs() {
+        return !!this.accountId;
+    }
+
+    get ssrsDisabled() {
+        return !this.canLaunchSsrs;
+    }
+
+    get ssrsButtonLabel() {
+        return this.ssrsAssessmentData ? 'Edit Risk Assessment' : 'Launch Risk Assessment';
+    }
+
+    get hasSsrsData() {
+        return !!this.ssrsAssessmentData;
     }
 
     /**
@@ -523,13 +558,98 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         });
     }
 
+    // ========================================
+    // SSRS Assessment Integration
+    // ========================================
+
+    handleLaunchSsrs() {
+        if (!this.canLaunchSsrs) {
+            this._showToast('Error', 'Cannot launch Risk Assessment without a linked Person Account.', 'error');
+            return;
+        }
+        this.showSsrsModal = true;
+    }
+
+    closeSsrsModal() {
+        this.showSsrsModal = false;
+    }
+
+    handleSsrsComplete(event) {
+        // Capture SSRS data from the assessment component
+        if (event.detail) {
+            this.ssrsAssessmentData = event.detail;
+        }
+        this.showSsrsModal = false;
+        this._showToast('Success', 'Risk Assessment data captured. It will be saved with your note.', 'success');
+    }
+
+    // ========================================
+    // Reset/Save Handlers
+    // ========================================
+
     handleReset() {
         if (this.originalFormState) {
             this.form = JSON.parse(JSON.stringify(this.originalFormState));
         }
+        // Clear SSRS data
+        this.ssrsAssessmentData = null;
+        
         const signaturePad = this.template.querySelector('c-signature-pad');
         if (signaturePad && typeof signaturePad.clearSignature === 'function') {
             signaturePad.clearSignature();
+        }
+    }
+
+    /**
+     * Save for Later - creates/updates a draft record
+     */
+    async handleSaveForLater() {
+        if (this.isSavingDraft) {
+            return;
+        }
+        
+        this.isSavingDraft = true;
+        
+        try {
+            // Collect all current state into a draft payload
+            const draftPayload = {
+                noteType: this.noteType,
+                caseId: this.recordId,
+                accountId: this.accountId,
+                header: this.header,
+                form: this.form,
+                goalWorkState: this.goalWorkState,
+                activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
+                ssrsAssessmentData: this.ssrsAssessmentData,
+                activeSection: this.activeSection,
+                savedAt: new Date().toISOString()
+            };
+            
+            // Call Apex method to save draft
+            const result = await saveDraft({
+                caseId: this.recordId,
+                documentType: DRAFT_TYPE,
+                draftJson: JSON.stringify(draftPayload),
+                existingDraftId: this.draftId
+            });
+            
+            if (result.success) {
+                this.draftId = result.draftId;
+                this.hasDraft = true;
+                
+                console.log('Draft saved successfully:', result);
+                this._showToast('Draft Saved', 'Your case note has been saved as a draft. You can resume later.', 'success');
+                
+                // Dispatch close event to parent
+                this.dispatchEvent(new CustomEvent('close'));
+            } else {
+                throw new Error(result.errorMessage || 'Failed to save draft');
+            }
+        } catch (error) {
+            console.error('Error saving draft:', error);
+            this._showToast('Error', 'Failed to save draft: ' + this._reduceErrors(error).join(', '), 'error');
+        } finally {
+            this.isSavingDraft = false;
         }
     }
 

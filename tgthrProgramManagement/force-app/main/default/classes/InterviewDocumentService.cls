@@ -74,6 +74,7 @@ public with sharing class InterviewDocumentService {
             'InterviewTemplateVersion__r.InterviewTemplate__r.Housing_Benefit_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Clinical_Benefit_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Income_Benefits_Policy__c, ' +
+            'InterviewTemplateVersion__r.InterviewTemplate__r.Goals_Policy__c, ' +
             'CreatedBy.Name, CreatedById, CreatedDate, ' +
             'LastModifiedBy.Name, LastModifiedById, LastModifiedDate ' +
             'FROM Interview__c ' +
@@ -95,6 +96,7 @@ public with sharing class InterviewDocumentService {
         String housingBenefitPolicy = 'Hidden';
         String clinicalBenefitPolicy = 'Hidden';
         String incomeBenefitsPolicy = 'Hidden';
+        String goalsPolicy = 'Hidden';
         
         SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
         if (templateVersion != null) {
@@ -106,12 +108,14 @@ public with sharing class InterviewDocumentService {
                 housingBenefitPolicy = String.valueOf(template.get('Housing_Benefit_Policy__c'));
                 clinicalBenefitPolicy = String.valueOf(template.get('Clinical_Benefit_Policy__c'));
                 incomeBenefitsPolicy = String.valueOf(template.get('Income_Benefits_Policy__c'));
+                goalsPolicy = String.valueOf(template.get('Goals_Policy__c'));
                 
                 if (String.isBlank(clientSigPolicy)) clientSigPolicy = 'Hidden';
                 if (String.isBlank(staffSigPolicy)) staffSigPolicy = 'Hidden';
                 if (String.isBlank(housingBenefitPolicy)) housingBenefitPolicy = 'Hidden';
                 if (String.isBlank(clinicalBenefitPolicy)) clinicalBenefitPolicy = 'Hidden';
                 if (String.isBlank(incomeBenefitsPolicy)) incomeBenefitsPolicy = 'Hidden';
+                if (String.isBlank(goalsPolicy)) goalsPolicy = 'Hidden';
             }
         }
         
@@ -122,7 +126,8 @@ public with sharing class InterviewDocumentService {
             'allowBenefitsDisbursement' => allowBenefits,
             'housingBenefitPolicy' => housingBenefitPolicy,
             'clinicalBenefitPolicy' => clinicalBenefitPolicy,
-            'incomeBenefitsPolicy' => incomeBenefitsPolicy
+            'incomeBenefitsPolicy' => incomeBenefitsPolicy,
+            'goalsPolicy' => goalsPolicy
         };
         
         // Step 3: Build Participant & Interview Blocks
@@ -219,49 +224,65 @@ public with sharing class InterviewDocumentService {
             });
         }
 
-        // Step 5.7: Build goals section if present
-        List<Object> goals = new List<Object>();
-        Map<String, Object> carePlanConsent = null;
-        
-        try {
-            System.debug('=== CALLING buildGoals ===');
-            goals = buildGoals(interview);
-            System.debug('=== buildGoals returned ' + goals.size() + ' goals ===');
-        } catch (Exception e) {
-            System.debug('!!! EXCEPTION in buildGoals: ' + e.getMessage());
-            System.debug('!!! Stack: ' + e.getStackTraceString());
-        }
-        
-        try {
-            System.debug('=== CALLING buildCarePlanConsent ===');
-            carePlanConsent = buildCarePlanConsent(interview);
-            System.debug('=== buildCarePlanConsent returned: ' + (carePlanConsent != null ? 'Present' : 'NULL') + ' ===');
-        } catch (Exception e) {
-            System.debug('!!! EXCEPTION in buildCarePlanConsent: ' + e.getMessage());
-            System.debug('!!! Stack: ' + e.getStackTraceString());
-        }
-        
-        System.debug('=== GOALS DEBUG ===');
-        System.debug('Goals count: ' + goals.size());
-        System.debug('CarePlan consent: ' + (carePlanConsent != null ? 'Present' : 'NULL'));
-        System.debug('Condition check: goals.isEmpty()=' + goals.isEmpty() + ', carePlanConsent!=null=' + (carePlanConsent != null));
-        
-        if (!goals.isEmpty() || carePlanConsent != null) {
-            System.debug('>>> Adding GOALS section to payload <<<');
-            Map<String, Object> goalsSection = new Map<String, Object>{
-                'id' => 'GOALS',
-                'label' => 'Goals',
-                'kind' => 'goals',
-                'layout' => 'list',
-                'items' => goals
-            };
+        // Step 5.7: Build goals section if present AND enabled in template
+        if (goalsPolicy != 'Hidden') {
+            List<Object> goals = new List<Object>();
+            Map<String, Object> carePlanConsent = null;
             
-            // Add CarePlan consent info if available
-            if (carePlanConsent != null) {
-                goalsSection.put('carePlanConsent', carePlanConsent);
+            try {
+                System.debug('=== CALLING buildGoals ===');
+                goals = buildGoals(interview);
+                System.debug('=== buildGoals returned ' + goals.size() + ' goals ===');
+            } catch (Exception e) {
+                System.debug('!!! EXCEPTION in buildGoals: ' + e.getMessage());
+                System.debug('!!! Stack: ' + e.getStackTraceString());
             }
             
-            sections.add(goalsSection);
+            try {
+                System.debug('=== CALLING buildCarePlanConsent ===');
+                carePlanConsent = buildCarePlanConsent(interview);
+                System.debug('=== buildCarePlanConsent returned: ' + (carePlanConsent != null ? 'Present' : 'NULL') + ' ===');
+            } catch (Exception e) {
+                System.debug('!!! EXCEPTION in buildCarePlanConsent: ' + e.getMessage());
+                System.debug('!!! Stack: ' + e.getStackTraceString());
+            }
+            
+            System.debug('=== GOALS DEBUG ===');
+            System.debug('Goals count: ' + goals.size());
+            System.debug('CarePlan consent: ' + (carePlanConsent != null ? 'Present' : 'NULL'));
+            System.debug('Condition check: goals.isEmpty()=' + goals.isEmpty() + ', carePlanConsent!=null=' + (carePlanConsent != null));
+            
+            if (!goals.isEmpty() || carePlanConsent != null) {
+                System.debug('>>> Adding GOALS section to payload <<<');
+                Map<String, Object> goalsSection = new Map<String, Object>{
+                    'id' => 'GOALS',
+                    'label' => 'Goals',
+                    'kind' => 'goals',
+                    'layout' => 'list',
+                    'items' => goals
+                };
+                
+                // Add CarePlan consent info if available
+                if (carePlanConsent != null) {
+                    goalsSection.put('carePlanConsent', carePlanConsent);
+                }
+                
+                sections.add(goalsSection);
+            }
+        } else {
+            System.debug('=== SKIPPING Goals section (goalsPolicy=Hidden) ===');
+        }
+        
+        // Step 5.8: Build SSRS Risk Assessment section if linked
+        Map<String, Object> ssrsAssessment = buildSsrsAssessment(interview);
+        if (ssrsAssessment != null) {
+            sections.add(new Map<String, Object>{
+                'id' => 'SSRS_ASSESSMENT',
+                'label' => 'Risk Assessment (SSRS)',
+                'kind' => 'risk_assessment',
+                'layout' => 'structured',
+                'items' => new List<Object>{ ssrsAssessment }
+            });
         }
         
         // Add signature_block section if signatures exist
@@ -727,7 +748,8 @@ public with sharing class InterviewDocumentService {
             
             // Query CarePlan linked to Case (using CaseId, not Case__c)
             String query = 'SELECT Id, Discharge_Plan__c, Expected_Discharge_Date__c, ' +
-                           'Last_Review_Date__c, Next_Review_Date__c, Review_Frequency_Days__c ' +
+                           'Last_Review_Date__c, Next_Review_Date__c, Review_Frequency_Days__c, ' +
+                           'Care_Plan_Reviewed__c, Documentation_Offered__c ' +
                            'FROM CarePlan ' +
                            'WHERE CaseId = :caseId ' +
                            'LIMIT 1';
@@ -742,11 +764,9 @@ public with sharing class InterviewDocumentService {
             SObject carePlan = carePlans[0];
             String dischargePlan = (String)carePlan.get('Discharge_Plan__c');
             
-            // Parse consent checkboxes from Discharge_Plan__c text
-            Boolean consentParticipated = dischargePlan != null && 
-                dischargePlan.contains('[x] I participated in the creation of the plan');
-            Boolean consentOffered = dischargePlan != null && 
-                dischargePlan.contains('[x] I was offered a copy of the Treatment plan');
+            // Use the dedicated checkbox fields on CarePlan
+            Boolean consentParticipated = carePlan.get('Care_Plan_Reviewed__c') == true;
+            Boolean consentOffered = carePlan.get('Documentation_Offered__c') == true;
             
             return new Map<String, Object>{
                 'consentParticipated' => consentParticipated,
@@ -761,6 +781,153 @@ public with sharing class InterviewDocumentService {
             System.debug('Error building CarePlan consent: ' + e.getMessage());
             return null;
         }
+    }
+    
+    /**
+     * Build SSRS Risk Assessment section if one is linked to this Interview's InteractionSummary.
+     * Queries Assessment__c records with Assessment_Type__c = 'SSRS' that are linked via Interaction_Summary__c.
+     * 
+     * @param interview Interview__c SObject
+     * @return Map with SSRS assessment data or null if none found
+     */
+    private static Map<String, Object> buildSsrsAssessment(SObject interview) {
+        try {
+            Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
+            
+            if (interactionSummaryId == null) {
+                return null;
+            }
+            
+            // Query Assessment__c record linked to this InteractionSummary with SSRS type
+            String query = 'SELECT Id, Name, Assessment_Date__c, Risk_Level__c, Total_Score__c, ' +
+                           'Response_Data__c, Status__c, Assessed_By__c, Assessed_By__r.Name ' +
+                           'FROM Assessment__c ' +
+                           'WHERE Interaction_Summary__c = :interactionSummaryId ' +
+                           'AND Assessment_Type__c = \'SSRS\' ' +
+                           'ORDER BY Assessment_Date__c DESC ' +
+                           'LIMIT 1';
+            
+            List<SObject> assessments = Database.query(query);
+            
+            if (assessments.isEmpty()) {
+                System.debug('buildSsrsAssessment: No SSRS Assessment found for InteractionSummary ' + interactionSummaryId);
+                return null;
+            }
+            
+            SObject assessment = assessments[0];
+            
+            // Parse response data JSON to extract key SSRS answers
+            String responseDataJson = (String)assessment.get('Response_Data__c');
+            Map<String, Object> responseData = new Map<String, Object>();
+            List<Map<String, Object>> responseItems = new List<Map<String, Object>>();
+            
+            if (String.isNotBlank(responseDataJson)) {
+                responseData = (Map<String, Object>)JSON.deserializeUntyped(responseDataJson);
+                
+                // Build structured response items for document display
+                // Suicidal Ideation - Lifetime
+                addSsrsResponseItem(responseItems, responseData, 'wishDeadLifetime', 'Wished to be dead (Lifetime)');
+                addSsrsResponseItem(responseItems, responseData, 'suicidalThoughtsLifetime', 'Active suicidal thoughts (Lifetime)');
+                addSsrsResponseItem(responseItems, responseData, 'methodsLifetime', 'Thought of method (Lifetime)');
+                addSsrsResponseItem(responseItems, responseData, 'intentLifetime', 'Intent to act (Lifetime)');
+                addSsrsResponseItem(responseItems, responseData, 'planLifetime', 'Specific plan (Lifetime)');
+                
+                // Suicidal Ideation - Past Month
+                addSsrsResponseItem(responseItems, responseData, 'wishDeadPastMonth', 'Wished to be dead (Past Month)');
+                addSsrsResponseItem(responseItems, responseData, 'suicidalThoughtsPastMonth', 'Active suicidal thoughts (Past Month)');
+                addSsrsResponseItem(responseItems, responseData, 'methodsPastMonth', 'Thought of method (Past Month)');
+                addSsrsResponseItem(responseItems, responseData, 'intentPastMonth', 'Intent to act (Past Month)');
+                addSsrsResponseItem(responseItems, responseData, 'planPastMonth', 'Specific plan (Past Month)');
+                
+                // Suicidal Behavior - Lifetime
+                addSsrsResponseItem(responseItems, responseData, 'actualAttemptLifetime', 'Actual suicide attempt (Lifetime)');
+                addSsrsResponseItem(responseItems, responseData, 'interruptedAttemptLifetime', 'Interrupted attempt (Lifetime)');
+                addSsrsResponseItem(responseItems, responseData, 'abortedAttemptLifetime', 'Aborted attempt (Lifetime)');
+                addSsrsResponseItem(responseItems, responseData, 'preparatoryActsLifetime', 'Preparatory acts/behavior (Lifetime)');
+            }
+            
+            String assessedByName = '';
+            SObject assessedBy = assessment.getSObject('Assessed_By__r');
+            if (assessedBy != null) {
+                assessedByName = (String)assessedBy.get('Name');
+            }
+            
+            // Build recommendations based on risk level
+            String riskLevel = (String)assessment.get('Risk_Level__c');
+            List<String> recommendations = buildSsrsRecommendations(riskLevel, responseData);
+            
+            return new Map<String, Object>{
+                'type' => 'ssrs_assessment',
+                'assessmentId' => (String)assessment.get('Id'),
+                'assessmentDate' => String.valueOf(assessment.get('Assessment_Date__c')),
+                'riskLevel' => riskLevel,
+                'totalScore' => assessment.get('Total_Score__c'),
+                'status' => (String)assessment.get('Status__c'),
+                'assessedBy' => assessedByName,
+                'responses' => responseItems,
+                'recommendations' => recommendations
+            };
+        } catch (Exception e) {
+            System.debug('Error building SSRS Assessment: ' + e.getMessage() + '\n' + e.getStackTraceString());
+            return null;
+        }
+    }
+    
+    /**
+     * Helper method to add an SSRS response item if the value exists in responseData.
+     */
+    private static void addSsrsResponseItem(
+        List<Map<String, Object>> items, 
+        Map<String, Object> responseData, 
+        String key, 
+        String label
+    ) {
+        Object value = responseData.get(key);
+        if (value != null) {
+            String displayValue;
+            if (value instanceof Boolean) {
+                displayValue = ((Boolean)value) ? 'Yes' : 'No';
+            } else {
+                displayValue = String.valueOf(value);
+            }
+            
+            items.add(new Map<String, Object>{
+                'key' => key,
+                'label' => label,
+                'value' => displayValue,
+                'isPositive' => value instanceof Boolean && (Boolean)value
+            });
+        }
+    }
+    
+    /**
+     * Build recommendations based on SSRS risk level.
+     */
+    private static List<String> buildSsrsRecommendations(String riskLevel, Map<String, Object> responseData) {
+        List<String> recommendations = new List<String>();
+        
+        if (String.isBlank(riskLevel)) {
+            return recommendations;
+        }
+        
+        if (riskLevel == 'Imminent' || riskLevel == 'High') {
+            recommendations.add('Immediate safety assessment required');
+            recommendations.add('Consider psychiatric consultation');
+            recommendations.add('Implement safety plan');
+            recommendations.add('Increase supervision and monitoring');
+            if (riskLevel == 'Imminent') {
+                recommendations.add('Consider emergency services or hospitalization');
+            }
+        } else if (riskLevel == 'Moderate') {
+            recommendations.add('Review and update safety plan');
+            recommendations.add('Increase frequency of clinical contacts');
+            recommendations.add('Monitor for changes in risk factors');
+        } else if (riskLevel == 'Low') {
+            recommendations.add('Continue routine monitoring');
+            recommendations.add('Maintain current treatment plan');
+        }
+        
+        return recommendations;
     }
     
     /**

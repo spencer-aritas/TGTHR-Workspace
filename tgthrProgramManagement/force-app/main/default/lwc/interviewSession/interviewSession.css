@@ -4,13 +4,43 @@
     padding-bottom: 3rem;
 }
 
+/* Sticky Header Container */
+.sticky-header-container {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: #f7f9fb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Spacer to prevent content from going under sticky header */
+.sticky-header-spacer {
+    height: 1rem;
+}
+
 .interview-header {
     background-color: #1589ee;
     color: white;
     border-bottom: 3px solid #0b5cab;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 1.5rem;
+    box-shadow: none;
+    padding: 1rem 1.5rem;
+}
+
+.interview-header .slds-page-header__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.interview-header .slds-page-header__col-title {
+    flex: 1 1 auto;
+    min-width: 200px;
+}
+
+.interview-header .slds-page-header__col-actions {
+    flex: 0 0 auto;
 }
 
 .interview-header .slds-text-heading_large {
@@ -22,6 +52,49 @@
 .interview-header .slds-text-body_regular {
     font-size: 1rem;
     opacity: 0.95;
+}
+
+.interview-header .slds-page-header__title {
+    color: white;
+}
+
+.interview-header .slds-page-header__meta-text {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.interview-header .participant-name {
+    font-weight: 600;
+}
+
+/* Header action buttons - make them white/light on blue background */
+.interview-header .slds-button_neutral {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: white;
+}
+
+.interview-header .slds-button_neutral:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Progress bar container */
+.progress-bar-container {
+    background-color: white;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+/* SSRS Modal Styling */
+.slds-modal_large .slds-modal__container {
+    width: 95%;
+    max-width: 1200px;
+    max-height: 90vh;
+}
+
+.slds-modal__content {
+    overflow-y: auto;
+    max-height: calc(90vh - 60px);
 }
 
 .question-container {

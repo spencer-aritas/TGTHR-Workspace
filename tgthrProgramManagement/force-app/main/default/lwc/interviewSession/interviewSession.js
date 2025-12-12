@@ -10,10 +10,15 @@ import getCurrentUserInfo from '@salesforce/apex/InterviewSessionController.getC
 import linkFilesToCase from '@salesforce/apex/InterviewSessionController.linkFilesToCase';
 import generateDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
 import getGoalAssignments from '@salesforce/apex/GoalAssignmentController.getGoalAssignments';
+import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
+import checkForExistingDraft from '@salesforce/apex/DocumentDraftService.checkForExistingDraft';
+import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
+import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
 
 const STEPS = ['interaction', 'demographics', 'interview', 'review'];
+const DRAFT_TYPE = 'Interview';
 
 export default class InterviewSession extends NavigationMixin(LightningElement) {
     @api caseId;
@@ -51,6 +56,16 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track incomeBenefitsFileIds = []; // ContentDocument IDs for Case linking
     @track demographicsData = {}; // Demographics for Account update
     @track goals = [];
+    @track carePlanConsent = { consentParticipated: false, consentOffered: false }; // Care Plan consent checkboxes
+    
+    // SSRS Assessment integration
+    @track showSsrsModal = false;
+    @track ssrsAssessmentData = null;
+    
+    // Draft/Save for Later support
+    @track draftId = null;
+    @track hasDraft = false;
+    @track isSavingDraft = false;
     
     // Accordion state - open all sections by default for better UX
     activeSections = [];
@@ -142,12 +157,131 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 this.reviewActiveSections = [...this.activeSections, 'incomeBenefits'];
             }
             
+            // Check for existing draft
+            await this.checkForDraft();
+            
             this.errorMessage = '';
         } catch (error) {
             this.errorMessage = this.normalizeError(error);
             this.showToast('Error Loading Interview', this.errorMessage, 'error');
         } finally {
             this.isLoading = false;
+        }
+    }
+    
+    /**
+     * Check if there's an existing draft for this interview and offer to restore it
+     */
+    async checkForDraft() {
+        try {
+            const draftCheck = await checkForExistingDraft({
+                caseId: this.effectiveCaseId,
+                documentType: DRAFT_TYPE
+            });
+            
+            if (draftCheck.found) {
+                this.hasDraft = true;
+                this.draftId = draftCheck.draftId;
+                
+                // Show confirmation to restore draft
+                const savedAt = new Date(draftCheck.savedAt);
+                const confirmRestore = confirm(
+                    `A draft of this interview was saved on ${savedAt.toLocaleDateString()} at ${savedAt.toLocaleTimeString()}.\n\n` +
+                    `Would you like to restore your previous progress?`
+                );
+                
+                if (confirmRestore) {
+                    await this.restoreDraft(draftCheck.draftId);
+                } else {
+                    // User declined - ask if they want to delete the old draft
+                    const confirmDelete = confirm(
+                        `Would you like to delete the old draft and start fresh?`
+                    );
+                    if (confirmDelete) {
+                        await deleteDraft({ draftId: draftCheck.draftId });
+                        this.hasDraft = false;
+                        this.draftId = null;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error checking for draft:', error);
+            // Don't block the session if draft check fails
+        }
+    }
+    
+    /**
+     * Restore interview state from a saved draft
+     */
+    async restoreDraft(draftIdToLoad) {
+        try {
+            const draftData = await loadDraft({ draftId: draftIdToLoad });
+            
+            if (draftData.found && draftData.draftJson) {
+                const savedState = JSON.parse(draftData.draftJson);
+                
+                // Restore step position
+                if (savedState.currentStepIndex !== undefined) {
+                    this.currentStepIndex = savedState.currentStepIndex;
+                }
+                
+                // Restore interaction input
+                if (savedState.interactionInput) {
+                    this.interactionInput = savedState.interactionInput;
+                }
+                
+                // Restore answers (Map from JSON)
+                if (savedState.answers) {
+                    const answerEntries = JSON.parse(savedState.answers);
+                    this.answers = new Map(answerEntries);
+                }
+                
+                // Restore benefit selections
+                if (savedState.housingBenefitIds) {
+                    this.housingBenefitIds = savedState.housingBenefitIds;
+                }
+                if (savedState.clinicalBenefitIds) {
+                    this.clinicalBenefitIds = savedState.clinicalBenefitIds;
+                }
+                
+                // Restore demographics data
+                if (savedState.demographicsData) {
+                    this.demographicsData = savedState.demographicsData;
+                }
+                
+                // Restore income benefits data
+                if (savedState.incomeBenefitsData) {
+                    this.incomeBenefitsData = savedState.incomeBenefitsData;
+                }
+                
+                // Restore goals
+                if (savedState.goals) {
+                    this.goals = savedState.goals;
+                }
+                
+                // Restore care plan consent
+                if (savedState.carePlanConsent) {
+                    this.carePlanConsent = savedState.carePlanConsent;
+                }
+                
+                // Restore SSRS assessment data
+                if (savedState.ssrsAssessmentData) {
+                    this.ssrsAssessmentData = savedState.ssrsAssessmentData;
+                }
+                
+                this.showToast(
+                    'Draft Restored',
+                    'Your previous progress has been restored.',
+                    'success'
+                );
+            }
+        } catch (error) {
+            console.error('Error restoring draft:', error);
+            this.showToast(
+                'Error Restoring Draft',
+                'Could not restore your previous progress. Starting fresh.',
+                'warning'
+            );
         }
     }
 
@@ -316,6 +450,36 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     get templateCategory() {
         return this.templateData ? this.templateData.category : '';
+    }
+
+    /**
+     * Get participant display name for the header banner
+     */
+    get participantDisplayName() {
+        if (!this.accountData) return '';
+        return this.accountData.Name || 
+               this.accountData.name || 
+               ((this.accountData.FirstName || '') + ' ' + (this.accountData.LastName || '')).trim() ||
+               '';
+    }
+
+    /**
+     * Determines if SSRS Risk Assessment option should be shown
+     * Available for: Psycho-Social, Intake, and Clinical categories
+     */
+    get showSsrsOption() {
+        const category = this.templateCategory?.toLowerCase() || '';
+        const templateName = this.templateName?.toLowerCase() || '';
+        
+        // Show SSRS for specific categories
+        const ssrsCategories = ['psycho-social', 'intake', 'clinical', 'crisis'];
+        const hasSsrsCategory = ssrsCategories.some(c => category.includes(c));
+        
+        // Also check template name for specific interviews
+        const ssrsTemplateNames = ['psychosocial', 'comprehensive intake', '1440 pine'];
+        const hasSsrsTemplateName = ssrsTemplateNames.some(n => templateName.includes(n));
+        
+        return hasSsrsCategory || hasSsrsTemplateName;
     }
 
     get sections() {
@@ -625,6 +789,15 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         // Clean the data by serializing/deserializing to remove Proxy objects
         this.demographicsData = JSON.parse(JSON.stringify(event.detail));
         console.log('Demographics Data:', this.demographicsData);
+    }
+
+    handleConsentChange(event) {
+        // Capture consent checkbox values from goalAssignmentCreator
+        this.carePlanConsent = {
+            consentParticipated: event.detail.consentParticipated,
+            consentOffered: event.detail.consentOffered
+        };
+        console.log('Care Plan Consent:', this.carePlanConsent);
     }
 
     handleAnswerChange(event) {
@@ -952,6 +1125,110 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         }
     }
 
+    // ==========================================
+    // SSRS Risk Assessment Methods
+    // ==========================================
+
+    /**
+     * Launch the SSRS Risk Assessment modal
+     */
+    handleLaunchSsrs() {
+        this.showSsrsModal = true;
+    }
+
+    /**
+     * Close the SSRS modal
+     */
+    closeSsrsModal() {
+        this.showSsrsModal = false;
+    }
+
+    /**
+     * Handle SSRS assessment completion
+     * Stores the assessment data to be saved with the interview
+     */
+    handleSsrsComplete(event) {
+        console.log('SSRS Assessment completed:', event.detail);
+        this.ssrsAssessmentData = event.detail;
+        this.showSsrsModal = false;
+        
+        this.showToast(
+            'Risk Assessment Completed',
+            'The SSRS assessment has been completed and will be saved with this interview.',
+            'success'
+        );
+    }
+
+    // ==========================================
+    // Save for Later (Draft) Methods
+    // ==========================================
+
+    /**
+     * Save current progress as a draft for later completion
+     */
+    async handleSaveForLater() {
+        this.isSavingDraft = true;
+        
+        try {
+            // Build the draft data object
+            const draftData = {
+                caseId: this.effectiveCaseId,
+                accountId: this.accountData?.Id,
+                templateVersionId: this.effectiveTemplateVersionId,
+                templateName: this.templateName,
+                templateCategory: this.templateCategory,
+                currentStep: this.currentStep,
+                currentStepIndex: this.currentStepIndex,
+                interactionInput: JSON.parse(JSON.stringify(this.interactionInput)),
+                answers: JSON.stringify(Array.from(this.answers.entries())),
+                housingBenefitIds: this.housingBenefitIds,
+                clinicalBenefitIds: this.clinicalBenefitIds,
+                demographicsData: JSON.parse(JSON.stringify(this.demographicsData || {})),
+                incomeBenefitsData: JSON.parse(JSON.stringify(this.incomeBenefitsData || [])),
+                goals: JSON.parse(JSON.stringify(this.goals || [])),
+                carePlanConsent: this.carePlanConsent,
+                ssrsAssessmentData: this.ssrsAssessmentData ? JSON.parse(JSON.stringify(this.ssrsAssessmentData)) : null,
+                savedAt: new Date().toISOString()
+            };
+
+            console.log('Saving draft:', draftData);
+
+            // Save draft using DocumentDraftService
+            const result = await saveDraft({
+                caseId: this.effectiveCaseId,
+                documentType: DRAFT_TYPE,
+                draftJson: JSON.stringify(draftData),
+                existingDraftId: this.draftId
+            });
+            
+            if (result.success) {
+                this.draftId = result.draftId;
+                this.hasDraft = true;
+                
+                this.showToast(
+                    'Draft Saved',
+                    'Your interview progress has been saved. You can return to complete it later.',
+                    'success'
+                );
+
+                // Navigate back to the Case
+                this.handleCancel();
+            } else {
+                throw new Error(result.errorMessage || 'Failed to save draft');
+            }
+            
+        } catch (error) {
+            console.error('Error saving draft:', error);
+            this.showToast(
+                'Error Saving Draft',
+                this.normalizeError(error),
+                'error'
+            );
+        } finally {
+            this.isSavingDraft = false;
+        }
+    }
+
     buildSaveRequest() {
         const answerList = Array.from(this.answers.values())
             .filter(answer => answer.value || (answer.values && answer.values.length > 0));
@@ -982,10 +1259,16 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
         console.log('buildSaveRequest - demographics:', cleanDemographics);
         console.log('buildSaveRequest - incomeBenefits:', cleanIncomeBenefits);
+        
+        // Extract SSRS assessment ID if one was completed during this interview
+        const ssrsAssessmentId = this.ssrsAssessmentData?.assessmentId || null;
+        if (ssrsAssessmentId) {
+            console.log('buildSaveRequest - Including SSRS Assessment ID:', ssrsAssessmentId);
+        }
 
         return {
             caseId: this.effectiveCaseId,
-            accountId: null, // Controller will resolve from Case
+            accountId: this.accountData?.Id || null,
             templateVersionId: this.effectiveTemplateVersionId,
             interaction: {
                 interactionDate: interactionDate,
@@ -998,7 +1281,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             housingBenefitIds: this.housingBenefitIds,
             clinicalBenefitIds: this.clinicalBenefitIds,
             demographicsJson: JSON.stringify(cleanDemographics),
-            incomeBenefitsJson: JSON.stringify(cleanIncomeBenefits)
+            incomeBenefitsJson: JSON.stringify(cleanIncomeBenefits),
+            carePlanConsent: this.carePlanConsent,
+            ssrsAssessmentId: ssrsAssessmentId
             // Note: Signatures are saved after Interview creation, not in initial request
         };
     }

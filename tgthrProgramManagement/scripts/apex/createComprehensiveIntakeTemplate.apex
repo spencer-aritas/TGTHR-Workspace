@@ -250,7 +250,7 @@ questionData.add(new Map<String, Object>{
     'label' => 'Appearance',
     'apiName' => 'MSE_Appearance__c',
     'responseType' => 'Picklist',
-    'picklistValues' => JSON.serialize(new List<String>{'Neat', 'Dishelved', 'Inappropriate', 'Bizarre', 'Other'}),
+    'picklistValues' => JSON.serialize(new List<String>{'Neat', 'Disheveled', 'Inappropriate', 'Bizarre', 'Other'}),
     'required' => false
 });
 

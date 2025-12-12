@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MSE_Appearance__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Mental Status Exam - General appearance observation</inlineHelpText>
+    <label>MSE - Appearance</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Neat</fullName><default>false</default><label>Neat</label></value>
+            <value><fullName>Disheveled</fullName><default>false</default><label>Disheveled</label></value>
+            <value><fullName>Inappropriate</fullName><default>false</default><label>Inappropriate</label></value>
+            <value><fullName>Bizarre</fullName><default>false</default><label>Bizarre</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

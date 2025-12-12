@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <!-- ========== MSE (Mental Status Exam) Fields - 18 fields ========== -->
+        <members>Assessment__c.MSE_Appearance__c</members>
+        <members>Assessment__c.MSE_Speech__c</members>
+        <members>Assessment__c.MSE_Eye_Contact__c</members>
+        <members>Assessment__c.MSE_Motor_Activity__c</members>
+        <members>Assessment__c.MSE_Affect__c</members>
+        <members>Assessment__c.MSE_Mood__c</members>
+        <members>Assessment__c.MSE_Orientation_Impairment__c</members>
+        <members>Assessment__c.MSE_Memory_Impairment__c</members>
+        <members>Assessment__c.MSE_Attention__c</members>
+        <members>Assessment__c.MSE_Hallucinations__c</members>
+        <members>Assessment__c.MSE_Perception_Other__c</members>
+        <members>Assessment__c.MSE_Suicidality__c</members>
+        <members>Assessment__c.MSE_Homicidality__c</members>
+        <members>Assessment__c.MSE_Delusions__c</members>
+        <members>Assessment__c.MSE_Behavior__c</members>
+        <members>Assessment__c.MSE_Insight__c</members>
+        <members>Assessment__c.MSE_Judgment__c</members>
+        <members>Assessment__c.MSE_Comments__c</members>
+        
+        <!-- ========== Presenting Problem Fields ========== -->
+        <members>Assessment__c.Presenting_Problem__c</members>
+        <members>Assessment__c.Presenting_Problem_Duration__c</members>
+        
+        <!-- ========== Mental Health History Fields ========== -->
+        <members>Assessment__c.Mental_Health_History__c</members>
+        <members>Assessment__c.Previous_Helpful_Interventions__c</members>
+        <members>Assessment__c.Previous_Unhelpful_Interventions__c</members>
+        
+        <!-- ========== Screening Symptom Fields ========== -->
+        <members>Assessment__c.Screen_Symptoms_Depression__c</members>
+        <members>Assessment__c.Screen_Symptoms_Mania__c</members>
+        <members>Assessment__c.Screen_Symptoms_Anxiety__c</members>
+        <members>Assessment__c.Screen_Symptoms_Trauma__c</members>
+        <members>Assessment__c.Screen_Symptoms_Psychosis__c</members>
+        <members>Assessment__c.Screen_Symptoms_Substance_Use__c</members>
+        <members>Assessment__c.Screen_Symptoms_Attachment__c</members>
+        
+        <!-- ========== Mental Health Diagnosis/Treatment Fields ========== -->
+        <members>Assessment__c.Past_Mental_Health_Diagnoses__c</members>
+        <members>Assessment__c.Family_Mental_Health_History__c</members>
+        <members>Assessment__c.Psychiatric_Prescriber__c</members>
+        <members>Assessment__c.Current_Psychiatric_Medications__c</members>
+        <members>Assessment__c.Daily_Functioning__c</members>
+        
+        <!-- ========== Dissociation Scale Fields ========== -->
+        <members>Assessment__c.Dissociation_Scale_1__c</members>
+        <members>Assessment__c.Dissociation_Scale_2__c</members>
+        <members>Assessment__c.Dissociation_Scale_3__c</members>
+        
+        <!-- ========== Risk/Safety Fields ========== -->
+        <members>Assessment__c.Risk_Safety_Notes__c</members>
+        
+        <!-- ========== Substance Use Fields ========== -->
+        <members>Assessment__c.Substance_Use_History__c</members>
+        <members>Assessment__c.Family_Substance_Use_History__c</members>
+        <members>Assessment__c.Substance_Use_Needs__c</members>
+        
+        <!-- ========== Physical Health Fields ========== -->
+        <members>Assessment__c.Chronic_Health_Conditions__c</members>
+        <members>Assessment__c.Allergies__c</members>
+        <members>Assessment__c.Dental_Needs__c</members>
+        <members>Assessment__c.Health_Care_Provider__c</members>
+        <members>Assessment__c.Current_Physical_Medications__c</members>
+        <members>Assessment__c.Advanced_Directives__c</members>
+        
+        <!-- ========== Social/Developmental History Fields ========== -->
+        <members>Assessment__c.Current_Living_Situation__c</members>
+        <members>Assessment__c.Significant_Life_Changes__c</members>
+        <members>Assessment__c.Cultural_Background__c</members>
+        <members>Assessment__c.Cultural_Factors_Treatment__c</members>
+        <members>Assessment__c.Family_Background__c</members>
+        <members>Assessment__c.Meaningful_Activities__c</members>
+        <members>Assessment__c.Strengths_Assets__c</members>
+        <members>Assessment__c.Abilities_Interests__c</members>
+        <members>Assessment__c.Treatment_Barriers__c</members>
+        <members>Assessment__c.Other_Social_Info__c</members>
+        <members>Assessment__c.Trauma_History__c</members>
+        
+        <!-- ========== Legal History Fields ========== -->
+        <members>Assessment__c.Legal_History__c</members>
+        <members>Assessment__c.Current_Legal_Status__c</members>
+        <members>Assessment__c.Legal_Needs__c</members>
+        
+        <!-- ========== Education/Employment Fields ========== -->
+        <members>Assessment__c.Education_Level__c</members>
+        <members>Assessment__c.Currently_Employed__c</members>
+        <members>Assessment__c.Profession_Trade_Skill__c</members>
+        <members>Assessment__c.Vocational_Needs__c</members>
+        
+        <!-- ========== Military Service ========== -->
+        <members>Assessment__c.Military_Service__c</members>
+        
+        <!-- ========== Clinical Summary Fields ========== -->
+        <members>Assessment__c.Clinical_Formulation__c</members>
+        <members>Assessment__c.DSM_Diagnosis_Primary__c</members>
+        <members>Assessment__c.DSM_Diagnosis_Secondary__c</members>
+        <members>Assessment__c.Treatment_Recommendations__c</members>
+        
+        <name>CustomField</name>
+    </types>
+    <types>
+        <members>Comprehensive_Assessment_Fields_Access</members>
+        <name>PermissionSet</name>
+    </types>
+    <version>64.0</version>
+</Package>

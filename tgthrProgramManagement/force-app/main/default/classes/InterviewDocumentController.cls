@@ -38,6 +38,8 @@ public with sharing class InterviewDocumentController {
         @AuraEnabled public Boolean displayInCaseChart;
         @AuraEnabled public Boolean displayInParticipantChart;
         @AuraEnabled public Boolean displayInInteractionView;
+        @AuraEnabled public String clientName;
+        @AuraEnabled public Id clientId;
     }
     
     /**
@@ -86,6 +88,7 @@ public with sharing class InterviewDocumentController {
             'Interview__r.Started_On__c, Interview__r.Status__c, ' +
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
+            'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
@@ -126,6 +129,7 @@ public with sharing class InterviewDocumentController {
             'Interview__r.Started_On__c, Interview__r.Status__c, ' +
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
+            'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
@@ -152,7 +156,7 @@ public with sharing class InterviewDocumentController {
             'Interview__r.Started_On__c, Interview__r.Status__c, ' +
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
-            'Interview__r.Client__c, ' +
+            'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
@@ -195,6 +199,13 @@ public with sharing class InterviewDocumentController {
                 info.status = (String) interview.get('Status__c');
                 info.clientSigned = (Boolean) interview.get('Client_Signed__c');
                 info.staffSigned = (Boolean) interview.get('Staff_Signed__c');
+                info.clientId = (Id) interview.get('Client__c');
+                
+                // Get client name from relationship
+                SObject client = interview.getSObject('Client__r');
+                if (client != null) {
+                    info.clientName = (String) client.get('Name');
+                }
                 
                 // Determine who signed and when
                 DateTime clientSignedDate = (DateTime) interview.get('Date_Client_Signed__c');
@@ -232,16 +243,19 @@ public with sharing class InterviewDocumentController {
     
     /**
      * Get preview URL for a document (stateless rendering).
-     * Generates a signed URL to the docgen preview endpoint.
+     * Get preview URL for a document.
+     * Returns a docgen HTML preview endpoint that can be embedded in an iframe.
+     * DOCX files cannot be previewed inline in Salesforce iframes, so we use
+     * the stateless docgen service to render HTML.
      * 
      * @param interviewDocumentId InterviewDocument__c record ID
-     * @return Preview URL for the document
+     * @return Preview URL for the document (HTML format for iframe embedding)
      */
     @AuraEnabled
     public static String getPreviewUrl(Id interviewDocumentId) {
-        // Query InterviewDocument to get Interview UUID
+        // Query InterviewDocument to get Interview's InteractionSummary
         String query =
-            'SELECT Interview__c, Interview__r.UUID__c, InterviewTemplate__c ' +
+            'SELECT Interview__c, Interview__r.Interaction_Summary__c, InterviewTemplate__c ' +
             'FROM InterviewDocument__c ' +
             'WHERE Id = :interviewDocumentId ' +
             'LIMIT 1';
@@ -254,20 +268,15 @@ public with sharing class InterviewDocumentController {
         
         SObject doc = docs[0];
         SObject interview = doc.getSObject('Interview__r');
-        String interviewUuid = interview != null ? (String) interview.get('UUID__c') : null;
-        String templateId = (String) doc.get('InterviewTemplate__c');
+        Id interactionSummaryId = interview != null ? (Id) interview.get('Interaction_Summary__c') : null;
         
-        if (String.isBlank(interviewUuid)) {
-            throw new CalloutException('Interview UUID not found');
+        if (interactionSummaryId == null) {
+            throw new CalloutException('Interview InteractionSummary not found');
         }
         
-        // Build preview URL (will be implemented in EC2 service)
+        // Use docgen HTML preview endpoint - this renders the document as HTML for iframe embedding
         String docgenEndpoint = getDocGenEndpoint();
-        String previewUrl = docgenEndpoint + '/interviews/' + interviewUuid + '/preview?format=html';
-        
-        if (String.isNotBlank(templateId)) {
-            previewUrl += '&templateId=' + templateId;
-        }
+        String previewUrl = docgenEndpoint + '/preview-interview-html?interaction_summary_id=' + interactionSummaryId;
         
         return previewUrl;
     }

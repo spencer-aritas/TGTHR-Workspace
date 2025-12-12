@@ -6,7 +6,7 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public String interactionDate;
         @AuraEnabled public String startTime;
         @AuraEnabled public String endTime;
-    @AuraEnabled public Boolean interpreterUsed;
+        @AuraEnabled public Boolean interpreterUsed;
         @AuraEnabled public String pos;
         @AuraEnabled public String reason;
         @AuraEnabled public String services;
@@ -15,6 +15,7 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public List<Id> goalAssignmentIds;
         @AuraEnabled public List<Id> codeAssignmentIds;
         @AuraEnabled public List<Id> benefitIds;
+        @AuraEnabled public Id ssrsAssessmentId; // Link to SSRS Assessment if completed during this note
     }
 
     public class SaveResult {
@@ -156,6 +157,31 @@ public with sharing class ClinicalNoteController {
         List<Id> codeAssignmentIds,
         List<Id> benefitIds
     ) {
+        // Call the full version with null ssrsAssessmentId for backward compatibility
+        return saveClinicalNoteWithSsrs(
+            caseId, interactionDateStr, startTimeStr, endTimeStr,
+            interpreterUsed, pos, reason, services, response, plan,
+            goalAssignmentIds, codeAssignmentIds, benefitIds, null
+        );
+    }
+
+    @AuraEnabled
+    public static SaveResult saveClinicalNoteWithSsrs(
+        Id caseId,
+        String interactionDateStr,
+        String startTimeStr,
+        String endTimeStr,
+        Boolean interpreterUsed,
+        String pos,
+        String reason,
+        String services,
+        String response,
+        String plan,
+        List<Id> goalAssignmentIds,
+        List<Id> codeAssignmentIds,
+        List<Id> benefitIds,
+        Id ssrsAssessmentId
+    ) {
         SaveResult result = new SaveResult();
         try {
             System.debug('=== SAVE CLINICAL NOTE CALLED ===');
@@ -170,6 +196,7 @@ public with sharing class ClinicalNoteController {
             System.debug('response: ' + response);
             System.debug('plan: ' + plan);
             System.debug('benefitIds count: ' + (benefitIds != null ? benefitIds.size() : 0));
+            System.debug('ssrsAssessmentId: ' + ssrsAssessmentId);
             
             if (caseId == null) {
                 result.success = false;
@@ -192,6 +219,7 @@ public with sharing class ClinicalNoteController {
             request.goalAssignmentIds = goalAssignmentIds;
             request.codeAssignmentIds = codeAssignmentIds;
             request.benefitIds = benefitIds;
+            request.ssrsAssessmentId = ssrsAssessmentId;
 
             Date interactionDate = request.interactionDate != null
                 ? Date.valueOf(request.interactionDate)
@@ -252,6 +280,11 @@ public with sharing class ClinicalNoteController {
             linkRelatedRecords('GoalAssignment__c', 'Interaction_Summary__c', request.goalAssignmentIds, summary.Id);
             linkRelatedRecords('Code_Assignment__c', 'Interaction_Summary__c', request.codeAssignmentIds, summary.Id);
 
+            // Link SSRS Assessment to this InteractionSummary if provided
+            if (request.ssrsAssessmentId != null) {
+                linkSsrsAssessmentToInteraction(request.ssrsAssessmentId, summary.Id);
+            }
+
             // Create Benefit Disbursements for selected benefits
             if (request.benefitIds != null && !request.benefitIds.isEmpty()) {
                 createBenefitDisbursements(
@@ -300,6 +333,40 @@ public with sharing class ClinicalNoteController {
         }
         if (!updates.isEmpty()) {
             update updates;
+        }
+    }
+
+    /**
+     * Links an SSRS Assessment to an InteractionSummary by updating the Assessment record
+     * with a reference to the Interaction Summary. This maintains the relationship between
+     * the clinical note and any risk assessment completed during that session.
+     */
+    private static void linkSsrsAssessmentToInteraction(Id assessmentId, Id interactionSummaryId) {
+        if (assessmentId == null || interactionSummaryId == null) {
+            return;
+        }
+        try {
+            Schema.SObjectType assessmentType = Schema.getGlobalDescribe().get('Assessment__c');
+            if (assessmentType == null) {
+                System.debug('Assessment__c object not available');
+                return;
+            }
+            
+            Map<String, Schema.SObjectField> fieldMap = assessmentType.getDescribe().fields.getMap();
+            
+            // Try to update Assessment with Interaction_Summary__c lookup if the field exists
+            if (fieldMap.containsKey('Interaction_Summary__c')) {
+                SObject assessment = assessmentType.newSObject(assessmentId);
+                assessment.put('Interaction_Summary__c', interactionSummaryId);
+                update assessment;
+                System.debug('Linked Assessment ' + assessmentId + ' to InteractionSummary ' + interactionSummaryId);
+            } else {
+                // If no direct lookup field exists, log for future enhancement
+                System.debug('Interaction_Summary__c field not found on Assessment__c. Consider adding this field to link SSRS assessments to clinical notes.');
+            }
+        } catch (Exception e) {
+            // Don't fail the entire save operation if linking fails
+            System.debug('Warning: Could not link SSRS Assessment to InteractionSummary: ' + e.getMessage());
         }
     }
 

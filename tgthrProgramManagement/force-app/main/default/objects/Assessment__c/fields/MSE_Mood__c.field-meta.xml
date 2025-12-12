@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MSE_Mood__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Mental Status Exam - Mood observation</inlineHelpText>
+    <label>MSE - Mood</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Euthymic</fullName><default>false</default><label>Euthymic</label></value>
+            <value><fullName>Angry</fullName><default>false</default><label>Angry</label></value>
+            <value><fullName>Anxious</fullName><default>false</default><label>Anxious</label></value>
+            <value><fullName>Depressed</fullName><default>false</default><label>Depressed</label></value>
+            <value><fullName>Euphoric</fullName><default>false</default><label>Euphoric</label></value>
+            <value><fullName>Irritable</fullName><default>false</default><label>Irritable</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

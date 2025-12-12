@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Presenting_Problem__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>What is the client seeking help for today? Primary presenting problem or issue.</inlineHelpText>
+    <label>Presenting Problem</label>
+    <length>4000</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>4</visibleLines>
+</CustomField>

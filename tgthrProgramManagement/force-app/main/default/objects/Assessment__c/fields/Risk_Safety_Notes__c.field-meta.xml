@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Risk_Safety_Notes__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Notes on risk factors, safety concerns, and protective factors.</inlineHelpText>
+    <label>Risk and Safety Notes</label>
+    <length>4000</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>4</visibleLines>
+</CustomField>

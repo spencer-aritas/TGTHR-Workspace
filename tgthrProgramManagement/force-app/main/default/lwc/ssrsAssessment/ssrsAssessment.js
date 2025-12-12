@@ -762,6 +762,19 @@ export default class SsrsAssessment extends LightningElement {
                 message: `SSRS assessment recorded. Risk level: ${result.riskLevel}.`,
                 variant: 'success'
             }));
+
+            // Dispatch complete event with full assessment data for parent components
+            this.dispatchEvent(new CustomEvent('complete', {
+                detail: {
+                    assessmentId: result.assessmentId,
+                    riskLevel: result.riskLevel,
+                    assessmentData: payload,
+                    recommendations: result.recommendations || [],
+                    assessmentDate: request.assessmentDate,
+                    accountId: request.accountId,
+                    caseId: request.caseId
+                }
+            }));
         } catch (error) {
             const detail = this._reduceErrors(error).join(', ');
             this.dispatchEvent(new ShowToastEvent({

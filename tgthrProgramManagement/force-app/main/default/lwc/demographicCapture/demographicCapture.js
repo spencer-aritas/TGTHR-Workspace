@@ -3,35 +3,36 @@ import { LightningElement, api, track } from 'lwc';
 export default class DemographicCapture extends LightningElement {
     @api accountData = {};
     
+    // Using actual Account field API names (Person Account fields use __pc suffix)
     @track demographics = {
         FirstName: '',
         MiddleName: '',
         LastName: '',
         Preferred_Name__pc: '',
         PersonBirthdate: null,
-        Age__c: null,
-        SSN__c: '',
+        Age__pc: null,                         // Formula field - read only
+        Social_Security_Number__pc: '',       // Was SSN__c
         MEDICAID_Number__pc: '',
-        Translation_Assistance_Needed__c: '',
+        Translator_Needed__pc: '',
         Referral_Source__c: '',
-        Gender_Identity__c: '',
-        Gender_Identity_Other__c: '',
-        Preferred_Pronouns__c: '',
-        Pronouns_Other__c: '',
-        Race_Ethnicity__c: [],
+        Gender_Identity__pc: '',               // Was Gender_Identity__c
+        Gender_Identity_Other_Description__pc: '',  // Was Gender_Identity_Other__c
+        PersonPronouns: '',                    // Was Preferred_Pronouns__c (standard field)
+        Pronouns_Other_Description__pc: '',    // Was Pronouns_Other__c
+        Race_and_Ethnicity__pc: [],            // Was Race_Ethnicity__c
         Race_Ethnicity_Detail__c: '',
-        Sexual_Orientation__c: '',
-        Sexual_Orientation_Other__c: '',
+        Sexual_Orientation__pc: '',            // Was Sexual_Orientation__c
+        Sexual_Orientation_Other_Description__pc: '',  // Was Sexual_Orientation_Other__c
         PersonMobilePhone: '',
         PersonEmail: '',
         Emergency_Contact_Name__c: '',
         Emergency_Contact_Relationship__c: '',
-        Place_of_Birth__c: '',
-        Is_Veteran__c: '',
+        Place_of_Birth_City_County__pc: '',    // Was Place_of_Birth__c
+        Veteran_Service__pc: '',               // Was Is_Veteran__c
         Known_Allergies__c: '',
-        Known_Diagnoses__c: '',
-        Taking_Medications__c: '',
-        Needs_Medication_Refill_Help__c: '',
+        Primary_Diagnosis__c: '',              // Was Known_Diagnoses__c
+        Currently_Taking_Medications__c: '',   // Was Taking_Medications__c
+        Need_Help_Refilling_Medications__c: '', // Was Needs_Medication_Refill_Help__c
         Medication_Notes__c: ''
     };
 
@@ -109,6 +110,12 @@ export default class DemographicCapture extends LightningElement {
 
     connectedCallback() {
         this.initializeDemographics();
+        // Send initial demographics data to parent on load
+        // Use setTimeout to ensure parent is ready to receive the event
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => {
+            this.notifyParent();
+        }, 0);
     }
 
     initializeDemographics() {
@@ -120,23 +127,23 @@ export default class DemographicCapture extends LightningElement {
                 }
             });
 
-            // Handle multi-select picklist (Race_Ethnicity__c)
-            if (this.accountData.Race_Ethnicity__c) {
-                this.demographics.Race_Ethnicity__c = this.accountData.Race_Ethnicity__c.split(';');
+            // Handle multi-select picklist (Race_and_Ethnicity__pc)
+            if (this.accountData.Race_and_Ethnicity__pc) {
+                this.demographics.Race_and_Ethnicity__pc = this.accountData.Race_and_Ethnicity__pc.split(';');
             }
         }
     }
 
     get showGenderOther() {
-        return this.demographics.Gender_Identity__c === 'Different Identity';
+        return this.demographics.Gender_Identity__pc === 'Different Identity';
     }
 
     get showPronounsOther() {
-        return this.demographics.Preferred_Pronouns__c === 'Other';
+        return this.demographics.PersonPronouns === 'Other';
     }
 
     get showSexualOrientationOther() {
-        return this.demographics.Sexual_Orientation__c === 'Other';
+        return this.demographics.Sexual_Orientation__pc === 'Other';
     }
 
     // Helper to check if a field has existing data
@@ -151,44 +158,44 @@ export default class DemographicCapture extends LightningElement {
     get lastNameDisabled() { return this._isFieldDisabled('LastName'); }
     get preferredNameDisabled() { return this._isFieldDisabled('Preferred_Name__pc'); }
     get birthdateDisabled() { return this.accountData?.PersonBirthdate !== undefined && this.accountData?.PersonBirthdate !== null; }
-    get ssnDisabled() { return this._isFieldDisabled('SSN__c'); }
+    get ssnDisabled() { return this._isFieldDisabled('Social_Security_Number__pc'); }
     get medicaidDisabled() { return this._isFieldDisabled('MEDICAID_Number__pc'); }
 
-    // Service Information fields
-    get translationAssistanceDisabled() { return this._isFieldDisabled('Translation_Assistance_Needed__c'); }
+    // Service Information fields - these may not exist as text fields on Account
+    get translationAssistanceDisabled() { return this._isFieldDisabled('Translator_Needed__pc'); }
     get referralSourceDisabled() { return this._isFieldDisabled('Referral_Source__c'); }
 
     // Gender & Pronouns fields
-    get genderIdentityDisabled() { return this._isFieldDisabled('Gender_Identity__c'); }
-    get genderIdentityOtherDisabled() { return this._isFieldDisabled('Gender_Identity_Other__c'); }
-    get preferredPronounsDisabled() { return this._isFieldDisabled('Preferred_Pronouns__c'); }
-    get pronounsOtherDisabled() { return this._isFieldDisabled('Pronouns_Other__c'); }
+    get genderIdentityDisabled() { return this._isFieldDisabled('Gender_Identity__pc'); }
+    get genderIdentityOtherDisabled() { return this._isFieldDisabled('Gender_Identity_Other_Description__pc'); }
+    get preferredPronounsDisabled() { return this._isFieldDisabled('PersonPronouns'); }
+    get pronounsOtherDisabled() { return this._isFieldDisabled('Pronouns_Other_Description__pc'); }
 
     // Race & Ethnicity fields
     get raceEthnicityDisabled() { 
-        const value = this.accountData?.Race_Ethnicity__c;
+        const value = this.accountData?.Race_and_Ethnicity__pc;
         return value !== undefined && value !== null && value !== '' && 
                (Array.isArray(value) ? value.length > 0 : true);
     }
     get raceEthnicityDetailDisabled() { return this._isFieldDisabled('Race_Ethnicity_Detail__c'); }
 
     // Sexual Orientation fields
-    get sexualOrientationDisabled() { return this._isFieldDisabled('Sexual_Orientation__c'); }
-    get sexualOrientationOtherDisabled() { return this._isFieldDisabled('Sexual_Orientation_Other__c'); }
+    get sexualOrientationDisabled() { return this._isFieldDisabled('Sexual_Orientation__pc'); }
+    get sexualOrientationOtherDisabled() { return this._isFieldDisabled('Sexual_Orientation_Other_Description__pc'); }
 
     // Contact Information fields
     get personMobilePhoneDisabled() { return this._isFieldDisabled('PersonMobilePhone'); }
     get personEmailDisabled() { return this._isFieldDisabled('PersonEmail'); }
     get emergencyContactNameDisabled() { return this._isFieldDisabled('Emergency_Contact_Name__c'); }
     get emergencyContactRelationshipDisabled() { return this._isFieldDisabled('Emergency_Contact_Relationship__c'); }
-    get placeOfBirthDisabled() { return this._isFieldDisabled('Place_of_Birth__c'); }
+    get placeOfBirthDisabled() { return this._isFieldDisabled('Place_of_Birth_City_County__pc'); }
 
     // Health Information fields
-    get isVeteranDisabled() { return this._isFieldDisabled('Is_Veteran__c'); }
+    get isVeteranDisabled() { return this._isFieldDisabled('Veteran_Service__pc'); }
     get knownAllergiesDisabled() { return this._isFieldDisabled('Known_Allergies__c'); }
-    get knownDiagnosesDisabled() { return this._isFieldDisabled('Known_Diagnoses__c'); }
-    get takingMedicationsDisabled() { return this._isFieldDisabled('Taking_Medications__c'); }
-    get needsMedicationRefillHelpDisabled() { return this._isFieldDisabled('Needs_Medication_Refill_Help__c'); }
+    get knownDiagnosesDisabled() { return this._isFieldDisabled('Primary_Diagnosis__c'); }
+    get takingMedicationsDisabled() { return this._isFieldDisabled('Currently_Taking_Medications__c'); }
+    get needsMedicationRefillHelpDisabled() { return this._isFieldDisabled('Need_Help_Refilling_Medications__c'); }
     get medicationNotesDisabled() { return this._isFieldDisabled('Medication_Notes__c'); }
 
     handleInputChange(event) {
@@ -212,7 +219,7 @@ export default class DemographicCapture extends LightningElement {
 
     calculateAge(birthdate) {
         if (!birthdate) {
-            this.demographics.Age__c = null;
+            this.demographics.Age__pc = null;
             return;
         }
         const birth = new Date(birthdate);
@@ -222,7 +229,8 @@ export default class DemographicCapture extends LightningElement {
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
             age--;
         }
-        this.demographics.Age__c = age;
+        // Set local calculated age for display (this is a formula field on Account, so won't be saved)
+        this.demographics.Age__pc = age;
     }
 
     notifyParent() {

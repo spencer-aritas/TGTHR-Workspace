@@ -87,8 +87,19 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public List<Id> clinicalBenefitIds;
         @AuraEnabled public String demographicsJson;
         @AuraEnabled public String incomeBenefitsJson;
+        @AuraEnabled public CarePlanConsentDTO carePlanConsent;
+        @AuraEnabled public Id ssrsAssessmentId; // Link to SSRS Assessment if completed during this interview
         
         public SaveRequest() {
+            // No-arg constructor for proper deserialization
+        }
+    }
+
+    public class CarePlanConsentDTO {
+        @AuraEnabled public Boolean consentParticipated;
+        @AuraEnabled public Boolean consentOffered;
+        
+        public CarePlanConsentDTO() {
             // No-arg constructor for proper deserialization
         }
     }
@@ -253,6 +264,12 @@ public with sharing class InterviewSessionController {
                 updateAccountDemographics(accountId, demographics);
             }
 
+            // Update CarePlan consent checkboxes if provided
+            if (request.carePlanConsent != null) {
+                System.debug('Updating CarePlan consent fields...');
+                updateCarePlanConsent(request.caseId, request.carePlanConsent);
+            }
+
             // Parse and create Income & Benefit records
             if (String.isNotBlank(request.incomeBenefitsJson) && assessmentId != null) {
                 List<Object> incomeBenefitsRaw = (List<Object>) JSON.deserializeUntyped(request.incomeBenefitsJson);
@@ -306,6 +323,12 @@ public with sharing class InterviewSessionController {
                 );
             }
 
+            // Link SSRS Assessment to this InteractionSummary if one was completed during the interview
+            if (request.ssrsAssessmentId != null) {
+                System.debug('Linking SSRS Assessment ' + request.ssrsAssessmentId + ' to InteractionSummary ' + summary.get('Id'));
+                linkSsrsAssessmentToInteraction(request.ssrsAssessmentId, (Id)summary.get('Id'));
+            }
+
             result.success = true;
             result.interviewId = (Id)interview.get('Id');
             result.interactionSummaryId = (Id)summary.get('Id');
@@ -326,9 +349,21 @@ public with sharing class InterviewSessionController {
                 return false;
             }
 
+            // Query Interview with Account lookup for Client_Signed_By__c
             SObject interview = Database.query(
-                'SELECT Id FROM Interview__c WHERE Id = :interviewId LIMIT 1'
+                'SELECT Id, Case__r.AccountId FROM Interview__c WHERE Id = :interviewId LIMIT 1'
             )[0];
+            
+            // Get Account ID for client signature (Client_Signed_By__c is an Account lookup)
+            Id accountId = null;
+            try {
+                SObject caseRecord = (SObject)interview.getSObject('Case__r');
+                if (caseRecord != null) {
+                    accountId = (Id)caseRecord.get('AccountId');
+                }
+            } catch (Exception e) {
+                System.debug('Could not get AccountId from Case: ' + e.getMessage());
+            }
 
             Boolean updated = false;
 
@@ -339,7 +374,10 @@ public with sharing class InterviewSessionController {
                     putIfFieldExists(interview, 'Client_Signature_File_Id__c', contentDocId);
                     putIfFieldExists(interview, 'Client_Signed__c', true);
                     putIfFieldExists(interview, 'Date_Client_Signed__c', Datetime.now());
-                    putIfFieldExists(interview, 'Client_Signed_By__c', UserInfo.getUserId());
+                    // Client_Signed_By__c is an Account lookup (the participant)
+                    if (accountId != null) {
+                        putIfFieldExists(interview, 'Client_Signed_By__c', accountId);
+                    }
                     updated = true;
                 }
             }
@@ -350,6 +388,7 @@ public with sharing class InterviewSessionController {
                     putIfFieldExists(interview, 'Staff_Signature_File_Id__c', contentDocId);
                     putIfFieldExists(interview, 'Staff_Signed__c', true);
                     putIfFieldExists(interview, 'Date_Staff_Signed__c', Datetime.now());
+                    // Staff_Signed_By__c is a User lookup
                     putIfFieldExists(interview, 'Staff_Signed_By__c', UserInfo.getUserId());
                     updated = true;
                 }
@@ -1030,13 +1069,29 @@ public with sharing class InterviewSessionController {
         interview.put('InterviewTemplateVersion__c', templateVersion.get('Id'));
         interview.put('Interaction_Summary__c', interactionSummaryId);
         // Note: Assessment__c relationship is on Assessment, not Interview (Assessment__c.Interview__c)
-        interview.put('Status__c', 'In Progress');
+        // Set status to Completed since saveInterviewSession is for final submission (drafts use Save for Later)
+        interview.put('Status__c', 'Completed');
         interview.put('Name', formatInterviewName(templateVersion, accountId, interactionDate));
         putIfFieldExists(interview, 'Started_On__c', Datetime.now());
+        putIfFieldExists(interview, 'Completed_On__c', Datetime.now());
+        // Generate UUID for document viewer to uniquely identify this interview
+        putIfFieldExists(interview, 'UUID__c', generateUUID());
         
         // Note: Signatures are saved separately after Interview creation via updateInterviewSignatures()
         
         return interview;
+    }
+    
+    /**
+     * Generate a UUID v4 string for unique interview identification.
+     */
+    private static String generateUUID() {
+        Blob b = Crypto.generateAesKey(128);
+        String h = EncodingUtil.convertToHex(b);
+        return h.substring(0,8) + '-' + h.substring(8,12) + '-' + 
+               '4' + h.substring(13,16) + '-' + 
+               'a' + h.substring(17,20) + '-' + 
+               h.substring(20);
     }
 
     private static List<SObject> buildAnswerRecords(Id interviewId, List<AnswerDTO> answerDtos) {
@@ -1161,10 +1216,46 @@ public with sharing class InterviewSessionController {
             return;
         }
         Map<String, Schema.SObjectField> fields = record.getSObjectType().getDescribe().fields.getMap();
-        if (fields.containsKey(fieldApiName)) {
+        // Field map keys are lowercase, so convert to lowercase for lookup
+        String fieldKey = fieldApiName.toLowerCase();
+        if (fields.containsKey(fieldKey)) {
             record.put(fieldApiName, value);
         } else {
             System.debug('Field not found on ' + record.getSObjectType() + ': ' + fieldApiName);
+        }
+    }
+
+    /**
+     * Links an SSRS Assessment to an InteractionSummary by updating the Assessment record
+     * with a reference to the Interaction Summary. This maintains the relationship between
+     * the interview and any risk assessment completed during that session.
+     */
+    private static void linkSsrsAssessmentToInteraction(Id assessmentId, Id interactionSummaryId) {
+        if (assessmentId == null || interactionSummaryId == null) {
+            return;
+        }
+        try {
+            Schema.SObjectType assessmentType = Schema.getGlobalDescribe().get('Assessment__c');
+            if (assessmentType == null) {
+                System.debug('Assessment__c object not available');
+                return;
+            }
+            
+            Map<String, Schema.SObjectField> fieldMap = assessmentType.getDescribe().fields.getMap();
+            
+            // Try to update Assessment with Interaction_Summary__c lookup if the field exists
+            if (fieldMap.containsKey('interaction_summary__c')) {
+                SObject assessment = assessmentType.newSObject(assessmentId);
+                assessment.put('Interaction_Summary__c', interactionSummaryId);
+                update assessment;
+                System.debug('Linked SSRS Assessment ' + assessmentId + ' to InteractionSummary ' + interactionSummaryId);
+            } else {
+                // If no direct lookup field exists, log for future enhancement
+                System.debug('Interaction_Summary__c field not found on Assessment__c. Consider adding this field to link SSRS assessments to interviews.');
+            }
+        } catch (Exception e) {
+            // Don't fail the entire save operation if linking fails
+            System.debug('Warning: Could not link SSRS Assessment to InteractionSummary: ' + e.getMessage());
         }
     }
 
@@ -1401,6 +1492,45 @@ public with sharing class InterviewSessionController {
     }
 
     /**
+     * Updates CarePlan record with consent checkbox values
+     */
+    private static void updateCarePlanConsent(Id caseId, CarePlanConsentDTO consent) {
+        if (caseId == null || consent == null) {
+            return;
+        }
+
+        try {
+            System.debug('=== updateCarePlanConsent ===');
+            System.debug('CaseId: ' + caseId);
+            System.debug('consentParticipated: ' + consent.consentParticipated);
+            System.debug('consentOffered: ' + consent.consentOffered);
+
+            // Query CarePlan linked to Case (using CaseId, not Case__c)
+            String query = 'SELECT Id, Care_Plan_Reviewed__c, Documentation_Offered__c ' +
+                           'FROM CarePlan ' +
+                           'WHERE CaseId = :caseId ' +
+                           'LIMIT 1';
+            
+            List<SObject> carePlans = Database.query(query);
+            
+            if (carePlans.isEmpty()) {
+                System.debug('No CarePlan found for Case ' + caseId + ', skipping consent update');
+                return;
+            }
+            
+            SObject carePlan = carePlans[0];
+            carePlan.put('Care_Plan_Reviewed__c', consent.consentParticipated == true);
+            carePlan.put('Documentation_Offered__c', consent.consentOffered == true);
+            
+            update carePlan;
+            System.debug('CarePlan consent updated successfully');
+        } catch (Exception e) {
+            System.debug('Error updating CarePlan consent: ' + e.getMessage());
+            // Don't throw - consent update failure shouldn't block interview save
+        }
+    }
+
+    /**
      * Updates Account record with demographic data captured during interview
      */
     private static void updateAccountDemographics(Id accountId, Map<String, Object> demographics) {
@@ -1430,8 +1560,8 @@ public with sharing class InterviewSessionController {
             if (demographics.containsKey('LastName') && demographics.get('LastName') != null && String.valueOf(demographics.get('LastName')) != '') {
                 acc.put('LastName', demographics.get('LastName'));
             }
-            if (demographics.containsKey('Preferred_Name__c') && demographics.get('Preferred_Name__c') != null && String.valueOf(demographics.get('Preferred_Name__c')) != '') {
-                putIfFieldExists(acc, 'Preferred_Name__pc', demographics.get('Preferred_Name__c'));
+            if (demographics.containsKey('Preferred_Name__pc') && demographics.get('Preferred_Name__pc') != null && String.valueOf(demographics.get('Preferred_Name__pc')) != '') {
+                putIfFieldExists(acc, 'Preferred_Name__pc', demographics.get('Preferred_Name__pc'));
             }
             if (demographics.containsKey('PersonBirthdate') && demographics.get('PersonBirthdate') != null && String.valueOf(demographics.get('PersonBirthdate')) != '' && String.valueOf(demographics.get('PersonBirthdate')) != 'null') {
                 try {
@@ -1440,35 +1570,39 @@ public with sharing class InterviewSessionController {
                     System.debug('Error parsing PersonBirthdate: ' + e.getMessage());
                 }
             }
-            if (demographics.containsKey('SSN__c') && demographics.get('SSN__c') != null && String.valueOf(demographics.get('SSN__c')) != '') {
-                putIfFieldExists(acc, 'SSN__c', demographics.get('SSN__c'));
+            // SSN - LWC now sends Social_Security_Number__pc directly
+            if (demographics.containsKey('Social_Security_Number__pc') && demographics.get('Social_Security_Number__pc') != null && String.valueOf(demographics.get('Social_Security_Number__pc')) != '') {
+                putIfFieldExists(acc, 'Social_Security_Number__pc', demographics.get('Social_Security_Number__pc'));
             }
             if (demographics.containsKey('MEDICAID_Number__pc') && demographics.get('MEDICAID_Number__pc') != null && String.valueOf(demographics.get('MEDICAID_Number__pc')) != '') {
                 putIfFieldExists(acc, 'MEDICAID_Number__pc', demographics.get('MEDICAID_Number__pc'));
             }
-            if (demographics.containsKey('Translation_Assistance_Needed__c') && demographics.get('Translation_Assistance_Needed__c') != null && String.valueOf(demographics.get('Translation_Assistance_Needed__c')) != '') {
-                putIfFieldExists(acc, 'Translation_Assistance_Needed__c', demographics.get('Translation_Assistance_Needed__c'));
+            if (demographics.containsKey('Translator_Needed__pc') && demographics.get('Translator_Needed__pc') != null && String.valueOf(demographics.get('Translator_Needed__pc')) != '') {
+                putIfFieldExists(acc, 'Translator_Needed__pc', demographics.get('Translator_Needed__pc'));
             }
             if (demographics.containsKey('Referral_Source__c') && demographics.get('Referral_Source__c') != null && String.valueOf(demographics.get('Referral_Source__c')) != '') {
                 putIfFieldExists(acc, 'Referral_Source__c', demographics.get('Referral_Source__c'));
             }
-            if (demographics.containsKey('Gender_Identity__c') && demographics.get('Gender_Identity__c') != null && String.valueOf(demographics.get('Gender_Identity__c')) != '') {
-                putIfFieldExists(acc, 'Gender_Identity__c', demographics.get('Gender_Identity__c'));
+            // Gender Identity - LWC now sends Gender_Identity__pc directly
+            if (demographics.containsKey('Gender_Identity__pc') && demographics.get('Gender_Identity__pc') != null && String.valueOf(demographics.get('Gender_Identity__pc')) != '') {
+                putIfFieldExists(acc, 'Gender_Identity__pc', demographics.get('Gender_Identity__pc'));
+                // Also map to standard PersonGenderIdentity field if available
+                putIfFieldExists(acc, 'PersonGenderIdentity', demographics.get('Gender_Identity__pc'));
             }
-            if (demographics.containsKey('Gender_Identity_Other__c') && demographics.get('Gender_Identity_Other__c') != null && String.valueOf(demographics.get('Gender_Identity_Other__c')) != '') {
-                putIfFieldExists(acc, 'Gender_Identity_Other__c', demographics.get('Gender_Identity_Other__c'));
+            // Gender Identity Other - LWC now sends Gender_Identity_Other_Description__pc directly
+            if (demographics.containsKey('Gender_Identity_Other_Description__pc') && demographics.get('Gender_Identity_Other_Description__pc') != null && String.valueOf(demographics.get('Gender_Identity_Other_Description__pc')) != '') {
+                putIfFieldExists(acc, 'Gender_Identity_Other_Description__pc', demographics.get('Gender_Identity_Other_Description__pc'));
             }
-            if (demographics.containsKey('Preferred_Pronouns__c') && demographics.get('Preferred_Pronouns__c') != null && String.valueOf(demographics.get('Preferred_Pronouns__c')) != '') {
-                putIfFieldExists(acc, 'Preferred_Pronouns__c', demographics.get('Preferred_Pronouns__c'));
-                // Also map to standard PersonPronouns field if available
-                putIfFieldExists(acc, 'PersonPronouns', demographics.get('Preferred_Pronouns__c'));
+            // Pronouns - LWC now sends PersonPronouns directly
+            if (demographics.containsKey('PersonPronouns') && demographics.get('PersonPronouns') != null && String.valueOf(demographics.get('PersonPronouns')) != '') {
+                putIfFieldExists(acc, 'PersonPronouns', demographics.get('PersonPronouns'));
             }
-            if (demographics.containsKey('Pronouns_Other__c') && demographics.get('Pronouns_Other__c') != null && String.valueOf(demographics.get('Pronouns_Other__c')) != '') {
-                putIfFieldExists(acc, 'Pronouns_Other__c', demographics.get('Pronouns_Other__c'));
-                // Also map to standard Pronouns_Other_Description__pc field if available
-                putIfFieldExists(acc, 'Pronouns_Other_Description__pc', demographics.get('Pronouns_Other__c'));
+            // Pronouns Other - LWC now sends Pronouns_Other_Description__pc directly
+            if (demographics.containsKey('Pronouns_Other_Description__pc') && demographics.get('Pronouns_Other_Description__pc') != null && String.valueOf(demographics.get('Pronouns_Other_Description__pc')) != '') {
+                putIfFieldExists(acc, 'Pronouns_Other_Description__pc', demographics.get('Pronouns_Other_Description__pc'));
             }
-            if (demographics.containsKey('Race_Ethnicity__c') && demographics.get('Race_Ethnicity__c') != null) {
+            // Race/Ethnicity - LWC now sends Race_and_Ethnicity__pc directly
+            if (demographics.containsKey('Race_and_Ethnicity__pc') && demographics.get('Race_and_Ethnicity__pc') != null) {
                 // Handle multi-select picklist (List<String> -> semicolon-separated)
                 Object raceValue = demographics.get('Race_Ethnicity__c');
                 Set<String> selectedRaces = new Set<String>();
@@ -1477,51 +1611,31 @@ public with sharing class InterviewSessionController {
                     for (Object val : (List<Object>)raceValue) {
                         selectedRaces.add(String.valueOf(val));
                     }
-                    // Also save the raw multi-picklist value if the field exists
+                    // Save the multi-picklist value as semicolon-separated string
                     String joinedValue = String.join(new List<String>(selectedRaces), ';');
                     if (joinedValue != '') {
-                        putIfFieldExists(acc, 'Race_Ethnicity__c', joinedValue);
+                        putIfFieldExists(acc, 'Race_and_Ethnicity__pc', joinedValue);
                     }
                 } else if (String.valueOf(raceValue) != '') {
                     String raceStr = String.valueOf(raceValue);
                     selectedRaces.addAll(raceStr.split(';'));
-                    putIfFieldExists(acc, 'Race_Ethnicity__c', raceValue);
+                    putIfFieldExists(acc, 'Race_and_Ethnicity__pc', raceValue);
                 }
                 
-                // Map to individual boolean fields on Person Account
-                // Note: These mappings must match the picklist values in the LWC
-                
-                // Normalize strings for comparison (handle slight variations)
-                Boolean isIndigenous = selectedRaces.contains('American Indian or Alaska Native, Indigenous') || 
-                                      selectedRaces.contains('American Indian, Alaska Native, or Indigenous');
-                
-                Boolean isAsian = selectedRaces.contains('Asian or Asian American');
-                
-                Boolean isBlack = selectedRaces.contains('Black, African, or African-American') || 
-                                 selectedRaces.contains('Black, African American, or African');
-                
-                Boolean isMENA = selectedRaces.contains('Middle Eastern/North African') || 
-                                selectedRaces.contains('Middle Eastern or North African');
-                
-                Boolean isPacific = selectedRaces.contains('Native Hawaiian or Other Pacific Islander');
-                
-                Boolean isWhite = selectedRaces.contains('White');
-                
-                Boolean isOther = selectedRaces.contains('Other') || 
-                                 selectedRaces.contains('Different Identity');
-
                 // NOTE: Individual race boolean fields (Race_American_Indian_or_Alaska_Native__pc, etc.)
-                // are FORMULA FIELDS derived from Race_Ethnicity__c - do not update directly
-                // The Race_Ethnicity__c multi-select picklist is the source of truth
+                // are FORMULA FIELDS derived from Race_and_Ethnicity__pc - do not update directly
+                // The Race_and_Ethnicity__pc multi-select picklist is the source of truth
             }
             if (demographics.containsKey('Race_Ethnicity_Detail__c') && demographics.get('Race_Ethnicity_Detail__c') != null && String.valueOf(demographics.get('Race_Ethnicity_Detail__c')) != '') {
                 putIfFieldExists(acc, 'Race_Ethnicity_Detail__c', demographics.get('Race_Ethnicity_Detail__c'));
             }
-            if (demographics.containsKey('Sexual_Orientation__c') && demographics.get('Sexual_Orientation__c') != null && String.valueOf(demographics.get('Sexual_Orientation__c')) != '') {
-                putIfFieldExists(acc, 'Sexual_Orientation__c', demographics.get('Sexual_Orientation__c'));
+            // Sexual Orientation - LWC now sends Sexual_Orientation__pc directly
+            if (demographics.containsKey('Sexual_Orientation__pc') && demographics.get('Sexual_Orientation__pc') != null && String.valueOf(demographics.get('Sexual_Orientation__pc')) != '') {
+                putIfFieldExists(acc, 'Sexual_Orientation__pc', demographics.get('Sexual_Orientation__pc'));
             }
-            if (demographics.containsKey('Sexual_Orientation_Other__c') && demographics.get('Sexual_Orientation_Other__c') != null && String.valueOf(demographics.get('Sexual_Orientation_Other__c')) != '') {
-                putIfFieldExists(acc, 'Sexual_Orientation_Other__c', demographics.get('Sexual_Orientation_Other__c'));
+            // Sexual Orientation Other - LWC now sends Sexual_Orientation_Other_Description__pc directly
+            if (demographics.containsKey('Sexual_Orientation_Other_Description__pc') && demographics.get('Sexual_Orientation_Other_Description__pc') != null && String.valueOf(demographics.get('Sexual_Orientation_Other_Description__pc')) != '') {
+                putIfFieldExists(acc, 'Sexual_Orientation_Other_Description__pc', demographics.get('Sexual_Orientation_Other_Description__pc'));
             }
             if (demographics.containsKey('PersonMobilePhone') && demographics.get('PersonMobilePhone') != null && String.valueOf(demographics.get('PersonMobilePhone')) != '') {
                 acc.put('PersonMobilePhone', demographics.get('PersonMobilePhone'));
@@ -1535,23 +1649,28 @@ public with sharing class InterviewSessionController {
             if (demographics.containsKey('Emergency_Contact_Relationship__c') && demographics.get('Emergency_Contact_Relationship__c') != null && String.valueOf(demographics.get('Emergency_Contact_Relationship__c')) != '') {
                 putIfFieldExists(acc, 'Emergency_Contact_Relationship__c', demographics.get('Emergency_Contact_Relationship__c'));
             }
-            if (demographics.containsKey('Place_of_Birth__c') && demographics.get('Place_of_Birth__c') != null && String.valueOf(demographics.get('Place_of_Birth__c')) != '') {
-                putIfFieldExists(acc, 'Place_of_Birth__c', demographics.get('Place_of_Birth__c'));
+            // Place of Birth - LWC now sends Place_of_Birth_City_County__pc directly
+            if (demographics.containsKey('Place_of_Birth_City_County__pc') && demographics.get('Place_of_Birth_City_County__pc') != null && String.valueOf(demographics.get('Place_of_Birth_City_County__pc')) != '') {
+                putIfFieldExists(acc, 'Place_of_Birth_City_County__pc', demographics.get('Place_of_Birth_City_County__pc'));
             }
-            if (demographics.containsKey('Is_Veteran__c') && demographics.get('Is_Veteran__c') != null && String.valueOf(demographics.get('Is_Veteran__c')) != '') {
-                putIfFieldExists(acc, 'Is_Veteran__c', demographics.get('Is_Veteran__c'));
+            // Veteran - LWC now sends Veteran_Service__pc directly
+            if (demographics.containsKey('Veteran_Service__pc') && demographics.get('Veteran_Service__pc') != null && String.valueOf(demographics.get('Veteran_Service__pc')) != '') {
+                putIfFieldExists(acc, 'Veteran_Service__pc', demographics.get('Veteran_Service__pc'));
             }
             if (demographics.containsKey('Known_Allergies__c') && demographics.get('Known_Allergies__c') != null && String.valueOf(demographics.get('Known_Allergies__c')) != '') {
                 putIfFieldExists(acc, 'Known_Allergies__c', demographics.get('Known_Allergies__c'));
             }
-            if (demographics.containsKey('Known_Diagnoses__c') && demographics.get('Known_Diagnoses__c') != null && String.valueOf(demographics.get('Known_Diagnoses__c')) != '') {
-                putIfFieldExists(acc, 'Known_Diagnoses__c', demographics.get('Known_Diagnoses__c'));
+            // Primary Diagnosis - LWC now sends Primary_Diagnosis__c directly
+            if (demographics.containsKey('Primary_Diagnosis__c') && demographics.get('Primary_Diagnosis__c') != null && String.valueOf(demographics.get('Primary_Diagnosis__c')) != '') {
+                putIfFieldExists(acc, 'Primary_Diagnosis__c', demographics.get('Primary_Diagnosis__c'));
             }
-            if (demographics.containsKey('Taking_Medications__c') && demographics.get('Taking_Medications__c') != null && String.valueOf(demographics.get('Taking_Medications__c')) != '') {
-                putIfFieldExists(acc, 'Taking_Medications__c', demographics.get('Taking_Medications__c'));
+            // Taking Medications - LWC now sends Currently_Taking_Medications__c directly
+            if (demographics.containsKey('Currently_Taking_Medications__c') && demographics.get('Currently_Taking_Medications__c') != null && String.valueOf(demographics.get('Currently_Taking_Medications__c')) != '') {
+                putIfFieldExists(acc, 'Currently_Taking_Medications__c', demographics.get('Currently_Taking_Medications__c'));
             }
-            if (demographics.containsKey('Needs_Medication_Refill_Help__c') && demographics.get('Needs_Medication_Refill_Help__c') != null && String.valueOf(demographics.get('Needs_Medication_Refill_Help__c')) != '') {
-                putIfFieldExists(acc, 'Needs_Medication_Refill_Help__c', demographics.get('Needs_Medication_Refill_Help__c'));
+            // Needs Medication Refill Help - LWC now sends Need_Help_Refilling_Medications__c directly
+            if (demographics.containsKey('Need_Help_Refilling_Medications__c') && demographics.get('Need_Help_Refilling_Medications__c') != null && String.valueOf(demographics.get('Need_Help_Refilling_Medications__c')) != '') {
+                putIfFieldExists(acc, 'Need_Help_Refilling_Medications__c', demographics.get('Need_Help_Refilling_Medications__c'));
             }
             if (demographics.containsKey('Medication_Notes__c') && demographics.get('Medication_Notes__c') != null && String.valueOf(demographics.get('Medication_Notes__c')) != '') {
                 putIfFieldExists(acc, 'Medication_Notes__c', demographics.get('Medication_Notes__c'));
