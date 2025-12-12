@@ -1,0 +1,488 @@
+<template>
+    <div class="note-shell">
+        <template if:true={isLoading}>
+            <div class="loading-overlay">
+                <lightning-spinner alternative-text="Loading clinical note" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={loadError}>
+            <div class="slds-notify slds-notify_alert slds-theme_error slds-m-around_medium">
+                <span class="slds-assistive-text">Error</span>
+                <h2>{loadError}</h2>
+            </div>
+        </template>
+
+        <template if:true={isReady}>
+            <section class="note-header">
+                <div class="header-title">
+                    <lightning-icon icon-name="standard:clinical_milestone" size="small"></lightning-icon>
+                    <div>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">Participant Overview</h3>
+                        <p class="slds-text-body_small">Clinical Note - Captured automatically from the linked Person Account</p>
+                    </div>
+                </div>
+                <div class="header-grid">
+                    <div class="field-block">
+                        <span class="label">Participant</span>
+                        <span class="value">{header.personName}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Date of Birth</span>
+                        <span class="value">{header.birthdate}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Email</span>
+                        <span class="value">{header.email}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Mobile</span>
+                        <span class="value">{header.phone}</span>
+                    </div>
+                    <div class="field-block">
+                        <span class="label">Medicaid ID</span>
+                        <span class="value">{header.medicaidId}</span>
+                    </div>
+                    <div class="field-block">
+                        <lightning-input
+                            type="date"
+                            name="interactionDate"
+                            label="Note Date"
+                            value={form.interactionDate}
+                            onchange={handleInputChange}
+                            variant="label-stacked"
+                            class="date-input-override">
+                        </lightning-input>
+                    </div>
+                </div>
+            </section>
+
+            <div class="note-layout">
+                <aside class="note-sidebar">
+                    <nav class="sidebar-nav" role="navigation" aria-label="Clinical note sections">
+                        <template for:each={navigationSteps} for:item="item">
+                            <button
+                                type="button"
+                                key={item.name}
+                                class={item.className}
+                                data-section={item.name}
+                                onclick={handleSidebarClick}
+                                aria-pressed={item.isActive}
+                                aria-current={item.ariaCurrent}
+                            >
+                                <span class="step-indicator">{item.step}</span>
+                                <span class="nav-label">{item.label}</span>
+                            </button>
+                        </template>
+                    </nav>
+                </aside>
+
+                <div class="note-content">
+                    <lightning-accordion
+                        active-section-name={activeSection}
+                        allow-multiple="false"
+                        onsectiontoggle={handleSectionToggle}
+                    >
+                        <lightning-accordion-section name="visit" label="Visit Details">
+                            <div data-section="visit">
+                                <div class="slds-grid slds-wrap slds-gutters_small">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                        <lightning-input
+                                            type="time"
+                                            name="startTime"
+                                            label="Start Time"
+                                            required
+                                            value={form.startTime}
+                                            onchange={handleInputChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                        <lightning-input
+                                            type="time"
+                                            name="endTime"
+                                            label="End Time"
+                                            required
+                                            value={form.endTime}
+                                            onchange={handleInputChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                        <div class="duration-block">
+                                            <span class="label">Duration</span>
+                                            <span class="value">{durationDisplay}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="slds-grid slds-wrap slds-gutters_small slds-m-top_small">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <lightning-input
+                                            type="checkbox"
+                                            name="interpreterUsed"
+                                            label="Interpreter Used"
+                                            checked={form.interpreterUsed}
+                                            onchange={handleInputChange}>
+                                        </lightning-input>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                        <lightning-combobox
+                                            name="pos"
+                                            label="Place of Service"
+                                            value={form.pos}
+                                            options={posOptions}
+                                            placeholder="Select"
+                                            onchange={handleInputChange}>
+                                        </lightning-combobox>
+                                    </div>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="narrative" label="Clinical Notes">
+                            <div data-section="narrative">
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Reason for Visit</label>
+                                    <lightning-input-rich-text
+                                        value={form.reason}
+                                        formats={richTextFormats}
+                                        onchange={handleReasonChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Clinical Intervention</label>
+                                    <lightning-input-rich-text
+                                        value={form.services}
+                                        formats={richTextFormats}
+                                        onchange={handleServicesChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Client Response</label>
+                                    <lightning-input-rich-text
+                                        value={form.response}
+                                        formats={richTextFormats}
+                                        onchange={handleResponseChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Treatment Plan</label>
+                                    <lightning-input-rich-text
+                                        value={form.plan}
+                                        formats={richTextFormats}
+                                        onchange={handlePlanChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <!-- Risk Assessment Section -->
+                        <lightning-accordion-section name="assessment" label="Risk Assessment">
+                            <div data-section="assessment">
+                                <div class="assessment-section">
+                                    <p class="slds-text-body_regular slds-m-bottom_medium">
+                                        Launch the SSRS Risk Assessment to evaluate and document suicide risk. 
+                                        The assessment data will be saved with this clinical note.
+                                    </p>
+                                    <template if:true={hasSsrsData}>
+                                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                                            <p class="slds-text-body_small">
+                                                <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                                Risk Assessment data has been captured. Click "Edit Risk Assessment" to modify.
+                                            </p>
+                                        </div>
+                                    </template>
+                                    <lightning-button
+                                        variant="neutral"
+                                        label={ssrsButtonLabel}
+                                        icon-name="utility:assessment"
+                                        onclick={handleLaunchSsrs}
+                                        disabled={ssrsDisabled}>
+                                    </lightning-button>
+                                    <template if:false={canLaunchSsrs}>
+                                        <p class="slds-text-color_error slds-m-top_small">
+                                            Risk Assessment requires a linked Person Account.
+                                        </p>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="services" label="Services Provided">
+                            <div data-section="services">
+                                <template if:false={hasBenefits}>
+                                    <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small">
+                                        <span class="slds-assistive-text">Warning</span>
+                                        <p>No clinical benefits available. Ensure Benefits have "Available for Clinical" checked for this Case's Program.</p>
+                                    </div>
+                                </template>
+                                <lightning-dual-listbox
+                                    name="benefits"
+                                    label="Select Services"
+                                    source-label="Available Services"
+                                    selected-label="Services Provided"
+                                    field-level-help="Select the clinical services/benefits provided during this interaction. Benefit assignments and disbursements will be automatically created."
+                                    value={form.benefitIds}
+                                    options={benefitOptions}
+                                    onchange={handleBenefitsChange}>
+                                </lightning-dual-listbox>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="goals" label="Goals Addressed">
+                            <div data-section="goals">
+                                <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                                    <div class="slds-col">
+                                        <p class="slds-text-body_small slds-text-color_weak">
+                                            <template if:true={hasActiveGoals}>
+                                                {goalsWorkedOnCount} of {activeGoals.length} goals selected
+                                            </template>
+                                            <template if:false={hasActiveGoals}>
+                                                No active goals found for this participant
+                                            </template>
+                                        </p>
+                                    </div>
+                                    <div class="slds-col slds-col_bump-left">
+                                        <lightning-button
+                                            label="Create New Goal"
+                                            icon-name="utility:new"
+                                            onclick={handleCreateGoal}
+                                            variant="neutral"
+                                            class="slds-m-bottom_x-small">
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                                
+                                <template if:true={hasActiveGoals}>
+                                    <div class="goal-cards-container">
+                                        <template for:each={goalsWithWorkState} for:item="goal">
+                                            <div key={goal.id} class={goal.cardClass}>
+                                                <div class="goal-card-header" data-goal-id={goal.id} onclick={handleGoalCardClick}>
+                                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                                        <div class="slds-col slds-grow-none slds-m-right_small">
+                                                            <lightning-input
+                                                                type="checkbox"
+                                                                data-goal-id={goal.id}
+                                                                checked={goal.workedOn}
+                                                                onchange={handleGoalWorkedOnChange}
+                                                                onclick={stopPropagation}
+                                                                label=""
+                                                                variant="label-hidden">
+                                                            </lightning-input>
+                                                        </div>
+                                                        <div class="slds-col slds-grow">
+                                                            <p class="goal-name">{goal.name}</p>
+                                                            <template if:true={goal.hasCategory}>
+                                                                <p class="goal-category">{goal.category}</p>
+                                                            </template>
+                                                        </div>
+                                                        <div class="slds-col slds-grow-none slds-text-align_right">
+                                                            <template if:true={goal.priority}>
+                                                                <span class={goal.priorityClass}>{goal.priority}</span>
+                                                            </template>
+                                                            <p class="goal-progress-badge">{goal.progressDisplay}</p>
+                                                        </div>
+                                                        <div class="slds-col slds-grow-none slds-m-left_small">
+                                                            <lightning-icon 
+                                                                icon-name={goal.expandIcon}
+                                                                size="x-small"
+                                                                alternative-text="Toggle details">
+                                                            </lightning-icon>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <template if:true={goal.expanded}>
+                                                    <div class="goal-card-body">
+                                                        <div class="goal-context slds-m-bottom_small">
+                                                            <template if:true={goal.hasObjective}>
+                                                                <p class="slds-text-body_small"><strong>Objective:</strong> {goal.objective}</p>
+                                                            </template>
+                                                            <template if:true={goal.hasModality}>
+                                                                <p class="slds-text-body_small"><strong>Service/Modality:</strong> {goal.modality}</p>
+                                                            </template>
+                                                            <template if:true={goal.hasFrequency}>
+                                                                <p class="slds-text-body_small"><strong>Frequency:</strong> {goal.frequency}</p>
+                                                            </template>
+                                                            <template if:true={goal.hasCategoryDescription}>
+                                                                <p class="slds-text-body_small slds-text-color_weak"><em>{goal.categoryDescription}</em></p>
+                                                            </template>
+                                                            <p class="slds-text-body_small slds-m-top_xx-small">
+                                                                <span class="slds-m-right_medium">Status: {goal.status}</span>
+                                                                <template if:true={goal.hasLastWorked}>
+                                                                    <span>Last worked: {goal.lastWorkedOn} ({goal.sessionsDisplay} sessions)</span>
+                                                                </template>
+                                                            </p>
+                                                        </div>
+                                                        
+                                                        <template if:true={goal.workedOn}>
+                                                            <div class="goal-work-inputs">
+                                                                <div class="slds-form-element slds-m-bottom_small">
+                                                                    <label class="slds-form-element__label">
+                                                                        Progress: {goal.progressAfter}%
+                                                                    </label>
+                                                                    <div class="slds-form-element__control">
+                                                                        <input 
+                                                                            type="range" 
+                                                                            min="0" 
+                                                                            max="100" 
+                                                                            step="5"
+                                                                            value={goal.progressAfter}
+                                                                            data-goal-id={goal.id}
+                                                                            onchange={handleGoalProgressChange}
+                                                                            class="progress-slider">
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <lightning-input
+                                                                    type="number"
+                                                                    label="Time Spent (minutes)"
+                                                                    min="0"
+                                                                    step="5"
+                                                                    value={goal.timeSpentMinutes}
+                                                                    data-goal-id={goal.id}
+                                                                    onchange={handleGoalTimeChange}
+                                                                    class="slds-m-bottom_small">
+                                                                </lightning-input>
+                                                                
+                                                                <lightning-textarea
+                                                                    label="Clinical notes for this goal"
+                                                                    value={goal.narrative}
+                                                                    data-goal-id={goal.id}
+                                                                    onchange={handleGoalNarrativeChange}
+                                                                    placeholder="Document clinical work done on this goal during the session"
+                                                                    max-length="32000">
+                                                                </lightning-textarea>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                
+                                <template if:false={hasActiveGoals}>
+                                    <div class="slds-illustration slds-illustration_small">
+                                        <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
+                                            No active goals found. Use the "Create New Goal" button to add goals for this participant.
+                                        </p>
+                                    </div>
+                                </template>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="codes" label="Code Assignments">
+                            <div data-section="codes">
+                                <div class="slds-m-bottom_small">
+                                    <lightning-button
+                                        label="Add New Diagnosis"
+                                        icon-name="utility:new"
+                                        onclick={handleCreateCode}
+                                        variant="neutral"
+                                        class="slds-m-bottom_x-small">
+                                    </lightning-button>
+                                </div>
+                                <lightning-dual-listbox
+                                    name="codes"
+                                    label="Select Codes"
+                                    source-label="Available Codes"
+                                    selected-label="Codes Applied"
+                                    value={form.codeIds}
+                                    options={codeOptions}
+                                    onchange={handleCodesChange}>
+                                </lightning-dual-listbox>
+                            </div>
+                        </lightning-accordion-section>
+                        
+                        <!-- Child Components for creating goals/codes -->
+                        <c-goal-assignment-creator
+                            account-id={accountId}
+                            case-id={recordId}
+                            ongoalcreated={handleGoalCreated}>
+                        </c-goal-assignment-creator>
+                        
+                        <c-code-assignment-creator
+                            account-id={accountId}
+                            case-id={recordId}
+                            oncodecreated={handleCodeCreated}>
+                        </c-code-assignment-creator>
+
+                        <lightning-accordion-section name="signature" label="Signature">
+                            <div data-section="signature">
+                                <p class="slds-text-body_small slds-m-bottom_small">
+                                    Signer: {signatureContext.signerName} - Date: {signatureContext.signDate}
+                                </p>
+                                <c-signature-pad
+                                    hide-controls
+                                    record-id={interactionId}
+                                    onsignaturesaved={handleSignatureSaved}>
+                                </c-signature-pad>
+                            </div>
+                        </lightning-accordion-section>
+                    </lightning-accordion>
+
+                    <div class="actions">
+                        <lightning-button
+                            variant="neutral"
+                            label="Reset"
+                            onclick={handleReset}>
+                        </lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Save for Later"
+                            icon-name="utility:save"
+                            onclick={handleSaveForLater}
+                            disabled={isSavingDraft}>
+                        </lightning-button>
+                        <lightning-button
+                            variant="brand"
+                            label={saveButtonLabel}
+                            class="submit-button"
+                            onclick={handleSave}
+                            disabled={isSaving}>
+                        </lightning-button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- SSRS Assessment Modal -->
+    <template if:true={showSsrsModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="ssrs-modal-heading"
+            class="slds-modal slds-fade-in-open ssrs-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeSsrsModal}>
+                    </lightning-button-icon>
+                    <h2 id="ssrs-modal-heading" class="slds-text-heading_medium">
+                        SSRS Risk Assessment
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_none">
+                    <c-ssrs-assessment 
+                        record-id={accountId} 
+                        case-id={recordId}
+                        oncomplete={handleSsrsComplete}>
+                    </c-ssrs-assessment>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeSsrsModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

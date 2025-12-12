@@ -178,6 +178,38 @@
                             </div>
                         </lightning-accordion-section>
 
+                        <!-- Risk Assessment Section -->
+                        <lightning-accordion-section name="assessment" label="Risk Assessment">
+                            <div data-section="assessment">
+                                <div class="assessment-section">
+                                    <p class="slds-text-body_regular slds-m-bottom_medium">
+                                        Launch the SSRS Risk Assessment to evaluate and document suicide risk. 
+                                        The assessment data will be saved with this case note.
+                                    </p>
+                                    <template if:true={hasSsrsData}>
+                                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                                            <p class="slds-text-body_small">
+                                                <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                                Risk Assessment data has been captured. Click "Edit Risk Assessment" to modify.
+                                            </p>
+                                        </div>
+                                    </template>
+                                    <lightning-button
+                                        variant="neutral"
+                                        label={ssrsButtonLabel}
+                                        icon-name="utility:assessment"
+                                        onclick={handleLaunchSsrs}
+                                        disabled={ssrsDisabled}>
+                                    </lightning-button>
+                                    <template if:false={canLaunchSsrs}>
+                                        <p class="slds-text-color_error slds-m-top_small">
+                                            Risk Assessment requires a linked Person Account.
+                                        </p>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
                         <lightning-accordion-section name="services" label="Services Provided">
                             <div data-section="services">
                                 <template if:false={hasBenefits}>
@@ -409,6 +441,13 @@
                             onclick={handleReset}>
                         </lightning-button>
                         <lightning-button
+                            variant="neutral"
+                            label="Save for Later"
+                            icon-name="utility:save"
+                            onclick={handleSaveForLater}
+                            disabled={isSavingDraft}>
+                        </lightning-button>
+                        <lightning-button
                             variant="brand"
                             label="Save Case Note"
                             class="submit-button"
@@ -420,4 +459,40 @@
             </div>
         </template>
     </div>
+
+    <!-- SSRS Assessment Modal -->
+    <template if:true={showSsrsModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="ssrs-modal-heading"
+            class="slds-modal slds-fade-in-open ssrs-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeSsrsModal}>
+                    </lightning-button-icon>
+                    <h2 id="ssrs-modal-heading" class="slds-text-heading_medium">
+                        SSRS Risk Assessment
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_none">
+                    <c-ssrs-assessment 
+                        record-id={accountId} 
+                        case-id={recordId}
+                        oncomplete={handleSsrsComplete}>
+                    </c-ssrs-assessment>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeSsrsModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>

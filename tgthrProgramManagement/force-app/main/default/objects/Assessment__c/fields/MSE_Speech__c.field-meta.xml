@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MSE_Speech__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Mental Status Exam - Speech pattern observation</inlineHelpText>
+    <label>MSE - Speech</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Normal</fullName><default>false</default><label>Normal</label></value>
+            <value><fullName>Tangential</fullName><default>false</default><label>Tangential</label></value>
+            <value><fullName>Pressured</fullName><default>false</default><label>Pressured</label></value>
+            <value><fullName>Impoverished</fullName><default>false</default><label>Impoverished</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

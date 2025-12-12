@@ -9,9 +9,13 @@ const FIELDS = [CASE_ACCOUNT_FIELD];
 export default class DocumentationHub extends NavigationMixin(LightningElement) {
     @api recordId;
 
+    // Modal visibility states
+    @track showCaseNoteModal = false;
     @track showClinicalModal = false;
-    @track showSsrsModal = false;
+    @track showPeerNoteModal = false;
     @track showInterviewModal = false;
+    
+    // Interview templates
     @track interviewTemplates = [];
     @track interviewError;
     @track isLoadingInterviews = false;
@@ -32,30 +36,53 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         }
     }
 
-    get isSsrsDisabled() {
+    // Disabled state getters
+    get isNoteDisabled() {
         return !this.accountId || this.caseLoadError;
     }
 
-    get ssrsDisabledMessage() {
+    get noteDisabledMessage() {
         if (this.caseLoadError) {
             return this.caseLoadError;
         }
-        return this.accountId ? null : 'SSRS Assessment requires the Case to be linked to a Person Account.';
+        return this.accountId ? null : 'Clinical and Peer Notes require the Case to be linked to a Person Account.';
     }
 
     get isInterviewDisabled() {
-        return this.isSsrsDisabled;
+        return this.isNoteDisabled;
     }
 
+    // Button labels
     get caseNoteLabel() {
         return 'Case Note';
+    }
+
+    get clinicalNoteLabel() {
+        return 'Clinical Note';
+    }
+
+    get peerNoteLabel() {
+        return 'Peer Note';
     }
 
     get hasInterviewTemplates() {
         return Array.isArray(this.interviewTemplates) && this.interviewTemplates.length > 0;
     }
 
+    // Case Note handlers
+    openCaseNote() {
+        this.showCaseNoteModal = true;
+    }
+
+    closeCaseNote() {
+        this.showCaseNoteModal = false;
+    }
+
+    // Clinical Note handlers
     openClinicalNote() {
+        if (this.isNoteDisabled) {
+            return;
+        }
         this.showClinicalModal = true;
     }
 
@@ -63,6 +90,19 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         this.showClinicalModal = false;
     }
 
+    // Peer Note handlers
+    openPeerNote() {
+        if (this.isNoteDisabled) {
+            return;
+        }
+        this.showPeerNoteModal = true;
+    }
+
+    closePeerNote() {
+        this.showPeerNoteModal = false;
+    }
+
+    // Interview/Other Documentation handlers
     async openInterviewModal() {
         if (this.isInterviewDisabled) {
             return;
@@ -104,17 +144,6 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
 
     closeInterviewModal() {
         this.showInterviewModal = false;
-    }
-
-    openSsrsAssessment() {
-        if (this.isSsrsDisabled) {
-            return;
-        }
-        this.showSsrsModal = true;
-    }
-
-    closeSsrsAssessment() {
-        this.showSsrsModal = false;
     }
 
     launchInterview(event) {

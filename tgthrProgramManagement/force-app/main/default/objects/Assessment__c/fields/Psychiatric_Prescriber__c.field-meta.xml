@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Psychiatric_Prescriber__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Name and contact information of current psychiatric prescriber, if applicable.</inlineHelpText>
+    <label>Psychiatric Prescriber</label>
+    <length>4000</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>2</visibleLines>
+</CustomField>

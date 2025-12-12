@@ -110,6 +110,27 @@ export default class GoalAssignmentCreator extends LightningElement {
         const field = event.target.dataset.field;
         const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
         this.carePlan[field] = value;
+        
+        // Dispatch event when consent checkboxes change so parent can track
+        if (field === 'consentParticipated' || field === 'consentOffered') {
+            this.dispatchEvent(new CustomEvent('consentchange', {
+                detail: {
+                    consentParticipated: this.carePlan.consentParticipated,
+                    consentOffered: this.carePlan.consentOffered
+                }
+            }));
+        }
+    }
+
+    // Public method for parent to get current consent values
+    @api
+    getConsentData() {
+        return {
+            consentParticipated: this.carePlan.consentParticipated,
+            consentOffered: this.carePlan.consentOffered,
+            dischargeDate: this.carePlan.dischargeDate,
+            dischargePlan: this.carePlan.dischargePlan
+        };
     }
 
     async handleSaveCarePlan() {

@@ -4,28 +4,68 @@
             <lightning-button
                 variant="brand"
                 label={caseNoteLabel}
-                onclick={openClinicalNote}>
+                onclick={openCaseNote}>
+            </lightning-button>
+            <lightning-button
+                class="slds-m-left_small"
+                variant="brand-outline"
+                label={clinicalNoteLabel}
+                onclick={openClinicalNote}
+                disabled={isNoteDisabled}>
+            </lightning-button>
+            <lightning-button
+                class="slds-m-left_small"
+                variant="brand-outline"
+                label={peerNoteLabel}
+                onclick={openPeerNote}
+                disabled={isNoteDisabled}>
             </lightning-button>
             <lightning-button
                 class="slds-m-left_small"
                 variant="neutral"
-                label="Risk Assessment"
-                onclick={openSsrsAssessment}
-                disabled={isSsrsDisabled}>
-            </lightning-button>
-            <lightning-button
-                class="slds-m-left_small"
-                variant="neutral"
-                label="Other Available Documentation"
+                label="Other Documentation"
                 onclick={openInterviewModal}
                 disabled={isInterviewDisabled}>
             </lightning-button>
         </div>
-        <template if:true={ssrsDisabledMessage}>
-            <p class="slds-text-color_error slds-m-top_small">{ssrsDisabledMessage}</p>
+        <template if:true={noteDisabledMessage}>
+            <p class="slds-text-color_error slds-m-top_small">{noteDisabledMessage}</p>
         </template>
     </lightning-card>
 
+    <!-- Case Note Modal -->
+    <template if:true={showCaseNoteModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="case-note-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeCaseNote}>
+                    </lightning-button-icon>
+                    <h2 id="case-note-modal-heading" class="slds-text-heading_medium">
+                        {caseNoteLabel}
+                    </h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <c-clinical-note-form record-id={recordId}></c-clinical-note-form>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeCaseNote}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Clinical Note Modal -->
     <template if:true={showClinicalModal}>
         <section
             role="dialog"
@@ -43,11 +83,11 @@
                         onclick={closeClinicalNote}>
                     </lightning-button-icon>
                     <h2 id="clinical-note-modal-heading" class="slds-text-heading_medium">
-                        {caseNoteLabel}
+                        {clinicalNoteLabel}
                     </h2>
                 </header>
                 <div class="slds-modal__content modal-body">
-                    <c-clinical-note-form record-id={recordId}></c-clinical-note-form>
+                    <c-clinical-note record-id={recordId}></c-clinical-note>
                 </div>
                 <footer class="slds-modal__footer">
                     <lightning-button variant="neutral" label="Close" onclick={closeClinicalNote}></lightning-button>
@@ -57,12 +97,13 @@
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
 
-    <template if:true={showSsrsModal}>
+    <!-- Peer Note Modal -->
+    <template if:true={showPeerNoteModal}>
         <section
             role="dialog"
             tabindex="-1"
             aria-modal="true"
-            aria-labelledby="ssrs-modal-heading"
+            aria-labelledby="peer-note-modal-heading"
             class="slds-modal slds-fade-in-open documentation-modal">
             <div class="slds-modal__container">
                 <header class="slds-modal__header">
@@ -71,17 +112,17 @@
                         icon-name="utility:close"
                         alternative-text="Close"
                         variant="bare-inverse"
-                        onclick={closeSsrsAssessment}>
+                        onclick={closePeerNote}>
                     </lightning-button-icon>
-                    <h2 id="ssrs-modal-heading" class="slds-text-heading_medium">
-                        SSRS Assessment
+                    <h2 id="peer-note-modal-heading" class="slds-text-heading_medium">
+                        {peerNoteLabel}
                     </h2>
                 </header>
                 <div class="slds-modal__content modal-body">
-                    <c-ssrs-assessment record-id={accountId} case-id={recordId}></c-ssrs-assessment>
+                    <c-peer-note record-id={recordId}></c-peer-note>
                 </div>
                 <footer class="slds-modal__footer">
-                    <lightning-button variant="neutral" label="Close" onclick={closeSsrsAssessment}></lightning-button>
+                    <lightning-button variant="neutral" label="Close" onclick={closePeerNote}></lightning-button>
                 </footer>
             </div>
         </section>

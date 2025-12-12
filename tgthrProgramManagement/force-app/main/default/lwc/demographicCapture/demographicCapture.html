@@ -60,16 +60,16 @@
                             <lightning-input
                                 type="number"
                                 label="Age"
-                                value={demographics.Age__c}
-                                data-field="Age__c"
+                                value={demographics.Age__pc}
+                                data-field="Age__pc"
                                 disabled>
                             </lightning-input>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
                             <lightning-input
                                 label="SSN"
-                                value={demographics.SSN__c}
-                                data-field="SSN__c"
+                                value={demographics.Social_Security_Number__pc}
+                                data-field="Social_Security_Number__pc"
                                 onchange={handleInputChange}
                                 disabled={ssnDisabled}
                                 pattern="[0-9]{3}-[0-9]{2}-[0-9]{4}"
@@ -99,9 +99,9 @@
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                             <lightning-combobox
                                 label="Translation Assistance Needed"
-                                value={demographics.Translation_Assistance_Needed__c}
+                                value={demographics.Translator_Needed__pc}
                                 options={translationOptions}
-                                data-field="Translation_Assistance_Needed__c"
+                                data-field="Translator_Needed__pc"
                                 onchange={handleInputChange}
                                 disabled={translationAssistanceDisabled}>
                             </lightning-combobox>
@@ -130,9 +130,9 @@
                         <div class="slds-col slds-size_1-of-1">
                             <lightning-combobox
                                 label="Gender Identity"
-                                value={demographics.Gender_Identity__c}
+                                value={demographics.Gender_Identity__pc}
                                 options={genderIdentityOptions}
-                                data-field="Gender_Identity__c"
+                                data-field="Gender_Identity__pc"
                                 onchange={handleInputChange}
                                 disabled={genderIdentityDisabled}>
                             </lightning-combobox>
@@ -141,8 +141,8 @@
                             <div class="slds-col slds-size_1-of-1">
                                 <lightning-input
                                     label="If different identity, please specify"
-                                    value={demographics.Gender_Identity_Other__c}
-                                    data-field="Gender_Identity_Other__c"
+                                    value={demographics.Gender_Identity_Other_Description__pc}
+                                    data-field="Gender_Identity_Other_Description__pc"
                                     onchange={handleInputChange}
                                     disabled={genderIdentityOtherDisabled}>
                                 </lightning-input>
@@ -151,9 +151,9 @@
                         <div class="slds-col slds-size_1-of-1">
                             <lightning-combobox
                                 label="Preferred Pronouns"
-                                value={demographics.Preferred_Pronouns__c}
+                                value={demographics.PersonPronouns}
                                 options={pronounOptions}
-                                data-field="Preferred_Pronouns__c"
+                                data-field="PersonPronouns"
                                 onchange={handleInputChange}
                                 disabled={preferredPronounsDisabled}>
                             </lightning-combobox>
@@ -162,8 +162,8 @@
                             <div class="slds-col slds-size_1-of-1">
                                 <lightning-input
                                     label="Other pronouns"
-                                    value={demographics.Pronouns_Other__c}
-                                    data-field="Pronouns_Other__c"
+                                    value={demographics.Pronouns_Other_Description__pc}
+                                    data-field="Pronouns_Other_Description__pc"
                                     onchange={handleInputChange}
                                     disabled={pronounsOtherDisabled}>
                                 </lightning-input>
@@ -185,9 +185,9 @@
                                 label="Race & Ethnicity (select all that apply)"
                                 source-label="Available"
                                 selected-label="Selected"
-                                value={demographics.Race_Ethnicity__c}
+                                value={demographics.Race_and_Ethnicity__pc}
                                 options={raceEthnicityOptions}
-                                data-field="Race_Ethnicity__c"
+                                data-field="Race_and_Ethnicity__pc"
                                 onchange={handleMultiSelectChange}
                                 disabled={raceEthnicityDisabled}>
                             </lightning-dual-listbox>
@@ -215,9 +215,9 @@
                         <div class="slds-col slds-size_1-of-1">
                             <lightning-combobox
                                 label="Sexual Orientation"
-                                value={demographics.Sexual_Orientation__c}
+                                value={demographics.Sexual_Orientation__pc}
                                 options={sexualOrientationOptions}
-                                data-field="Sexual_Orientation__c"
+                                data-field="Sexual_Orientation__pc"
                                 onchange={handleInputChange}
                                 disabled={sexualOrientationDisabled}>
                             </lightning-combobox>
@@ -226,8 +226,8 @@
                             <div class="slds-col slds-size_1-of-1">
                                 <lightning-input
                                     label="Other sexual orientation"
-                                    value={demographics.Sexual_Orientation_Other__c}
-                                    data-field="Sexual_Orientation_Other__c"
+                                    value={demographics.Sexual_Orientation_Other_Description__pc}
+                                    data-field="Sexual_Orientation_Other_Description__pc"
                                     onchange={handleInputChange}
                                     disabled={sexualOrientationOtherDisabled}>
                                 </lightning-input>
@@ -285,8 +285,8 @@
                         <div class="slds-col slds-size_1-of-1">
                             <lightning-input
                                 label="Place of Birth (City/County/State/Country)"
-                                value={demographics.Place_of_Birth__c}
-                                data-field="Place_of_Birth__c"
+                                value={demographics.Place_of_Birth_City_County__pc}
+                                data-field="Place_of_Birth_City_County__pc"
                                 onchange={handleInputChange}
                                 disabled={placeOfBirthDisabled}>
                             </lightning-input>
@@ -305,9 +305,9 @@
                         <div class="slds-col slds-size_1-of-1">
                             <lightning-combobox
                                 label="Are you a veteran?"
-                                value={demographics.Is_Veteran__c}
+                                value={demographics.Veteran_Service__pc}
                                 options={yesNoOptions}
-                                data-field="Is_Veteran__c"
+                                data-field="Veteran_Service__pc"
                                 onchange={handleInputChange}
                                 disabled={isVeteranDisabled}>
                             </lightning-combobox>
@@ -324,8 +324,8 @@
                         <div class="slds-col slds-size_1-of-1">
                             <lightning-textarea
                                 label="Known diagnoses"
-                                value={demographics.Known_Diagnoses__c}
-                                data-field="Known_Diagnoses__c"
+                                value={demographics.Primary_Diagnosis__c}
+                                data-field="Primary_Diagnosis__c"
                                 onchange={handleInputChange}
                                 disabled={knownDiagnosesDisabled}>
                             </lightning-textarea>
@@ -333,9 +333,9 @@
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                             <lightning-combobox
                                 label="Are you currently taking any medications?"
-                                value={demographics.Taking_Medications__c}
+                                value={demographics.Currently_Taking_Medications__c}
                                 options={yesNoOptions}
-                                data-field="Taking_Medications__c"
+                                data-field="Currently_Taking_Medications__c"
                                 onchange={handleInputChange}
                                 disabled={takingMedicationsDisabled}>
                             </lightning-combobox>
@@ -343,9 +343,9 @@
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
                             <lightning-combobox
                                 label="Do you need help refilling those medications?"
-                                value={demographics.Needs_Medication_Refill_Help__c}
+                                value={demographics.Need_Help_Refilling_Medications__c}
                                 options={yesNoOptions}
-                                data-field="Needs_Medication_Refill_Help__c"
+                                data-field="Need_Help_Refilling_Medications__c"
                                 onchange={handleInputChange}
                                 disabled={needsMedicationRefillHelpDisabled}>
                             </lightning-combobox>
