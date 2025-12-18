@@ -27,11 +27,12 @@ class InterviewAnswerService:
                 raise ValueError("case_id, template_version_id, and answers are all required")
             
             # First, create an Interview__c header record
+            # Valid Status__c values: "In Progress", "Submitted", "Signed"
             interview_data = {
                 'Name': f'Interview - {template_version_id}',
                 'Case__c': case_id,
                 'InterviewTemplateVersion__c': template_version_id,
-                'Status__c': 'Completed'
+                'Status__c': 'Submitted'
             }
             
             logger.debug(f"Creating Interview header: {interview_data}")
