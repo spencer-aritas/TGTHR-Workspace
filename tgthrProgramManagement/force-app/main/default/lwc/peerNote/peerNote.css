@@ -2,7 +2,8 @@
     position: relative;
     padding: 0 var(--lwc-spacingMedium, 1rem) var(--lwc-spacingMedium, 1rem);
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -25,6 +26,7 @@
     gap: var(--lwc-spacingLarge, 1.5rem);
     flex: 1;
     min-height: 0;
+    overflow: visible;
 }
 
 .note-header {
@@ -34,8 +36,10 @@
     padding: var(--lwc-spacingMedium, 1rem);
     margin-bottom: var(--lwc-spacingLarge, 1.5rem);
     flex-shrink: 0;
-    z-index: 2;
+    z-index: 3;
     box-shadow: 0 4px 8px -6px rgba(0, 0, 0, 0.2);
+    position: sticky;
+    top: 0;
 }
 
 .header-title {
@@ -55,8 +59,10 @@
     border-radius: 0.5rem;
     padding: var(--lwc-spacingMedium, 1rem);
     height: fit-content;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
     position: sticky;
-    top: 7.5rem;
+    top: 1rem;
     align-self: start;
     z-index: 1;
 }

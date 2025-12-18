@@ -64,9 +64,12 @@
                         <div class="slds-grid slds-grid_vertical-align-center slds-wrap slds-m-bottom_medium">
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
                                 <h2 class="slds-text-heading_medium">{selectedDocument.templateName}</h2>
-                                <template if:true={selectedDocument.templateCategory}>
-                                    <span class="slds-badge slds-m-top_xx-small">{selectedDocument.templateCategory}</span>
-                                </template>
+                                <div class="slds-m-top_xx-small">
+                                    <template if:true={selectedDocument.templateCategory}>
+                                        <span class="slds-badge slds-m-right_x-small">{selectedDocument.templateCategory}</span>
+                                    </template>
+                                    <span class={computedStatusBadgeClass}>{computedStatus}</span>
+                                </div>
                             </div>
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right slds-m-top_small slds-medium-m-top_none">
                                 <lightning-button-group>
@@ -87,75 +90,112 @@
                             </div>
                         </div>
 
-                        <!-- Document Metadata Card -->
-                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                        <!-- Client Info Card -->
+                        <template if:true={selectedDocument.clientName}>
+                            <div class="slds-box slds-box_x-small slds-theme_default slds-m-bottom_small">
+                                <div class="slds-grid slds-grid_vertical-align-center">
+                                    <lightning-icon icon-name="standard:individual" size="small" class="slds-m-right_small"></lightning-icon>
+                                    <div>
+                                        <div class="slds-text-title_caps text-muted" style="font-size: 0.625rem;">Participant</div>
+                                        <div class="slds-text-body_regular slds-text-title_bold">{selectedDocument.clientName}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Timeline Card -->
+                        <div class="slds-box slds-theme_shade slds-m-bottom_small">
+                            <div class="slds-text-title_caps text-muted slds-m-bottom_x-small">Timeline</div>
                             <div class="slds-grid slds-wrap">
-                                <!-- Status -->
-                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
-                                    <div class="slds-text-title_caps text-muted">Status</div>
-                                    <div class="slds-text-body_regular">
-                                        <span class={statusBadgeClass}>{selectedDocument.status}</span>
-                                    </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_xx-small">
+                                    <div class="slds-text-body_small text-muted">Started</div>
+                                    <div class="slds-text-body_regular">{displayStartDate}</div>
                                 </div>
-                                
-                                <!-- Signatures -->
-                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
-                                    <div class="slds-text-title_caps text-muted">Signatures</div>
-                                    <div class="slds-text-body_regular">
-                                        <template if:true={selectedDocument.clientSigned}>
-                                            <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_xx-small success-icon"></lightning-icon>
-                                            <span class="slds-m-right_small">Client</span>
-                                        </template>
-                                        <template if:false={selectedDocument.clientSigned}>
-                                            <lightning-icon icon-name="utility:close" size="x-small" class="slds-m-right_xx-small text-muted"></lightning-icon>
-                                            <span class="slds-m-right_small text-muted">Client</span>
-                                        </template>
-                                        <template if:true={selectedDocument.staffSigned}>
-                                            <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_xx-small success-icon"></lightning-icon>
-                                            <span>Staff</span>
-                                        </template>
-                                        <template if:false={selectedDocument.staffSigned}>
-                                            <lightning-icon icon-name="utility:close" size="x-small" class="slds-m-right_xx-small text-muted"></lightning-icon>
-                                            <span class="text-muted">Staff</span>
-                                        </template>
-                                    </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_xx-small">
+                                    <div class="slds-text-body_small text-muted">Completed</div>
+                                    <div class="slds-text-body_regular">{displayCompletedDate}</div>
                                 </div>
-                                
-                                <!-- Started -->
-                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
-                                    <div class="slds-text-title_caps text-muted">Started</div>
-                                    <div class="slds-text-body_regular">{selectedDocument.startDateFormatted}</div>
+                            </div>
+                        </div>
+
+                        <!-- Signatures Card -->
+                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                            <div class="slds-text-title_caps text-muted slds-m-bottom_x-small">Signatures</div>
+                            
+                            <!-- Client Signature -->
+                            <div class="slds-grid slds-grid_vertical-align-center slds-p-vertical_xx-small signature-row">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template if:true={selectedDocument.clientSigned}>
+                                        <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_x-small success-icon"></lightning-icon>
+                                    </template>
+                                    <template if:false={selectedDocument.clientSigned}>
+                                        <lightning-icon icon-name="utility:clock" size="x-small" class="slds-m-right_x-small text-muted"></lightning-icon>
+                                    </template>
+                                    <span class={clientSignatureClass}>Client Signature</span>
                                 </div>
-                                
-                                <!-- Completed -->
-                                <div class="slds-col slds-size_1-of-2 slds-p-around_small">
-                                    <div class="slds-text-title_caps text-muted">Completed</div>
-                                    <div class="slds-text-body_regular">{selectedDocument.completedDateFormatted}</div>
+                                <div class="slds-col slds-size_1-of-2 slds-text-align_right">
+                                    <template if:true={selectedDocument.clientSigned}>
+                                        <span class="slds-text-body_small text-muted">{clientSignedDate}</span>
+                                    </template>
+                                    <template if:false={selectedDocument.clientSigned}>
+                                        <span class="slds-badge slds-theme_warning">Pending</span>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <!-- Staff Signature -->
+                            <div class="slds-grid slds-grid_vertical-align-center slds-p-vertical_xx-small signature-row">
+                                <div class="slds-col slds-size_1-of-2">
+                                    <template if:true={selectedDocument.staffSigned}>
+                                        <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_x-small success-icon"></lightning-icon>
+                                    </template>
+                                    <template if:false={selectedDocument.staffSigned}>
+                                        <lightning-icon icon-name="utility:clock" size="x-small" class="slds-m-right_x-small text-muted"></lightning-icon>
+                                    </template>
+                                    <span class={staffSignatureClass}>Staff Signature</span>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-text-align_right">
+                                    <template if:true={selectedDocument.staffSigned}>
+                                        <span class="slds-text-body_small text-muted">{staffSignedDate}</span>
+                                    </template>
+                                    <template if:false={selectedDocument.staffSigned}>
+                                        <span class="slds-badge slds-theme_warning">Pending</span>
+                                    </template>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
-                        <div class="slds-grid slds-grid_align-center slds-m-top_medium">
+                        <div class="slds-grid slds-grid_align-center slds-wrap slds-m-top_medium">
+                            <template if:true={needsSignatures}>
+                                <lightning-button 
+                                    variant="brand"
+                                    label="Complete Signatures" 
+                                    icon-name="utility:edit" 
+                                    onclick={handleOpenInterview}
+                                    class="slds-m-right_small slds-m-bottom_small">
+                                </lightning-button>
+                            </template>
                             <lightning-button 
-                                variant="brand"
-                                label="Download Document" 
+                                variant={downloadButtonVariant}
+                                label="Download" 
                                 icon-name="utility:download" 
                                 onclick={handleDownload}
-                                class="slds-m-right_small">
+                                class="slds-m-right_small slds-m-bottom_small">
                             </lightning-button>
                             <lightning-button 
                                 variant="neutral"
                                 label="Open in Files" 
                                 icon-name="utility:new_window" 
                                 onclick={handleOpenInFiles}
-                                disabled={hasNoContentDocument}>
+                                disabled={hasNoContentDocument}
+                                class="slds-m-bottom_small">
                             </lightning-button>
                         </div>
 
                         <!-- Interview Record Link -->
-                        <div class="slds-text-align_center slds-m-top_large">
-                            <a href={interviewRecordUrl} class="slds-text-link">
+                        <div class="slds-text-align_center slds-m-top_medium">
+                            <a href={interviewRecordUrl} class="slds-text-link slds-text-body_small">
                                 View Interview Record
                             </a>
                         </div>

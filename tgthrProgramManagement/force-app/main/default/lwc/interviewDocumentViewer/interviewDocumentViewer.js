@@ -306,6 +306,92 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         return '/' + this.selectedDocument.interviewId;
     }
     
+    /**
+     * Computed status based on signatures - document is complete when all required signatures are present
+     */
+    get computedStatus() {
+        if (!this.selectedDocument) return 'Unknown';
+        
+        const clientSigned = this.selectedDocument.clientSigned;
+        const staffSigned = this.selectedDocument.staffSigned;
+        
+        if (clientSigned && staffSigned) {
+            return 'Completed';
+        } else if (clientSigned || staffSigned) {
+            return 'Awaiting Signatures';
+        }
+        return 'Pending Signatures';
+    }
+    
+    get computedStatusBadgeClass() {
+        const status = this.computedStatus;
+        if (status === 'Completed') {
+            return 'slds-badge slds-theme_success';
+        } else if (status === 'Awaiting Signatures') {
+            return 'slds-badge slds-theme_warning';
+        }
+        return 'slds-badge slds-theme_light';
+    }
+    
+    get needsSignatures() {
+        if (!this.selectedDocument) return false;
+        return !this.selectedDocument.clientSigned || !this.selectedDocument.staffSigned;
+    }
+    
+    get downloadButtonVariant() {
+        return this.needsSignatures ? 'neutral' : 'brand';
+    }
+    
+    get displayStartDate() {
+        return this.selectedDocument?.startDateFormatted || 'Not started';
+    }
+    
+    get displayCompletedDate() {
+        if (!this.selectedDocument) return '--';
+        if (this.selectedDocument.clientSigned && this.selectedDocument.staffSigned) {
+            return this.selectedDocument.completedDateFormatted || 'Completed';
+        }
+        return 'Pending signatures';
+    }
+    
+    get clientSignatureClass() {
+        return this.selectedDocument?.clientSigned ? 'slds-text-color_success' : '';
+    }
+    
+    get staffSignatureClass() {
+        return this.selectedDocument?.staffSigned ? 'slds-text-color_success' : '';
+    }
+    
+    get clientSignedDate() {
+        // TODO: Add actual signed date from data
+        return 'Signed';
+    }
+    
+    get staffSignedDate() {
+        // TODO: Add actual signed date from data
+        return 'Signed';
+    }
+    
+    /**
+     * Open the interview to complete signatures
+     */
+    handleOpenInterview() {
+        if (!this.selectedDocument?.interviewId) {
+            this.showToast('Error', 'Interview record not found', 'error');
+            return;
+        }
+        
+        // Navigate to interview session page to complete signatures
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.selectedDocument.interviewId,
+                objectApiName: 'Interview__c',
+                actionName: 'view'
+            }
+        });
+    }
+    
     getDocumentItemClass(doc) {
         const baseClass = 'document-item slds-box slds-box_x-small slds-theme_shade';
         const selectedClass = doc.id === this.selectedDocumentId ? ' document-item-selected' : '';

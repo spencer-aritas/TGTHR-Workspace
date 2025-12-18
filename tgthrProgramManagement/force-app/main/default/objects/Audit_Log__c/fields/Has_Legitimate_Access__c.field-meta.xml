@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Has_Legitimate_Access__c</fullName>
+    <label>Has Legitimate Access</label>
+    <description>Indicates if the user has a legitimate relationship to the record (case owner, team member, supervisor, etc.)</description>
+    <inlineHelpText>True if user is assigned to the case/program or is a supervisor.</inlineHelpText>
+    <type>Checkbox</type>
+    <defaultValue>false</defaultValue>
+</CustomField>

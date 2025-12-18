@@ -187,18 +187,35 @@ public with sharing class InteractionContextService {
         List<GoalAssignmentDTO> goals = new List<GoalAssignmentDTO>();
         
         try {
-            // Query standard GoalAssignment with GoalDefinition relationship and custom rollup fields
-            String query = 'SELECT Id, Name, CustomGoalName, ' +
-                           'GoalDefinitionId, GoalDefinition.Name, GoalDefinition.Description, ' +
-                           'Goal_Notes__c, Description, Frequency__c, ' +
-                           'Status, Priority, StartDate, TargetCompletionDate, ' +
-                           'CurrentProgress__c, TotalSessions__c, LastWorkedOnDate__c ' +
-                           'FROM GoalAssignment ' +
+            // Check which custom fields exist on GoalAssignment
+            Schema.SObjectType goalAssignmentType = Schema.getGlobalDescribe().get('GoalAssignment');
+            Map<String, Schema.SObjectField> fieldMap = goalAssignmentType.getDescribe().fields.getMap();
+            
+            Boolean hasCurrentProgress = fieldMap.containsKey('CurrentProgress__c');
+            Boolean hasTotalSessions = fieldMap.containsKey('TotalSessions__c');
+            Boolean hasLastWorkedOnDate = fieldMap.containsKey('LastWorkedOnDate__c');
+            
+            // Build query dynamically with only existing fields
+            // Note: Avoiding CustomGoalName due to managed package conflicts
+            List<String> selectFields = new List<String>{
+                'Id', 'Name', 'Goal_Name__c',
+                'GoalDefinitionId', 'GoalDefinition.Name', 'GoalDefinition.Description',
+                'Goal_Notes__c', 'Description', 'Frequency__c',
+                'Status', 'Priority', 'StartDate', 'TargetCompletionDate'
+            };
+            
+            if (hasCurrentProgress) selectFields.add('CurrentProgress__c');
+            if (hasTotalSessions) selectFields.add('TotalSessions__c');
+            if (hasLastWorkedOnDate) selectFields.add('LastWorkedOnDate__c');
+            
+            String query = 'SELECT ' + String.join(selectFields, ', ') +
+                           ' FROM GoalAssignment ' +
                            'WHERE GoalAssigneeId = :accountId ' +
                            'AND Status IN (\'Active\', \'In Progress\', \'Not Started\') ' +
                            'ORDER BY Priority DESC NULLS LAST, CreatedDate DESC ' +
                            'LIMIT 50';
             
+            System.debug('fetchActiveGoals query: ' + query);
             List<SObject> records = Database.query(query);
             System.debug('fetchActiveGoals: Found ' + records.size() + ' active goals for account ' + accountId);
             
@@ -206,13 +223,14 @@ public with sharing class InteractionContextService {
                 GoalAssignmentDTO dto = new GoalAssignmentDTO();
                 dto.id = (Id)record.get('Id');
                 
-                // Build display name: CustomGoalName > GoalDefinition.Name > Name (auto-number)
-                String customName = (String)record.get('CustomGoalName');
+                // Build display name: Goal_Name__c > GoalDefinition.Name > Name (auto-number)
+                // Note: Avoiding CustomGoalName due to managed package conflicts
+                String goalName = (String)record.get('Goal_Name__c');
                 SObject goalDef = record.getSObject('GoalDefinition');
                 String defName = goalDef != null ? (String)goalDef.get('Name') : null;
                 String defDescription = goalDef != null ? (String)goalDef.get('Description') : null;
                 
-                dto.name = String.isNotBlank(customName) ? customName 
+                dto.name = String.isNotBlank(goalName) ? goalName 
                          : (String.isNotBlank(defName) ? defName : (String)record.get('Name'));
                 dto.category = defName;
                 dto.categoryDescription = defDescription;
@@ -230,15 +248,27 @@ public with sharing class InteractionContextService {
                 dto.startDate = startDt != null ? String.valueOf(startDt) : null;
                 dto.targetDate = targetDt != null ? String.valueOf(targetDt) : null;
                 
-                // Progress tracking
-                Decimal progress = (Decimal)record.get('CurrentProgress__c');
-                dto.currentProgress = progress != null ? progress : 0;
+                // Progress tracking (only if fields exist)
+                if (hasCurrentProgress) {
+                    Decimal progress = (Decimal)record.get('CurrentProgress__c');
+                    dto.currentProgress = progress != null ? progress : 0;
+                } else {
+                    dto.currentProgress = 0;
+                }
                 
-                Decimal sessions = (Decimal)record.get('TotalSessions__c');
-                dto.totalSessions = sessions != null ? sessions.intValue() : 0;
+                if (hasTotalSessions) {
+                    Decimal sessions = (Decimal)record.get('TotalSessions__c');
+                    dto.totalSessions = sessions != null ? sessions.intValue() : 0;
+                } else {
+                    dto.totalSessions = 0;
+                }
                 
-                Date lastWorked = (Date)record.get('LastWorkedOnDate__c');
-                dto.lastWorkedOn = lastWorked != null ? lastWorked.format() : null;
+                if (hasLastWorkedOnDate) {
+                    Date lastWorked = (Date)record.get('LastWorkedOnDate__c');
+                    dto.lastWorkedOn = lastWorked != null ? lastWorked.format() : null;
+                } else {
+                    dto.lastWorkedOn = null;
+                }
                 
                 goals.add(dto);
             }

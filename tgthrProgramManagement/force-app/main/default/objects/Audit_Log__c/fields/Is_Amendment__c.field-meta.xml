@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Amendment__c</fullName>
+    <label>Is Amendment</label>
+    <description>Indicates if this log entry is for an amendment to a locked record.</description>
+    <inlineHelpText>True if the user amended a record that was already locked (post 72-hour edit).</inlineHelpText>
+    <type>Checkbox</type>
+    <defaultValue>false</defaultValue>
+</CustomField>

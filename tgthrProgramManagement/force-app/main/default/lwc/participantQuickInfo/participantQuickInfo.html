@@ -1,0 +1,172 @@
+<template>
+    <div class={containerClass}>
+        <!-- Loading State -->
+        <template if:true={loading}>
+            <div class="slds-align_absolute-center slds-p-around_medium">
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- Error State -->
+        <template if:true={error}>
+            <div class="slds-text-color_error slds-p-around_small">
+                Unable to load participant information
+            </div>
+        </template>
+
+        <!-- Main Content -->
+        <template if:false={loading}>
+            <template if:false={error}>
+                <div class="slds-grid slds-gutters_small">
+                    <!-- Photo Section -->
+                    <div class="slds-col slds-shrink-none">
+                        <div class={photoContainerClass}>
+                            <template if:true={hasPhoto}>
+                                <img src={photoUrl} alt={name} class="photo-image" />
+                            </template>
+                            <template if:false={hasPhoto}>
+                                <span class="photo-initials">{initials}</span>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Info Section -->
+                    <div class="slds-col slds-grow">
+                        <!-- Name and Age -->
+                        <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_xx-small">
+                            <h3 class="participant-name">{name}</h3>
+                            <template if:true={age}>
+                                <span class="participant-age">{age}y</span>
+                            </template>
+                        </div>
+
+                        <!-- Emergency Info Badges (compact view) -->
+                        <template if:true={compact}>
+                            <template if:true={hasEmergencyInfo}>
+                                <div class="emergency-badges">
+                                    <template if:true={hasAllergies}>
+                                        <span class="badge badge-allergy">
+                                            <lightning-icon 
+                                                icon-name="utility:warning" 
+                                                size="xx-small" 
+                                                variant="error"
+                                                class="slds-m-right_xx-small">
+                                            </lightning-icon>
+                                            ALLERGIES
+                                        </span>
+                                    </template>
+                                    <template if:true={hasMedications}>
+                                        <span class="badge badge-medication">
+                                            <lightning-icon 
+                                                icon-name="utility:record" 
+                                                size="xx-small" 
+                                                class="slds-m-right_xx-small icon-medication">
+                                            </lightning-icon>
+                                            MEDICATIONS
+                                        </span>
+                                    </template>
+                                </div>
+                            </template>
+                        </template>
+
+                        <!-- Contact Info -->
+                        <template if:true={showContactInfo}>
+                            <div class="contact-info">
+                                <template if:true={phone}>
+                                    <span class="contact-item">
+                                        <lightning-icon 
+                                            icon-name="utility:call" 
+                                            size="xx-small" 
+                                            class="slds-m-right_xx-small">
+                                        </lightning-icon>
+                                        {phone}
+                                    </span>
+                                </template>
+                                <template if:true={unitNumber}>
+                                    <span class="unit-badge">Unit {unitNumber}</span>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Status Badge -->
+                        <template if:true={enrollmentStatus}>
+                            <div class="slds-m-top_x-small">
+                                <lightning-badge label={enrollmentStatus}></lightning-badge>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Full Emergency Info (non-compact view) -->
+                <template if:false={compact}>
+                    <template if:true={hasEmergencyInfo}>
+                        <div class="emergency-section">
+                            <!-- Emergency Header -->
+                            <div class="emergency-header">
+                                <lightning-icon 
+                                    icon-name="utility:warning" 
+                                    size="small" 
+                                    variant="error"
+                                    class="slds-m-right_x-small">
+                                </lightning-icon>
+                                <span class="emergency-title">Emergency Medical Information</span>
+                            </div>
+
+                            <!-- Allergies -->
+                            <template if:true={hasAllergies}>
+                                <div class="allergy-section">
+                                    <div class="slds-grid slds-grid_vertical-align-start">
+                                        <lightning-icon 
+                                            icon-name="utility:warning" 
+                                            size="small" 
+                                            variant="error"
+                                            class="slds-m-right_small section-icon">
+                                        </lightning-icon>
+                                        <div class="section-content">
+                                            <h4 class="section-title allergy-title">Known Allergies</h4>
+                                            <p class="section-text allergy-text">{knownAllergies}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Medications -->
+                            <template if:true={hasMedications}>
+                                <div class="medication-section">
+                                    <div class="slds-grid slds-grid_vertical-align-start">
+                                        <lightning-icon 
+                                            icon-name="utility:record" 
+                                            size="small" 
+                                            class="slds-m-right_small section-icon icon-medication">
+                                        </lightning-icon>
+                                        <div class="section-content">
+                                            <h4 class="section-title medication-title">Current Medications</h4>
+                                            <p class="section-text medication-text">{currentMedications}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Medication Notes -->
+                            <template if:true={hasMedicationNotes}>
+                                <div class="medication-notes-section">
+                                    <div class="slds-grid slds-grid_vertical-align-start">
+                                        <lightning-icon 
+                                            icon-name="utility:info" 
+                                            size="small" 
+                                            class="slds-m-right_small section-icon icon-info">
+                                        </lightning-icon>
+                                        <div class="section-content">
+                                            <h4 class="section-title notes-title">Medication Notes</h4>
+                                            <p class="section-text notes-text">{medicationNotes}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </template>
+    </div>
+</template>

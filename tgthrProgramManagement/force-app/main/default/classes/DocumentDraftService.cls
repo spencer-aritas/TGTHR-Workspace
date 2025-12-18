@@ -58,6 +58,7 @@ public with sharing class DocumentDraftService {
         @AuraEnabled public String participantName;
         @AuraEnabled public Id caseId;
         @AuraEnabled public String templateName; // For interviews
+        @AuraEnabled public Id templateVersionId; // For interview navigation
     }
     
     /**
@@ -72,6 +73,8 @@ public with sharing class DocumentDraftService {
         @AuraEnabled public DateTime savedAt;
         @AuraEnabled public DateTime createdDate;
         @AuraEnabled public String errorMessage;
+        @AuraEnabled public Id templateVersionId; // For interview template matching
+        @AuraEnabled public String templateName; // For interview template display
         
         public DraftData() {
             this.found = false;
@@ -289,6 +292,23 @@ public with sharing class DocumentDraftService {
                     }
                 }
                 
+                // For Interview drafts, extract templateVersionId from the JSON
+                if (summary.documentType == TYPE_INTERVIEW) {
+                    try {
+                        Blob contentBlob = [SELECT VersionData FROM ContentVersion WHERE Id = :cv.Id LIMIT 1].VersionData;
+                        String jsonContent = contentBlob.toString();
+                        Map<String, Object> draftData = (Map<String, Object>) JSON.deserializeUntyped(jsonContent);
+                        if (draftData.containsKey('templateVersionId')) {
+                            summary.templateVersionId = (Id) draftData.get('templateVersionId');
+                        }
+                        if (draftData.containsKey('templateName')) {
+                            summary.templateName = (String) draftData.get('templateName');
+                        }
+                    } catch (Exception ex) {
+                        System.debug('Error parsing interview draft JSON: ' + ex.getMessage());
+                    }
+                }
+                
                 drafts.add(summary);
             }
             
@@ -345,11 +365,54 @@ public with sharing class DocumentDraftService {
                 result.documentType = mostRecent.documentType;
                 result.savedAt = mostRecent.lastModifiedDate;
                 result.createdDate = mostRecent.createdDate;
+                result.templateVersionId = mostRecent.templateVersionId;
+                result.templateName = mostRecent.templateName;
             }
             
         } catch (Exception e) {
             result.errorMessage = e.getMessage();
             System.debug('Error checking for existing draft: ' + e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Check if a draft exists for a specific Case, document type, AND template version.
+     * This is used by Interview sessions to find drafts for a specific interview template,
+     * not just any Interview draft.
+     * 
+     * @param caseId The Case record ID
+     * @param documentType Type of document (should be 'Interview')
+     * @param templateVersionId The InterviewTemplateVersion__c Id to match
+     * @return DraftData with found status and draft info if exists
+     */
+    @AuraEnabled
+    public static DraftData checkForExistingDraftByTemplate(Id caseId, String documentType, Id templateVersionId) {
+        DraftData result = new DraftData();
+        result.found = false;
+        
+        try {
+            List<DraftSummary> drafts = getDraftsForCase(caseId, documentType);
+            
+            // Find drafts matching the specific template version
+            for (DraftSummary draft : drafts) {
+                if (draft.templateVersionId == templateVersionId) {
+                    result.found = true;
+                    result.draftId = draft.draftId;
+                    result.contentVersionId = draft.contentVersionId;
+                    result.documentType = draft.documentType;
+                    result.savedAt = draft.lastModifiedDate;
+                    result.createdDate = draft.createdDate;
+                    result.templateVersionId = draft.templateVersionId;
+                    result.templateName = draft.templateName;
+                    break;
+                }
+            }
+            
+        } catch (Exception e) {
+            result.errorMessage = e.getMessage();
+            System.debug('Error checking for existing draft by template: ' + e.getMessage());
         }
         
         return result;

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Amendment_Count__c</fullName>
+    <label>Amendment Count</label>
+    <description>Number of times this note has been amended after locking.</description>
+    <inlineHelpText>Tracks how many formal amendments have been made to this locked note.</inlineHelpText>
+    <type>Number</type>
+    <precision>3</precision>
+    <scale>0</scale>
+    <defaultValue>0</defaultValue>
+    <required>false</required>
+</CustomField>

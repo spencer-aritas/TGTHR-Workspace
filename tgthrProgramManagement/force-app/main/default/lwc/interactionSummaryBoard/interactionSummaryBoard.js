@@ -10,6 +10,7 @@ import getProgramEnrollmentsByProgramId from "@salesforce/apex/InteractionSummar
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getThemeByProgramId from '@salesforce/apex/ProgramThemeService.getThemeByProgramId';
 import getActivePrograms from "@salesforce/apex/BenefitService.getActivePrograms";
+import logRecordAccessWithPii from "@salesforce/apex/RecordAccessService.logRecordAccessWithPii";
 
 export default class InteractionSummaryBoard extends LightningElement {
   // No modal state in component properties - we'll use _modalOpen instead
@@ -649,6 +650,10 @@ export default class InteractionSummaryBoard extends LightningElement {
     }
 
     console.log("Loading right panel data for account:", accountId);
+    
+    // Log PHI access for audit compliance when viewing participant data
+    // This captures viewing of meeting notes, incidents - Name is the primary PII here
+    this._logParticipantAccess(accountId);
 
     // Add cache buster to force fresh data
     const cacheBuster = Date.now();
@@ -1924,5 +1929,34 @@ export default class InteractionSummaryBoard extends LightningElement {
         console.error('Error loading program theme:', error);
     }
 }
+
+  /**
+   * Log PHI access for HIPAA compliance when selecting a participant.
+   * The Interaction Summary Board shows participant names and interactions.
+   * @param {String} accountId - The Person Account ID being accessed
+   */
+  _logParticipantAccess(accountId) {
+    if (!accountId || accountId === this.lastAccountId) return; // Avoid duplicate logs for same participant
+    
+    try {
+      this.lastAccountId = accountId;
+      
+      // On the board, we primarily see NAMES (participant name in rows/convo)
+      // Additional PII may be visible depending on what's displayed
+      const piiCategories = ['NAMES'];
+      
+      // Fire and forget - don't block UI
+      logRecordAccessWithPii({
+        recordId: accountId,
+        objectType: 'PersonAccount',
+        accessSource: 'InteractionSummaryBoard',
+        piiFieldsAccessed: JSON.stringify(piiCategories)
+      }).catch(err => {
+        console.warn('Failed to log PHI access:', err);
+      });
+    } catch (e) {
+      console.warn('Error in _logParticipantAccess:', e);
+    }
+  }
 }
 

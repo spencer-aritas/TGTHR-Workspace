@@ -8,6 +8,10 @@ import saveClinicalNoteWithSsrs from '@salesforce/apex/ClinicalNoteController.sa
 import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
+import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
+import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
+import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
@@ -78,7 +82,22 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     @track hasDraft = false;
     @track isSavingDraft = false;
 
+    // Manager Approval support
+    @track requestManagerCoSign = false;
+    @track managerInfo = null;
+
     originalFormState;
+
+    // Wire to get current user's manager info
+    @wire(getCurrentUserManagerInfo)
+    wiredManagerInfo({ data, error }) {
+        if (data) {
+            this.managerInfo = data;
+        } else if (error) {
+            console.error('Error getting manager info:', error);
+            this.managerInfo = { hasManager: false };
+        }
+    }
 
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
@@ -89,6 +108,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         { name: 'goals', label: 'Goals Addressed' },
         { name: 'signature', label: 'Signature' }
     ];
+
 
     get navigationSteps() {
         return this.sectionOrder.map((item, index) => {
@@ -125,6 +145,25 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
 
     get saveButtonLabel() {
         return 'Save Peer Note';
+    }
+
+    // Manager Approval getters
+    get hasManager() {
+        return this.managerInfo?.hasManager === true;
+    }
+
+    get managerMissing() {
+        return !this.hasManager;
+    }
+
+    get managerName() {
+        return this.managerInfo?.managerName || 'Your Manager';
+    }
+
+    get managerApprovalLabel() {
+        return this.hasManager 
+            ? `Request co-signature from ${this.managerName}`
+            : 'Request manager co-signature (no manager assigned)';
     }
 
     /**
@@ -222,6 +261,10 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             console.log('Loading peer note for case:', this.recordId);
             const data = await initClinicalNote({ caseId: this.recordId });
             this._initializeFromResponse(data);
+            
+            // Log PHI access for audit compliance (18 HIPAA Safe Harbor identifiers)
+            // Peer notes access: Name, DOB, Phone, Email, Medicaid ID
+            this._logPhiAccess(data);
             
             // Load benefits available for peer services
             console.log('Loading peer benefits for case:', this.recordId);
@@ -562,11 +605,12 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     }
 
     /**
-     * Save for Later - creates/updates a draft record
+     * Internal method to save draft - used by both Save & Continue and Save and Close
+     * @param {boolean} closeAfterSave - Whether to close the modal after saving
      */
-    async handleSaveForLater() {
+    async _saveDraft(closeAfterSave = false) {
         if (this.isSavingDraft) {
-            return;
+            return false;
         }
         
         this.isSavingDraft = true;
@@ -599,19 +643,37 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 this.hasDraft = true;
                 
                 console.log('Draft saved successfully:', result);
-                this._showToast('Draft Saved', 'Your peer note has been saved as a draft. You can resume later.', 'success');
+                this._showToast('Draft Saved', 'Your peer note has been saved.', 'success');
                 
-                // Dispatch close event to parent
-                this.dispatchEvent(new CustomEvent('close'));
+                if (closeAfterSave) {
+                    // Dispatch close event to parent
+                    this.dispatchEvent(new CustomEvent('close'));
+                }
+                return true;
             } else {
                 throw new Error(result.errorMessage || 'Failed to save draft');
             }
         } catch (error) {
             console.error('Error saving draft:', error);
             this._showToast('Error', 'Failed to save draft: ' + this._reduceErrors(error).join(', '), 'error');
+            return false;
         } finally {
             this.isSavingDraft = false;
         }
+    }
+
+    /**
+     * Save & Continue - saves draft and keeps the form open
+     */
+    async handleSaveAndContinue() {
+        await this._saveDraft(false);
+    }
+
+    /**
+     * Save and Close - saves draft and closes the modal
+     */
+    async handleSaveAndClose() {
+        await this._saveDraft(true);
     }
 
     async handleSave() {
@@ -684,14 +746,36 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             // Save goal assignment details
             await this._saveGoalWork(this.interactionId);
 
+            // Request manager approval if toggled
+            if (this.requestManagerCoSign && this.hasManager) {
+                try {
+                    await requestManagerApproval({ 
+                        recordId: this.interactionId, 
+                        recordType: 'Interaction' 
+                    });
+                    console.log('Manager approval requested successfully');
+                } catch (approvalErr) {
+                    console.warn('Failed to request manager approval (non-fatal):', approvalErr);
+                    this._showToast('Warning', 'Note saved but manager approval request failed. Please try again from the pending documentation view.', 'warning');
+                }
+            }
+
             // Delete draft if one existed
             if (this.draftId) {
-                // TODO: Call Apex to delete draft
+                try {
+                    await deleteDraft({ draftId: this.draftId });
+                    console.log('Draft deleted successfully:', this.draftId);
+                } catch (draftErr) {
+                    console.warn('Failed to delete draft (non-fatal):', draftErr);
+                }
                 this.draftId = null;
                 this.hasDraft = false;
             }
 
-            this._showToast('Success', 'Peer note saved successfully.', 'success');
+            const successMsg = this.requestManagerCoSign && this.hasManager 
+                ? `Peer note saved. Manager approval requested from ${this.managerName}.`
+                : 'Peer note saved successfully.';
+            this._showToast('Success', successMsg, 'success');
             this._navigateToRecord(this.interactionId);
         } catch (error) {
             this._showToast('Error', this._reduceErrors(error).join(', ') || 'Unexpected error saving peer note.', 'error');
@@ -702,6 +786,10 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
 
     handleSignatureSaved() {
         // Placeholder for signature saved event handling
+    }
+
+    handleManagerApprovalToggle(event) {
+        this.requestManagerCoSign = event.target.checked;
     }
 
     async _saveGoalWork(interactionSummaryId) {
@@ -823,5 +911,39 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             return [error.message];
         }
         return ['Unknown error'];
+    }
+
+    /**
+     * Log PHI access for HIPAA compliance.
+     * Tracks which of the 18 Safe Harbor identifiers were accessed.
+     * @param {Object} data - The data loaded from initClinicalNote
+     */
+    _logPhiAccess(data) {
+        if (!data || !this.accountId) return;
+        
+        try {
+            // Determine which PII categories are being accessed
+            const piiCategories = [];
+            const header = data.header || {};
+            
+            // Check which PII fields were loaded and displayed
+            if (header.personName) piiCategories.push('NAMES');
+            if (header.birthdate) piiCategories.push('DATES');
+            if (header.phone) piiCategories.push('PHONE');
+            if (header.email) piiCategories.push('EMAIL');
+            if (header.medicaidId) piiCategories.push('MEDICAL_RECORD');
+            
+            // Log the access asynchronously (fire and forget)
+            logRecordAccessWithPii({
+                recordId: this.accountId,
+                objectType: 'PersonAccount',
+                accessSource: 'PeerNote',
+                piiFieldsAccessed: JSON.stringify(piiCategories)
+            }).catch(err => {
+                console.warn('Failed to log PHI access:', err);
+            });
+        } catch (e) {
+            console.warn('Error in _logPhiAccess:', e);
+        }
     }
 }

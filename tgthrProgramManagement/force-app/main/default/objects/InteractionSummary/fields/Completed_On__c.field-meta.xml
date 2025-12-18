@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Completed_On__c</fullName>
+    <label>Completed On</label>
+    <description>DateTime when this note was completed/signed. Used to calculate 72-hour locking window.</description>
+    <inlineHelpText>When the note was completed. Locking occurs 72 hours after this timestamp.</inlineHelpText>
+    <type>DateTime</type>
+    <required>false</required>
+</CustomField>
