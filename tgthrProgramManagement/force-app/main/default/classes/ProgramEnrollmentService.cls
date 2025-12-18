@@ -183,9 +183,10 @@ global with sharing class ProgramEnrollmentService {
         }
 
         // 7) Create InteractionSummary
+        Id interactionId;
         try {
             String createdByUserId = (String) rawData.get('createdByUserId');
-            String interactionId = InteractionSummaryService.createInteractionDirectly(
+            String interactionIdStr = InteractionSummaryService.createInteractionDirectly(
                 accountId,
                 programId,
                 null,
@@ -195,16 +196,30 @@ global with sharing class ProgramEnrollmentService {
                 false,
                 caseId != null ? String.valueOf(caseId) : null
             );
+            interactionId = String.isNotBlank(interactionIdStr) ? Id.valueOf(interactionIdStr) : null;
             System.debug('Created interaction: ' + interactionId);
         } catch (Exception ex) {
             System.debug('Error creating interaction: ' + ex.getMessage());
+        }
+
+        // 8) Create Interview__c for Drop-In and Outreach template (pending documentation)
+        Id interviewId;
+        try {
+            String createdByUserId = (String) rawData.get('createdByUserId');
+            interviewId = createDropInInterview(accountId, caseId, interactionId, e, createdByUserId);
+            System.debug('Created Drop-In Interview: ' + interviewId);
+        } catch (Exception ex) {
+            System.debug('Error creating Drop-In Interview: ' + ex.getMessage());
+            System.debug('Interview creation stack trace: ' + ex.getStackTraceString());
         }
 
         return JSON.serialize(new Map<String, Object>{
             'success' => true,
             'enrollmentId' => enrollmentId,
             'accountId' => accountId,
-            'caseId' => caseId
+            'caseId' => caseId,
+            'interactionId' => interactionId,
+            'interviewId' => interviewId
         });
     }
 
@@ -392,5 +407,65 @@ global with sharing class ProgramEnrollmentService {
         }
         
         return results;
+    }
+    
+    /**
+     * Create a Drop-In and Outreach Interview record for PWA intakes
+     * This links the intake to the pending documentation workflow
+     */
+    private static Id createDropInInterview(Id accountId, Id caseId, Id interactionId, PwaEncounter e, String createdByUserId) {
+        // Find the active Drop-In and Outreach template version
+        List<SObject> templateVersions = [
+            SELECT Id, InterviewTemplate__c, InterviewTemplate__r.Name
+            FROM InterviewTemplateVersion__c 
+            WHERE InterviewTemplate__r.Name = 'Drop-In and Outreach' 
+            AND Status__c = 'Active' 
+            LIMIT 1
+        ];
+        
+        if (templateVersions.isEmpty()) {
+            System.debug('No active Drop-In and Outreach template version found');
+            return null;
+        }
+        
+        Id templateVersionId = templateVersions[0].Id;
+        Id templateId = (Id) templateVersions[0].get('InterviewTemplate__c');
+        System.debug('Found Drop-In template: ' + templateId + ', version: ' + templateVersionId);
+        
+        // Create Interview__c record
+        Interview__c interview = new Interview__c();
+        interview.Name = 'Drop-In Intake - ' + e.firstName + ' ' + e.lastName;
+        interview.Case__c = caseId;
+        interview.InterviewTemplateVersion__c = templateVersionId;
+        interview.Status__c = 'In Progress';
+        interview.Started_On__c = Datetime.now();
+        
+        // Set owner if provided
+        if (String.isNotBlank(createdByUserId)) {
+            try {
+                interview.OwnerId = Id.valueOf(createdByUserId);
+            } catch (Exception ex) {
+                System.debug('Invalid createdByUserId for Interview owner: ' + ex.getMessage());
+            }
+        }
+        
+        // Pre-populate interview notes from encounter
+        if (String.isNotBlank(e.notes)) {
+            interview.Staff_Completed_At__c = Datetime.now();
+        }
+        
+        insert interview;
+        System.debug('Created Interview__c: ' + interview.Id);
+        
+        // Create InterviewDocument__c record to link interview to template and case
+        InterviewDocument__c doc = new InterviewDocument__c();
+        doc.Interview__c = interview.Id;
+        doc.Case__c = caseId;
+        doc.InterviewTemplate__c = templateId;
+        
+        insert doc;
+        System.debug('Created InterviewDocument__c: ' + doc.Id);
+        
+        return interview.Id;
     }
 }
