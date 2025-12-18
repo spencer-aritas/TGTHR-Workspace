@@ -6,6 +6,11 @@ export class AuthError extends Error {
   }
 }
 
+// Get the API base URL
+export const getApiUrl = (): string => {
+  return import.meta.env.VITE_TGTHR_API ?? 'https://outreachintake.aritasconsulting.com/api';
+};
+
 // Direct API call - let individual components handle offline logic
 export const postSync = async (endpoint: string, payload: any) => {
   const API_BASE = import.meta.env.VITE_TGTHR_API ?? 'https://outreachintake.aritasconsulting.com/api';
