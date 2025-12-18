@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Curiosity_Browse__c</fullName>
+    <label>Is Curiosity Browse</label>
+    <description>Indicates if this record access appears to be curiosity browsing (non-assigned user viewing PHI).</description>
+    <inlineHelpText>Flagged when a user views a record they are not directly assigned to.</inlineHelpText>
+    <type>Checkbox</type>
+    <defaultValue>false</defaultValue>
+</CustomField>

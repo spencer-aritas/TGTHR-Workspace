@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Manager_Approver__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>The manager who needs to approve/co-sign this interaction. Auto-populated from the creator's manager.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>The manager assigned to review and approve this note.</inlineHelpText>
+    <label>Manager Approver</label>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Interactions Requiring Approval</relationshipLabel>
+    <relationshipName>Interactions_Requiring_Approval</relationshipName>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <type>Lookup</type>
+</CustomField>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Manager_Signed_Date__c</fullName>
+    <description>Date when the manager signed/approved this interaction.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>The date manager approved this note.</inlineHelpText>
+    <label>Manager Signed Date</label>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <type>Date</type>
+</CustomField>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_Amendment_By__c</fullName>
+    <label>Last Amendment By</label>
+    <description>User who made the most recent amendment to this locked interview.</description>
+    <referenceTo>User</referenceTo>
+    <relationshipName>AmendedInterviews</relationshipName>
+    <relationshipLabel>Amended Interviews</relationshipLabel>
+    <type>Lookup</type>
+    <required>false</required>
+</CustomField>

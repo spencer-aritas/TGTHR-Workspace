@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Access_Context__c</fullName>
+    <label>Access Context</label>
+    <description>Context explaining the user's relationship to the accessed record.</description>
+    <inlineHelpText>e.g., Case Owner, Program Team Member, Supervisor, Search Result, Direct Navigation</inlineHelpText>
+    <type>Text</type>
+    <length>255</length>
+    <required>false</required>
+</CustomField>

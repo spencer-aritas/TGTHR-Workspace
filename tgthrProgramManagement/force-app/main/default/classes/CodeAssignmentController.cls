@@ -143,7 +143,8 @@ public with sharing class CodeAssignmentController {
             
             // Set required fields
             diagnosis.put('Client__c', accountId);
-            diagnosis.put('Code__c', codeId);
+            // Note: The lookup field is Code_Name__c, not Code__c (which is a formula)
+            diagnosis.put('Code_Name__c', codeId);
             
             if (caseId != null) {
                 putIfFieldExists(diagnosis, 'Case__c', caseId);

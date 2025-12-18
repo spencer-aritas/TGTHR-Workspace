@@ -233,27 +233,16 @@
 
                         <lightning-accordion-section name="goals" label="Goals Addressed">
                             <div data-section="goals">
-                                <!-- Header with count and create button -->
-                                <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
-                                    <div class="slds-col">
-                                        <p class="slds-text-body_small slds-text-color_weak">
-                                            <template if:true={hasActiveGoals}>
-                                                {goalsWorkedOnCount} of {activeGoals.length} goals selected
-                                            </template>
-                                            <template if:false={hasActiveGoals}>
-                                                No active goals found for this participant
-                                            </template>
-                                        </p>
-                                    </div>
-                                    <div class="slds-col slds-col_bump-left">
-                                        <lightning-button
-                                            label="Create New Goal"
-                                            icon-name="utility:new"
-                                            onclick={handleCreateGoal}
-                                            variant="neutral"
-                                            class="slds-m-bottom_x-small">
-                                        </lightning-button>
-                                    </div>
+                                <!-- Header with count -->
+                                <div class="slds-m-bottom_small">
+                                    <p class="slds-text-body_small slds-text-color_weak">
+                                        <template if:true={hasActiveGoals}>
+                                            {goalsWorkedOnCount} of {activeGoals.length} goals selected
+                                        </template>
+                                        <template if:false={hasActiveGoals}>
+                                            No active goals found. Goals are created in the Treatment Plan.
+                                        </template>
+                                    </p>
                                 </div>
                                 
                                 <!-- Goal Cards -->
@@ -376,7 +365,7 @@
                                 <template if:false={hasActiveGoals}>
                                     <div class="slds-illustration slds-illustration_small">
                                         <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
-                                            No active goals found. Use the "Create New Goal" button to add goals for this participant.
+                                            No active goals found. Goals are created and managed in the Treatment Plan.
                                         </p>
                                     </div>
                                 </template>
@@ -405,13 +394,6 @@
                                 </lightning-dual-listbox>
                             </div>
                         </lightning-accordion-section>
-                        
-                        <!-- Goal Assignment Creator Modal -->
-                        <c-goal-assignment-creator
-                            account-id={accountId}
-                            case-id={recordId}
-                            ongoalcreated={handleGoalCreated}>
-                        </c-goal-assignment-creator>
                         
                         <!-- Code Assignment Creator Modal -->
                         <c-code-assignment-creator
@@ -442,9 +424,16 @@
                         </lightning-button>
                         <lightning-button
                             variant="neutral"
-                            label="Save for Later"
+                            label="Save & Continue"
                             icon-name="utility:save"
-                            onclick={handleSaveForLater}
+                            onclick={handleSaveAndContinue}
+                            disabled={isSavingDraft}>
+                        </lightning-button>
+                        <lightning-button
+                            variant="neutral"
+                            label="Save and Close"
+                            icon-name="utility:close"
+                            onclick={handleSaveAndClose}
                             disabled={isSavingDraft}>
                         </lightning-button>
                         <lightning-button

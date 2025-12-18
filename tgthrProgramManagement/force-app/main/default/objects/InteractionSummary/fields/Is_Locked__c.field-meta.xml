@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Locked__c</fullName>
+    <label>Is Locked</label>
+    <description>Indicates if this note is locked and cannot be edited (typically 72 hours after creation/completion).</description>
+    <inlineHelpText>When locked, this note requires supervisor approval to amend.</inlineHelpText>
+    <type>Checkbox</type>
+    <defaultValue>false</defaultValue>
+</CustomField>

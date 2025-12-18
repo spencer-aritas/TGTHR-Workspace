@@ -601,11 +601,12 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     }
 
     /**
-     * Save for Later - creates/updates a draft record
+     * Internal method to save draft - used by both Save & Continue and Save and Close
+     * @param {boolean} closeAfterSave - Whether to close the modal after saving
      */
-    async handleSaveForLater() {
+    async _saveDraft(closeAfterSave = false) {
         if (this.isSavingDraft) {
-            return;
+            return false;
         }
         
         this.isSavingDraft = true;
@@ -638,19 +639,37 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 this.hasDraft = true;
                 
                 console.log('Draft saved successfully:', result);
-                this._showToast('Draft Saved', 'Your case note has been saved as a draft. You can resume later.', 'success');
+                this._showToast('Draft Saved', 'Your case note has been saved.', 'success');
                 
-                // Dispatch close event to parent
-                this.dispatchEvent(new CustomEvent('close'));
+                if (closeAfterSave) {
+                    // Dispatch close event to parent
+                    this.dispatchEvent(new CustomEvent('close'));
+                }
+                return true;
             } else {
                 throw new Error(result.errorMessage || 'Failed to save draft');
             }
         } catch (error) {
             console.error('Error saving draft:', error);
             this._showToast('Error', 'Failed to save draft: ' + this._reduceErrors(error).join(', '), 'error');
+            return false;
         } finally {
             this.isSavingDraft = false;
         }
+    }
+
+    /**
+     * Save & Continue - saves draft and keeps the form open
+     */
+    async handleSaveAndContinue() {
+        await this._saveDraft(false);
+    }
+
+    /**
+     * Save and Close - saves draft and closes the modal
+     */
+    async handleSaveAndClose() {
+        await this._saveDraft(true);
     }
 
     async handleSave() {

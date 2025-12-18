@@ -79,6 +79,7 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public Id caseId;
         @AuraEnabled public Id accountId;
         @AuraEnabled public Id templateVersionId;
+        @AuraEnabled public String startedAt; // ISO 8601 timestamp when interview was first started (for audit trail)
         @AuraEnabled public InteractionInput interaction;
         @AuraEnabled public List<AnswerDTO> answers;
         @AuraEnabled public String clientSignatureId;
@@ -243,7 +244,8 @@ public with sharing class InterviewSessionController {
                 (Id)summary.get('Id'),
                 assessmentId,
                 templateVersion,
-                interactionDate
+                interactionDate,
+                request.startedAt
             );
             insert interview;
 
@@ -1061,7 +1063,8 @@ public with sharing class InterviewSessionController {
         Id interactionSummaryId,
         Id assessmentId,
         SObject templateVersion,
-        Date interactionDate
+        Date interactionDate,
+        String startedAtIso
     ) {
         SObject interview = Schema.getGlobalDescribe().get('Interview__c').newSObject();
         interview.put('Case__c', caseId);
@@ -1069,10 +1072,23 @@ public with sharing class InterviewSessionController {
         interview.put('InterviewTemplateVersion__c', templateVersion.get('Id'));
         interview.put('Interaction_Summary__c', interactionSummaryId);
         // Note: Assessment__c relationship is on Assessment, not Interview (Assessment__c.Interview__c)
-        // Set status to Completed since saveInterviewSession is for final submission (drafts use Save for Later)
-        interview.put('Status__c', 'Completed');
+        // Set status to Submitted since saveInterviewSession is for final submission (drafts use Save for Later)
+        // Valid values: In Progress, Submitted, Signed, Voided
+        interview.put('Status__c', 'Submitted');
         interview.put('Name', formatInterviewName(templateVersion, accountId, interactionDate));
-        putIfFieldExists(interview, 'Started_On__c', Datetime.now());
+        
+        // Set Started_On__c from when interview was first started (draft creation time), or now if not from draft
+        Datetime startedOn = Datetime.now();
+        if (String.isNotBlank(startedAtIso)) {
+            try {
+                // Parse ISO 8601 format: 2025-12-16T10:30:00.000Z
+                startedOn = (Datetime)JSON.deserialize('"' + startedAtIso + '"', Datetime.class);
+            } catch (Exception e) {
+                System.debug('Error parsing startedAt: ' + e.getMessage() + ', using current time');
+                startedOn = Datetime.now();
+            }
+        }
+        putIfFieldExists(interview, 'Started_On__c', startedOn);
         putIfFieldExists(interview, 'Completed_On__c', Datetime.now());
         // Generate UUID for document viewer to uniquely identify this interview
         putIfFieldExists(interview, 'UUID__c', generateUUID());

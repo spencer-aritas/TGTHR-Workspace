@@ -269,8 +269,8 @@ public with sharing class ClinicalNoteController {
             putIfFieldExists(summary, 'Description_of_Services__c', request.services);
             putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
             putIfFieldExists(summary, 'Plan__c', request.plan);
-            putIfFieldExists(summary, 'Start_Time__c', startTime);
-            putIfFieldExists(summary, 'End_Time__c', endTime);
+            putIfFieldExists(summary, 'Start_Time__c', startDateTime);
+            putIfFieldExists(summary, 'End_Time__c', endDateTime);
             putIfFieldExists(summary, 'Signed_By__c', UserInfo.getUserId());
             putIfFieldExists(summary, 'Signed_By_Name__c', UserInfo.getName());
             putIfFieldExists(summary, 'Signed_Date__c', Date.today());

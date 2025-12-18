@@ -1,0 +1,228 @@
+/* participantQuickInfo CSS */
+
+/* Container Styles */
+.card-container {
+    padding: 1rem;
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card-container.compact {
+    padding: 0.75rem;
+}
+
+/* Photo Styles */
+.photo-container {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.photo-container.compact {
+    width: 48px;
+    height: 48px;
+}
+
+.photo-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-initials {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.compact .photo-initials {
+    font-size: 1rem;
+}
+
+/* Name and Info Styles */
+.participant-name {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.compact .participant-name {
+    font-size: 0.9375rem;
+}
+
+.participant-age {
+    margin-left: 0.5rem;
+    font-size: 0.8125rem;
+    color: #6b7280;
+}
+
+/* Contact Info */
+.contact-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.8125rem;
+    color: #4b5563;
+}
+
+.unit-badge {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background-color: #f3f4f6;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+/* Emergency Badges (compact view) */
+.emergency-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 1rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.badge-allergy {
+    background-color: #fef3f2;
+    color: #dc2626;
+    border: 1px solid #fee4e2;
+}
+
+.badge-medication {
+    background-color: #fef9c3;
+    color: #ca8a04;
+    border: 1px solid #fef08a;
+}
+
+.icon-medication {
+    --slds-c-icon-color-foreground-default: #ca8a04;
+}
+
+/* Emergency Section (full view) */
+.emergency-section {
+    margin-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 0.75rem;
+}
+
+.emergency-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    background-color: #fef2f2;
+    border-left: 4px solid #dc2626;
+    border-radius: 0.25rem;
+}
+
+.emergency-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #dc2626;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Section Styles */
+.allergy-section,
+.medication-section,
+.medication-notes-section {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.allergy-section {
+    background-color: #fef3f2;
+    border: 1px solid #fecaca;
+}
+
+.medication-section {
+    background-color: #fefce8;
+    border: 1px solid #fef08a;
+}
+
+.medication-notes-section {
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+}
+
+.section-icon {
+    flex-shrink: 0;
+}
+
+.section-content {
+    flex: 1;
+}
+
+.section-title {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.allergy-title {
+    color: #dc2626;
+}
+
+.medication-title {
+    color: #ca8a04;
+}
+
+.notes-title {
+    color: #0284c7;
+}
+
+.section-text {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    white-space: pre-wrap;
+}
+
+.allergy-text {
+    color: #7f1d1d;
+}
+
+.medication-text {
+    color: #713f12;
+}
+
+.notes-text {
+    color: #0c4a6e;
+    font-weight: 400;
+    font-size: 0.875rem;
+}
+
+.icon-info {
+    --slds-c-icon-color-foreground-default: #0284c7;
+}

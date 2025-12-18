@@ -51,6 +51,18 @@
     color: #706e6b;
 }
 
+.signature-row {
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.signature-row:last-child {
+    border-bottom: none;
+}
+
+.success-icon {
+    color: #04844b;
+}
+
 /* Scrollbar styling for document list */
 .document-list-panel::-webkit-scrollbar {
     width: 6px;

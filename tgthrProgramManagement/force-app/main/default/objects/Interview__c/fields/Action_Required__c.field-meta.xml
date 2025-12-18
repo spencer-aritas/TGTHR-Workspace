@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Action_Required__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Flag set by supervisors to indicate this interview needs attention or follow-up.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Checked when a supervisor has flagged this interview for action.</inlineHelpText>
+    <label>Action Required</label>
+    <trackHistory>true</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Amendment_Reason__c</fullName>
+    <label>Amendment Reason</label>
+    <description>Required reason/justification for amending a locked record.</description>
+    <inlineHelpText>Reason provided when amending a record after the 72-hour window.</inlineHelpText>
+    <type>LongTextArea</type>
+    <length>5000</length>
+    <visibleLines>3</visibleLines>
+</CustomField>

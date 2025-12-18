@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Participant Quick Info Card</masterLabel>
+    <description>Quick info card showing participant photo and emergency medical info (allergies, medications)</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>Account</object>
+                <object>ProgramEnrollment</object>
+            </objects>
+        </targetConfig>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="recordId" type="String" label="Record ID" description="Account or ProgramEnrollment record ID" />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

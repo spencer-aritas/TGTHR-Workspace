@@ -1,0 +1,71 @@
+.pending-item {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.pending-item:hover {
+    background-color: var(--slds-c-card-color-background-hover, #f3f3f3);
+}
+
+.text-muted {
+    color: var(--slds-c-text-color-weak, #706e6b);
+}
+
+.text-warning {
+    color: var(--slds-c-text-color-warning, #fe9339);
+}
+
+.warning-icon {
+    fill: var(--slds-c-icon-color-warning, #fe9339);
+}
+
+.success-icon {
+    fill: var(--slds-c-icon-color-success, #2e844a);
+}
+
+.documentation-modal .slds-modal__container {
+    width: 95%;
+    max-width: 1200px;
+    min-height: 80vh;
+}
+
+.documentation-modal .modal-body {
+    padding: 0;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+.slds-section__title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* Action Items Section Styling */
+.slds-theme_warning {
+    background-color: var(--slds-c-badge-color-background-warning, #ffecd3);
+    color: var(--slds-c-badge-text-color-warning, #825101);
+}
+
+.slds-theme_info {
+    background-color: var(--slds-c-badge-color-background-info, #d8edff);
+    color: var(--slds-c-badge-text-color-info, #014486);
+}
+
+.action-item-row {
+    border-left: 3px solid var(--slds-c-badge-color-background-warning, #fe9339);
+    background-color: rgba(254, 147, 57, 0.05);
+}
+
+.slds-badge_warning {
+    background-color: var(--slds-c-badge-color-background-warning, #ffecd3);
+    color: var(--slds-c-badge-text-color-warning, #825101);
+}
+
+.slds-badge_info {
+    background-color: var(--slds-c-badge-color-background-info, #d8edff);
+    color: var(--slds-c-badge-text-color-info, #014486);
+}

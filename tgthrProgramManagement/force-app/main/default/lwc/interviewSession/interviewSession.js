@@ -11,9 +11,12 @@ import linkFilesToCase from '@salesforce/apex/InterviewSessionController.linkFil
 import generateDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
 import getGoalAssignments from '@salesforce/apex/GoalAssignmentController.getGoalAssignments';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
-import checkForExistingDraft from '@salesforce/apex/DocumentDraftService.checkForExistingDraft';
+import checkForExistingDraftByTemplate from '@salesforce/apex/DocumentDraftService.checkForExistingDraftByTemplate';
 import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
 import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
+import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
+import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
 
@@ -66,12 +69,27 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track draftId = null;
     @track hasDraft = false;
     @track isSavingDraft = false;
+    @track startedAt = null; // When the interview was first started (for audit trail)
+    
+    // Manager Approval support
+    @track requestManagerCoSign = false;
+    @track managerInfo = null;
     
     // Accordion state - open all sections by default for better UX
     activeSections = [];
     reviewActiveSections = [];
     
     parametersLoaded = false;
+
+    @wire(getCurrentUserManagerInfo)
+    wiredManagerInfo({ data, error }) {
+        if (data) {
+            this.managerInfo = data;
+        } else if (error) {
+            console.error('Error getting manager info:', error);
+            this.managerInfo = { hasManager: false };
+        }
+    }
 
     @wire(CurrentPageReference)
     getStateParameters(currentPageReference) {
@@ -151,6 +169,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             console.log('Show Staff Signature:', this.showStaffSignature);
             this.initializeAnswers();
             
+            // Log PHI access for audit compliance (18 HIPAA Safe Harbor identifiers)
+            // Interview sessions access comprehensive client PII from accountData
+            this._logPhiAccess(response);
+            
             // Initialize accordion sections - open all by default for easier navigation
             if (this.templateData && this.templateData.sections) {
                 this.activeSections = this.templateData.sections.map(s => s.label);
@@ -170,13 +192,15 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
     
     /**
-     * Check if there's an existing draft for this interview and offer to restore it
+     * Check if there's an existing draft for this specific interview template and offer to restore it
+     * Uses template-specific matching to avoid cross-template draft conflicts
      */
     async checkForDraft() {
         try {
-            const draftCheck = await checkForExistingDraft({
+            const draftCheck = await checkForExistingDraftByTemplate({
                 caseId: this.effectiveCaseId,
-                documentType: DRAFT_TYPE
+                documentType: DRAFT_TYPE,
+                templateVersionId: this.effectiveTemplateVersionId
             });
             
             if (draftCheck.found) {
@@ -185,8 +209,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 
                 // Show confirmation to restore draft
                 const savedAt = new Date(draftCheck.savedAt);
+                const templateInfo = draftCheck.templateName ? ` (${draftCheck.templateName})` : '';
                 const confirmRestore = confirm(
-                    `A draft of this interview was saved on ${savedAt.toLocaleDateString()} at ${savedAt.toLocaleTimeString()}.\n\n` +
+                    `A draft of this interview${templateInfo} was saved on ${savedAt.toLocaleDateString()} at ${savedAt.toLocaleTimeString()}.\n\n` +
                     `Would you like to restore your previous progress?`
                 );
                 
@@ -219,11 +244,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             
             if (draftData.found && draftData.draftJson) {
                 const savedState = JSON.parse(draftData.draftJson);
-                
-                // Restore step position
-                if (savedState.currentStepIndex !== undefined) {
-                    this.currentStepIndex = savedState.currentStepIndex;
-                }
                 
                 // Restore interaction input
                 if (savedState.interactionInput) {
@@ -269,6 +289,15 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     this.ssrsAssessmentData = savedState.ssrsAssessmentData;
                 }
                 
+                // Restore startedAt for audit trail
+                if (savedState.startedAt) {
+                    this.startedAt = savedState.startedAt;
+                }
+                
+                // Determine the first incomplete step to start at
+                // This picks up where they left off by finding the first step with missing data
+                this.currentStepIndex = this.findFirstIncompleteStep();
+                
                 this.showToast(
                     'Draft Restored',
                     'Your previous progress has been restored.',
@@ -283,6 +312,55 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 'warning'
             );
         }
+    }
+    
+    /**
+     * Find the first step that has incomplete/missing data
+     * Returns 0 (interaction) if all steps are incomplete
+     * Returns the interview step index if interaction is complete but questions remain
+     */
+    findFirstIncompleteStep() {
+        // Step 0: Interaction Details - check if start/end times are set
+        const interactionComplete = this.interactionInput?.startDateTime && 
+                                    this.interactionInput?.endDateTime;
+        if (!interactionComplete) {
+            return 0; // Start at interaction step
+        }
+        
+        // Step 1: Demographics (if shown) - check if any demographics data exists
+        if (this.showDemographics) {
+            const demographicsComplete = this.demographicsData && 
+                                         Object.keys(this.demographicsData).length > 0;
+            if (!demographicsComplete) {
+                return 1; // Start at demographics step
+            }
+        }
+        
+        // Step 2: Interview Questions - check if required questions are answered
+        // For simplicity, check if any answers exist; could be enhanced to check required fields
+        const hasAnswers = this.answers && this.answers.size > 0;
+        
+        // If we have template data, check if there are required unanswered questions
+        if (this.templateData?.sections) {
+            const requiredUnanswered = this.templateData.sections.some(section => 
+                section.questions?.some(q => {
+                    if (!q.required) return false;
+                    const answer = this.answers.get(q.id);
+                    return !answer || (!answer.value && (!answer.values || answer.values.length === 0));
+                })
+            );
+            if (requiredUnanswered) {
+                return this.showDemographics ? 2 : 1; // Interview step index depends on demographics
+            }
+        }
+        
+        // If we got here with no answers at all, start at interview step
+        if (!hasAnswers) {
+            return this.showDemographics ? 2 : 1;
+        }
+        
+        // All steps appear complete, start at interaction to let user review
+        return 0;
     }
 
     initializeAnswers() {
@@ -432,6 +510,25 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     get requireIncomeBenefits() {
         return this.templateData?.incomeBenefitsPolicy === 'Required';
+    }
+
+    // Manager Approval getters
+    get hasManager() {
+        return this.managerInfo?.hasManager === true;
+    }
+
+    get managerMissing() {
+        return !this.hasManager;
+    }
+
+    get managerName() {
+        return this.managerInfo?.managerName || 'Your Manager';
+    }
+
+    get managerApprovalLabel() {
+        return this.hasManager 
+            ? `Request co-signature from ${this.managerName}`
+            : 'Request manager co-signature (no manager assigned)';
     }
 
     get clientSignatureFilename() {
@@ -624,59 +721,69 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const apiName = question.apiName || '';
         const responseType = question.responseType?.toLowerCase() || 'text';
         
-        // Address fields - group in multi-column layout
-        if (sectionName === 'Housing History') {
-            // Last Permanent Address Type - full width (picklist with many options)
-            if (apiName === 'Last_Permanent_Address_Type__c') {
-                return 'slds-col slds-size_1-of-1';
-            }
-            // Address components - responsive 2-column layout
-            if (apiName === 'Last_Perm_Address_Street__c') {
-                return 'slds-col slds-size_1-of-1'; // Street full width
-            }
-            if (apiName === 'Last_Perm_Address_City__c') {
-                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2'; // City half width on desktop
-            }
-            if (apiName === 'Last_Perm_Address_County__c') {
-                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2'; // County half width on desktop
-            }
-            if (apiName === 'Last_Perm_Address_State__c') {
-                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-3'; // State third width on desktop
-            }
-            if (apiName === 'Last_Perm_Address_Zip__c') {
-                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-3'; // Zip third width on desktop
-            }
-        }
-        
         // Long text fields (Textarea, LongText, RichText) - always full width
         if (responseType === 'textarea' || responseType === 'longtext' || responseType === 'richtext') {
             return 'slds-col slds-size_1-of-1';
         }
         
-        // Picklist with many options - full width for readability
-        if (responseType === 'picklist' && question.picklistValues && question.picklistValues.length > 8) {
+        // Radios/checkboxes with many options - full width
+        if ((responseType === 'radios' || responseType === 'multipicklist') && question.picklistValues && question.picklistValues.length > 6) {
             return 'slds-col slds-size_1-of-1';
         }
         
-        // Short text fields can be half-width on larger screens
-        if (responseType === 'text' || responseType === 'number' || responseType === 'decimal') {
-            // Check if next question is also a short field - if so, make them half-width
-            const nextQuestion = allQuestions[index + 1];
-            if (nextQuestion) {
-                const nextType = nextQuestion.responseType?.toLowerCase() || '';
-                if (nextType === 'text' || nextType === 'number' || nextType === 'decimal' || nextType === 'date') {
-                    return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
-                }
+        // Picklist with many options - full width for readability
+        if (responseType === 'picklist' && question.picklistValues && question.picklistValues.length > 10) {
+            return 'slds-col slds-size_1-of-1';
+        }
+        
+        // Address/Contact section patterns - smart grouping
+        if (sectionName?.includes('Address') || sectionName?.includes('Housing') || sectionName?.includes('Contact')) {
+            // Street addresses - full width
+            if (apiName.includes('Street') || apiName.includes('Address_1') || apiName.includes('Address_2')) {
+                return 'slds-col slds-size_1-of-1';
+            }
+            // City, County - half width
+            if (apiName.includes('City') || apiName.includes('County')) {
+                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
+            }
+            // State, Zip - can be 3-column on large screens
+            if (apiName.includes('State') || apiName.includes('Zip') || apiName.includes('Postal')) {
+                return 'slds-col slds-size_1-of-2 slds-medium-size_1-of-3';
+            }
+            // Phone, Email - half width
+            if (apiName.includes('Phone') || apiName.includes('Email')) {
+                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
             }
         }
         
-        // Date fields - can be half width
+        // Date fields - can be half or third width
         if (responseType === 'date' || responseType === 'datetime') {
-            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3';
         }
         
-        // Boolean/Checkbox - can be half width
-        if (responseType === 'boolean' || responseType === 'checkbox' || responseType === 'Checkbox') {
+        // Boolean/Checkbox - can be half or third width (these are typically short)
+        if (responseType === 'boolean' || responseType === 'checkbox') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3';
+        }
+        
+        // Number/Currency/Decimal fields - typically short, half or third width
+        if (responseType === 'number' || responseType === 'decimal' || responseType === 'currency' || responseType === 'percent') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3';
+        }
+        
+        // Short text fields - can be half width
+        if (responseType === 'text') {
+            // Check the label/apiName for hints about content length
+            const isLikelyShort = apiName.includes('Name') || apiName.includes('ID') || 
+                                  apiName.includes('Number') || apiName.includes('Code') ||
+                                  question.label?.length < 30;
+            if (isLikelyShort) {
+                return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
+            }
+        }
+        
+        // Standard picklist - half width
+        if (responseType === 'picklist') {
             return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
         }
         
@@ -703,16 +810,77 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
         data.sections = this.templateData.sections.map(section => ({
             name: section.label,
-            questions: section.questions.map(question => {
+            questions: section.questions.map((question, index, arr) => {
                 const answer = this.answers.get(question.questionId);
+                const value = this.formatAnswerForReview(question, answer);
+                // Get column class for review layout
+                const columnClass = this.getReviewColumnClass(question, value);
                 return {
                     label: question.label,
-                    value: this.formatAnswerForReview(question, answer)
+                    value: value,
+                    columnClass: columnClass,
+                    isLongText: this.isLongTextValue(question, value)
                 };
             })
         }));
 
         return data;
+    }
+    
+    /**
+     * Determines if a value should be displayed as long text (full width)
+     */
+    isLongTextValue(question, value) {
+        const responseType = question.responseType?.toLowerCase() || '';
+        // Long text types
+        if (responseType === 'textarea' || responseType === 'longtext' || responseType === 'richtext') {
+            return true;
+        }
+        // Value is long (more than 80 chars)
+        if (value && value.length > 80) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Get column class for review display based on question type and value
+     */
+    getReviewColumnClass(question, value) {
+        const responseType = question.responseType?.toLowerCase() || '';
+        
+        // Long text fields - full width
+        if (responseType === 'textarea' || responseType === 'longtext' || responseType === 'richtext') {
+            return 'slds-col slds-size_1-of-1';
+        }
+        
+        // Long values - full width
+        if (value && value.length > 80) {
+            return 'slds-col slds-size_1-of-1';
+        }
+        
+        // Boolean/Checkbox - third width on large screens
+        if (responseType === 'boolean' || responseType === 'checkbox') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3';
+        }
+        
+        // Date fields - third width on large screens
+        if (responseType === 'date' || responseType === 'datetime') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3';
+        }
+        
+        // Number/currency - third width on large screens
+        if (responseType === 'number' || responseType === 'decimal' || responseType === 'currency') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3';
+        }
+        
+        // Picklist - half width
+        if (responseType === 'picklist') {
+            return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
+        }
+        
+        // Default - half width for compact display
+        return 'slds-col slds-size_1-of-1 slds-medium-size_1-of-2';
     }
 
     formatIncomeBenefitsForReview() {
@@ -986,6 +1154,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         };
     }
 
+    handleManagerApprovalToggle(event) {
+        this.requestManagerCoSign = event.target.checked;
+    }
+
     async performSave(shouldDownload) {
         console.log('Save button clicked, shouldDownload:', shouldDownload);
         
@@ -1013,6 +1185,20 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 // Save signatures after Interview is created
                 await this.saveSignaturesToInterview(result.interviewId);
                 
+                // Request manager approval if toggled
+                if (this.requestManagerCoSign && this.hasManager) {
+                    try {
+                        await requestManagerApproval({ 
+                            recordId: result.interviewId, 
+                            recordType: 'Interview' 
+                        });
+                        console.log('Manager approval requested successfully');
+                    } catch (approvalErr) {
+                        console.warn('Failed to request manager approval (non-fatal):', approvalErr);
+                        this.showToast('Warning', 'Interview saved but manager approval request failed.', 'warning');
+                    }
+                }
+                
                 // Link uploaded income/benefit files to Case for quick access
                 if (this.incomeBenefitsFileIds && this.incomeBenefitsFileIds.length > 0) {
                     try {
@@ -1032,7 +1218,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 const isMobile = this.isMobileDevice();
                 await this.generateInterviewDocument(result.interactionSummaryId, shouldDownload && !isMobile);
                 
-                this.showToast('Interview Saved', 'Interview has been saved successfully.', 'success');
+                const successMsg = this.requestManagerCoSign && this.hasManager 
+                    ? `Interview saved. Manager approval requested from ${this.managerName}.`
+                    : 'Interview has been saved successfully.';
+                this.showToast('Interview Saved', successMsg, 'success');
                 
                 // Wait a moment before navigation if document was generated
                 if (shouldDownload || this.isMobileDevice()) {
@@ -1164,12 +1353,32 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     // ==========================================
 
     /**
-     * Save current progress as a draft for later completion
+     * Save & Continue - saves draft and keeps form open
      */
-    async handleSaveForLater() {
+    handleSaveAndContinue() {
+        this._saveDraft(false);
+    }
+
+    /**
+     * Save and Close - saves draft and navigates back to case
+     */
+    handleSaveAndClose() {
+        this._saveDraft(true);
+    }
+
+    /**
+     * Internal method to save draft with option to close after
+     * @param {boolean} closeAfterSave - if true, navigate back after save
+     */
+    async _saveDraft(closeAfterSave) {
         this.isSavingDraft = true;
         
         try {
+            // Set startedAt if this is the first save (no existing draft)
+            if (!this.startedAt) {
+                this.startedAt = new Date().toISOString();
+            }
+            
             // Build the draft data object
             const draftData = {
                 caseId: this.effectiveCaseId,
@@ -1188,7 +1397,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 goals: JSON.parse(JSON.stringify(this.goals || [])),
                 carePlanConsent: this.carePlanConsent,
                 ssrsAssessmentData: this.ssrsAssessmentData ? JSON.parse(JSON.stringify(this.ssrsAssessmentData)) : null,
-                savedAt: new Date().toISOString()
+                startedAt: this.startedAt, // When interview was first started
+                savedAt: new Date().toISOString() // When draft was last saved
             };
 
             console.log('Saving draft:', draftData);
@@ -1205,14 +1415,21 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 this.draftId = result.draftId;
                 this.hasDraft = true;
                 
-                this.showToast(
-                    'Draft Saved',
-                    'Your interview progress has been saved. You can return to complete it later.',
-                    'success'
-                );
-
-                // Navigate back to the Case
-                this.handleCancel();
+                if (closeAfterSave) {
+                    this.showToast(
+                        'Draft Saved',
+                        'Your interview progress has been saved. You can return to complete it later.',
+                        'success'
+                    );
+                    // Navigate back to the Case
+                    this.handleCancel();
+                } else {
+                    this.showToast(
+                        'Progress Saved',
+                        'Your interview progress has been saved. Continue editing.',
+                        'success'
+                    );
+                }
             } else {
                 throw new Error(result.errorMessage || 'Failed to save draft');
             }
@@ -1270,6 +1487,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             caseId: this.effectiveCaseId,
             accountId: this.accountData?.Id || null,
             templateVersionId: this.effectiveTemplateVersionId,
+            startedAt: this.startedAt, // When interview was first started (for audit trail)
             interaction: {
                 interactionDate: interactionDate,
                 startTime: startTime,
@@ -1364,5 +1582,68 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 variant
             })
         );
+    }
+
+    /**
+     * Log PHI access for HIPAA compliance.
+     * Interview sessions access comprehensive client PII - tracks which of the 18 Safe Harbor identifiers were viewed.
+     * @param {Object} response - The response from initializeSession
+     */
+    _logPhiAccess(response) {
+        if (!response || !response.accountData) return;
+        
+        try {
+            const accountData = response.accountData;
+            const piiCategories = [];
+            
+            // Check which PII categories are present in the account data
+            // This maps to the 18 HIPAA Safe Harbor identifiers
+            if (accountData.FirstName || accountData.LastName || accountData.Name || accountData.Goes_By__c) {
+                piiCategories.push('NAMES');
+            }
+            if (accountData.PersonMailingStreet || accountData.PersonMailingCity || accountData.PersonMailingState) {
+                piiCategories.push('GEOGRAPHIC');
+            }
+            if (accountData.PersonBirthdate || accountData.Birthdate__c) {
+                piiCategories.push('DATES');
+            }
+            if (accountData.Phone || accountData.PersonMobilePhone) {
+                piiCategories.push('PHONE');
+            }
+            if (accountData.PersonEmail) {
+                piiCategories.push('EMAIL');
+            }
+            if (accountData.SSN__c) {
+                piiCategories.push('SSN');
+            }
+            if (accountData.HMIS_Id__c || accountData.Medicaid_Id__c) {
+                piiCategories.push('MEDICAL_RECORD');
+            }
+            if (accountData.Insurance_Provider__c || accountData.Insurance_Id__c) {
+                piiCategories.push('HEALTH_PLAN');
+            }
+            if (accountData.PhotoUrl) {
+                piiCategories.push('PHOTO');
+            }
+            
+            // Get account ID from the data if available
+            const accountId = accountData.Id || accountData.AccountId;
+            if (!accountId) {
+                console.warn('No account ID available for PHI logging');
+                return;
+            }
+            
+            // Log the access asynchronously (fire and forget)
+            logRecordAccessWithPii({
+                recordId: accountId,
+                objectType: 'PersonAccount',
+                accessSource: 'InterviewSession',
+                piiFieldsAccessed: JSON.stringify(piiCategories)
+            }).catch(err => {
+                console.warn('Failed to log PHI access:', err);
+            });
+        } catch (e) {
+            console.warn('Error in _logPhiAccess:', e);
+        }
     }
 }
