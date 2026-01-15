@@ -13,6 +13,7 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public String response;
         @AuraEnabled public String plan;
         @AuraEnabled public List<Id> goalAssignmentIds;
+        @AuraEnabled public List<GoalWorkDetail> goalWorkDetails; // Detailed goal work with progress tracking
         @AuraEnabled public List<Id> codeAssignmentIds;
         @AuraEnabled public List<Id> benefitIds;
         @AuraEnabled public Id ssrsAssessmentId; // Link to SSRS Assessment if completed during this note
@@ -33,6 +34,29 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public Boolean isPrimary;    // Primary diagnosis flag
         @AuraEnabled public String notes;         // Clinical notes for this diagnosis
         @AuraEnabled public String category;      // Category (e.g., Mental Health)
+    }
+
+    /**
+     * DTO for goal work details including progress tracking.
+     */
+    public class GoalWorkDetail {
+        @AuraEnabled public Id goalAssignmentId;
+        @AuraEnabled public String narrative;
+        @AuraEnabled public Decimal progressBefore;
+        @AuraEnabled public Decimal progressAfter;
+        @AuraEnabled public Integer timeSpentMinutes;
+    }
+
+    /**
+     * DTO for existing diagnosis selection.
+     */
+    public class ExistingDiagnosis {
+        @AuraEnabled public Id diagnosisId;
+        @AuraEnabled public String code;
+        @AuraEnabled public String description;
+        @AuraEnabled public String status;
+        @AuraEnabled public String category;
+        @AuraEnabled public Boolean isSelected;
     }
 
     public class SaveResult {
@@ -204,6 +228,45 @@ public with sharing class ClinicalNoteController {
         
         System.debug('No active ProgramEnrollment found for Case: ' + caseId);
         return null;
+    }
+
+    /**
+     * Get existing active diagnoses for a Person Account and Case for selection in Clinical Notes.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<ExistingDiagnosis> getExistingDiagnoses(Id caseId, Id accountId) {
+        System.debug('Getting existing diagnoses for Case: ' + caseId + ', Account: ' + accountId);
+        
+        List<ExistingDiagnosis> result = new List<ExistingDiagnosis>();
+        
+        try {
+            // Query active diagnoses for this Person Account and Case
+            String diagnosisQuery = 'SELECT Id, ICD10Code__c, Name, Status__c, Category__c FROM Diagnosis__c ' +
+                                  'WHERE PersonAccount__c = :accountId ' +
+                                  'AND Case__c = :caseId ' +
+                                  'AND Status__c = \'Active\' ' +
+                                  'ORDER BY CreatedDate DESC';
+            
+            List<SObject> diagnoses = Database.query(diagnosisQuery);
+            System.debug('Found ' + diagnoses.size() + ' existing active diagnoses');
+            
+            for (SObject diag : diagnoses) {
+                ExistingDiagnosis existingDiag = new ExistingDiagnosis();
+                existingDiag.diagnosisId = (Id) diag.get('Id');
+                existingDiag.code = (String) diag.get('ICD10Code__c');
+                existingDiag.description = (String) diag.get('Name');
+                existingDiag.status = (String) diag.get('Status__c');
+                existingDiag.category = (String) diag.get('Category__c');
+                existingDiag.isSelected = false;
+                
+                result.add(existingDiag);
+            }
+            
+        } catch (Exception e) {
+            System.debug('Error retrieving existing diagnoses: ' + e.getMessage());
+        }
+        
+        return result;
     }
 
     /**
@@ -514,9 +577,27 @@ public with sharing class ClinicalNoteController {
 
             insert summary;
 
+            // Create GoalAssignmentDetail records for selected goals (not just link GoalAssignment)
+            if (request.goalWorkDetails != null && !request.goalWorkDetails.isEmpty()) {
+                System.debug('Creating GoalAssignmentDetail records for ' + request.goalWorkDetails.size() + ' goals with progress tracking');
+                createGoalAssignmentDetailsForInteraction(request.goalWorkDetails, summary.Id, request.accountId);
+            } else if (request.goalAssignmentIds != null && !request.goalAssignmentIds.isEmpty()) {
+                // Fallback for old format - convert goalAssignmentIds to goalWorkDetails
+                List<GoalWorkDetail> fallbackDetails = new List<GoalWorkDetail>();
+                for (Id goalId : request.goalAssignmentIds) {
+                    GoalWorkDetail detail = new GoalWorkDetail();
+                    detail.goalAssignmentId = goalId;
+                    detail.narrative = 'Goal addressed in clinical session';
+                    detail.progressBefore = 0;
+                    detail.progressAfter = 0;
+                    detail.timeSpentMinutes = null;
+                    fallbackDetails.add(detail);
+                }
+                createGoalAssignmentDetailsForInteraction(fallbackDetails, summary.Id, request.accountId);
+            }
+
             // Note: linkRelatedRecords will fail silently if GoalAssignment__c doesn't exist
             // Goals are properly linked via GoalAssignmentDetail.DetailRecordId in saveGoalAssignmentDetails
-            linkRelatedRecords('GoalAssignment__c', 'Interaction_Summary__c', request.goalAssignmentIds, summary.Id);
             linkRelatedRecords('Code_Assignment__c', 'Interaction_Summary__c', request.codeAssignmentIds, summary.Id);
 
             // Create Diagnosis__c records if provided (Clinical Notes only)
@@ -531,6 +612,8 @@ public with sharing class ClinicalNoteController {
 
             // Create Benefit Disbursements for selected benefits
             if (request.benefitIds != null && !request.benefitIds.isEmpty()) {
+                System.debug('📝 Clinical Note Save: Creating disbursements for ' + request.benefitIds.size() + ' benefits');
+                System.debug('📝 Benefit IDs: ' + request.benefitIds);
                 createBenefitDisbursements(
                     accountId, 
                     request.benefitIds, 
@@ -540,6 +623,8 @@ public with sharing class ClinicalNoteController {
                     request.caseId,
                     summary.Id // Pass the InteractionSummary ID
                 );
+            } else {
+                System.debug('📝 Clinical Note Save: No benefits selected (benefitIds is null or empty)');
             }
 
             result.success = true;
@@ -613,14 +698,14 @@ public with sharing class ClinicalNoteController {
         if (!codesToLookup.isEmpty()) {
             try {
                 // Query existing diagnoses by Code__c formula field or via Code_Name__r.Name
-                String existingQuery = 'SELECT Id, Code__c FROM Diagnosis__c WHERE Client__c = :accountId';
+                String existingQuery = 'SELECT Id, Code__c FROM Diagnosis__c WHERE Client__c = :accountId AND Status__c = \'Active\'';
                 for (SObject existing : Database.query(existingQuery)) {
                     String existingCode = (String)existing.get('Code__c');
                     if (String.isNotBlank(existingCode)) {
-                        existingCodes.add(existingCode);
+                        existingCodes.add(existingCode.toUpperCase());
                     }
                 }
-                System.debug('Found ' + existingCodes.size() + ' existing diagnosis codes for client: ' + existingCodes);
+                System.debug('Found ' + existingCodes.size() + ' existing ACTIVE diagnosis codes for client: ' + existingCodes);
             } catch (Exception e) {
                 System.debug('Could not check for existing diagnoses: ' + e.getMessage());
             }
@@ -685,9 +770,9 @@ public with sharing class ClinicalNoteController {
         for (DiagnosisInput diag : diagnoses) {
             System.debug('Processing diagnosis - code: ' + diag.code + ', description: ' + diag.description + ', status: ' + diag.status);
             
-            // Skip if this code already exists for this client
-            if (String.isNotBlank(diag.code) && existingCodes.contains(diag.code)) {
-                System.debug('Skipping duplicate diagnosis code: ' + diag.code + ' (already exists for client)');
+            // Skip if this code already exists as ACTIVE for this client
+            if (String.isNotBlank(diag.code) && existingCodes.contains(diag.code.toUpperCase())) {
+                System.debug('⚠️ Skipping duplicate ACTIVE diagnosis code: ' + diag.code + ' (already exists for client)');
                 continue;
             }
             
@@ -823,6 +908,68 @@ public with sharing class ClinicalNoteController {
         return Time.newInstance(hour, minute, 0, 0);
     }
 
+    /**
+     * Creates GoalAssignmentDetail records for goals worked on during a clinical session.
+     * This ensures the goals are linked to the InteractionSummary for proper document generation.
+     */
+    private static void createGoalAssignmentDetailsForInteraction(List<GoalWorkDetail> goalWorkDetails, Id interactionSummaryId, Id accountId) {
+        if (goalWorkDetails == null || goalWorkDetails.isEmpty() || interactionSummaryId == null) {
+            return;
+        }
+        
+        System.debug('Creating GoalAssignmentDetail records for ' + goalWorkDetails.size() + ' goals with progress tracking');
+        
+        List<SObject> detailsToInsert = new List<SObject>();
+        
+        for (GoalWorkDetail workDetail : goalWorkDetails) {
+            try {
+                // Create GoalAssignmentDetail record using dynamic SObject
+                SObject detail = Schema.getGlobalDescribe().get('GoalAssignmentDetail').newSObject();
+                
+                // Standard field - links to GoalAssignment
+                detail.put('GoalAssignmentId', workDetail.goalAssignmentId);
+                
+                // Link to InteractionSummary via the new lookup field
+                detail.put('InteractionSummary__c', interactionSummaryId);
+                
+                // Set detail type to indicate this came from a clinical note
+                detail.put('DetailType__c', 'ClinicalSession');
+                
+                // Set narrative from the UI input
+                detail.put('Narrative__c', workDetail.narrative);
+                
+                // Set progress tracking fields (these DO exist on GoalAssignmentDetail)
+                detail.put('ProgressBefore__c', workDetail.progressBefore);
+                detail.put('ProgressAfter__c', workDetail.progressAfter);
+                
+                detailsToInsert.add(detail);
+                
+            } catch (Exception e) {
+                System.debug('Error preparing GoalAssignmentDetail for ' + workDetail.goalAssignmentId + ': ' + e.getMessage());
+            }
+        }
+        
+        if (!detailsToInsert.isEmpty()) {
+            Database.SaveResult[] saveResults = Database.insert(detailsToInsert, false);
+            
+            for (Integer i = 0; i < saveResults.size(); i++) {
+                Database.SaveResult sr = saveResults[i];
+                SObject detail = detailsToInsert[i];
+                Id goalAssignmentId = (Id)detail.get('GoalAssignmentId');
+                
+                if (sr.isSuccess()) {
+                    System.debug('✓ Created GoalAssignmentDetail for goal ' + goalAssignmentId + ': ' + sr.getId());
+                } else {
+                    String errorMsg = '';
+                    for (Database.Error err : sr.getErrors()) {
+                        errorMsg += err.getMessage() + ' ';
+                    }
+                    System.debug('✗ Failed to create GoalAssignmentDetail for goal ' + goalAssignmentId + ': ' + errorMsg.trim());
+                }
+            }
+        }
+    }
+
     private static void createBenefitDisbursements(
         Id accountId, 
         List<Id> benefitIds, 
@@ -833,43 +980,56 @@ public with sharing class ClinicalNoteController {
         Id interactionSummaryId
     ) {
         try {
-            // Get program from ProgramEnrollment (Case doesn't have direct Program lookup)
+            // Get program from ProgramEnrollment using AccountId (participant)
             Id programId;
             String enrollmentStatus;
             Id enrollmentId;
             
+            System.debug('🔍 Looking for active ProgramEnrollment for participant: ' + accountId);
             try {
-                String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment WHERE AccountId = :accountId AND Status IN (\'Enrolled\',\'Active\') ORDER BY CreatedDate DESC LIMIT 1';
                 List<SObject> enrollments = Database.query(enrollmentQuery);
                 if (!enrollments.isEmpty()) {
                     programId = (Id) enrollments[0].get('ProgramId');
                     enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
                     enrollmentId = enrollments[0].Id;
-                    System.debug('Found ProgramId for disbursements: ' + programId + ', Status: ' + enrollmentStatus);
+                    System.debug('✅ Found ProgramId via AccountId: ' + programId + ', Status: ' + enrollmentStatus);
                 }
             } catch (Exception e1) {
-                System.debug('ProgramId field not found, trying Program__c: ' + e1.getMessage());
-                String enrollmentQuery = 'SELECT Id, Program__c, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
-                List<SObject> enrollments = Database.query(enrollmentQuery);
-                if (!enrollments.isEmpty()) {
-                    programId = (Id) enrollments[0].get('Program__c');
-                    enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
-                    enrollmentId = enrollments[0].Id;
-                    System.debug('Found Program__c for disbursements: ' + programId + ', Status: ' + enrollmentStatus);
+                System.debug('❌ ProgramId field not found, trying Program__c: ' + e1.getMessage());
+                try {
+                    String enrollmentQuery = 'SELECT Id, Program__c, Status FROM ProgramEnrollment WHERE AccountId = :accountId AND Status IN (\'Enrolled\',\'Active\') ORDER BY CreatedDate DESC LIMIT 1';
+                    List<SObject> enrollments = Database.query(enrollmentQuery);
+                    if (!enrollments.isEmpty()) {
+                        programId = (Id) enrollments[0].get('Program__c');
+                        enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
+                        enrollmentId = enrollments[0].Id;
+                        System.debug('✅ Found Program__c via AccountId: ' + programId + ', Status: ' + enrollmentStatus);
+                    }
+                } catch (Exception e2) {
+                    System.debug('❌ Trying Account__c field: ' + e2.getMessage());
+                    try {
+                        String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment WHERE Account__c = :accountId AND Status IN (\'Enrolled\',\'Active\') ORDER BY CreatedDate DESC LIMIT 1';
+                        List<SObject> enrollments = Database.query(enrollmentQuery);
+                        if (!enrollments.isEmpty()) {
+                            programId = (Id) enrollments[0].get('ProgramId');
+                            enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
+                            enrollmentId = enrollments[0].Id;
+                            System.debug('✅ Found ProgramId via Account__c: ' + programId + ', Status: ' + enrollmentStatus);
+                        }
+                    } catch (Exception e3) {
+                        System.debug('❌ Could not find ProgramEnrollment: ' + e3.getMessage());
+                    }
                 }
             }
             
             if (programId == null) {
-                System.debug('No active ProgramEnrollment found for case: ' + caseId);
+                System.debug('❌ No active ProgramEnrollment found for participant: ' + accountId);
                 return;
             }
             
-            // Check if enrollment status is "Enrolled" - BenefitDisbursementService requires this
-            if (enrollmentStatus != 'Enrolled' && enrollmentStatus != 'Active') {
-                System.debug('⚠ Participant enrollment status is "' + enrollmentStatus + '" - BenefitDisbursementService requires "Enrolled" or "Active" status for assignment/disbursement creation. Skipping benefit disbursements.');
-                System.debug('Note: The InteractionSummary was saved successfully. Benefit disbursements can be created manually once the participant is fully enrolled.');
-                return;
-            }
+            // Create disbursements for each selected benefit
+            System.debug('✅ Creating disbursements for ' + benefitIds.size() + ' benefits with Program: ' + programId);
             
             // Format datetime for BenefitDisbursementService
             String startDateTimeStr = startDateTime != null 
@@ -881,9 +1041,6 @@ public with sharing class ClinicalNoteController {
             String serviceDateStr = serviceDate != null 
                 ? serviceDate.format()
                 : Date.today().format();
-            
-            // Create disbursements for each selected benefit
-            System.debug('Creating disbursements for ' + benefitIds.size() + ' benefits');
             for (Id benefitId : benefitIds) {
                 try {
                     System.debug('Processing benefit: ' + benefitId);
