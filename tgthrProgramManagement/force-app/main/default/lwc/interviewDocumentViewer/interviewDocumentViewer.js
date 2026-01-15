@@ -3,6 +3,7 @@ import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getDocumentsForContext from '@salesforce/apex/InterviewDocumentController.getDocumentsForContext';
 import getDownloadUrl from '@salesforce/apex/InterviewDocumentController.getDownloadUrl';
+import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 
 export default class InterviewDocumentViewer extends NavigationMixin(LightningElement) {
     @api recordId; // Context record ID (Case, InteractionSummary, or Account)
@@ -103,15 +104,21 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
      * Get signature status text
      */
     getSignatureStatus(doc) {
+        // Notes only require staff signature
+        if (doc.documentType === 'Note') {
+            return doc.staffSigned ? 'Signed' : 'Unsigned';
+        }
+        // Interviews require both signatures
         if (doc.clientSigned && doc.staffSigned) {
             return 'Signed by Client & Staff';
-        } else if (doc.clientSigned) {
-            return 'Signed by Client';
-        } else if (doc.staffSigned) {
-            return 'Signed by Staff';
-        } else {
-            return 'Unsigned';
         }
+        if (doc.clientSigned) {
+            return 'Signed by Client';
+        }
+        if (doc.staffSigned) {
+            return 'Signed by Staff';
+        }
+        return 'Unsigned';
     }
     
     /**
@@ -154,23 +161,54 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     }
     
     /**
-     * Download the selected document
+     * Download the selected document (handles both Interview docs and Notes)
      */
     async handleDownload() {
-        if (!this.selectedDocumentId) {
+        if (!this.selectedDocument) {
             return;
         }
         
         try {
-            const downloadUrl = await getDownloadUrl({ interviewDocumentId: this.selectedDocumentId });
-            
-            // Open download URL in new window
-            window.open(downloadUrl, '_blank');
-            
-            this.showToast('Success', 'Document download started', 'success');
+            // Check if this is a Note or an Interview document
+            if (this.selectedDocument.documentType === 'Note') {
+                // Notes: Document should already exist from when note was saved
+                // If contentDocumentId exists, use Salesforce download
+                if (this.selectedDocument.contentDocumentId) {
+                    // Use Salesforce native download URL
+                    const downloadUrl = `/sfc/servlet.shepherd/document/download/${this.selectedDocument.contentDocumentId}`;
+                    window.open(downloadUrl, '_blank');
+                    this.showToast('Success', 'Document download started', 'success');
+                } else {
+                    // Document not yet generated - generate it now
+                    this.showToast('Info', 'Generating document...', 'info');
+                    
+                    const result = await generateNoteDocument({ 
+                        interactionSummaryId: this.selectedDocument.id 
+                    });
+                    
+                    // Update the document's contentDocumentId for future downloads
+                    this.selectedDocument.contentDocumentId = result.content_document_id;
+                    
+                    // Download the newly generated document
+                    const downloadUrl = `/sfc/servlet.shepherd/document/download/${result.content_document_id}`;
+                    window.open(downloadUrl, '_blank');
+                    
+                    this.showToast('Success', 'Document generated and downloaded', 'success');
+                }
+            } else {
+                // Interview documents use the InterviewDocument__c ID
+                const downloadUrl = await getDownloadUrl({ 
+                    interviewDocumentId: this.selectedDocument.id 
+                });
+                
+                // Open download URL in new window
+                window.open(downloadUrl, '_blank');
+                
+                this.showToast('Success', 'Document download started', 'success');
+            }
         } catch (error) {
             console.error('Error downloading document:', error);
-            this.showToast('Error', 'Failed to download document', 'error');
+            this.showToast('Error', 'Failed to download document: ' + (error.body?.message || error.message), 'error');
         }
     }
     
@@ -307,11 +345,49 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     }
     
     /**
+     * Check if this is a Note (vs Interview document)
+     */
+    get isNote() {
+        return this.selectedDocument?.documentType === 'Note';
+    }
+    
+    /**
+     * Check if this is an Interview document
+     */
+    get isInterview() {
+        return this.selectedDocument?.documentType !== 'Note';
+    }
+    
+    /**
+     * Get the note type label (Clinical Note, Case Note, Peer Note)
+     */
+    get noteTypeLabel() {
+        return this.selectedDocument?.noteType || 'Note';
+    }
+    
+    /**
+     * Get URL for the Note (InteractionSummary) record
+     */
+    get noteRecordUrl() {
+        if (!this.selectedDocument?.id || !this.isNote) {
+            return '#';
+        }
+        return '/' + this.selectedDocument.id;
+    }
+    
+    /**
      * Computed status based on signatures - document is complete when all required signatures are present
+     * Notes only require staff signature, Interviews require both client and staff signatures
      */
     get computedStatus() {
         if (!this.selectedDocument) return 'Unknown';
         
+        // Notes only need staff signature to be complete
+        if (this.isNote) {
+            return this.selectedDocument.staffSigned ? 'Completed' : 'Pending Signature';
+        }
+        
+        // Interviews need both signatures
         const clientSigned = this.selectedDocument.clientSigned;
         const staffSigned = this.selectedDocument.staffSigned;
         
@@ -327,7 +403,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         const status = this.computedStatus;
         if (status === 'Completed') {
             return 'slds-badge slds-theme_success';
-        } else if (status === 'Awaiting Signatures') {
+        } else if (status === 'Awaiting Signatures' || status === 'Pending Signature') {
             return 'slds-badge slds-theme_warning';
         }
         return 'slds-badge slds-theme_light';
@@ -362,14 +438,61 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         return this.selectedDocument?.staffSigned ? 'slds-text-color_success' : '';
     }
     
-    get clientSignedDate() {
-        // TODO: Add actual signed date from data
-        return 'Signed';
+    /**
+     * Get client signer display name
+     */
+    get clientSignerDisplay() {
+        if (!this.selectedDocument?.clientSigned) return '';
+        return this.selectedDocument.clientSignerName || this.selectedDocument.clientName || 'Client';
     }
     
-    get staffSignedDate() {
-        // TODO: Add actual signed date from data
-        return 'Signed';
+    /**
+     * Get staff signer display with name and title
+     */
+    get staffSignerDisplay() {
+        if (!this.selectedDocument?.staffSigned) return '';
+        const name = this.selectedDocument.staffSignerName || 'Staff';
+        const title = this.selectedDocument.staffSignerTitle;
+        return title ? `${name}, ${title}` : name;
+    }
+    
+    /**
+     * Format client signed date
+     */
+    get clientSignedDateDisplay() {
+        const date = this.selectedDocument?.clientSignedDate;
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+    
+    /**
+     * Format staff signed date
+     */
+    get staffSignedDateDisplay() {
+        const date = this.selectedDocument?.staffSignedDate;
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+    
+    /**
+     * Format manager co-signed date
+     */
+    get managerSignedDateDisplay() {
+        const date = this.selectedDocument?.managerSignedDate;
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
     }
     
     /**
@@ -399,7 +522,14 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     }
     
     getSignatureClass(doc) {
-        if (doc.clientSigned || doc.staffSigned) {
+        // Notes only need staff signature
+        if (doc.documentType === 'Note') {
+            return doc.staffSigned 
+                ? 'signature-status signature-signed' 
+                : 'signature-status signature-unsigned text-muted';
+        }
+        // Interviews need both signatures
+        if (doc.clientSigned && doc.staffSigned) {
             return 'signature-status signature-signed';
         }
         return 'signature-status signature-unsigned text-muted';

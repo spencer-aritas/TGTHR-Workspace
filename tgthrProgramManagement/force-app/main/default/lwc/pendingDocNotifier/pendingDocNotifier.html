@@ -1,0 +1,71 @@
+<template>
+    <!-- This component is invisible until there are pending items -->
+    <template if:true={showModal}>
+        <section 
+            role="dialog" 
+            tabindex="-1" 
+            aria-modal="true" 
+            aria-labelledby="pending-doc-modal-heading"
+            class="slds-modal slds-fade-in-open slds-modal_small">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header slds-theme_warning">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeModal}>
+                    </lightning-button-icon>
+                    <h2 id="pending-doc-modal-heading" class="slds-text-heading_medium">
+                        <lightning-icon icon-name="utility:warning" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        {modalTitle}
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-body_regular slds-m-bottom_medium">
+                        You have pending documentation items that need your attention. Click an item to go to its Case.
+                    </p>
+                    
+                    <template if:true={hasPendingItems}>
+                        <ul class="slds-has-dividers_bottom-space">
+                            <template for:each={pendingItems} for:item="item">
+                                <li key={item.key} class="slds-item pending-item-row">
+                                    <a 
+                                        href="javascript:void(0);" 
+                                        class="pending-item-link slds-grid slds-grid_vertical-align-center"
+                                        data-case-id={item.caseId}
+                                        data-record-id={item.recordId}
+                                        onclick={handleItemClick}>
+                                        <div class="slds-col slds-grow">
+                                            <div class="slds-text-body_regular slds-text-link">
+                                                {item.label}
+                                            </div>
+                                            <template if:true={item.caseName}>
+                                                <div class="slds-text-body_small slds-text-color_weak">
+                                                    Case: {item.caseName}
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="slds-col slds-no-flex">
+                                            <span class={item.badgeClass}>{item.badgeLabel}</span>
+                                        </div>
+                                        <div class="slds-col slds-no-flex slds-m-left_small">
+                                            <lightning-icon icon-name="utility:chevronright" size="x-small"></lightning-icon>
+                                        </div>
+                                    </a>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button 
+                        label="Dismiss" 
+                        onclick={handleDismiss}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

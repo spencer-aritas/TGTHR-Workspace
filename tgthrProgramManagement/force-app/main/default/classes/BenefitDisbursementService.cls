@@ -35,6 +35,8 @@ public with sharing class BenefitDisbursementService {
     @AuraEnabled
     public Boolean isClinical; // explicitly indicates clinical flow from client
     @AuraEnabled
+    public String interactionSummaryId; // link disbursements to specific InteractionSummary 
+    @AuraEnabled
     public Map<String, String> individualCaseNotesByParticipant; // optional map of per-participant notes
 
     // Helper method to convert string date to Date object
@@ -82,8 +84,9 @@ public with sharing class BenefitDisbursementService {
 
   /**
    * Return distinct Event Types for active Benefits in a Program.
+   * NOTE: Not cacheable to ensure fresh data when benefit configuration changes.
    */
-  @AuraEnabled(cacheable=true)
+  @AuraEnabled
   public static List<Option> getEventTypes(
     String programId,
     String programName
@@ -118,8 +121,9 @@ public with sharing class BenefitDisbursementService {
 
   /**
    * Wrapper: getEventTypes by program Id to provide a deterministic Id-first API for LWCs.
+   * NOTE: Not cacheable to ensure fresh data when benefit configuration changes.
    */
-  @AuraEnabled(cacheable=true)
+  @AuraEnabled
   public static List<Option> getEventTypesByProgramId(String programId) {
     if (String.isBlank(programId))
       return new List<Option>();
@@ -128,8 +132,9 @@ public with sharing class BenefitDisbursementService {
 
   /**
    * Benefits for a Program filtered by Event Type (optional).
+   * NOTE: Not cacheable to ensure fresh data when benefit configuration changes.
    */
-  @AuraEnabled(cacheable=true)
+  @AuraEnabled
   public static List<Option> getBenefits(
     String programId,
     String programName,
@@ -157,8 +162,9 @@ public with sharing class BenefitDisbursementService {
 
   /**
    * Wrapper: getBenefits by program Id to provide a deterministic Id-first API for LWCs.
+   * NOTE: Not cacheable to ensure fresh data when benefit configuration changes.
    */
-  @AuraEnabled(cacheable=true)
+  @AuraEnabled
   public static List<Option> getBenefitsByProgramId(
     String programId,
     String eventType
@@ -213,8 +219,46 @@ public with sharing class BenefitDisbursementService {
   }
 
   /**
-   * Extended param-based wrapper to support additional fields (clinical datetimes and notes)
-   * This avoids nested-object serialization issues when called from LWC/Aura.
+   * Extended param-based wrapper with InteractionSummary support for clinical notes
+   */
+  @AuraEnabled
+  public static List<DisburseResult> createDisbursementsWithInteraction(
+    List<String> participantAccountIds,
+    String benefitId,
+    String programId,
+    String programName,
+    String serviceDate,
+    Integer quantity,
+    String notes,
+    String startDateTime,
+    String endDateTime,
+    String caseNotes,
+    String eventType,
+    Map<String, String> individualCaseNotesByParticipant,
+    Boolean isClinical,
+    String interactionSummaryId
+  ) {
+    DisburseRequest request = new DisburseRequest();
+    request.participantAccountIds = participantAccountIds;
+    request.benefitId = benefitId;
+    request.programId = programId;
+    request.programName = programName;
+    request.serviceDate = serviceDate;
+    request.quantity = quantity;
+    request.notes = notes;
+    request.startDateTime = startDateTime;
+    request.endDateTime = endDateTime;
+    request.caseNotes = caseNotes;
+    request.eventType = eventType;
+    request.individualCaseNotesByParticipant = individualCaseNotesByParticipant;
+    request.isClinical = isClinical;
+    request.interactionSummaryId = interactionSummaryId;
+
+    return createDisbursements(request);
+  }
+
+  /**
+   * Legacy version without interactionSummaryId for backward compatibility
    */
   @AuraEnabled
   public static List<DisburseResult> createDisbursementsWithParamsExt(
@@ -232,22 +276,22 @@ public with sharing class BenefitDisbursementService {
     Map<String, String> individualCaseNotesByParticipant,
     Boolean isClinical
   ) {
-    DisburseRequest request = new DisburseRequest();
-    request.participantAccountIds = participantAccountIds;
-    request.benefitId = benefitId;
-    request.programId = programId;
-    request.programName = programName;
-    request.serviceDate = serviceDate;
-    request.quantity = quantity;
-    request.notes = notes;
-    request.startDateTime = startDateTime;
-    request.endDateTime = endDateTime;
-    request.caseNotes = caseNotes;
-    request.eventType = eventType;
-    request.individualCaseNotesByParticipant = individualCaseNotesByParticipant;
-    request.isClinical = isClinical;
-
-    return createDisbursements(request);
+    return createDisbursementsWithInteraction(
+      participantAccountIds,
+      benefitId,
+      programId,
+      programName,
+      serviceDate,
+      quantity,
+      notes,
+      startDateTime,
+      endDateTime,
+      caseNotes,
+      eventType,
+      individualCaseNotesByParticipant,
+      isClinical,
+      null // interactionSummaryId
+    );
   }
 
   // Alternative method with individual parameters
@@ -434,6 +478,7 @@ public with sharing class BenefitDisbursementService {
 
       List<String> participantsWithoutAssignments = new List<String>();
       List<String> participantsWithAssignments = new List<String>();
+      List<String> participantsNotEnrolled = new List<String>();
 
       for (String acctIdStr : req.participantAccountIds) {
         Id acctId = Id.valueOf(acctIdStr);
@@ -441,10 +486,10 @@ public with sharing class BenefitDisbursementService {
         SObject ba = baByAcct.get(acctId);
 
         if (pe == null) {
-          // Participant not enrolled in program - this is a problem
-          throw new System.StringException(
-            'Participant not enrolled in program: ' + acctId
-          );
+          // Participant not actively enrolled - track them for the UI to handle
+          String participantName = getParticipantName(acctId);
+          participantsNotEnrolled.add(participantName);
+          continue; // Skip to next participant
         }
 
         if (ba == null) {
@@ -458,9 +503,10 @@ public with sharing class BenefitDisbursementService {
       }
 
       BenefitAssignmentCheckResult result = new BenefitAssignmentCheckResult();
-      result.allParticipantsReady = participantsWithoutAssignments.isEmpty();
+      result.allParticipantsReady = participantsWithoutAssignments.isEmpty() && participantsNotEnrolled.isEmpty();
       result.participantsWithAssignments = participantsWithAssignments;
       result.participantsWithoutAssignments = participantsWithoutAssignments;
+      result.participantsNotEnrolled = participantsNotEnrolled;
       result.benefitName = getBenefitName(benefitId);
 
       return result;
@@ -478,6 +524,8 @@ public with sharing class BenefitDisbursementService {
     public List<String> participantsWithAssignments;
     @AuraEnabled
     public List<String> participantsWithoutAssignments;
+    @AuraEnabled
+    public List<String> participantsNotEnrolled;
     @AuraEnabled
     public String benefitName;
   }
@@ -724,6 +772,16 @@ public with sharing class BenefitDisbursementService {
       try {
         d.put('Description', req.notes);
       } catch (Exception ignore) {
+      }
+
+      // Link to InteractionSummary if provided
+      if (!String.isBlank(req.interactionSummaryId)) {
+        try {
+          d.put('InteractionSummary__c', Id.valueOf(req.interactionSummaryId));
+          System.debug('Linking BenefitDisbursement to InteractionSummary: ' + req.interactionSummaryId);
+        } catch (Exception ignore) {
+          System.debug('Could not link to InteractionSummary: ' + ignore.getMessage());
+        }
       }
 
       // If client provided Start/End DateTime values, attempt to populate matching fields on the disbursement
@@ -1097,12 +1155,14 @@ public with sharing class BenefitDisbursementService {
     Id programId
   ) {
     // Use dynamic SOQL to avoid compile errors with ProgramEnrollment object
+    // Only 'Enrolled' participants can receive benefit disbursements
+    // (Awaiting Intake and Pending Exit are shown separately and cannot receive disbursements)
     String query =
       'SELECT Id, AccountId, ProgramId, Status, StartDate, LastModifiedDate ' +
       'FROM ProgramEnrollment ' +
       'WHERE AccountId IN :acctIds ' +
       'AND ProgramId = :programId ' +
-      'AND Status = \'Enrolled\' ' + // Updated to use 'Enrolled' based on our fix
+      'AND Status = \'Enrolled\' ' +
       'ORDER BY AccountId, LastModifiedDate DESC';
 
     System.debug('Query for PE: ' + query);

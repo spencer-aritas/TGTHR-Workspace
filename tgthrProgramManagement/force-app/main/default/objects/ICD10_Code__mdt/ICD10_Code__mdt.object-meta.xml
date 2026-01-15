@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>ICD-10 Code</label>
+    <pluralLabel>ICD-10 Codes</pluralLabel>
+    <description>ICD-10 diagnosis codes with hierarchical structure. Parent codes have children that must be selected for billable specificity.</description>
+    <visibility>Public</visibility>
+</CustomObject>

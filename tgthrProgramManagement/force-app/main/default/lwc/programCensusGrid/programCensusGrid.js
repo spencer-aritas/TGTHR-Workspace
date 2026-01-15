@@ -1663,6 +1663,29 @@ async loadRecentEngagements() {
       .then((checkResult) => {
         console.log("Check result:", checkResult);
 
+        // Check for participants not enrolled in the program
+        const notEnrolled = checkResult.participantsNotEnrolled || [];
+        if (notEnrolled.length > 0) {
+          const names = notEnrolled.join(", ");
+          this.toast(
+            "Warning",
+            `The following participant(s) are not actively enrolled in this program and will be skipped: ${names}`,
+            "warning"
+          );
+          
+          // If ALL selected participants are not enrolled, stop here
+          const enrolledCount = plainIds.length - notEnrolled.length;
+          if (enrolledCount === 0) {
+            this.isLoading = false;
+            this.toast(
+              "Error",
+              "None of the selected participants are actively enrolled in this program.",
+              "error"
+            );
+            return null;
+          }
+        }
+
         if (!checkResult.allParticipantsReady) {
           this.currentRequest = request;
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Manager_Rejected__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Indicates manager rejected the co-signature request</description>
+    <externalId>false</externalId>
+    <inlineHelpText>True if the manager rejected this note</inlineHelpText>
+    <label>Manager Rejected</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

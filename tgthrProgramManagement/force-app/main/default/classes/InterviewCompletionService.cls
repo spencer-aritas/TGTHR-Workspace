@@ -125,6 +125,9 @@ public with sharing class InterviewCompletionService {
             System.debug('Completion Method: ' + completionMethod);
             System.debug('Completed On: ' + completedOn);
             
+            // Check if this interview triggers automatic ProgramEnrollment creation
+            createProgramEnrollmentIfApplicable(interviewId);
+            
             return true;
             
         } catch (AuraHandledException e) {
@@ -225,6 +228,117 @@ public with sharing class InterviewCompletionService {
         } catch (Exception e) {
             System.debug('Error locking interview: ' + e.getMessage());
             return false;
+        }
+    }
+    
+    /**
+     * Creates a ProgramEnrollment when specific interview templates are completed.
+     * Currently handles:
+     * - "1440 Pine Psycho-Social Intake" → Creates enrollment in "1440 Pine" program
+     * 
+     * @param interviewId The completed Interview__c record ID
+     */
+    private static void createProgramEnrollmentIfApplicable(Id interviewId) {
+        try {
+            // Query the interview with template and client info
+            String query = 
+                'SELECT Id, Client__c, Case__c, ' +
+                'InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
+                'InterviewTemplateVersion__r.InterviewTemplate__r.Id ' +
+                'FROM Interview__c ' +
+                'WHERE Id = :interviewId ' +
+                'LIMIT 1';
+            
+            List<SObject> interviews = Database.query(query);
+            
+            if (interviews.isEmpty()) {
+                return;
+            }
+            
+            SObject interview = interviews[0];
+            Id clientId = (Id) interview.get('Client__c');
+            Id caseId = (Id) interview.get('Case__c');
+            
+            // Get template name
+            String templateName = '';
+            SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
+            if (templateVersion != null) {
+                SObject template = templateVersion.getSObject('InterviewTemplate__r');
+                if (template != null) {
+                    templateName = String.valueOf(template.get('Name'));
+                }
+            }
+            
+            System.debug('Interview template name: ' + templateName);
+            
+            // Check if this is a 1440 Pine Psycho-Social Intake
+            if (templateName != null && templateName.containsIgnoreCase('1440 Pine') && templateName.containsIgnoreCase('Psycho-Social Intake')) {
+                createProgramEnrollmentFor1440Pine(clientId, caseId);
+            }
+            
+        } catch (Exception e) {
+            // Log but don't fail the interview completion
+            System.debug('Error in createProgramEnrollmentIfApplicable: ' + e.getMessage());
+            System.debug('Stack trace: ' + e.getStackTraceString());
+        }
+    }
+    
+    /**
+     * Creates a ProgramEnrollment for the 1440 Pine program if one doesn't already exist.
+     * 
+     * @param accountId The Account (Client) ID
+     * @param caseId The Case ID to link to the enrollment
+     */
+    private static void createProgramEnrollmentFor1440Pine(Id accountId, Id caseId) {
+        if (accountId == null) {
+            System.debug('Cannot create ProgramEnrollment: accountId is null');
+            return;
+        }
+        
+        try {
+            // Find the 1440 Pine Program
+            String programQuery = 'SELECT Id, Name FROM Program WHERE Name = \'1440 Pine\' LIMIT 1';
+            List<SObject> programs = Database.query(programQuery);
+            
+            if (programs.isEmpty()) {
+                System.debug('1440 Pine Program not found');
+                return;
+            }
+            
+            Id programId = (Id) programs[0].get('Id');
+            System.debug('Found 1440 Pine Program: ' + programId);
+            
+            // Check if enrollment already exists for this Account + Program
+            String existingQuery = 
+                'SELECT Id, Status FROM ProgramEnrollment ' +
+                'WHERE AccountId = :accountId AND ProgramId = :programId ' +
+                'LIMIT 1';
+            List<SObject> existingEnrollments = Database.query(existingQuery);
+            
+            if (!existingEnrollments.isEmpty()) {
+                System.debug('ProgramEnrollment already exists for Account ' + accountId + ' in 1440 Pine program');
+                return;
+            }
+            
+            // Create new ProgramEnrollment
+            SObject enrollment = Schema.getGlobalDescribe().get('ProgramEnrollment').newSObject();
+            enrollment.put('AccountId', accountId);
+            enrollment.put('ProgramId', programId);
+            enrollment.put('Status', 'Awaiting Intake');
+            enrollment.put('Name', 'Pine ' + Date.today().format());
+            
+            // Link to Case if provided
+            if (caseId != null) {
+                enrollment.put('Case__c', caseId);
+            }
+            
+            insert enrollment;
+            
+            System.debug('Created ProgramEnrollment: ' + enrollment.get('Id') + ' for Account ' + accountId + ' in 1440 Pine program');
+            
+        } catch (Exception e) {
+            System.debug('Error creating ProgramEnrollment for 1440 Pine: ' + e.getMessage());
+            System.debug('Stack trace: ' + e.getStackTraceString());
         }
     }
 }

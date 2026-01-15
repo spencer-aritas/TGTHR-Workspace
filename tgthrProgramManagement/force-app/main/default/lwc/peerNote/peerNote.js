@@ -4,9 +4,10 @@ import { NavigationMixin } from 'lightning/navigation';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
-import saveClinicalNoteWithSsrs from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteWithSsrs';
-import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
+import saveClinicalNoteRequest from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteRequest';
+import getPeerBenefits from '@salesforce/apex/ClinicalNoteController.getPeerBenefits';
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
+import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
 import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
@@ -86,6 +87,9 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     @track requestManagerCoSign = false;
     @track managerInfo = null;
 
+    // ICD-10 Diagnosis codes
+    @track selectedDiagnoses = [];
+
     originalFormState;
 
     // Wire to get current user's manager info
@@ -102,7 +106,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
         { name: 'visit', label: 'Visit Details' },
-        { name: 'narrative', label: 'Peer Support Notes' },
+        { name: 'narrative', label: 'Notes' },
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
         { name: 'goals', label: 'Goals Addressed' },
@@ -133,6 +137,31 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
 
     get hasActiveGoals() {
         return this.activeGoals && this.activeGoals.length > 0;
+    }
+
+    // ICD-10 Diagnosis code getters
+    get hasCodeOptions() {
+        return this.codeOptions && this.codeOptions.length > 0;
+    }
+
+    get hasSelectedDiagnoses() {
+        return this.selectedDiagnoses && this.selectedDiagnoses.length > 0;
+    }
+
+    get formattedDiagnoses() {
+        return this.selectedDiagnoses.map(diag => ({
+            ...diag,
+            statusIconClass: this._getStatusIconClass(diag.status)
+        }));
+    }
+
+    _getStatusIconClass(status) {
+        if (!status) return 'diagnosis-status-default';
+        const s = status.toLowerCase();
+        if (s === 'active') return 'diagnosis-status-active';
+        if (s === 'resolved') return 'diagnosis-status-resolved';
+        if (s === 'inactive') return 'diagnosis-status-inactive';
+        return 'diagnosis-status-default';
     }
 
     get goalsWorkedOnCount() {
@@ -268,7 +297,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             
             // Load benefits available for peer services
             console.log('Loading peer benefits for case:', this.recordId);
-            const benefits = await getClinicalBenefits({ caseId: this.recordId });
+            const benefits = await getPeerBenefits({ caseId: this.recordId });
             
             if (benefits && benefits.length > 0) {
                 this.benefitOptions = benefits.map(b => ({
@@ -414,6 +443,38 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
 
     handleCodesChange(event) {
         this.form = { ...this.form, codeIds: event.detail.value || [] };
+    }
+
+    // ========================================
+    // ICD-10 Diagnosis Handlers
+    // ========================================
+    
+    handleOpenIcd10Selector() {
+        const selector = this.template.querySelector('c-icd10-code-selector');
+        if (selector) {
+            selector.open();
+        }
+    }
+    
+    handleDiagnosisAdded(event) {
+        const diagnosis = event.detail;
+        console.log('ICD-10 Diagnosis added:', diagnosis);
+        
+        // Check for duplicates
+        const exists = this.selectedDiagnoses.some(d => d.code === diagnosis.code);
+        if (exists) {
+            this._showToast('Info', `${diagnosis.code} is already selected`, 'info');
+            return;
+        }
+        
+        // Add to selected diagnoses
+        this.selectedDiagnoses = [...this.selectedDiagnoses, diagnosis];
+        this._showToast('Success', `Added ${diagnosis.code} - ${diagnosis.description}`, 'success');
+    }
+    
+    handleRemoveDiagnosis(event) {
+        const codeToRemove = event.currentTarget.dataset.code;
+        this.selectedDiagnoses = this.selectedDiagnoses.filter(d => d.code !== codeToRemove);
     }
 
     handleBenefitsChange(event) {
@@ -626,6 +687,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 goalWorkState: this.goalWorkState,
                 activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
                 ssrsAssessmentData: this.ssrsAssessmentData,
+                selectedDiagnoses: this.selectedDiagnoses, // Preserve ICD-10 selections
                 activeSection: this.activeSection,
                 savedAt: new Date().toISOString()
             };
@@ -710,21 +772,24 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 console.log('Including SSRS Assessment ID:', ssrsAssessmentId);
             }
 
-            const result = await saveClinicalNoteWithSsrs({
-                caseId: this.recordId,
-                interactionDateStr: this.form.interactionDate,
-                startTimeStr: this.form.startTime,
-                endTimeStr: this.form.endTime,
-                interpreterUsed: this.form.interpreterUsed,
-                pos: this.form.pos,
-                reason: this.form.reason,
-                services: this.form.services,
-                response: this.form.response,
-                plan: this.form.plan,
-                goalAssignmentIds: this.form.goalIds,
-                codeAssignmentIds: this.form.codeIds,
-                benefitIds: this.form.benefitIds,
-                ssrsAssessmentId: ssrsAssessmentId
+            const result = await saveClinicalNoteRequest({
+                request: {
+                    caseId: this.recordId,
+                    interactionDate: this.form.interactionDate,
+                    startTime: this.form.startTime,
+                    endTime: this.form.endTime,
+                    interpreterUsed: this.form.interpreterUsed,
+                    pos: this.form.pos,
+                    reason: this.form.reason,
+                    services: this.form.services,
+                    response: this.form.response,
+                    plan: this.form.plan,
+                    goalAssignmentIds: this.form.goalIds,
+                    codeAssignmentIds: this.form.codeIds,
+                    benefitIds: this.form.benefitIds,
+                    ssrsAssessmentId: ssrsAssessmentId,
+                    noteType: this.noteType
+                }
             });
             
             if (!result || !result.success) {
@@ -772,11 +837,14 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 this.hasDraft = false;
             }
 
+            // Generate document via docgen service (attaches to InteractionSummary)
+            await this._generateNoteDocument(this.interactionId);
+
             const successMsg = this.requestManagerCoSign && this.hasManager 
                 ? `Peer note saved. Manager approval requested from ${this.managerName}.`
                 : 'Peer note saved successfully.';
             this._showToast('Success', successMsg, 'success');
-            this._navigateToRecord(this.interactionId);
+            this._navigateToRecord(this.recordId);
         } catch (error) {
             this._showToast('Error', this._reduceErrors(error).join(', ') || 'Unexpected error saving peer note.', 'error');
         } finally {
@@ -790,6 +858,24 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
 
     handleManagerApprovalToggle(event) {
         this.requestManagerCoSign = event.target.checked;
+    }
+
+    /**
+     * Generate document via docgen service and attach to InteractionSummary.
+     * This creates a formatted DOCX document with TGTHR branding and all note content.
+     * @param {string} interactionSummaryId - The InteractionSummary ID to generate document for
+     */
+    async _generateNoteDocument(interactionSummaryId) {
+        try {
+            console.log('[PeerNote] Generating document for InteractionSummary:', interactionSummaryId);
+            const result = await generateNoteDocument({ interactionSummaryId: interactionSummaryId });
+            console.log('[PeerNote] Document generated! ContentDocument ID:', result.content_document_id);
+            this._showToast('Document Generated', 'Peer note document has been created and attached.', 'success');
+        } catch (error) {
+            console.error('[PeerNote] Document generation error:', error);
+            // Don't fail the save if document generation fails - note is already saved
+            this._showToast('Document Warning', 'Note saved, but document generation failed. You can regenerate from Completed Documentation.', 'warning');
+        }
     }
 
     async _saveGoalWork(interactionSummaryId) {
@@ -879,17 +965,13 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     }
 
     _navigateToRecord(recordId) {
-        if (!recordId) {
-            return;
-        }
-        this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: {
-                recordId,
-                objectApiName: 'InteractionSummary',
-                actionName: 'view'
+        // Dispatch close event to parent instead of navigating away
+        this.dispatchEvent(new CustomEvent('close', {
+            detail: {
+                success: true,
+                interactionSummaryId: recordId
             }
-        });
+        }));
     }
 
     _reduceErrors(error) {

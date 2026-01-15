@@ -138,7 +138,7 @@
                             </div>
                         </lightning-accordion-section>
 
-                        <lightning-accordion-section name="narrative" label="Peer Support Notes">
+                        <lightning-accordion-section name="narrative" label="Notes">
                             <div data-section="narrative">
                                 <div class="rich-text-field">
                                     <label class="slds-form-element__label slds-m-bottom_x-small">Reason for Visit</label>
@@ -150,7 +150,7 @@
                                 </div>
 
                                 <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Peer Support Provided</label>
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Intervention</label>
                                     <lightning-input-rich-text
                                         value={form.services}
                                         formats={richTextFormats}
@@ -159,7 +159,7 @@
                                 </div>
 
                                 <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Participant Response</label>
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Client Response</label>
                                     <lightning-input-rich-text
                                         value={form.response}
                                         formats={richTextFormats}
@@ -168,7 +168,7 @@
                                 </div>
 
                                 <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Next Steps</label>
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Plan</label>
                                     <lightning-input-rich-text
                                         value={form.plan}
                                         formats={richTextFormats}
@@ -324,26 +324,6 @@
                                                                             class="progress-slider">
                                                                     </div>
                                                                 </div>
-                                                                
-                                                                <lightning-input
-                                                                    type="number"
-                                                                    label="Time Spent (minutes)"
-                                                                    min="0"
-                                                                    step="5"
-                                                                    value={goal.timeSpentMinutes}
-                                                                    data-goal-id={goal.id}
-                                                                    onchange={handleGoalTimeChange}
-                                                                    class="slds-m-bottom_small">
-                                                                </lightning-input>
-                                                                
-                                                                <lightning-textarea
-                                                                    label="Notes for this goal"
-                                                                    value={goal.narrative}
-                                                                    data-goal-id={goal.id}
-                                                                    onchange={handleGoalNarrativeChange}
-                                                                    placeholder="Document peer support work done on this goal during the session"
-                                                                    max-length="32000">
-                                                                </lightning-textarea>
                                                             </div>
                                                         </template>
                                                     </div>
@@ -362,6 +342,118 @@
                                 </template>
                             </div>
                         </lightning-accordion-section>
+
+                        <lightning-accordion-section name="codes" label="Diagnosis Codes">
+                            <div data-section="codes">
+                                <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+                                    <div class="slds-col">
+                                        <lightning-button
+                                            label="Add ICD-10 Diagnosis"
+                                            icon-name="utility:add"
+                                            onclick={handleOpenIcd10Selector}
+                                            variant="brand">
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Selected Diagnoses Display -->
+                                <template if:true={hasSelectedDiagnoses}>
+                                    <div class="slds-m-bottom_medium">
+                                        <p class="slds-text-title_caps slds-m-bottom_small">Selected Diagnoses</p>
+                                        <div class="diagnosis-cards-container">
+                                            <template for:each={formattedDiagnoses} for:item="diag">
+                                                <article key={diag.code} class="slds-card diagnosis-card">
+                                                    <div class="slds-card__header slds-grid">
+                                                        <header class="slds-media slds-media_center slds-has-flexi-truncate">
+                                                            <div class="slds-media__figure">
+                                                                <lightning-icon 
+                                                                    icon-name="utility:record" 
+                                                                    size="small"
+                                                                    class={diag.statusIconClass}>
+                                                                </lightning-icon>
+                                                            </div>
+                                                            <div class="slds-media__body">
+                                                                <h2 class="slds-card__header-title">
+                                                                    <span class="slds-text-heading_small slds-truncate">{diag.code}</span>
+                                                                </h2>
+                                                            </div>
+                                                        </header>
+                                                        <div class="slds-no-flex">
+                                                            <template if:true={diag.isPrimary}>
+                                                                <lightning-badge label="Primary" class="slds-m-right_x-small primary-badge"></lightning-badge>
+                                                            </template>
+                                                            <lightning-button-icon
+                                                                icon-name="utility:close"
+                                                                alternative-text="Remove diagnosis"
+                                                                variant="bare"
+                                                                size="small"
+                                                                onclick={handleRemoveDiagnosis}
+                                                                data-code={diag.code}>
+                                                            </lightning-button-icon>
+                                                        </div>
+                                                    </div>
+                                                    <div class="slds-card__body slds-card__body_inner">
+                                                        <p class="slds-text-body_regular slds-m-bottom_x-small">{diag.description}</p>
+                                                        <div class="slds-grid slds-wrap slds-gutters_x-small diagnosis-meta">
+                                                            <template if:true={diag.status}>
+                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
+                                                                    <span class="slds-text-color_weak slds-text-body_small">Status:</span>
+                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.status}</span>
+                                                                </div>
+                                                            </template>
+                                                            <template if:true={diag.diagnosisType}>
+                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
+                                                                    <span class="slds-text-color_weak slds-text-body_small">Type:</span>
+                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.diagnosisType}</span>
+                                                                </div>
+                                                            </template>
+                                                            <template if:true={diag.onsetDate}>
+                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
+                                                                    <span class="slds-text-color_weak slds-text-body_small">Onset:</span>
+                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.onsetDate}</span>
+                                                                </div>
+                                                            </template>
+                                                            <template if:true={diag.category}>
+                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
+                                                                    <span class="slds-text-color_weak slds-text-body_small">Category:</span>
+                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.category}</span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                        <template if:true={diag.notes}>
+                                                            <div class="slds-m-top_x-small diagnosis-notes">
+                                                                <span class="slds-text-color_weak slds-text-body_small">Notes:</span>
+                                                                <p class="slds-text-body_small slds-m-top_xx-small">{diag.notes}</p>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </article>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                                
+                                <!-- Existing Code Assignments (from system) -->
+                                <template if:true={hasCodeOptions}>
+                                    <lightning-dual-listbox
+                                        name="codes"
+                                        label="Existing Code Assignments"
+                                        source-label="Available Codes"
+                                        selected-label="Codes Applied"
+                                        value={form.codeIds}
+                                        options={codeOptions}
+                                        onchange={handleCodesChange}>
+                                    </lightning-dual-listbox>
+                                </template>
+                            </div>
+                        </lightning-accordion-section>
+                        
+                        <!-- ICD-10 Code Selector Modal -->
+                        <c-icd10-code-selector
+                            account-id={accountId}
+                            case-id={recordId}
+                            ondiagnosisadded={handleDiagnosisAdded}>
+                        </c-icd10-code-selector>
 
                         <lightning-accordion-section name="signature" label="Signature">
                             <div data-section="signature">

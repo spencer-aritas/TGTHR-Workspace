@@ -90,6 +90,15 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         this.showClinicalModal = false;
     }
 
+    handleClinicalNoteClose(event) {
+        this.showClinicalModal = false;
+        if (event.detail && event.detail.success) {
+            // Refresh the page to show completed documentation
+            // eslint-disable-next-line no-restricted-globals
+            location.reload();
+        }
+    }
+
     // Peer Note handlers
     openPeerNote() {
         if (this.isNoteDisabled) {
@@ -100,6 +109,15 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
 
     closePeerNote() {
         this.showPeerNoteModal = false;
+    }
+
+    handlePeerNoteClose(event) {
+        this.showPeerNoteModal = false;
+        if (event.detail && event.detail.success) {
+            // Refresh the page to show completed documentation
+            // eslint-disable-next-line no-restricted-globals
+            location.reload();
+        }
     }
 
     // Interview/Other Documentation handlers

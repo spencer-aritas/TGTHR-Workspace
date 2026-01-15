@@ -4,10 +4,14 @@ import { NavigationMixin } from 'lightning/navigation';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
-import saveClinicalNoteWithSsrs from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteWithSsrs';
+import saveClinicalNoteWithDiagnoses from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteWithDiagnoses';
 import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
+import getDiagnosesForCase from '@salesforce/apex/DiagnosisSummaryController.getDiagnosesForCase';
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
+import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
+import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
+import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
@@ -25,6 +29,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     accountId;
     @track activeSection = 'visit';
     @api recordId; // Case Id
+    @api incomingDraftId; // Draft Id passed from parent for resuming drafts
 
     // Note type identifier
     noteType = NOTE_TYPE;
@@ -84,6 +89,11 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     // Manager Approval support
     @track requestManagerCoSign = false;
     @track managerInfo = null;
+    
+    // ICD-10 Diagnoses
+    @track selectedDiagnoses = [];  // Diagnoses selected for THIS note (new or from existing)
+    @track existingDiagnoses = [];  // All existing diagnoses for the client
+    @track isLoadingDiagnoses = false;
 
     originalFormState;
 
@@ -101,11 +111,11 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
         { name: 'visit', label: 'Visit Details' },
-        { name: 'narrative', label: 'Clinical Notes' },
+        { name: 'narrative', label: 'Notes' },
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
         { name: 'goals', label: 'Goals Addressed' },
-        { name: 'codes', label: 'Code Assignments' },
+        { name: 'codes', label: 'Diagnosis Codes' },
         { name: 'signature', label: 'Signature' }
     ];
 
@@ -136,6 +146,57 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
     get goalsWorkedOnCount() {
         return Object.values(this.goalWorkState).filter(g => g.workedOn).length;
+    }
+    
+    get hasSelectedDiagnoses() {
+        return this.selectedDiagnoses && this.selectedDiagnoses.length > 0;
+    }
+    
+    get hasExistingDiagnoses() {
+        return this.existingDiagnoses && this.existingDiagnoses.length > 0;
+    }
+
+    /**
+     * Get diagnoses with computed display properties (selected for this note)
+     */
+    get formattedDiagnoses() {
+        return this.selectedDiagnoses.map(diag => ({
+            ...diag,
+            statusIconClass: this._getStatusIconClass(diag.status),
+            isExisting: diag.id ? true : false  // Has an ID = existing record
+        }));
+    }
+    
+    /**
+     * Get existing client diagnoses formatted for display/selection
+     */
+    get formattedExistingDiagnoses() {
+        // Filter out any that are already selected
+        const selectedCodes = new Set(this.selectedDiagnoses.map(d => d.code));
+        return this.existingDiagnoses
+            .filter(diag => !selectedCodes.has(diag.code))
+            .map(diag => ({
+                ...diag,
+                statusIconClass: this._getStatusIconClass(diag.status),
+                isSelectable: true
+            }));
+    }
+    
+    get hasUnselectedExistingDiagnoses() {
+        return this.formattedExistingDiagnoses.length > 0;
+    }
+
+    _getStatusIconClass(status) {
+        if (!status) return 'diagnosis-status-default';
+        const s = status.toLowerCase();
+        if (s === 'active') return 'diagnosis-status-active';
+        if (s === 'resolved') return 'diagnosis-status-resolved';
+        if (s === 'inactive') return 'diagnosis-status-inactive';
+        return 'diagnosis-status-default';
+    }
+    
+    get hasCodeOptions() {
+        return this.codeOptions && this.codeOptions.length > 0;
     }
 
     get noteTypeLabel() {
@@ -246,6 +307,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     }
 
     connectedCallback() {
+        console.log('[ClinicalNote] connectedCallback - recordId:', this.recordId);
         this.loadInitialData();
     }
 
@@ -277,11 +339,68 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             } else {
                 this.benefitOptions = [];
             }
+            
+            // Load existing diagnoses for the client
+            await this._loadExistingDiagnoses();
         } catch (error) {
             console.error('Error loading clinical note data:', error);
             this.loadError = this._reduceErrors(error).join(', ');
         } finally {
             this.isLoading = false;
+        }
+    }
+    
+    /**
+     * Load existing diagnoses for the client from DiagnosisSummaryController
+     */
+    async _loadExistingDiagnoses() {
+        if (!this.recordId) return;
+        
+        this.isLoadingDiagnoses = true;
+        try {
+            const response = await getDiagnosesForCase({ caseId: this.recordId });
+            console.log('getDiagnosesForCase response:', JSON.stringify(response, null, 2));
+            
+            if (response && response.hasData && response.diagnoses) {
+                // Map the DTO to our internal format
+                // Deduplicate by code - keep the most recent (first in list since sorted by date desc)
+                const seenCodes = new Set();
+                this.existingDiagnoses = response.diagnoses
+                    .map(d => {
+                        console.log('Mapping diagnosis:', JSON.stringify(d));
+                        return {
+                            id: d.id,
+                            code: d.codeNumber || d.code || '',
+                            description: d.description || '',
+                            status: d.status || 'Active',
+                            diagnosisType: d.diagnosisType || d.type || '',
+                            type: d.diagnosisType || d.type || '',
+                            onsetDate: d.onsetDate || '',
+                            isPrimary: d.isPrimary || false,
+                            notes: d.notes || '',
+                            category: d.diagnosisType || d.type || ''
+                        };
+                    })
+                    .filter(d => {
+                        // Deduplicate by code - keep first occurrence (most recent)
+                        if (!d.code || seenCodes.has(d.code)) {
+                            if (d.code) {
+                                console.log('Filtering out duplicate diagnosis code:', d.code);
+                            }
+                            return false;
+                        }
+                        seenCodes.add(d.code);
+                        return true;
+                    });
+                console.log('Loaded existingDiagnoses (deduplicated):', JSON.stringify(this.existingDiagnoses, null, 2));
+            } else {
+                this.existingDiagnoses = [];
+            }
+        } catch (error) {
+            console.warn('Could not load existing diagnoses:', error);
+            this.existingDiagnoses = [];
+        } finally {
+            this.isLoadingDiagnoses = false;
         }
     }
 
@@ -368,6 +487,51 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         };
         this.originalFormState = JSON.parse(JSON.stringify(this.form));
         this.activeSection = 'visit';
+        
+        // If we have pending draft state from a resumed draft, apply it now
+        if (this._pendingDraftState) {
+            this._applyDraftState(this._pendingDraftState);
+            this._pendingDraftState = null;
+        }
+    }
+
+    /**
+     * Apply saved draft state to the form
+     */
+    _applyDraftState(savedState) {
+        console.log('Applying draft state to form');
+        
+        // Restore header if saved (though it comes from server usually)
+        if (savedState.header) {
+            this.header = { ...this.header, ...savedState.header };
+        }
+        
+        // Restore form fields
+        if (savedState.form) {
+            this.form = { ...this.form, ...savedState.form };
+        }
+        
+        // Restore goal work state
+        if (savedState.goalWorkState) {
+            this.goalWorkState = { ...this.goalWorkState, ...savedState.goalWorkState };
+        }
+        
+        // Restore SSRS data if any
+        if (savedState.ssrsAssessmentData) {
+            this.ssrsAssessmentData = savedState.ssrsAssessmentData;
+        }
+        
+        // Restore selected diagnoses if any
+        if (savedState.selectedDiagnoses && Array.isArray(savedState.selectedDiagnoses)) {
+            this.selectedDiagnoses = savedState.selectedDiagnoses;
+        }
+        
+        // Restore active section
+        if (savedState.activeSection) {
+            this.activeSection = savedState.activeSection;
+        }
+        
+        this._showToast('Draft Restored', 'Your previous work has been restored.', 'info');
     }
     
     _getPriorityClass(priority) {
@@ -539,6 +703,62 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         
         this._showToast('Success', `Diagnosis "${codeName}" created and selected`, 'success');
     }
+    
+    // ========================================
+    // ICD-10 Diagnosis Handlers
+    // ========================================
+    
+    handleOpenIcd10Selector() {
+        const selector = this.template.querySelector('c-icd10-code-selector');
+        if (selector) {
+            selector.open();
+        }
+    }
+    
+    handleDiagnosisAdded(event) {
+        const diagnosis = event.detail;
+        console.log('ICD-10 Diagnosis added:', diagnosis);
+        
+        // Check for duplicates
+        const exists = this.selectedDiagnoses.some(d => d.code === diagnosis.code);
+        if (exists) {
+            this._showToast('Info', `${diagnosis.code} is already selected`, 'info');
+            return;
+        }
+        
+        // Add to selected diagnoses
+        this.selectedDiagnoses = [...this.selectedDiagnoses, diagnosis];
+        this._showToast('Success', `Added ${diagnosis.code} - ${diagnosis.description}`, 'success');
+    }
+    
+    handleRemoveDiagnosis(event) {
+        const codeToRemove = event.currentTarget.dataset.code;
+        this.selectedDiagnoses = this.selectedDiagnoses.filter(d => d.code !== codeToRemove);
+    }
+    
+    /**
+     * Handle selecting an existing diagnosis to include in this note
+     */
+    handleSelectExistingDiagnosis(event) {
+        const diagCode = event.currentTarget.dataset.code;
+        const existingDiag = this.existingDiagnoses.find(d => d.code === diagCode);
+        
+        if (!existingDiag) {
+            console.warn('Could not find existing diagnosis with code:', diagCode);
+            return;
+        }
+        
+        // Check for duplicates (shouldn't happen due to filtering, but safety check)
+        const alreadySelected = this.selectedDiagnoses.some(d => d.code === diagCode);
+        if (alreadySelected) {
+            this._showToast('Info', `${diagCode} is already selected`, 'info');
+            return;
+        }
+        
+        // Add to selected diagnoses
+        this.selectedDiagnoses = [...this.selectedDiagnoses, { ...existingDiag }];
+        this._showToast('Success', `Added existing diagnosis: ${diagCode}`, 'success');
+    }
 
     // ========================================
     // SSRS Assessment Integration
@@ -646,6 +866,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 goalWorkState: this.goalWorkState,
                 activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
                 ssrsAssessmentData: this.ssrsAssessmentData,
+                selectedDiagnoses: this.selectedDiagnoses, // Preserve ICD-10 selections
                 activeSection: this.activeSection,
                 savedAt: new Date().toISOString()
             };
@@ -722,7 +943,8 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         }
 
         try {
-            console.log('Saving clinical note for case:', this.recordId);
+            console.log('[ClinicalNote] Saving - recordId:', this.recordId);
+            console.log('[ClinicalNote] recordId type:', typeof this.recordId);
             
             // Extract SSRS assessment ID if an assessment was completed
             const ssrsAssessmentId = this.ssrsAssessmentData?.assessmentId || null;
@@ -730,7 +952,27 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 console.log('Including SSRS Assessment ID:', ssrsAssessmentId);
             }
 
-            const result = await saveClinicalNoteWithSsrs({
+            // Prepare diagnoses for Apex - serialize to JSON for the new method
+            const diagnosesJson = this.selectedDiagnoses && this.selectedDiagnoses.length > 0
+                ? JSON.stringify(this.selectedDiagnoses.map(d => ({
+                    code: d.code,
+                    description: d.description,
+                    status: d.status || 'Active',
+                    diagnosisType: d.diagnosisType || d.type,
+                    onsetDate: d.onsetDate,
+                    isPrimary: d.isPrimary || false,
+                    notes: d.notes,
+                    category: d.category
+                })))
+                : null;
+            
+            if (diagnosesJson) {
+                console.log('Diagnoses JSON being sent:', diagnosesJson);
+                console.log('Selected diagnoses details:', JSON.stringify(this.selectedDiagnoses));
+            }
+
+            // Use individual parameters method with diagnoses support
+            const result = await saveClinicalNoteWithDiagnoses({
                 caseId: this.recordId,
                 interactionDateStr: this.form.interactionDate,
                 startTimeStr: this.form.startTime,
@@ -744,7 +986,9 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 goalAssignmentIds: this.form.goalIds,
                 codeAssignmentIds: this.form.codeIds,
                 benefitIds: this.form.benefitIds,
-                ssrsAssessmentId: ssrsAssessmentId
+                ssrsAssessmentId: ssrsAssessmentId,
+                noteType: this.noteType,
+                diagnosesJson: diagnosesJson
             });
             
             if (!result || !result.success) {
@@ -782,16 +1026,31 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
             // Delete draft if one existed
             if (this.draftId) {
-                // TODO: Call Apex to delete draft
+                try {
+                    await deleteDraft({ draftId: this.draftId });
+                    console.log('Draft deleted successfully');
+                } catch (deleteErr) {
+                    console.warn('Failed to delete draft (non-fatal):', deleteErr);
+                }
                 this.draftId = null;
                 this.hasDraft = false;
             }
+
+            // Generate document via docgen service (attaches to InteractionSummary)
+            await this._generateNoteDocument(result.interactionSummaryId);
 
             const successMsg = this.requestManagerCoSign && this.hasManager 
                 ? `Clinical note saved. Manager approval requested from ${this.managerName}.`
                 : 'Clinical note saved successfully.';
             this._showToast('Success', successMsg, 'success');
-            this._navigateToRecord(this.interactionId);
+            
+            // Dispatch close event to parent instead of navigating away
+            this.dispatchEvent(new CustomEvent('close', {
+                detail: {
+                    success: true,
+                    interactionSummaryId: result.interactionSummaryId
+                }
+            }));
         } catch (error) {
             this._showToast('Error', this._reduceErrors(error).join(', ') || 'Unexpected error saving clinical note.', 'error');
         } finally {
@@ -805,6 +1064,24 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
     handleManagerApprovalToggle(event) {
         this.requestManagerCoSign = event.target.checked;
+    }
+
+    /**
+     * Generate document via docgen service and attach to InteractionSummary.
+     * This creates a formatted DOCX document with TGTHR branding and all note content.
+     * @param {string} interactionSummaryId - The InteractionSummary ID to generate document for
+     */
+    async _generateNoteDocument(interactionSummaryId) {
+        try {
+            console.log('[ClinicalNote] Generating document for InteractionSummary:', interactionSummaryId);
+            const result = await generateNoteDocument({ interactionSummaryId: interactionSummaryId });
+            console.log('[ClinicalNote] Document generated! ContentDocument ID:', result.content_document_id);
+            this._showToast('Document Generated', 'Clinical note document has been created and attached.', 'success');
+        } catch (error) {
+            console.error('[ClinicalNote] Document generation error:', error);
+            // Don't fail the save if document generation fails - note is already saved
+            this._showToast('Document Warning', 'Note saved, but document generation failed. You can regenerate from Completed Documentation.', 'warning');
+        }
     }
 
     async _saveGoalWork(interactionSummaryId) {

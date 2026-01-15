@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Question_Key_Immutable</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(NOT(ISNEW()), ISCHANGED(Question_Key__c))</errorConditionFormula>
+    <errorMessage>The Question Key is immutable and cannot be changed after creation.</errorMessage>
+</ValidationRule>

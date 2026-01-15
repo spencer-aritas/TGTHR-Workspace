@@ -1,0 +1,204 @@
+/* Two-column layout for browser + selection */
+.icd10-container {
+    display: flex;
+    flex-direction: column;
+    height: 60vh;
+    max-height: 550px;
+}
+
+.icd10-two-column {
+    display: flex;
+    height: 100%;
+    gap: 0;
+}
+
+/* Left panel - browser */
+.browser-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-right: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+}
+
+/* Right panel - selection */
+.selection-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.search-panel {
+    flex-shrink: 0;
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+}
+
+.breadcrumb-link {
+    color: var(--slds-g-color-brand-base-50, #0176d3);
+    text-decoration: none;
+    font-size: 0.75rem;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-current {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--slds-g-color-neutral-base-30, #444);
+}
+
+.results-panel {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 150px;
+}
+
+.results-header {
+    background-color: var(--slds-g-color-neutral-base-100, #fff);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.code-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.code-item {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--slds-g-color-border-base-1, #e5e5e5);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    padding: 0.5rem 0.75rem;
+}
+
+.code-item:hover {
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.code-item.has-children {
+    cursor: pointer;
+}
+
+.code-item.is-billable:hover {
+    background-color: var(--slds-g-color-brand-base-95, #eef4ff);
+}
+
+.code-item.is-selected {
+    background-color: var(--slds-g-color-brand-base-90, #d8edff);
+    border-left: 3px solid var(--slds-g-color-brand-base-50, #0176d3);
+}
+
+.code-item-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 0.75rem;
+}
+
+.code-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+
+.code-value {
+    font-family: var(--slds-g-font-family-monospace, Consolas, Menlo, Monaco, monospace);
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--slds-g-color-brand-base-40, #014486);
+}
+
+.code-description {
+    font-size: 0.8125rem;
+    color: var(--slds-g-color-neutral-base-30, #444);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.code-meta {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+/* Selection panel styles */
+.selection-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--slds-g-color-neutral-base-95, #f3f3f3);
+}
+
+.selected-code-card {
+    background-color: var(--slds-g-color-neutral-base-100, #fff);
+}
+
+.selection-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: var(--slds-g-color-neutral-base-50, #747474);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .icd10-container {
+        height: 80vh;
+    }
+    
+    .code-item-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .code-meta {
+        align-self: flex-end;
+    }
+    
+    .breadcrumb-nav {
+        font-size: 0.75rem;
+    }
+}
+
+/* Keyboard focus styles */
+.code-item:focus {
+    outline: 2px solid var(--slds-g-color-brand-base-50, #0176d3);
+    outline-offset: -2px;
+}
+
+/* Animation for loading */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.code-list {
+    animation: fadeIn 0.2s ease;
+}

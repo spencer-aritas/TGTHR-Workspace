@@ -386,4 +386,25 @@
         <field>Assessment__c.Treatment_Recommendations__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    
+    <!-- ========== Goal Assignment Detail Fields ========== -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>GoalAssignmentDetail.InteractionSummary__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    
+    <!-- ========== Diagnosis Fields ========== -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Diagnosis__c.Interaction_Summary__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    
+    <!-- ========== BenefitDisbursement Fields ========== -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>BenefitDisbursement.InteractionSummary__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
 </PermissionSet>

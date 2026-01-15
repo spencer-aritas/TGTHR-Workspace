@@ -51,6 +51,7 @@ public with sharing class InterviewDocumentService {
             'Client_Signed__c, Staff_Signed__c, ' +
             'Date_Client_Signed__c, Date_Staff_Signed__c, ' +
             'Client_Signature_File_Id__c, Staff_Signature_File_Id__c, ' +
+            'Staff_Signed_By__c, Staff_Signed_By__r.Name, Staff_Signed_By__r.Title, ' +
             'Client__r.Name, Client__r.FirstName, Client__r.LastName, ' +
             'Client__r.PersonBirthdate, Client__r.PersonPronouns, ' +
             'Client__r.PersonMobilePhone, Client__r.PersonEmail, ' +
@@ -521,12 +522,29 @@ public with sharing class InterviewDocumentService {
             String signatureBase64 = getSignatureImageBase64(contentDocId);
             System.debug('Staff signature base64 length: ' + (signatureBase64 != null ? signatureBase64.length() : 0));
             
+            // Get staff signer name and title from the User lookup
+            String staffName = UserInfo.getName();
+            String staffTitle = '';
+            SObject staffSigner = interview.getSObject('Staff_Signed_By__r');
+            if (staffSigner != null) {
+                staffName = (String)staffSigner.get('Name');
+                staffTitle = (String)staffSigner.get('Title');
+            }
+            
+            // Format displayName with title like "Jane Smith, Case Manager"
+            String displayName = staffName;
+            if (String.isNotBlank(staffTitle)) {
+                displayName = staffName + ', ' + staffTitle;
+            }
+            
             signatures.add(new Map<String, Object>{
                 'id' => 'STAFF',
                 'role' => 'Staff',
                 'policy' => staffPolicy,
                 'signed' => interview.get('Staff_Signed__c'),
-                'displayName' => UserInfo.getName(),
+                'displayName' => displayName,
+                'signerName' => staffName,
+                'signerTitle' => staffTitle,
                 'dateSigned' => String.valueOf(interview.get('Date_Staff_Signed__c')),
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,

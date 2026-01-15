@@ -374,3 +374,70 @@ lightning-accordion-section [data-section] {
     overflow: hidden;
 }
 
+/* ======================================== */
+/* Diagnosis Info Cards                     */
+/* ======================================== */
+
+.diagnosis-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.diagnosis-card {
+    border: 1px solid var(--lwc-colorBorder, #e5e5e5);
+    border-radius: 0.5rem;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.diagnosis-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--program-color-case, #9c27b0);
+}
+
+.diagnosis-card .slds-card__header {
+    padding: 0.5rem 0.75rem;
+    background: var(--lwc-colorBackgroundShade, #f3f2f2);
+    border-bottom: 1px solid var(--lwc-colorBorder, #e5e5e5);
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.diagnosis-card .slds-card__body {
+    padding: 0.75rem;
+}
+
+.diagnosis-meta {
+    background: var(--lwc-colorBackground, #fafaf9);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.diagnosis-notes {
+    background: var(--lwc-colorBackgroundHighlight, #ffc);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border-left: 3px solid var(--lwc-colorWarning, #fe9339);
+}
+
+.primary-badge {
+    --slds-c-badge-color-background: var(--program-color-case, #9c27b0);
+    --slds-c-badge-text-color: white;
+}
+
+/* Status color variants for diagnosis icon */
+.diagnosis-status-active {
+    --slds-c-icon-color-foreground: var(--lwc-colorSuccess, #2e844a);
+}
+
+.diagnosis-status-resolved {
+    --slds-c-icon-color-foreground: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.diagnosis-status-inactive {
+    --slds-c-icon-color-foreground: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.diagnosis-status-default {
+    --slds-c-icon-color-foreground: var(--program-color-case, #9c27b0);
+}

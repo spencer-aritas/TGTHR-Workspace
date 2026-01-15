@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Code__c</fullName>
+    <description>The ICD-10 code value (e.g., F03.91). This is the billable code.</description>
+    <externalId>true</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Code</label>
+    <length>20</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>true</unique>
+</CustomField>
