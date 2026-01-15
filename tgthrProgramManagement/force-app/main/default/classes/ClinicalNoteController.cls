@@ -231,39 +231,96 @@ public with sharing class ClinicalNoteController {
     }
 
     /**
-     * Get existing active diagnoses for a Person Account and Case for selection in Clinical Notes.
+     * Get existing active diagnoses for a Person Account for selection in Clinical Notes.
+     * Returns diagnosis DTOs with code from Code__c field and description from Name field.
+     * Note: Status__c field doesn't exist on Diagnosis__c, so we return all diagnoses for the client.
      */
-    @AuraEnabled(cacheable=true)
-    public static List<ExistingDiagnosis> getExistingDiagnoses(Id caseId, Id accountId) {
-        System.debug('Getting existing diagnoses for Case: ' + caseId + ', Account: ' + accountId);
+    @AuraEnabled
+    public static List<Map<String, String>> getExistingDiagnoses(Id caseId, Id accountId) {
+        System.debug('========================================');
+        System.debug('[getExistingDiagnoses] Called with:');
+        System.debug('  caseId: ' + caseId);
+        System.debug('  accountId: ' + accountId);
+        System.debug('========================================');
         
-        List<ExistingDiagnosis> result = new List<ExistingDiagnosis>();
+        List<Map<String, String>> result = new List<Map<String, String>>();
         
         try {
-            // Query active diagnoses for this Person Account and Case
-            String diagnosisQuery = 'SELECT Id, ICD10Code__c, Name, Status__c, Category__c FROM Diagnosis__c ' +
-                                  'WHERE PersonAccount__c = :accountId ' +
-                                  'AND Case__c = :caseId ' +
-                                  'AND Status__c = \'Active\' ' +
-                                  'ORDER BY CreatedDate DESC';
-            
-            List<SObject> diagnoses = Database.query(diagnosisQuery);
-            System.debug('Found ' + diagnoses.size() + ' existing active diagnoses');
-            
-            for (SObject diag : diagnoses) {
-                ExistingDiagnosis existingDiag = new ExistingDiagnosis();
-                existingDiag.diagnosisId = (Id) diag.get('Id');
-                existingDiag.code = (String) diag.get('ICD10Code__c');
-                existingDiag.description = (String) diag.get('Name');
-                existingDiag.status = (String) diag.get('Status__c');
-                existingDiag.category = (String) diag.get('Category__c');
-                existingDiag.isSelected = false;
-                
-                result.add(existingDiag);
+            if (accountId == null) {
+                System.debug('[getExistingDiagnoses] ERROR: accountId is null');
+                return result;
             }
             
+            // Query diagnoses for this Person Account (uses Client__c field)
+            // Code__c stores the ICD-10 code (e.g., "F32.89")
+            // Name stores the description (or "Code - Description" format)
+            // Note: Status__c field doesn't exist, so we get all diagnoses
+            // REMOVED 'AND Code__c != null' to ensure all diagnoses are visible even if linkage is broken
+            String query = 'SELECT Id, Code__c, Code_Name__r.Name, Name, Onset_Date__c ' +
+                          'FROM Diagnosis__c ' +
+                          'WHERE Client__c = :accountId ' +
+                          'ORDER BY CreatedDate DESC';
+            
+            System.debug('[getExistingDiagnoses] Query: ' + query);
+            
+            List<SObject> diagnoses = Database.query(query);
+            System.debug('[getExistingDiagnoses] Found ' + diagnoses.size() + ' diagnoses');
+            
+            for (SObject diag : diagnoses) {
+                String code = (String)diag.get('Code__c');
+                String codeNameRef = (String)((SObject)diag.getSObject('Code_Name__r'))?.get('Name');
+                String name = (String)diag.get('Name');
+                
+                // Fallback to Code_Name__r.Name if Code__c formula is null
+                if (String.isBlank(code) && String.isNotBlank(codeNameRef)) {
+                     code = codeNameRef;
+                     System.debug('[getExistingDiagnoses] Using Code_Name__r.Name: ' + code);
+                }
+
+                System.debug('[getExistingDiagnoses] Processing: ' + diag.Id + ' - ' + code + ' - ' + name);
+                
+                // If code is still missing (broken linkage), try to extract from Name (Format: "CODE - Desc")
+                if (String.isBlank(code) && String.isNotBlank(name)) {
+                    if (name.contains(' - ')) {
+                        List<String> parts = name.split(' - ', 2);
+                        if (parts.size() > 0 && parts[0].length() <= 10) { // ICD codes are short
+                            code = parts[0];
+                            // Clean up name if it contains the code
+                            // name = parts[1]; // Keep full name for now as per UI expectation
+                            System.debug('[getExistingDiagnoses] Extracted code from Name: ' + code);
+                        }
+                    } else if (name.length() <= 10) {
+                        // Assume name IS the code
+                        code = name;
+                        System.debug('[getExistingDiagnoses] Using Name as Code: ' + code);
+                    }
+                }
+                
+                // Still skip if we absolutely can't determine a code
+                if (String.isBlank(code)) {
+                    System.debug('[getExistingDiagnoses] Skipping - no code found or extracted');
+                    continue;
+                }
+                
+                Map<String, String> dto = new Map<String, String>();
+                dto.put('Id', (String)diag.get('Id'));
+                dto.put('ICD10Code__c', code);
+                dto.put('Name', name);
+                
+                Date onsetDate = (Date)diag.get('Onset_Date__c');
+                if (onsetDate != null) {
+                    dto.put('OnsetDate__c', String.valueOf(onsetDate));
+                }
+                
+                result.add(dto);
+                System.debug('[getExistingDiagnoses] Added to result');
+            }
+            
+            System.debug('[getExistingDiagnoses] Returning ' + result.size() + ' diagnoses');
+            
         } catch (Exception e) {
-            System.debug('Error retrieving existing diagnoses: ' + e.getMessage());
+            System.debug('[getExistingDiagnoses] ERROR: ' + e.getMessage());
+            System.debug('Stack: ' + e.getStackTraceString());
         }
         
         return result;
@@ -330,17 +387,35 @@ public with sharing class ClinicalNoteController {
      * Primary method to save a clinical note. Accepts a SaveRequest DTO.
      * This is the preferred method for LWC callers - pass a single request object
      * instead of individual parameters.
+     * 
+     * NOTE: LWC must call with: saveClinicalNoteRequest({ requestJson: JSON.stringify(noteRequest) })
+     * due to Salesforce's parameter deserialization limitations with complex nested objects.
      */
     @AuraEnabled
-    public static SaveResult saveClinicalNoteRequest(SaveRequest request) {
+    public static SaveResult saveClinicalNoteRequest(String requestJson) {
         System.debug('=== saveClinicalNoteRequest ENTRY ===');
-        System.debug('request param is null: ' + (request == null));
-        if (request != null) {
+        System.debug('requestJson: ' + requestJson);
+        
+        if (String.isBlank(requestJson)) {
+            SaveResult errorResult = new SaveResult();
+            errorResult.success = false;
+            errorResult.errorMessage = 'Cannot save note without request data.';
+            return errorResult;
+        }
+        
+        try {
+            SaveRequest request = (SaveRequest) JSON.deserialize(requestJson, SaveRequest.class);
             System.debug('request.caseId: ' + request.caseId);
             System.debug('request.noteType: ' + request.noteType);
             System.debug('request.interactionDate: ' + request.interactionDate);
+            return processSaveClinicalNote(request);
+        } catch (Exception e) {
+            System.debug('Error deserializing request: ' + e.getMessage());
+            SaveResult errorResult = new SaveResult();
+            errorResult.success = false;
+            errorResult.errorMessage = 'Error processing request: ' + e.getMessage();
+            return errorResult;
         }
-        return processSaveClinicalNote(request);
     }
 
     /**
