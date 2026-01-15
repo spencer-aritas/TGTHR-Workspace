@@ -1,0 +1,241 @@
+<template>
+    <template if:true={isOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="icd10-modal-header" 
+                 class="slds-modal slds-fade-in-open slds-modal_large">
+            <div class="slds-modal__container">
+                <!-- Header -->
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={handleClose}>
+                    </lightning-button-icon>
+                    <h2 id="icd10-modal-header" class="slds-modal__title slds-hyphenate">
+                        <lightning-icon icon-name="utility:search" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        Add Diagnosis
+                    </h2>
+                </header>
+                
+                <!-- Body - Two Column Layout -->
+                <div class="slds-modal__content slds-p-around_none">
+                    <div class="icd10-container">
+                        <div class="icd10-two-column">
+                            <!-- Left: Code Browser -->
+                            <div class="browser-column slds-size_7-of-12">
+                                <!-- Search Panel -->
+                                <div class="search-panel slds-p-around_small slds-border_bottom">
+                                    <lightning-input
+                                        type="search"
+                                        label="Search ICD-10 Codes"
+                                        placeholder="Type code or description (e.g., 'F03' or 'dementia')..."
+                                        value={searchTerm}
+                                        onchange={handleSearchChange}
+                                        variant="label-hidden"
+                                        class="search-input">
+                                    </lightning-input>
+                                    
+                                    <!-- Breadcrumb Navigation -->
+                                    <template if:true={hasBreadcrumbs}>
+                                        <div class="breadcrumb-nav slds-m-top_small">
+                                            <lightning-button-icon
+                                                icon-name="utility:chevronleft"
+                                                alternative-text="Back"
+                                                variant="bare"
+                                                size="small"
+                                                onclick={handleBack}
+                                                class="slds-m-right_x-small">
+                                            </lightning-button-icon>
+                                            <template for:each={breadcrumbs} for:item="crumb" for:index="idx">
+                                                <span key={crumb.key} class="breadcrumb-item">
+                                                    <template if:false={crumb.isLast}>
+                                                        <a href="javascript:void(0)" 
+                                                           data-code={crumb.code}
+                                                           data-index={idx}
+                                                           onclick={handleBreadcrumbClick}
+                                                           class="breadcrumb-link">{crumb.label}</a>
+                                                        <span class="slds-m-horizontal_xx-small">›</span>
+                                                    </template>
+                                                    <template if:true={crumb.isLast}>
+                                                        <span class="breadcrumb-current">{crumb.label}</span>
+                                                    </template>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <!-- Results Panel -->
+                                <div class="results-panel">
+                                    <template if:true={isLoading}>
+                                        <div class="slds-align_absolute-center slds-p-around_large">
+                                            <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+                                        </div>
+                                    </template>
+                                    
+                                    <template if:false={isLoading}>
+                                        <!-- Search Results Header -->
+                                        <template if:true={isSearchMode}>
+                                            <div class="results-header slds-p-around_x-small slds-border_bottom">
+                                                <span class="slds-text-body_small slds-text-color_weak">
+                                                    {searchResultsLabel}
+                                                </span>
+                                            </div>
+                                        </template>
+                                        
+                                        <!-- Code List -->
+                                        <template if:true={hasCodes}>
+                                            <ul class="code-list" role="listbox" aria-label="ICD-10 Codes">
+                                                <template for:each={displayCodes} for:item="code">
+                                                    <li key={code.code} 
+                                                        class={code.itemClass}
+                                                        role="option"
+                                                        data-code={code.code}
+                                                        onclick={handleCodeClick}>
+                                                        <div class="code-item-content">
+                                                            <div class="code-main">
+                                                                <span class="code-value">{code.code}</span>
+                                                                <span class="code-description">{code.description}</span>
+                                                            </div>
+                                                            <div class="code-meta">
+                                                                <template if:true={code.hasChildren}>
+                                                                    <span class="drill-down-label">Drill down</span>
+                                                                    <lightning-icon 
+                                                                        icon-name="utility:chevronright" 
+                                                                        size="x-small"
+                                                                        alternative-text="Has subcodes">
+                                                                    </lightning-icon>
+                                                                </template>
+                                                                <template if:true={code.showSelectIcon}>
+                                                                    <lightning-icon 
+                                                                        icon-name="utility:check" 
+                                                                        size="x-small"
+                                                                        variant="success"
+                                                                        alternative-text="Selectable">
+                                                                    </lightning-icon>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                </template>
+                                            </ul>
+                                        </template>
+                                        
+                                        <!-- No Results -->
+                                        <template if:false={hasCodes}>
+                                            <div class="slds-align_absolute-center slds-p-around_medium">
+                                                <div class="slds-text-align_center">
+                                                    <lightning-icon icon-name="utility:search" size="medium" class="slds-m-bottom_small"></lightning-icon>
+                                                    <p class="slds-text-body_regular">{noResultsMessage}</p>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <!-- Right: Selection Panel -->
+                            <div class="selection-column slds-size_5-of-12">
+                                <div class="selection-panel slds-p-around_small">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">Selected Diagnosis</h3>
+                                    
+                                    <template if:true={selectedCode}>
+                                        <div class="selected-code-card slds-box slds-box_x-small">
+                                            <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+                                                <div class="slds-col slds-grow">
+                                                    <p class="slds-text-title_bold">{selectedCode.code}</p>
+                                                    <p class="slds-text-body_small">{selectedCode.description}</p>
+                                                </div>
+                                                <div class="slds-col slds-shrink">
+                                                    <lightning-button-icon
+                                                        icon-name="utility:close"
+                                                        alternative-text="Clear selection"
+                                                        variant="bare"
+                                                        size="small"
+                                                        onclick={handleClearSelection}>
+                                                    </lightning-button-icon>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Compact Fields -->
+                                            <div class="slds-grid slds-wrap slds-gutters_xx-small">
+                                                <div class="slds-col slds-size_1-of-2">
+                                                    <lightning-combobox
+                                                        label="Status"
+                                                        value={diagnosisStatus}
+                                                        options={statusOptions}
+                                                        onchange={handleStatusChange}
+                                                        variant="label-stacked"
+                                                        required>
+                                                    </lightning-combobox>
+                                                </div>
+                                                <div class="slds-col slds-size_1-of-2">
+                                                    <lightning-combobox
+                                                        label="Type"
+                                                        value={diagnosisType}
+                                                        options={typeOptions}
+                                                        onchange={handleTypeChange}
+                                                        variant="label-stacked">
+                                                    </lightning-combobox>
+                                                </div>
+                                                <div class="slds-col slds-size_1-of-2">
+                                                    <lightning-input
+                                                        type="date"
+                                                        label="Onset Date"
+                                                        value={onsetDate}
+                                                        onchange={handleOnsetDateChange}
+                                                        variant="label-stacked">
+                                                    </lightning-input>
+                                                </div>
+                                                <div class="slds-col slds-size_1-of-2 slds-p-top_medium">
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        label="Primary Diagnosis"
+                                                        checked={isPrimary}
+                                                        onchange={handlePrimaryChange}>
+                                                    </lightning-input>
+                                                </div>
+                                                <div class="slds-col slds-size_1-of-1 slds-m-top_x-small">
+                                                    <lightning-textarea
+                                                        label="Notes"
+                                                        value={diagnosisNotes}
+                                                        onchange={handleNotesChange}
+                                                        placeholder="Clinical notes about this diagnosis..."
+                                                        max-length="500"
+                                                        variant="label-stacked">
+                                                    </lightning-textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    
+                                    <template if:false={selectedCode}>
+                                        <div class="empty-selection slds-box slds-box_x-small slds-theme_shade">
+                                            <p class="slds-text-body_small slds-text-color_weak slds-text-align_center">
+                                                Click a billable code (with ✓) to select it
+                                            </p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button 
+                        label="Cancel" 
+                        onclick={handleClose}>
+                    </lightning-button>
+                    <lightning-button 
+                        variant="brand" 
+                        label="Add Diagnosis"
+                        onclick={handleAddDiagnosis}
+                        disabled={isAddDisabled}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

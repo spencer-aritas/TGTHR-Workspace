@@ -1,0 +1,254 @@
+<template>
+    <template if:true={isOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-modal="true" aria-labelledby="modal-heading">
+            <div class="slds-modal__container">
+                <!-- Header -->
+                <header class="slds-modal__header slds-theme_info">
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        class="slds-modal__close"
+                        onclick={handleClose}>
+                    </lightning-button-icon>
+                    <h2 id="modal-heading" class="slds-text-heading_medium slds-hyphenate">
+                        <lightning-icon icon-name="utility:preview" size="small" class="slds-m-right_small"></lightning-icon>
+                        Review Note for Co-Signature
+                    </h2>
+                </header>
+
+                <!-- Body -->
+                <div class="slds-modal__content slds-p-around_medium" style="max-height: 70vh; overflow-y: auto;">
+                    <template if:true={isLoading}>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </template>
+
+                    <template if:false={isLoading}>
+                        <!-- Client/Participant Info Header -->
+                        <template if:true={noteData.clientName}>
+                            <div class="slds-box slds-theme_default slds-m-bottom_medium client-header" style="border-left: 4px solid #0176d3;">
+                                <div class="slds-grid slds-wrap slds-gutters_small">
+                                    <div class="slds-col slds-size_1-of-1 slds-m-bottom_x-small">
+                                        <span class="slds-text-title_caps slds-text-color_weak">Participant</span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <lightning-icon icon-name="standard:individual" size="small" class="slds-m-right_small"></lightning-icon>
+                                            <div>
+                                                <p class="slds-text-heading_small slds-text-link" onclick={handleViewClient} style="cursor: pointer;">{noteData.clientName}</p>
+                                                <template if:true={noteData.clientPronouns}>
+                                                    <p class="slds-text-body_small text-muted">({noteData.clientPronouns})</p>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <template if:true={noteData.clientDob}>
+                                        <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                                            <span class="slds-text-title_caps slds-text-color_weak">DOB</span>
+                                            <p class="slds-text-body_regular">{formattedDob}</p>
+                                        </div>
+                                    </template>
+                                    <template if:true={noteData.caseNumber}>
+                                        <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                                            <span class="slds-text-title_caps slds-text-color_weak">Case #</span>
+                                            <p class="slds-text-body_regular slds-text-link" onclick={handleViewCase} style="cursor: pointer;">{noteData.caseNumber}</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Note Metadata -->
+                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                            <div class="slds-grid slds-wrap slds-gutters_small">
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                    <span class="slds-text-title_caps">Note Type</span>
+                                    <p class="slds-text-body_regular">{noteData.purpose}</p>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                    <span class="slds-text-title_caps">Date of Interaction</span>
+                                    <p class="slds-text-body_regular">{formattedDate}</p>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                    <span class="slds-text-title_caps">Submitted By</span>
+                                    <p class="slds-text-body_regular">{noteData.createdByName}</p>
+                                    <template if:true={noteData.createdByTitle}>
+                                        <p class="slds-text-body_small text-muted">{noteData.createdByTitle}</p>
+                                    </template>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                    <span class="slds-text-title_caps">Submitted On</span>
+                                    <p class="slds-text-body_regular">{formattedCreatedDate}</p>
+                                </div>
+                                <template if:true={noteData.startTime}>
+                                    <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                        <span class="slds-text-title_caps">Start Time</span>
+                                        <p class="slds-text-body_regular">{noteData.startTime}</p>
+                                    </div>
+                                </template>
+                                <template if:true={noteData.endTime}>
+                                    <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                        <span class="slds-text-title_caps">End Time</span>
+                                        <p class="slds-text-body_regular">{noteData.endTime}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Document Preview (if available) -->
+                        <template if:true={noteData.documentId}>
+                            <div class="slds-m-bottom_medium">
+                                <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
+                                    <lightning-icon icon-name="doctype:word" size="small" class="slds-m-right_small"></lightning-icon>
+                                    <span class="slds-text-heading_small">{noteData.documentTitle}</span>
+                                    <lightning-button
+                                        label="View Document"
+                                        variant="base"
+                                        icon-name="utility:new_window"
+                                        class="slds-m-left_small"
+                                        onclick={handleViewDocument}>
+                                    </lightning-button>
+                                    <lightning-button
+                                        label="Download"
+                                        variant="base"
+                                        icon-name="utility:download"
+                                        class="slds-m-left_x-small"
+                                        onclick={handleDownloadDocument}>
+                                    </lightning-button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Note Content Sections -->
+                        <div class="note-content">
+                            <!-- Meeting Notes (for Case Notes) -->
+                            <template if:true={noteData.meetingNotes}>
+                                <div class="slds-m-bottom_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                        <lightning-icon icon-name="utility:note" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Meeting Notes
+                                    </h3>
+                                    <div class="slds-box slds-box_x-small content-box">
+                                        <lightning-formatted-text value={noteData.meetingNotes}></lightning-formatted-text>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Description of Services -->
+                            <template if:true={noteData.descriptionOfServices}>
+                                <div class="slds-m-bottom_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                        <lightning-icon icon-name="utility:description" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Description of Services
+                                    </h3>
+                                    <div class="slds-box slds-box_x-small content-box">
+                                        <lightning-formatted-text value={noteData.descriptionOfServices}></lightning-formatted-text>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Response and Progress -->
+                            <template if:true={noteData.responseAndProgress}>
+                                <div class="slds-m-bottom_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                        <lightning-icon icon-name="utility:trending" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Response and Progress
+                                    </h3>
+                                    <div class="slds-box slds-box_x-small content-box">
+                                        <lightning-formatted-text value={noteData.responseAndProgress}></lightning-formatted-text>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Plan -->
+                            <template if:true={noteData.plan}>
+                                <div class="slds-m-bottom_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                        <lightning-icon icon-name="utility:checklist" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Plan
+                                    </h3>
+                                    <div class="slds-box slds-box_x-small content-box">
+                                        <lightning-formatted-text value={noteData.plan}></lightning-formatted-text>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- Chart Note (if different format) -->
+                            <template if:true={noteData.chartNote}>
+                                <div class="slds-m-bottom_medium">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                        <lightning-icon icon-name="utility:note" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Chart Note
+                                    </h3>
+                                    <div class="slds-box slds-box_x-small content-box">
+                                        <lightning-formatted-text value={noteData.chartNote}></lightning-formatted-text>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Approval/Rejection Section -->
+                        <div class="slds-m-top_large">
+                            <lightning-tabset>
+                                <!-- Approve Tab -->
+                                <lightning-tab label="Approve" icon-name="utility:check">
+                                    <div class="slds-p-around_small">
+                                        <p class="slds-text-body_small slds-m-bottom_small text-muted">
+                                            By approving, you are co-signing this note and confirming its accuracy.
+                                        </p>
+                                        <lightning-textarea
+                                            label="Approval Notes (Optional)"
+                                            placeholder="Add any notes or comments about this approval..."
+                                            value={approvalNotes}
+                                            onchange={handleApprovalNotesChange}
+                                            max-length="2000">
+                                        </lightning-textarea>
+                                    </div>
+                                </lightning-tab>
+
+                                <!-- Reject Tab -->
+                                <lightning-tab label="Reject" icon-name="utility:close">
+                                    <div class="slds-p-around_small">
+                                        <p class="slds-text-body_small slds-m-bottom_small text-muted">
+                                            Rejecting will send this note back to the submitter for revision.
+                                        </p>
+                                        <lightning-textarea
+                                            label="Rejection Reason (Required)"
+                                            placeholder="Please explain why this note is being rejected..."
+                                            value={rejectionReason}
+                                            onchange={handleRejectionReasonChange}
+                                            max-length="2000"
+                                            required>
+                                        </lightning-textarea>
+                                    </div>
+                                </lightning-tab>
+                            </lightning-tabset>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        onclick={handleClose}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <lightning-button
+                        label="Reject"
+                        variant="destructive"
+                        onclick={handleReject}
+                        disabled={isProcessing}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <lightning-button
+                        label="Approve & Co-Sign"
+                        variant="brand"
+                        onclick={handleApprove}
+                        disabled={isProcessing}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

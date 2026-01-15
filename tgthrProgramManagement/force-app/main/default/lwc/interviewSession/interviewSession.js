@@ -26,10 +26,12 @@ const DRAFT_TYPE = 'Interview';
 export default class InterviewSession extends NavigationMixin(LightningElement) {
     @api caseId;
     @api templateVersionId;
+    @api startStep; // Optional: jump directly to a step like 'review'
     
     // Internal properties to hold URL state parameters
     urlCaseId;
     urlTemplateVersionId;
+    urlStartStep; // Optional: jump directly to a step like 'review' (from URL)
 
     @track currentStepIndex = 0;
     @track isLoading = true;
@@ -97,6 +99,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             // Get parameters from URL state (with c__ prefix from standard__component navigation)
             this.urlCaseId = currentPageReference.state.c__caseId || currentPageReference.state.caseId;
             this.urlTemplateVersionId = currentPageReference.state.c__templateVersionId || currentPageReference.state.templateVersionId;
+            // Optional: startStep parameter to jump to a specific step (e.g., 'review')
+            this.urlStartStep = currentPageReference.state.c__startStep || currentPageReference.state.startStep;
             
             if (this.effectiveCaseId && this.effectiveTemplateVersionId && !this.parametersLoaded) {
                 this.parametersLoaded = true;
@@ -181,6 +185,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             
             // Check for existing draft
             await this.checkForDraft();
+            
+            // After draft check, apply startStep if provided and no draft was restored
+            // This allows jumping directly to a step (e.g., 'review') when coming from Pending Documentation
+            this.applyStartStep();
             
             this.errorMessage = '';
         } catch (error) {
@@ -318,13 +326,42 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
      * Find the first step that has incomplete/missing data
      * Returns 0 (interaction) if all steps are incomplete
      * Returns the interview step index if interaction is complete but questions remain
+     * Respects startStep parameter if provided (e.g., 'review' to go directly to review step)
      */
     findFirstIncompleteStep() {
+        // Check if a specific start step was requested via @api prop or URL parameter
+        const requestedStep = this.startStep || this.urlStartStep;
+        if (requestedStep) {
+            const requestedIndex = STEPS.indexOf(requestedStep.toLowerCase());
+            if (requestedIndex !== -1) {
+                console.log('Starting at requested step:', requestedStep, 'index:', requestedIndex);
+                return requestedIndex;
+            }
+        }
+        
         // Step 0: Interaction Details - check if start/end times are set
         const interactionComplete = this.interactionInput?.startDateTime && 
                                     this.interactionInput?.endDateTime;
         if (!interactionComplete) {
             return 0; // Start at interaction step
+        }
+    }
+    
+    /**
+     * Apply the startStep parameter to jump to a specific step.
+     * Called after loadSession and checkForDraft complete.
+     * Only applies if a startStep was provided via @api prop or URL.
+     */
+    applyStartStep() {
+        const requestedStep = this.startStep || this.urlStartStep;
+        if (requestedStep) {
+            const requestedIndex = STEPS.indexOf(requestedStep.toLowerCase());
+            if (requestedIndex !== -1) {
+                console.log('Applying startStep:', requestedStep, 'index:', requestedIndex);
+                this.currentStepIndex = requestedIndex;
+            } else {
+                console.warn('Invalid startStep requested:', requestedStep, 'Valid steps:', STEPS);
+            }
         }
         
         // Step 1: Demographics (if shown) - check if any demographics data exists
@@ -1218,6 +1255,18 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 const isMobile = this.isMobileDevice();
                 await this.generateInterviewDocument(result.interactionSummaryId, shouldDownload && !isMobile);
                 
+                // Delete draft if one existed - this clears it from Pending Documentation
+                if (this.draftId) {
+                    try {
+                        await deleteDraft({ draftId: this.draftId });
+                        console.log('Draft deleted successfully after interview completion');
+                        this.draftId = null;
+                    } catch (deleteErr) {
+                        console.warn('Failed to delete draft (non-fatal):', deleteErr);
+                        // Don't block navigation for draft deletion errors
+                    }
+                }
+                
                 const successMsg = this.requestManagerCoSign && this.hasManager 
                     ? `Interview saved. Manager approval requested from ${this.managerName}.`
                     : 'Interview has been saved successfully.';
@@ -1279,38 +1328,32 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     handleCancel() {
         console.log('Cancel button clicked');
-        // Navigate back to the Case using Lightning navigation
+        // Navigate back to the Case
         const recordId = this.effectiveCaseId;
-        const navUrl = `/lightning/r/Case/${recordId}/view`;
-        console.log('Cancel - Attempting navigation...');
-        console.log('Case recordId:', recordId);
-        console.log('navUrl:', navUrl);
-        console.log('window.top exists:', !!window.top);
-        console.log('window.top !== window.self:', window.top !== window.self);
+        console.log('Cancel - navigating back to Case:', recordId);
         
-        if (window.top && window.top !== window.self) {
-            // We're in an iframe (VF page) - use sforce.one or window.top
-            console.log('In iframe context');
-            if (typeof window.top.sforce !== 'undefined' && window.top.sforce.one) {
-                console.log('Using sforce.one.navigateToSObject for Case');
-                // Use sforce.one.navigateToSObject for reliable Lightning navigation
-                window.top.sforce.one.navigateToSObject(recordId);
-            } else {
-                console.log('sforce.one not available, using window.top.location.href');
-                // Fallback to direct navigation
-                window.top.location.href = navUrl;
+        // If no Case ID is available, use history navigation or show error
+        if (!recordId) {
+            console.warn('No Case ID available for navigation');
+            // Try browser history first
+            if (window.history && window.history.length > 1) {
+                console.log('Using window.history.back()');
+                window.history.back();
+                return;
             }
+            this.showToast('Navigation Error', 'Unable to navigate back - no Case ID found. Please close this tab manually.', 'warning');
+            return;
+        }
+        
+        // Since we're in a VF page embedded in Lightning, navigate directly to the Case URL
+        const navUrl = `/lightning/r/Case/${recordId}/view`;
+        console.log('Navigating to:', navUrl);
+        
+        // Force top-level navigation to break out of VF iframe
+        if (window.top) {
+            window.top.location.href = navUrl;
         } else {
-            console.log('Not in iframe, using NavigationMixin');
-            // Standard navigation
-            this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
-                attributes: {
-                    recordId: this.effectiveCaseId,
-                    objectApiName: 'Case',
-                    actionName: 'view'
-                }
-            });
+            window.location.href = navUrl;
         }
     }
 

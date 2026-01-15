@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Case_Manager_Interview_User</members>
+        <members>Clinical_Interview_User</members>
+        <members>Interview_Admin</members>
+        <members>Python_API_Access</members>
+        <name>PermissionSet</name>
+    </types>
+    <version>65.0</version>
+</Package>

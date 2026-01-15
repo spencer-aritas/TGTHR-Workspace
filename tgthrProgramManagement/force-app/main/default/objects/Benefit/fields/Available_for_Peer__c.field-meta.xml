@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Available_for_Peer__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, this benefit will be available for selection from the Peer Note button on Case records in the Services Provided section.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Check this box to make this benefit available from the Peer Note button.</inlineHelpText>
+    <label>Available for Peer</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

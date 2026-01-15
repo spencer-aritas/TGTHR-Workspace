@@ -4,10 +4,13 @@ import { NavigationMixin } from 'lightning/navigation';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
-import saveClinicalNote from '@salesforce/apex/ClinicalNoteController.saveClinicalNote';
-import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
+import saveClinicalNoteWithSsrs from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteWithSsrs';
+import getCaseManagementBenefits from '@salesforce/apex/ClinicalNoteController.getCaseManagementBenefits';
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
+import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
+import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
+import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
@@ -78,7 +81,25 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     @track hasDraft = false;
     @track isSavingDraft = false;
 
+    // Manager Approval support
+    @track requestManagerCoSign = false;
+    @track managerInfo = null;
+
+    // ICD-10 Diagnosis codes
+    @track selectedDiagnoses = [];
+
     originalFormState;
+
+    // Wire to get current user's manager info
+    @wire(getCurrentUserManagerInfo)
+    wiredManagerInfo({ data, error }) {
+        if (data) {
+            this.managerInfo = data;
+        } else if (error) {
+            console.error('Error getting manager info:', error);
+            this.managerInfo = { hasManager: false };
+        }
+    }
 
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
@@ -87,7 +108,6 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
         { name: 'goals', label: 'Goals Addressed' },
-        { name: 'codes', label: 'Code Assignments' },
         { name: 'signature', label: 'Signature' }
     ];
 
@@ -116,6 +136,31 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         return this.activeGoals && this.activeGoals.length > 0;
     }
 
+    // ICD-10 Diagnosis code getters
+    get hasCodeOptions() {
+        return this.codeOptions && this.codeOptions.length > 0;
+    }
+
+    get hasSelectedDiagnoses() {
+        return this.selectedDiagnoses && this.selectedDiagnoses.length > 0;
+    }
+
+    get formattedDiagnoses() {
+        return this.selectedDiagnoses.map(diag => ({
+            ...diag,
+            statusIconClass: this._getStatusIconClass(diag.status)
+        }));
+    }
+
+    _getStatusIconClass(status) {
+        if (!status) return 'diagnosis-status-default';
+        const s = status.toLowerCase();
+        if (s === 'active') return 'diagnosis-status-active';
+        if (s === 'resolved') return 'diagnosis-status-resolved';
+        if (s === 'inactive') return 'diagnosis-status-inactive';
+        return 'diagnosis-status-default';
+    }
+
     get goalsWorkedOnCount() {
         return Object.values(this.goalWorkState).filter(g => g.workedOn).length;
     }
@@ -135,6 +180,25 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     get hasSsrsData() {
         return !!this.ssrsAssessmentData;
+    }
+
+    // Manager Approval getters
+    get hasManager() {
+        return this.managerInfo?.hasManager === true;
+    }
+
+    get managerMissing() {
+        return !this.hasManager;
+    }
+
+    get managerName() {
+        return this.managerInfo?.managerName || 'Your Manager';
+    }
+
+    get managerApprovalLabel() {
+        return this.hasManager 
+            ? `Request co-signature from ${this.managerName}`
+            : 'Request manager co-signature (no manager assigned)';
     }
 
     /**
@@ -201,6 +265,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     }
 
     connectedCallback() {
+        console.log('[ClinicalNoteForm] connectedCallback - recordId:', this.recordId);
         this.loadInitialData();
     }
 
@@ -216,10 +281,10 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             const data = await initClinicalNote({ caseId: this.recordId });
             this._initializeFromResponse(data);
             
-            // Load clinical benefits
-            console.log('=== LOADING CLINICAL BENEFITS ===');
-            console.log('Loading clinical benefits for case:', this.recordId);
-            const benefits = await getClinicalBenefits({ caseId: this.recordId });
+            // Load case management benefits for Case Notes
+            console.log('=== LOADING CASE MANAGEMENT BENEFITS ===');
+            console.log('Loading case management benefits for case:', this.recordId);
+            const benefits = await getCaseManagementBenefits({ caseId: this.recordId });
             console.log('Received benefits:', benefits);
             console.log('Benefits count:', benefits ? benefits.length : 0);
             console.log('Benefits type:', typeof benefits);
@@ -234,7 +299,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 console.log('=== BENEFITS LOADED SUCCESSFULLY ===');
             } else {
                 console.warn('=== NO BENEFITS RETURNED FROM SERVER ===');
-                console.warn('Check Apex debug logs for getClinicalBenefits method');
+                console.warn('Check Apex debug logs for getCaseManagementBenefits method');
                 this.benefitOptions = [];
             }
         } catch (error) {
@@ -370,6 +435,38 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     handleCodesChange(event) {
         this.form = { ...this.form, codeIds: event.detail.value || [] };
+    }
+
+    // ========================================
+    // ICD-10 Diagnosis Handlers
+    // ========================================
+    
+    handleOpenIcd10Selector() {
+        const selector = this.template.querySelector('c-icd10-code-selector');
+        if (selector) {
+            selector.open();
+        }
+    }
+    
+    handleDiagnosisAdded(event) {
+        const diagnosis = event.detail;
+        console.log('ICD-10 Diagnosis added:', diagnosis);
+        
+        // Check for duplicates
+        const exists = this.selectedDiagnoses.some(d => d.code === diagnosis.code);
+        if (exists) {
+            this._showToast('Info', `${diagnosis.code} is already selected`, 'info');
+            return;
+        }
+        
+        // Add to selected diagnoses
+        this.selectedDiagnoses = [...this.selectedDiagnoses, diagnosis];
+        this._showToast('Success', `Added ${diagnosis.code} - ${diagnosis.description}`, 'success');
+    }
+    
+    handleRemoveDiagnosis(event) {
+        const codeToRemove = event.currentTarget.dataset.code;
+        this.selectedDiagnoses = this.selectedDiagnoses.filter(d => d.code !== codeToRemove);
     }
 
     handleBenefitsChange(event) {
@@ -622,6 +719,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 goalWorkState: this.goalWorkState,
                 activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
                 ssrsAssessmentData: this.ssrsAssessmentData,
+                selectedDiagnoses: this.selectedDiagnoses, // Preserve ICD-10 selections
                 activeSection: this.activeSection,
                 savedAt: new Date().toISOString()
             };
@@ -699,15 +797,11 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         }
 
         try {
-            console.log('=== SAVE PAYLOAD DEBUG ===');
-            console.log('this.recordId:', this.recordId);
-            console.log('this.form.reason:', this.form.reason);
-            console.log('this.form.services:', this.form.services);
-            console.log('this.form.response:', this.form.response);
-            console.log('this.form.plan:', this.form.plan);
-            console.log('Calling saveClinicalNote with individual parameters');
+            console.log('[ClinicalNoteForm] Saving - recordId:', this.recordId);
+            console.log('[ClinicalNoteForm] recordId type:', typeof this.recordId);
 
-            const result = await saveClinicalNote({
+            // Use individual parameters method (same as clinicalNote) to avoid object deserialization issues
+            const result = await saveClinicalNoteWithSsrs({
                 caseId: this.recordId,
                 interactionDateStr: this.form.interactionDate,
                 startTimeStr: this.form.startTime,
@@ -720,7 +814,9 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 plan: this.form.plan,
                 goalAssignmentIds: this.form.goalIds,
                 codeAssignmentIds: this.form.codeIds,
-                benefitIds: this.form.benefitIds
+                benefitIds: this.form.benefitIds,
+                ssrsAssessmentId: null,
+                noteType: this.noteType
             });
             if (!result || !result.success) {
                 const errorMessage =
@@ -741,8 +837,28 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             // Save goal assignment details for goals worked on
             await this._saveGoalWork(this.interactionId);
 
-            this._showToast('Success', 'Case note saved successfully.', 'success');
-            this._navigateToRecord(this.interactionId);
+            // Request manager approval if toggled
+            if (this.requestManagerCoSign && this.hasManager) {
+                try {
+                    await requestManagerApproval({ 
+                        recordId: this.interactionId, 
+                        recordType: 'Interaction' 
+                    });
+                    console.log('Manager approval requested successfully');
+                } catch (approvalErr) {
+                    console.warn('Failed to request manager approval (non-fatal):', approvalErr);
+                    this._showToast('Warning', 'Note saved but manager approval request failed. Please try again from the pending documentation view.', 'warning');
+                }
+            }
+
+            // Generate document via docgen service (attaches to InteractionSummary)
+            await this._generateNoteDocument(this.interactionId);
+
+            const successMsg = this.requestManagerCoSign && this.hasManager 
+                ? `Case note saved. Manager approval requested from ${this.managerName}.`
+                : 'Case note saved successfully.';
+            this._showToast('Success', successMsg, 'success');
+            this._navigateToRecord(this.recordId);
         } catch (error) {
             this._showToast('Error', this._reduceErrors(error).join(', ') || 'Unexpected error saving case note.', 'error');
         } finally {
@@ -752,6 +868,28 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     handleSignatureSaved() {
         // placeholder to react to signature saved event if we need additional flows later
+    }
+
+    handleManagerApprovalToggle(event) {
+        this.requestManagerCoSign = event.target.checked;
+    }
+
+    /**
+     * Generate document via docgen service and attach to InteractionSummary.
+     * This creates a formatted DOCX document with TGTHR branding and all note content.
+     * @param {string} interactionSummaryId - The InteractionSummary ID to generate document for
+     */
+    async _generateNoteDocument(interactionSummaryId) {
+        try {
+            console.log('[ClinicalNoteForm] Generating document for InteractionSummary:', interactionSummaryId);
+            const result = await generateNoteDocument({ interactionSummaryId: interactionSummaryId });
+            console.log('[ClinicalNoteForm] Document generated! ContentDocument ID:', result.content_document_id);
+            this._showToast('Document Generated', 'Case note document has been created and attached.', 'success');
+        } catch (error) {
+            console.error('[ClinicalNoteForm] Document generation error:', error);
+            // Don't fail the save if document generation fails - note is already saved
+            this._showToast('Document Warning', 'Note saved, but document generation failed. You can regenerate from Completed Documentation.', 'warning');
+        }
     }
 
     /**
@@ -879,14 +1017,3 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         return ['Unknown error'];
     }
 }
-
-
-
-
-
-
-
-
-
-
-

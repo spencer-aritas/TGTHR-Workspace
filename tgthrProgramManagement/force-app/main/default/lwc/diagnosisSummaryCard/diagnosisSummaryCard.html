@@ -1,0 +1,405 @@
+<template>
+    <lightning-card icon-name="standard:diagnosis" class="diagnosis-summary-card">
+        <!-- Header with title and refresh button -->
+        <h2 slot="title">
+            <span class="slds-text-heading_small">{cardTitle}</span>
+        </h2>
+        <lightning-button-icon 
+            slot="actions"
+            icon-name="utility:refresh" 
+            alternative-text="Refresh"
+            title="Refresh diagnoses"
+            onclick={handleRefresh}>
+        </lightning-button-icon>
+
+        <div class="slds-card__body slds-card__body_inner">
+            <!-- Loading State -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-p-around_medium">
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Error State -->
+            <template if:true={error}>
+                <div class="slds-illustration slds-illustration_small">
+                    <div class="slds-text-color_error slds-text-body_small slds-p-around_small">
+                        <lightning-icon icon-name="utility:warning" size="x-small" variant="error" class="slds-m-right_x-small"></lightning-icon>
+                        {error}
+                    </div>
+                </div>
+            </template>
+
+            <!-- Empty State -->
+            <template if:true={showEmptyState}>
+                <div class="empty-state slds-align_absolute-center slds-p-around_medium">
+                    <div class="slds-text-align_center">
+                        <lightning-icon icon-name="utility:record" size="large" class="slds-m-bottom_small empty-icon"></lightning-icon>
+                        <p class="slds-text-body_regular slds-text-color_weak">{emptyStateMessage}</p>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                            Add diagnoses from a Clinical Note or Assessment
+                        </p>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Diagnoses List -->
+            <template if:true={hasDiagnoses}>
+                <!-- Primary Diagnosis Highlight (if exists) -->
+                <template if:true={primaryDiagnosis}>
+                    <div class="primary-diagnosis-banner slds-box slds-box_x-small slds-theme_info slds-m-bottom_small">
+                        <div class="slds-grid slds-grid_vertical-align-center">
+                            <lightning-icon icon-name="utility:favorite" size="x-small" class="slds-m-right_small"></lightning-icon>
+                            <div>
+                                <span class="slds-text-title_caps">Primary Diagnosis</span>
+                                <p class="slds-text-body_regular slds-m-top_xxx-small">
+                                    <strong>{primaryDiagnosis.displayCode}</strong> — {primaryDiagnosis.description}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Active Diagnoses -->
+                <template if:true={activeDiagnoses.length}>
+                    <div class="diagnosis-section">
+                        <template for:each={activeDiagnoses} for:item="diagnosis">
+                            <div key={diagnosis.id} class={diagnosis.cardClass}>
+                                <!-- Card Header - Always visible -->
+                                <div class="diagnosis-header slds-grid slds-grid_vertical-align-center" 
+                                     data-id={diagnosis.id} 
+                                     onclick={handleToggleExpand}>
+                                    <lightning-button-icon
+                                        icon-name={diagnosis.expandIcon}
+                                        variant="bare"
+                                        size="small"
+                                        alternative-text="Toggle details"
+                                        class="expand-toggle">
+                                    </lightning-button-icon>
+                                    
+                                    <div class="slds-col slds-grow">
+                                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
+                                            <span class="diagnosis-code slds-text-title_bold">{diagnosis.displayCode}</span>
+                                            <span class="diagnosis-description slds-m-left_x-small slds-truncate">{diagnosis.description}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="slds-col slds-no-flex badges-container">
+                                        <template if:true={diagnosis.isPrimary}>
+                                            <span class={diagnosis.statusBadgeClass}>Primary</span>
+                                        </template>
+                                        <template if:true={diagnosis.hasType}>
+                                            <span class={diagnosis.typeBadgeClass}>{diagnosis.diagnosisType}</span>
+                                        </template>
+                                    </div>
+                                    
+                                    <!-- Action buttons -->
+                                    <div class="diagnosis-actions slds-m-left_x-small">
+                                        <lightning-button-icon
+                                            icon-name="utility:edit"
+                                            variant="bare"
+                                            size="small"
+                                            alternative-text="Edit diagnosis"
+                                            title="Edit"
+                                            data-id={diagnosis.id}
+                                            onclick={handleEditClick}>
+                                        </lightning-button-icon>
+                                        <lightning-button-icon
+                                            icon-name="utility:delete"
+                                            variant="bare"
+                                            size="small"
+                                            alternative-text="Delete diagnosis"
+                                            title="Delete"
+                                            class="delete-btn"
+                                            data-id={diagnosis.id}
+                                            onclick={handleDeleteClick}>
+                                        </lightning-button-icon>
+                                    </div>
+                                </div>
+                                
+                                <!-- Card Body - Expandable details -->
+                                <template if:true={diagnosis.isExpanded}>
+                                    <div class="diagnosis-details slds-p-left_large slds-p-top_x-small slds-p-bottom_x-small">
+                                        <dl class="slds-dl_horizontal slds-dl_horizontal-small">
+                                            <template if:true={diagnosis.hasOnsetDate}>
+                                                <dt class="slds-dl_horizontal__label">
+                                                    <span class="slds-text-color_weak">Onset:</span>
+                                                </dt>
+                                                <dd class="slds-dl_horizontal__detail">{diagnosis.formattedOnsetDate}</dd>
+                                            </template>
+                                            
+                                            <template if:true={diagnosis.hasResolvedDate}>
+                                                <dt class="slds-dl_horizontal__label">
+                                                    <span class="slds-text-color_weak">Resolved:</span>
+                                                </dt>
+                                                <dd class="slds-dl_horizontal__detail">{diagnosis.formattedResolvedDate}</dd>
+                                            </template>
+                                            
+                                            <dt class="slds-dl_horizontal__label">
+                                                <span class="slds-text-color_weak">Added:</span>
+                                            </dt>
+                                            <dd class="slds-dl_horizontal__detail">
+                                                {diagnosis.formattedCreatedDate}
+                                                <template if:true={diagnosis.createdByName}>
+                                                    <span class="slds-text-color_weak"> by {diagnosis.createdByName}</span>
+                                                </template>
+                                            </dd>
+                                        </dl>
+                                        
+                                        <template if:true={diagnosis.hasNotes}>
+                                            <div class="diagnosis-notes slds-m-top_x-small">
+                                                <span class="slds-text-color_weak">Notes: </span>
+                                                <span class="slds-text-body_small">{diagnosis.notes}</span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Historical Diagnoses Toggle -->
+                <template if:true={hasHistorical}>
+                    <div class="historical-section slds-m-top_small">
+                        <button class="slds-button slds-button_neutral slds-button_stretch historical-toggle"
+                                onclick={handleToggleHistorical}>
+                            <lightning-icon icon-name={historicalToggleIcon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                            {historicalToggleLabel}
+                        </button>
+                        
+                        <template if:true={showHistorical}>
+                            <div class="historical-diagnoses slds-m-top_small">
+                                <template for:each={historicalDiagnoses} for:item="diagnosis">
+                                    <div key={diagnosis.id} class={diagnosis.cardClass}>
+                                        <div class="diagnosis-header slds-grid slds-grid_vertical-align-center"
+                                             data-id={diagnosis.id}
+                                             onclick={handleToggleExpand}>
+                                            <lightning-button-icon
+                                                icon-name={diagnosis.expandIcon}
+                                                variant="bare"
+                                                size="small"
+                                                alternative-text="Toggle details"
+                                                class="expand-toggle">
+                                            </lightning-button-icon>
+                                            
+                                            <div class="slds-col slds-grow">
+                                                <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
+                                                    <span class="diagnosis-code slds-text-title_bold">{diagnosis.displayCode}</span>
+                                                    <span class="diagnosis-description slds-m-left_x-small slds-truncate">{diagnosis.description}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="slds-col slds-no-flex badges-container">
+                                                <span class="slds-badge">{diagnosis.status}</span>
+                                            </div>
+                                            
+                                            <!-- Action buttons for historical -->
+                                            <div class="diagnosis-actions slds-m-left_x-small">
+                                                <lightning-button-icon
+                                                    icon-name="utility:edit"
+                                                    variant="bare"
+                                                    size="small"
+                                                    alternative-text="Edit diagnosis"
+                                                    title="Edit"
+                                                    data-id={diagnosis.id}
+                                                    onclick={handleEditClick}>
+                                                </lightning-button-icon>
+                                                <lightning-button-icon
+                                                    icon-name="utility:delete"
+                                                    variant="bare"
+                                                    size="small"
+                                                    alternative-text="Delete diagnosis"
+                                                    title="Delete"
+                                                    class="delete-btn"
+                                                    data-id={diagnosis.id}
+                                                    onclick={handleDeleteClick}>
+                                                </lightning-button-icon>
+                                            </div>
+                                        </div>
+                                        
+                                        <template if:true={diagnosis.isExpanded}>
+                                            <div class="diagnosis-details slds-p-left_large slds-p-top_x-small slds-p-bottom_x-small">
+                                                <dl class="slds-dl_horizontal slds-dl_horizontal-small">
+                                                    <template if:true={diagnosis.hasOnsetDate}>
+                                                        <dt class="slds-dl_horizontal__label">
+                                                            <span class="slds-text-color_weak">Onset:</span>
+                                                        </dt>
+                                                        <dd class="slds-dl_horizontal__detail">{diagnosis.formattedOnsetDate}</dd>
+                                                    </template>
+                                                    
+                                                    <template if:true={diagnosis.hasResolvedDate}>
+                                                        <dt class="slds-dl_horizontal__label">
+                                                            <span class="slds-text-color_weak">Resolved:</span>
+                                                        </dt>
+                                                        <dd class="slds-dl_horizontal__detail">{diagnosis.formattedResolvedDate}</dd>
+                                                    </template>
+                                                </dl>
+                                                
+                                                <template if:true={diagnosis.hasNotes}>
+                                                    <div class="diagnosis-notes slds-m-top_x-small">
+                                                        <span class="slds-text-color_weak">Notes: </span>
+                                                        <span class="slds-text-body_small">{diagnosis.notes}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </template>
+        </div>
+
+        <!-- Footer hint -->
+        <template if:true={hasDiagnoses}>
+            <div slot="footer" class="slds-text-body_small slds-text-color_weak">
+                <lightning-icon icon-name="utility:info" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+                Click edit or delete to manage diagnoses
+            </div>
+        </template>
+    </lightning-card>
+    
+    <!-- Edit Modal -->
+    <template if:true={showEditModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="edit-diagnosis-header" 
+                 class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={handleCloseEditModal}>
+                    </lightning-button-icon>
+                    <h2 id="edit-diagnosis-header" class="slds-modal__title slds-hyphenate">
+                        Edit Diagnosis: {editingDiagnosis.displayCode}
+                    </h2>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-body_regular slds-m-bottom_medium">
+                        <strong>{editingDiagnosis.displayCode}</strong> — {editingDiagnosis.description}
+                    </p>
+                    
+                    <div class="slds-grid slds-wrap slds-gutters_small">
+                        <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                            <lightning-combobox
+                                label="Status"
+                                value={editForm.status}
+                                options={statusOptions}
+                                onchange={handleEditStatusChange}
+                                required>
+                            </lightning-combobox>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                            <lightning-combobox
+                                label="Type"
+                                value={editForm.diagnosisType}
+                                options={typeOptions}
+                                onchange={handleEditTypeChange}>
+                            </lightning-combobox>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                            <lightning-input
+                                type="date"
+                                label="Onset Date"
+                                value={editForm.onsetDate}
+                                onchange={handleEditOnsetChange}>
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                            <lightning-input
+                                type="date"
+                                label="Resolved Date"
+                                value={editForm.resolvedDate}
+                                onchange={handleEditResolvedChange}>
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                            <lightning-input
+                                type="checkbox"
+                                label="Primary Diagnosis"
+                                checked={editForm.isPrimary}
+                                onchange={handleEditPrimaryChange}>
+                            </lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-1">
+                            <lightning-textarea
+                                label="Notes"
+                                value={editForm.notes}
+                                onchange={handleEditNotesChange}
+                                max-length="500">
+                            </lightning-textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <lightning-button 
+                        label="Cancel" 
+                        onclick={handleCloseEditModal}>
+                    </lightning-button>
+                    <lightning-button 
+                        variant="brand" 
+                        label="Save"
+                        onclick={handleSaveEdit}
+                        disabled={isSaving}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+    
+    <!-- Delete Confirmation Modal -->
+    <template if:true={showDeleteModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="delete-diagnosis-header" 
+                 class="slds-modal slds-fade-in-open slds-modal_small">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header slds-theme_error">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={handleCloseDeleteModal}>
+                    </lightning-button-icon>
+                    <h2 id="delete-diagnosis-header" class="slds-modal__title slds-hyphenate">
+                        Delete Diagnosis?
+                    </h2>
+                </header>
+                
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-body_regular">
+                        Are you sure you want to delete this diagnosis?
+                    </p>
+                    <p class="slds-text-body_regular slds-m-top_small">
+                        <strong>{deletingDiagnosis.displayCode}</strong> — {deletingDiagnosis.description}
+                    </p>
+                    <p class="slds-text-color_error slds-m-top_medium slds-text-body_small">
+                        <lightning-icon icon-name="utility:warning" size="x-small" variant="error" class="slds-m-right_xx-small"></lightning-icon>
+                        This action cannot be undone.
+                    </p>
+                </div>
+                
+                <footer class="slds-modal__footer">
+                    <lightning-button 
+                        label="Cancel" 
+                        onclick={handleCloseDeleteModal}>
+                    </lightning-button>
+                    <lightning-button 
+                        variant="destructive" 
+                        label="Delete"
+                        onclick={handleConfirmDelete}
+                        disabled={isSaving}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

@@ -5,15 +5,18 @@
         var urlParams = new URLSearchParams(window.location.search);
         var caseId = urlParams.get('caseId');
         var templateVersionId = urlParams.get('templateVersionId');
+        var startStep = urlParams.get('startStep');
         
         console.log('Case ID:', caseId);
         console.log('Template Version ID:', templateVersionId);
+        console.log('Start Step:', startStep);
         
         $Lightning.use("c:InterviewSessionApp", function() {
             $Lightning.createComponent("c:interviewSession",
                 { 
                     caseId: caseId,
-                    templateVersionId: templateVersionId
+                    templateVersionId: templateVersionId,
+                    startStep: startStep
                 },
                 "interviewSessionContainer",
                 function(cmp) {

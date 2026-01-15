@@ -1,0 +1,248 @@
+/* =============================================
+   Diagnosis Summary Card Styles
+   Clean, EHR-inspired diagnosis display
+   ============================================= */
+
+/* Card Container */
+.diagnosis-summary-card {
+    --diagnosis-primary-bg: #e8f4f8;
+    --diagnosis-primary-border: #0176d3;
+    --diagnosis-active-bg: #ffffff;
+    --diagnosis-historical-bg: #f9fafb;
+    --diagnosis-chronic-color: #7c3aed;
+    --diagnosis-acute-color: #ea580c;
+    --border-radius: 6px;
+}
+
+/* Empty State */
+.empty-state {
+    min-height: 120px;
+    flex-direction: column;
+}
+
+.empty-icon {
+    opacity: 0.4;
+}
+
+/* Primary Diagnosis Banner */
+.primary-diagnosis-banner {
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    border: 1px solid #bae6fd;
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--diagnosis-primary-border);
+}
+
+.primary-diagnosis-banner .slds-text-title_caps {
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    color: #0369a1;
+}
+
+/* Diagnosis Card Base */
+.diagnosis-card {
+    background: var(--diagnosis-active-bg);
+    border: 1px solid #e5e7eb;
+    border-radius: var(--border-radius);
+    margin-bottom: 0.5rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.diagnosis-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Primary Diagnosis Card */
+.diagnosis-card.diagnosis-primary {
+    border-left: 3px solid var(--diagnosis-primary-border);
+}
+
+/* Historical Diagnosis Card */
+.diagnosis-card.diagnosis-historical {
+    background: var(--diagnosis-historical-bg);
+    opacity: 0.85;
+}
+
+.diagnosis-card.diagnosis-historical:hover {
+    opacity: 1;
+}
+
+/* Diagnosis Header */
+.diagnosis-header {
+    padding: 0.5rem;
+    gap: 0.5rem;
+}
+
+.expand-toggle {
+    flex-shrink: 0;
+}
+
+/* Code Display */
+.diagnosis-code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    color: #1f2937;
+    background: #f3f4f6;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.diagnosis-description {
+    color: #4b5563;
+    font-size: 0.875rem;
+    max-width: 280px;
+}
+
+/* Badges Container */
+.badges-container {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.badges-container .slds-badge {
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+/* Type-specific badges */
+.type-chronic {
+    background: #ede9fe;
+    color: var(--diagnosis-chronic-color);
+}
+
+.type-acute {
+    background: #ffedd5;
+    color: var(--diagnosis-acute-color);
+}
+
+/* Details Section */
+.diagnosis-details {
+    border-top: 1px solid #f3f4f6;
+    background: #fafafa;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.diagnosis-details .slds-dl_horizontal__label {
+    width: 70px;
+}
+
+.diagnosis-details .slds-dl_horizontal__detail {
+    font-size: 0.8125rem;
+}
+
+.diagnosis-notes {
+    font-style: italic;
+    padding: 0.375rem;
+    background: #ffffff;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+/* Historical Section */
+.historical-section {
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 0.75rem;
+}
+
+.historical-toggle {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.historical-toggle:hover {
+    color: #374151;
+}
+
+.historical-diagnoses {
+    padding-top: 0.5rem;
+}
+
+/* Status Classes */
+.status-active {
+    color: #059669;
+}
+
+.status-resolved {
+    color: #6b7280;
+}
+
+/* Footer */
+.diagnosis-summary-card [slot="footer"] {
+    padding: 0.5rem 1rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+    .diagnosis-description {
+        max-width: 150px;
+    }
+    
+    .badges-container {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+    
+    .diagnosis-details .slds-dl_horizontal {
+        display: block;
+    }
+    
+    .diagnosis-details .slds-dl_horizontal__label,
+    .diagnosis-details .slds-dl_horizontal__detail {
+        display: block;
+        width: 100%;
+    }
+}
+
+/* Animation for expand/collapse */
+.diagnosis-details {
+    animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Action Buttons */
+.diagnosis-actions {
+    display: flex;
+    gap: 0.125rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.diagnosis-card:hover .diagnosis-actions {
+    opacity: 1;
+}
+
+.diagnosis-actions lightning-button-icon {
+    --slds-c-button-icon-color-foreground: #6b7280;
+}
+
+.diagnosis-actions lightning-button-icon:hover {
+    --slds-c-button-icon-color-foreground: #374151;
+}
+
+.diagnosis-actions .delete-btn:hover {
+    --slds-c-button-icon-color-foreground: #dc2626;
+}
+
+/* Modal Styles */
+.slds-modal__header.slds-theme_error {
+    background: #fef2f2;
+    border-bottom-color: #fecaca;
+}

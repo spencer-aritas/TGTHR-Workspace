@@ -1,0 +1,17 @@
+.text-muted {
+    color: #706e6b;
+}
+
+.content-box {
+    background-color: #fafaf9;
+    white-space: pre-wrap;
+}
+
+.note-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.client-header {
+    background-color: #f3f2f2;
+}

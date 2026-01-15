@@ -546,7 +546,11 @@ public with sharing class InteractionSummaryService {
     
     System.debug('recentByProgramId: programId=' + programId + ', daysBack=' + d + ', maxRows=' + m + ', startDate=' + startDate);
     
+    // Note types that should appear in Documentation Hub, not Interaction History
+    List<String> hubNoteTypes = new List<String>{'Clinical Note', 'Case Note', 'Peer Note'};
+    
     // Return InteractionSummary records for enrolled participants
+    // FILTER OUT: Hub notes (Clinical/Case/Peer) and Interview-linked interactions
     List<SObject> interactions = new List<SObject>();
     try {
       String interactionQuery = 
@@ -556,6 +560,8 @@ public with sharing class InteractionSummaryService {
         'WHERE Program__c = :pid ' +
         'AND Date_of_Interaction__c >= :startDate ' +
         'AND (Status = \'Published\' OR Status = NULL) ' +
+        'AND (InteractionPurpose NOT IN :hubNoteTypes OR InteractionPurpose = NULL) ' +
+        'AND Id NOT IN (SELECT Interaction_Summary__c FROM Interview__c WHERE Interaction_Summary__c != NULL) ' +
         'AND AccountId IN (' +
           'SELECT AccountId FROM ProgramEnrollment ' +
           'WHERE ProgramId = :pid AND IsActive = true' +
@@ -920,7 +926,8 @@ public with sharing class InteractionSummaryService {
       }
       Id pid = Id.valueOf(programId);
 
-      // Query active enrollments
+      // Query enrolled participants only - these are the ones who can receive benefit disbursements
+      // Awaiting Intake and Pending Exit are queried separately and shown in their own sections
       String activeQuery =
         'SELECT Id, Name, AccountId, Account.Name, Account.Unit__c, ' +
         'Account.PersonPronouns, Account.Case_Manager__pc, ' +
@@ -929,7 +936,7 @@ public with sharing class InteractionSummaryService {
         'StartDate, EndDate, IsActive ' +
         'FROM ProgramEnrollment ' +
         'WHERE ProgramId = :pid ' +
-        'AND IsActive = true ' +
+        'AND Status = \'Enrolled\' ' +
         'ORDER BY Account.Name ASC';
 
       String awaitingIntakeQuery =

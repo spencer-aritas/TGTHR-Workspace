@@ -4,19 +4,34 @@ import { NavigationMixin } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
 import getDraftsForCase from '@salesforce/apex/DocumentDraftService.getDraftsForCase';
 import getUnsignedInteractions from '@salesforce/apex/PendingDocumentationController.getUnsignedInteractions';
+import getUnsignedInterviews from '@salesforce/apex/PendingDocumentationController.getUnsignedInterviews';
 import getPendingManagerApprovals from '@salesforce/apex/PendingDocumentationController.getPendingManagerApprovals';
 import getMyActionItems from '@salesforce/apex/PendingDocumentationController.getMyActionItems';
 import clearAction from '@salesforce/apex/PendingDocumentationController.clearAction';
 import recallAction from '@salesforce/apex/PendingDocumentationController.recallAction';
 import managerApprove from '@salesforce/apex/PendingDocumentationController.managerApprove';
 import flagForAction from '@salesforce/apex/PendingDocumentationController.flagForAction';
+import reassignInterview from '@salesforce/apex/PsychoSocialRenewalService.reassignInterview';
 
 export default class PendingDocumentation extends NavigationMixin(LightningElement) {
-    @api recordId; // Case Id
+    _recordId;
     @api showManagerView = false; // Optional: show manager approval queue
+    
+    @api
+    get recordId() {
+        return this._recordId;
+    }
+    set recordId(value) {
+        this._recordId = value;
+        // Reload pending approvals when recordId changes
+        if (value) {
+            this.loadPendingApprovals();
+        }
+    }
     
     @track drafts = [];
     @track unsignedNotes = [];
+    @track unsignedInterviews = [];
     @track actionItems = [];
     @track pendingApprovals = [];
     @track isLoading = true;
@@ -25,7 +40,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     @track showCaseNoteModal = false;
     @track showClinicalNoteModal = false;
     @track showPeerNoteModal = false;
+    @track showInterviewModal = false;
     @track selectedDraftId = null;
+    @track selectedInterviewId = null;
     
     // Action Flag Modal
     @track showFlagModal = false;
@@ -33,9 +50,16 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     @track flagAssignedToId = '';
     @track flagNotes = '';
     
+    // Reassign Interview Modal
+    @track showReassignModal = false;
+    @track reassignTargetInterview = null;
+    @track reassignUserId = '';
+    @track reassignNotes = '';
+    
     // Wire results for refresh
     wiredDraftsResult;
     wiredUnsignedResult;
+    wiredUnsignedInterviewsResult;
     wiredActionItemsResult;
     wiredPendingApprovalsResult;
     
@@ -73,6 +97,27 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
     }
     
+    @wire(getUnsignedInterviews, { caseId: '$recordId' })
+    wiredUnsignedInterviews(result) {
+        this.wiredUnsignedInterviewsResult = result;
+        if (result.data) {
+            console.log('=== Unsigned Interviews Data ===');
+            console.log('Raw data:', JSON.stringify(result.data));
+            if (result.data.length > 0) {
+                console.log('First interview ownerName:', result.data[0].ownerName);
+                console.log('First interview caseId:', result.data[0].caseId);
+                console.log('First interview templateVersionId:', result.data[0].templateVersionId);
+            }
+            this.unsignedInterviews = this.formatUnsignedNotes(result.data);
+            console.log('Formatted interviews:', JSON.stringify(this.unsignedInterviews));
+            this.checkLoadingComplete();
+        } else if (result.error) {
+            console.error('Error loading unsigned interviews:', result.error);
+            this.unsignedInterviews = [];
+            this.checkLoadingComplete();
+        }
+    }
+    
     @wire(getMyActionItems)
     wiredActionItems(result) {
         this.wiredActionItemsResult = result;
@@ -86,23 +131,47 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
     }
     
-    @wire(getPendingManagerApprovals)
-    wiredPendingApprovals(result) {
-        this.wiredPendingApprovalsResult = result;
-        if (result.data) {
-            this.pendingApprovals = this.formatUnsignedNotes(result.data);
+    // Track if pending approvals have been loaded (for checkLoadingComplete)
+    pendingApprovalsLoaded = false;
+    
+    // Also call on connectedCallback in case recordId is already set
+    connectedCallback() {
+        if (this._recordId) {
+            this.loadPendingApprovals();
+        }
+    }
+    
+    async loadPendingApprovals() {
+        if (!this._recordId) {
+            console.log('loadPendingApprovals called but no recordId yet');
+            return;
+        }
+        try {
+            console.log('=== Loading pending approvals ===');
+            console.log('Case ID:', this._recordId);
+            const data = await getPendingManagerApprovals({ caseId: this._recordId });
+            console.log('Raw response:', data);
+            console.log('Pending approvals count:', data ? data.length : 0);
+            if (data && data.length > 0) {
+                console.log('First item:', JSON.stringify(data[0]));
+            }
+            this.pendingApprovals = this.formatUnsignedNotes(data);
+            console.log('Formatted pendingApprovals:', this.pendingApprovals.length);
+            this.pendingApprovalsLoaded = true;
             this.checkLoadingComplete();
-        } else if (result.error) {
-            console.error('Error loading pending approvals:', result.error);
+        } catch (error) {
+            console.error('Error loading pending approvals:', error);
             this.pendingApprovals = [];
+            this.pendingApprovalsLoaded = true;
             this.checkLoadingComplete();
         }
     }
     
     checkLoadingComplete() {
-        // Only set loading to false after all wires have returned
+        // Only set loading to false after all data sources have returned
         if (this.wiredDraftsResult && this.wiredUnsignedResult && 
-            this.wiredActionItemsResult && this.wiredPendingApprovalsResult) {
+            this.wiredUnsignedInterviewsResult && this.wiredActionItemsResult && 
+            this.pendingApprovalsLoaded) {
             this.isLoading = false;
         }
     }
@@ -155,6 +224,10 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         return this.unsignedNotes && this.unsignedNotes.length > 0;
     }
     
+    get hasUnsignedInterviews() {
+        return this.unsignedInterviews && this.unsignedInterviews.length > 0;
+    }
+    
     get hasActionItems() {
         return this.actionItems && this.actionItems.length > 0;
     }
@@ -164,12 +237,14 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     }
     
     get hasPendingItems() {
-        return this.hasDrafts || this.hasUnsignedNotes || this.hasActionItems || this.hasPendingApprovals;
+        return this.hasDrafts || this.hasUnsignedNotes || this.hasUnsignedInterviews || 
+               this.hasActionItems || this.hasPendingApprovals;
     }
     
     get pendingCount() {
         return (this.drafts?.length || 0) + (this.unsignedNotes?.length || 0) + 
-               (this.actionItems?.length || 0) + (this.pendingApprovals?.length || 0);
+               (this.unsignedInterviews?.length || 0) + (this.actionItems?.length || 0) + 
+               (this.pendingApprovals?.length || 0);
     }
     
     get pluralSuffix() {
@@ -230,15 +305,92 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     handleCompleteSignatures(event) {
         event.stopPropagation();
         const noteId = event.target.dataset.id;
-        // Navigate to the InteractionSummary record
+        
+        // Open the signature modal for review and signing
+        const modal = this.template.querySelector('c-note-signature-modal');
+        if (modal) {
+            modal.open(noteId, 'Interaction');
+        }
+    }
+    
+    // Called when signature is complete
+    async handleSignatureComplete() {
+        await this.refreshData();
+    }
+    
+    /**
+     * Handle completing an interview - navigates to the Interview Session VF page
+     * The VF page needs caseId and templateVersionId to load the interview
+     */
+    handleCompleteInterview(event) {
+        event.stopPropagation();
+        // Use currentTarget to ensure we get the button element, not a child element
+        const button = event.currentTarget;
+        const interviewId = button.dataset.id;
+        const caseId = button.dataset.caseId;
+        const templateVersionId = button.dataset.templateVersionId;
+        
+        console.log('Complete Interview clicked:', { interviewId, caseId, templateVersionId });
+        console.log('Button dataset:', JSON.stringify(button.dataset));
+        
+        if (!caseId || !templateVersionId) {
+            console.warn('Missing navigation parameters - caseId:', caseId, 'templateVersionId:', templateVersionId);
+            // Fallback: navigate to the Interview record if we don't have the params
+            this.showToast('Navigation', 'Opening interview record...', 'info');
+            this[NavigationMixin.Navigate]({
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: interviewId,
+                    objectApiName: 'Interview__c',
+                    actionName: 'view'
+                }
+            });
+            return;
+        }
+        
+        // Navigate to the Interview Session VF page with the required parameters
+        // Include startStep=review to jump directly to the Review & Submit step
+        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}&startStep=review`;
+        console.log('Navigating to VF page:', vfPageUrl);
+        
+        // Use NavigationMixin for VF page navigation
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: {
+                url: vfPageUrl
+            }
+        });
+    }
+    
+    /**
+     * Handle amending a locked interview - navigates to amendment workflow
+     * This creates a new amendment record linked to the original interview
+     */
+    handleAmendInterview(event) {
+        event.stopPropagation();
+        const interviewId = event.target.dataset.id;
+        
+        // Show confirmation dialog before starting amendment
+        if (!confirm('This interview is locked after 72 hours. Creating an amendment will:\n\n' +
+            '• Create a new amendment record linked to the original\n' +
+            '• Allow you to document changes with a reason\n' +
+            '• Preserve the original record for audit purposes\n\n' +
+            'Continue with amendment?')) {
+            return;
+        }
+        
+        // Navigate to the Interview record to start amendment workflow
+        // The Interview record page should have an "Amend" action that creates the amendment
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: {
-                recordId: noteId,
-                objectApiName: 'InteractionSummary',
+                recordId: interviewId,
+                objectApiName: 'Interview__c',
                 actionName: 'view'
             }
         });
+        
+        this.showToast('Amendment Started', 'Navigate to the Interview record and use the Amend action to create a formal amendment.', 'info');
     }
     
     // Modal handlers
@@ -260,12 +412,20 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         this.refreshData();
     }
     
+    closeInterviewModal() {
+        this.showInterviewModal = false;
+        this.selectedInterviewId = null;
+        this.refreshData();
+    }
+    
     handleModalClose() {
         // Called when child component dispatches close event
         this.showCaseNoteModal = false;
         this.showClinicalNoteModal = false;
         this.showPeerNoteModal = false;
+        this.showInterviewModal = false;
         this.selectedDraftId = null;
+        this.selectedInterviewId = null;
         this.refreshData();
     }
     
@@ -274,8 +434,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             await Promise.all([
                 refreshApex(this.wiredDraftsResult),
                 refreshApex(this.wiredUnsignedResult),
+                refreshApex(this.wiredUnsignedInterviewsResult),
                 refreshApex(this.wiredActionItemsResult),
-                refreshApex(this.wiredPendingApprovalsResult)
+                this.loadPendingApprovals() // Reload imperatively since it's not cached
             ]);
         } catch (error) {
             console.error('Error refreshing data:', error);
@@ -311,19 +472,34 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
     }
     
-    // Manager Approval Handlers
-    async handleManagerApprove(event) {
+    // Manager Approval Handlers - Now opens modal for review first
+    handleManagerApprove(event) {
         event.stopPropagation();
         const recordId = event.target.dataset.id;
         const recordType = event.target.dataset.type;
         
-        try {
-            await managerApprove({ recordId, recordType });
-            this.showToast('Success', 'Approved successfully', 'success');
-            await this.refreshData();
-        } catch (error) {
-            this.showToast('Error', error.body?.message || 'Failed to approve', 'error');
+        // Open the approval modal instead of approving directly
+        const modal = this.template.querySelector('c-note-approval-modal');
+        if (modal) {
+            modal.open(recordId, recordType);
         }
+    }
+    
+    // Handle clicking on a pending approval item - also opens the modal
+    handlePendingApprovalClick(event) {
+        const recordId = event.currentTarget.dataset.id;
+        const recordType = event.currentTarget.dataset.type || 'Interaction';
+        
+        // Open the approval modal for review
+        const modal = this.template.querySelector('c-note-approval-modal');
+        if (modal) {
+            modal.open(recordId, recordType);
+        }
+    }
+    
+    // Called when approval or rejection is complete
+    async handleApprovalComplete() {
+        await this.refreshData();
     }
     
     // Flag for Action Modal Handlers
@@ -371,6 +547,58 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             await this.refreshData();
         } catch (error) {
             this.showToast('Error', error.body?.message || 'Failed to flag for action', 'error');
+        }
+    }
+    
+    // Reassign Interview Modal Handlers
+    handleReassignInterview(event) {
+        event.stopPropagation();
+        const interviewId = event.target.dataset.id;
+        const interviewName = event.target.dataset.name;
+        
+        this.reassignTargetInterview = { interviewId, interviewName };
+        this.reassignUserId = '';
+        this.reassignNotes = '';
+        this.showReassignModal = true;
+    }
+    
+    handleReassignUserChange(event) {
+        this.reassignUserId = event.detail.value[0] || '';
+    }
+    
+    handleReassignNotesChange(event) {
+        this.reassignNotes = event.target.value;
+    }
+    
+    closeReassignModal() {
+        this.showReassignModal = false;
+        this.reassignTargetInterview = null;
+        this.reassignUserId = '';
+        this.reassignNotes = '';
+    }
+    
+    async submitReassign() {
+        if (!this.reassignUserId) {
+            this.showToast('Error', 'Please select a user to reassign this interview to', 'error');
+            return;
+        }
+        
+        try {
+            const result = await reassignInterview({
+                interviewId: this.reassignTargetInterview.interviewId,
+                newOwnerId: this.reassignUserId,
+                notes: this.reassignNotes
+            });
+            
+            if (result.success) {
+                this.showToast('Success', result.message, 'success');
+                this.closeReassignModal();
+                await this.refreshData();
+            } else {
+                this.showToast('Error', result.message || 'Failed to reassign interview', 'error');
+            }
+        } catch (error) {
+            this.showToast('Error', error.body?.message || 'Failed to reassign interview', 'error');
         }
     }
     

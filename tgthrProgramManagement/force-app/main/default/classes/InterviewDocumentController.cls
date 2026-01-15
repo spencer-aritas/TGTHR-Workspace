@@ -33,6 +33,15 @@ public with sharing class InterviewDocumentController {
         @AuraEnabled public Boolean staffSigned;
         @AuraEnabled public String signedBy;
         @AuraEnabled public DateTime signedOn;
+        @AuraEnabled public String clientSignerName;
+        @AuraEnabled public DateTime clientSignedDate;
+        @AuraEnabled public String staffSignerName;
+        @AuraEnabled public String staffSignerTitle;
+        @AuraEnabled public DateTime staffSignedDate;
+        // Manager/Co-signer fields
+        @AuraEnabled public Boolean managerSigned;
+        @AuraEnabled public String managerSignerName;
+        @AuraEnabled public DateTime managerSignedDate;
         @AuraEnabled public String caseId;
         @AuraEnabled public String interactionSummaryId;
         @AuraEnabled public Boolean displayInCaseChart;
@@ -40,6 +49,14 @@ public with sharing class InterviewDocumentController {
         @AuraEnabled public Boolean displayInInteractionView;
         @AuraEnabled public String clientName;
         @AuraEnabled public Id clientId;
+        // New fields for notes support
+        @AuraEnabled public String documentType; // 'Interview' or 'Note'
+        @AuraEnabled public String noteType; // 'Clinical Note', 'Case Note', 'Peer Note'
+        @AuraEnabled public String meetingNotes; // Content of the note
+        @AuraEnabled public String servicesDescription; // Description_of_Services__c
+        @AuraEnabled public String responseAndProgress; // Response_and_Progress__c
+        @AuraEnabled public String plan; // Plan__c
+        @AuraEnabled public Boolean hasPreview; // Whether preview/download is available
     }
     
     /**
@@ -77,28 +94,254 @@ public with sharing class InterviewDocumentController {
     }
     
     /**
-     * Get all documents linked to a Case, filtered by template display policy.
+     * Get all COMPLETED documents linked to a Case, filtered by template display policy.
+     * Only returns documents where the Interview has been completed (Completed_On__c is not null).
+     * Also includes completed notes (Clinical, Case, Peer) as InteractionSummary records.
+     * Incomplete documents should appear in the Pending Documentation component instead.
      * 
      * @param caseId Case record ID
      * @return List of DocumentInfo
      */
     private static List<DocumentInfo> getDocumentsForCase(Id caseId) {
+        List<DocumentInfo> result = new List<DocumentInfo>();
+        
+        // Query Interview Documents
         String query =
             'SELECT Id, Interview__c, Interview__r.Name, Interview__r.Completed_On__c, ' +
             'Interview__r.Started_On__c, Interview__r.Status__c, ' +
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
+            'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
             'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
             'WHERE Case__c = :caseId ' +
+            'AND Interview__r.Completed_On__c != null ' +
             'ORDER BY Interview__r.Completed_On__c DESC NULLS LAST, CreatedDate DESC';
         
         List<SObject> docs = Database.query(query);
+        result.addAll(buildDocumentInfoList(docs));
         
-        return buildDocumentInfoList(docs);
+        // Also query Notes (InteractionSummary records with note types)
+        List<DocumentInfo> notes = getNotesForCase(caseId);
+        result.addAll(notes);
+        
+        // Sort combined list by completedDate/createdDate DESC
+        result.sort(new DocumentInfoComparator());
+        
+        return result;
+    }
+    
+    /**
+     * Get completed notes (Clinical, Case, Peer) for a Case.
+     * Notes are stored as InteractionSummary records with InteractionPurpose in ('Clinical Note', 'Case Note', 'Peer Note')
+     */
+    private static List<DocumentInfo> getNotesForCase(Id caseId) {
+        List<DocumentInfo> result = new List<DocumentInfo>();
+        
+        try {
+            // Check which optional fields exist on InteractionSummary
+            Map<String, Schema.SObjectField> fieldMap = Schema.getGlobalDescribe().get('InteractionSummary').getDescribe().fields.getMap();
+            
+            // Start with base fields that always exist
+            String query = 
+                'SELECT Id, Name, AccountId, Account.Name, CreatedById, CreatedBy.Name, ' +
+                'Date_of_Interaction__c, InteractionPurpose, MeetingNotes, CreatedDate, ' +
+                'Start_Time__c, End_Time__c ';
+            
+            // Add optional signature fields if they exist
+            if (fieldMap.containsKey('signed_by__c')) {
+                query += ', Signed_By__c ';
+            }
+            if (fieldMap.containsKey('signed_by_name__c')) {
+                query += ', Signed_By_Name__c ';
+            }
+            if (fieldMap.containsKey('signed_date__c')) {
+                query += ', Signed_Date__c ';
+            }
+            if (fieldMap.containsKey('manager_signed__c')) {
+                query += ', Manager_Signed__c ';
+            }
+            if (fieldMap.containsKey('manager_signed_date__c')) {
+                query += ', Manager_Signed_Date__c ';
+            }
+            if (fieldMap.containsKey('manager_signed_by_name__c')) {
+                query += ', Manager_Signed_By_Name__c ';
+            }
+            
+            // Add optional note content fields if they exist
+            if (fieldMap.containsKey('description_of_services__c')) {
+                query += ', Description_of_Services__c ';
+            }
+            if (fieldMap.containsKey('response_and_progress__c')) {
+                query += ', Response_and_Progress__c ';
+            }
+            if (fieldMap.containsKey('plan__c')) {
+                query += ', Plan__c ';
+            }
+            
+            // Use string concatenation for the WHERE clause since dynamic SOQL with bind variables
+            // requires the variables to be in scope. For IN clause, build it explicitly.
+            query += 'FROM InteractionSummary ' +
+                'WHERE RelatedRecordId = \'' + String.escapeSingleQuotes(String.valueOf(caseId)) + '\' ' +
+                'AND InteractionPurpose IN (\'Clinical Note\', \'Case Note\', \'Peer Note\') ' +
+                'ORDER BY Date_of_Interaction__c DESC NULLS LAST, CreatedDate DESC';
+            
+            System.debug('getNotesForCase query: ' + query);
+            List<SObject> notes = Database.query(query);
+            
+            for (SObject note : notes) {
+                DocumentInfo info = new DocumentInfo();
+                info.id = (Id) note.get('Id');
+                info.interactionSummaryId = (String) note.get('Id');
+                info.documentType = 'Note';
+                info.noteType = (String) note.get('InteractionPurpose');
+                info.templateName = (String) note.get('InteractionPurpose'); // Use note type as "template name"
+                info.templateCategory = 'Note';
+                info.status = 'Completed';
+                info.documentStatus = 'Completed';
+                
+                // Dates - use Start_Time__c if available for accurate time display
+                Date interactionDate = (Date) note.get('Date_of_Interaction__c');
+                DateTime startTime = (DateTime) note.get('Start_Time__c');
+                DateTime endTime = (DateTime) note.get('End_Time__c');
+                
+                if (startTime != null) {
+                    // Use the actual start time from the note
+                    info.completedDate = startTime;
+                    info.startDate = startTime;
+                } else if (interactionDate != null) {
+                    // Fallback to date with noon time if no start time
+                    info.completedDate = DateTime.newInstance(interactionDate, Time.newInstance(12, 0, 0, 0));
+                    info.startDate = info.completedDate;
+                }
+                info.createdDate = (DateTime) note.get('CreatedDate');
+                
+                // Client info
+                info.clientId = (Id) note.get('AccountId');
+                SObject client = note.getSObject('Account');
+                if (client != null) {
+                    info.clientName = (String) client.get('Name');
+                }
+                
+                // Staff signer info - use Signed_By fields first, then fallback to CreatedBy
+                if (fieldMap.containsKey('signed_by_name__c') && note.get('Signed_By_Name__c') != null) {
+                    info.staffSignerName = (String) note.get('Signed_By_Name__c');
+                    info.staffSigned = true;
+                    
+                    if (fieldMap.containsKey('signed_date__c')) {
+                        Date signedDate = (Date) note.get('Signed_Date__c');
+                        if (signedDate != null) {
+                            info.staffSignedDate = DateTime.newInstance(signedDate, Time.newInstance(12, 0, 0, 0));
+                        }
+                    }
+                } else {
+                    // Fallback to CreatedBy as signer
+                    SObject createdBy = note.getSObject('CreatedBy');
+                    if (createdBy != null) {
+                        info.staffSignerName = (String) createdBy.get('Name');
+                        info.staffSigned = true;
+                    }
+                }
+                
+                // Manager co-signer info
+                if (fieldMap.containsKey('manager_signed__c') && note.get('Manager_Signed__c') != null && (Boolean)note.get('Manager_Signed__c') == true) {
+                    info.managerSigned = true;
+                    
+                    if (fieldMap.containsKey('manager_signed_by_name__c')) {
+                        info.managerSignerName = (String) note.get('Manager_Signed_By_Name__c');
+                    }
+                    
+                    if (fieldMap.containsKey('manager_signed_date__c')) {
+                        Date managerSignedDate = (Date) note.get('Manager_Signed_Date__c');
+                        if (managerSignedDate != null) {
+                            info.managerSignedDate = DateTime.newInstance(managerSignedDate, Time.newInstance(12, 0, 0, 0));
+                        }
+                    }
+                }
+                
+                // Notes don't have client signatures
+                info.clientSigned = false;
+                
+                // Note content
+                info.meetingNotes = (String) note.get('MeetingNotes');
+                
+                // Optional fields
+                if (fieldMap.containsKey('description_of_services__c')) {
+                    info.servicesDescription = (String) note.get('Description_of_Services__c');
+                }
+                if (fieldMap.containsKey('response_and_progress__c')) {
+                    info.responseAndProgress = (String) note.get('Response_and_Progress__c');
+                }
+                if (fieldMap.containsKey('plan__c')) {
+                    info.plan = (String) note.get('Plan__c');
+                }
+                
+                // Notes now support preview/download via docgen
+                info.hasPreview = true;
+                info.displayInCaseChart = true;
+                info.displayInParticipantChart = true;
+                info.displayInInteractionView = true;
+                
+                result.add(info);
+            }
+            
+            // Query ContentDocumentLinks to get attached DOCX documents for each note
+            // Filter for .docx files to avoid getting signature images
+            if (!result.isEmpty()) {
+                Set<Id> noteIds = new Set<Id>();
+                for (DocumentInfo info : result) {
+                    noteIds.add(info.id);
+                }
+                
+                // Build map of note ID to ContentDocumentId (most recent DOCX first)
+                Map<Id, Id> noteToContentDocMap = new Map<Id, Id>();
+                for (ContentDocumentLink cdl : [
+                    SELECT LinkedEntityId, ContentDocumentId, ContentDocument.FileExtension, ContentDocument.Title
+                    FROM ContentDocumentLink 
+                    WHERE LinkedEntityId IN :noteIds
+                    AND ContentDocument.FileExtension = 'docx'
+                    ORDER BY ContentDocument.CreatedDate DESC
+                ]) {
+                    // Only keep first (most recent) DOCX ContentDocument per note
+                    if (!noteToContentDocMap.containsKey(cdl.LinkedEntityId)) {
+                        noteToContentDocMap.put(cdl.LinkedEntityId, cdl.ContentDocumentId);
+                    }
+                }
+                
+                // Update DocumentInfo with contentDocumentId
+                for (DocumentInfo info : result) {
+                    if (noteToContentDocMap.containsKey(info.id)) {
+                        info.contentDocumentId = noteToContentDocMap.get(info.id);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.debug('Error querying notes for case: ' + e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Comparator to sort DocumentInfo by completedDate DESC
+     */
+    private class DocumentInfoComparator implements Comparator<DocumentInfo> {
+        public Integer compare(DocumentInfo a, DocumentInfo b) {
+            DateTime dateA = a.completedDate != null ? a.completedDate : a.createdDate;
+            DateTime dateB = b.completedDate != null ? b.completedDate : b.createdDate;
+            
+            if (dateA == null && dateB == null) return 0;
+            if (dateA == null) return 1;
+            if (dateB == null) return -1;
+            
+            // DESC order (most recent first)
+            if (dateA > dateB) return -1;
+            if (dateA < dateB) return 1;
+            return 0;
+        }
     }
     
     /**
@@ -123,18 +366,21 @@ public with sharing class InterviewDocumentController {
         
         Id caseId = (Id) interactions[0].get('RelatedRecordId');
         
-        // Query documents for this interaction AND the case context
+        // Query COMPLETED documents for this interaction AND the case context
+        // Only include documents where Interview__r.Completed_On__c is not null
         String query =
             'SELECT Id, Interview__c, Interview__r.Name, Interview__r.Completed_On__c, ' +
             'Interview__r.Started_On__c, Interview__r.Status__c, ' +
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
+            'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
             'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
             'WHERE (Interaction_Summary__c = :interactionSummaryId OR Case__c = :caseId) ' +
+            'AND Interview__r.Completed_On__c != null ' +
             'ORDER BY Interview__r.Completed_On__c DESC NULLS LAST, CreatedDate DESC';
         
         List<SObject> docs = Database.query(query);
@@ -143,25 +389,28 @@ public with sharing class InterviewDocumentController {
     }
     
     /**
-     * Get all documents for a Person Account (participant chart).
+     * Get all COMPLETED documents for a Person Account (participant chart).
      * Queries via Interview__c.Client__c relationship.
+     * Only returns documents where the Interview has been completed.
      * 
      * @param accountId Account record ID
      * @return List of DocumentInfo
      */
     private static List<DocumentInfo> getDocumentsForAccount(Id accountId) {
-        // Query via Interview__c.Client__c
+        // Query via Interview__c.Client__c - only completed interviews
         String query =
             'SELECT Id, Interview__c, Interview__r.Name, Interview__r.Completed_On__c, ' +
             'Interview__r.Started_On__c, Interview__r.Status__c, ' +
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
+            'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
             'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
             'WHERE Interview__r.Client__c = :accountId ' +
+            'AND Interview__r.Completed_On__c != null ' +
             'ORDER BY Interview__r.Completed_On__c DESC NULLS LAST, CreatedDate DESC';
         
         List<SObject> docs = Database.query(query);
@@ -183,6 +432,8 @@ public with sharing class InterviewDocumentController {
             
             info.id = (Id) doc.get('Id');
             info.interviewId = (Id) doc.get('Interview__c');
+            info.documentType = 'Interview'; // This is an Interview document
+            info.hasPreview = true; // Interview documents have preview capability
             info.documentStatus = (String) doc.get('Document_Status__c');
             info.renderingMode = (String) doc.get('Rendering_Mode__c');
             info.contentDocumentId = (String) doc.get('ContentDocumentId__c');
@@ -207,19 +458,32 @@ public with sharing class InterviewDocumentController {
                     info.clientName = (String) client.get('Name');
                 }
                 
-                // Determine who signed and when
-                DateTime clientSignedDate = (DateTime) interview.get('Date_Client_Signed__c');
-                DateTime staffSignedDate = (DateTime) interview.get('Date_Staff_Signed__c');
+                // Get detailed signer information
+                info.clientSignedDate = (DateTime) interview.get('Date_Client_Signed__c');
+                info.staffSignedDate = (DateTime) interview.get('Date_Staff_Signed__c');
                 
-                if (clientSignedDate != null && staffSignedDate != null) {
+                // Client signer name (from Person Account)
+                if (client != null) {
+                    info.clientSignerName = (String) client.get('Name');
+                }
+                
+                // Staff signer name and title (from User lookup)
+                SObject staffSigner = interview.getSObject('Staff_Signed_By__r');
+                if (staffSigner != null) {
+                    info.staffSignerName = (String) staffSigner.get('Name');
+                    info.staffSignerTitle = (String) staffSigner.get('Title');
+                }
+                
+                // Determine who signed and when (legacy fields for backward compatibility)
+                if (info.clientSignedDate != null && info.staffSignedDate != null) {
                     info.signedBy = 'Client & Staff';
-                    info.signedOn = clientSignedDate > staffSignedDate ? clientSignedDate : staffSignedDate;
-                } else if (clientSignedDate != null) {
+                    info.signedOn = info.clientSignedDate > info.staffSignedDate ? info.clientSignedDate : info.staffSignedDate;
+                } else if (info.clientSignedDate != null) {
                     info.signedBy = 'Client';
-                    info.signedOn = clientSignedDate;
-                } else if (staffSignedDate != null) {
+                    info.signedOn = info.clientSignedDate;
+                } else if (info.staffSignedDate != null) {
                     info.signedBy = 'Staff';
-                    info.signedOn = staffSignedDate;
+                    info.signedOn = info.staffSignedDate;
                 }
             }
             
@@ -331,6 +595,78 @@ public with sharing class InterviewDocumentController {
         }
         
         return downloadUrl;
+    }
+    
+    /**
+     * Get preview URL for a Note (InteractionSummary).
+     * Returns a docgen HTML preview endpoint for Clinical/Case/Peer Notes.
+     * 
+     * @param interactionSummaryId InteractionSummary record ID
+     * @return Preview URL for the note (HTML format for iframe embedding)
+     */
+    @AuraEnabled
+    public static String getNotePreviewUrl(Id interactionSummaryId) {
+        if (interactionSummaryId == null) {
+            throw new CalloutException('InteractionSummary ID is required');
+        }
+        
+        String docgenEndpoint = getDocGenEndpoint();
+        return docgenEndpoint + '/notes/' + interactionSummaryId + '/preview';
+    }
+    
+    /**
+     * Generate and download a Note document.
+     * Calls docgen to create a branded DOCX, upload to Salesforce, and returns ContentDocumentId.
+     * 
+     * @param interactionSummaryId InteractionSummary record ID
+     * @return Map with content_document_id, filename, download_url
+     */
+    @AuraEnabled
+    public static Map<String, Object> generateNoteDocument(Id interactionSummaryId) {
+        if (interactionSummaryId == null) {
+            throw new CalloutException('InteractionSummary ID is required');
+        }
+        
+        String docgenEndpoint = getDocGenEndpoint();
+        // Pass instance URL so docgen knows which environment to connect to
+        String instanceUrl = URL.getOrgDomainUrl().toExternalForm();
+        String endpoint = docgenEndpoint + '/notes/' + interactionSummaryId + '/download?instance_url=' + EncodingUtil.urlEncode(instanceUrl, 'UTF-8');
+        
+        System.debug('Calling docgen endpoint: ' + endpoint);
+        
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint(endpoint);
+        request.setMethod('GET');
+        request.setTimeout(60000); // 60 second timeout for document generation
+        
+        HttpResponse response = http.send(request);
+        
+        if (response.getStatusCode() != 200) {
+            System.debug('Docgen error response: ' + response.getBody());
+            throw new CalloutException('Failed to generate note document: ' + response.getBody());
+        }
+        
+        // Parse JSON response
+        Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
+        return result;
+    }
+    
+    /**
+     * Get download URL for a Note (InteractionSummary).
+     * Returns the docgen endpoint URL for backward compatibility.
+     * 
+     * @param interactionSummaryId InteractionSummary record ID
+     * @return Download URL for the note
+     */
+    @AuraEnabled
+    public static String getNoteDownloadUrl(Id interactionSummaryId) {
+        if (interactionSummaryId == null) {
+            throw new CalloutException('InteractionSummary ID is required');
+        }
+        
+        String docgenEndpoint = getDocGenEndpoint();
+        return docgenEndpoint + '/notes/' + interactionSummaryId + '/download';
     }
     
     /**

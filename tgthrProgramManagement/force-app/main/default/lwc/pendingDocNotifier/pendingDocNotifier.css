@@ -1,0 +1,30 @@
+.pending-item-row {
+    padding: 0.5rem 0;
+}
+
+.pending-item-link {
+    display: flex;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.pending-item-link:hover {
+    background-color: #f3f3f3;
+}
+
+.slds-badge_inverse {
+    background-color: #0176d3;
+    color: white;
+}
+
+.slds-theme_warning {
+    background-color: #fe9339;
+    color: #080707;
+}
+
+.slds-theme_error {
+    background-color: #ea001e;
+    color: white;
+}

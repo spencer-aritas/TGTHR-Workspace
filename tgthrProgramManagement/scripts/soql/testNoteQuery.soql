@@ -1,0 +1,11 @@
+SELECT Id, Name, AccountId, Account.Name, Account.PersonBirthdate,
+       CreatedById, CreatedBy.Name, CreatedBy.Title,
+       Date_of_Interaction__c, InteractionPurpose, MeetingNotes,
+       Start_Time__c, End_Time__c, 
+       Description_of_Services__c, Response_and_Progress__c, Plan__c,
+       Interpreter_Used__c, POS__c,
+       RelatedRecordId,
+       Manager_Signed__c, Manager_Signed_Date__c
+FROM InteractionSummary
+WHERE InteractionPurpose = 'Clinical Note'
+LIMIT 1

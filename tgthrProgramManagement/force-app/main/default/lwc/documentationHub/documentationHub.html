@@ -87,7 +87,7 @@
                     </h2>
                 </header>
                 <div class="slds-modal__content modal-body">
-                    <c-clinical-note record-id={recordId}></c-clinical-note>
+                    <c-clinical-note record-id={recordId} onclose={handleClinicalNoteClose}></c-clinical-note>
                 </div>
                 <footer class="slds-modal__footer">
                     <lightning-button variant="neutral" label="Close" onclick={closeClinicalNote}></lightning-button>
@@ -119,7 +119,7 @@
                     </h2>
                 </header>
                 <div class="slds-modal__content modal-body">
-                    <c-peer-note record-id={recordId}></c-peer-note>
+                    <c-peer-note record-id={recordId} onclose={handlePeerNoteClose}></c-peer-note>
                 </div>
                 <footer class="slds-modal__footer">
                     <lightning-button variant="neutral" label="Close" onclick={closePeerNote}></lightning-button>

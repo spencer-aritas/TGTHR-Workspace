@@ -130,16 +130,28 @@
                                 <ul class="slds-has-dividers_bottom-space">
                                     <template for:each={pendingApprovals} for:item="item">
                                         <li key={item.id} class="slds-item slds-p-vertical_x-small">
-                                            <div class="pending-item" data-id={item.sourceRecordId} onclick={handleNoteClick}>
+                                            <div class="pending-item pending-approval-item" 
+                                                 data-id={item.sourceRecordId} 
+                                                 data-type={item.recordType}
+                                                 onclick={handlePendingApprovalClick}>
                                                 <div class="slds-grid slds-grid_vertical-align-center">
                                                     <div class="slds-col slds-has-flexi-truncate">
                                                         <div class="slds-text-heading_small slds-truncate">
                                                             {item.name}
+                                                            <template if:true={item.isDelegatedApproval}>
+                                                                <lightning-badge label="Delegated" class="slds-badge_warning slds-m-left_x-small"></lightning-badge>
+                                                            </template>
                                                             <lightning-badge label="Needs Your Approval" class="slds-badge_info slds-m-left_x-small"></lightning-badge>
                                                         </div>
                                                         <div class="slds-text-body_small text-muted">
                                                             {item.dateDisplay} · {item.purpose}
                                                         </div>
+                                                        <template if:true={item.isDelegatedApproval}>
+                                                            <div class="slds-text-body_small text-muted">
+                                                                <lightning-icon icon-name="utility:switch" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+                                                                On behalf of: {item.managerApproverName}
+                                                            </div>
+                                                        </template>
                                                         <div class="slds-text-body_small">
                                                             {item.signatureStatus}
                                                         </div>
@@ -147,7 +159,7 @@
                                                     <div class="slds-col slds-no-flex slds-m-left_small">
                                                         <template if:true={item.canApproveAsManager}>
                                                             <lightning-button
-                                                                label="Approve"
+                                                                label="Review"
                                                                 variant="brand"
                                                                 size="small"
                                                                 onclick={handleManagerApprove}
@@ -235,6 +247,87 @@
                             </div>
                         </div>
                     </template>
+                    
+                    <!-- Pending Interviews Section -->
+                    <template if:true={hasUnsignedInterviews}>
+                        <div class="slds-section slds-is-open">
+                            <h3 class="slds-section__title slds-theme_shade">
+                                <span class="slds-truncate slds-p-horizontal_small" title="Pending Interviews">
+                                    <lightning-icon icon-name="utility:file" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                    Pending Interviews ({unsignedInterviews.length})
+                                </span>
+                            </h3>
+                            <div class="slds-section__content">
+                                <ul class="slds-has-dividers_bottom-space">
+                                    <template for:each={unsignedInterviews} for:item="interview">
+                                        <li key={interview.id} class="slds-item slds-p-vertical_x-small">
+                                            <div class="pending-item">
+                                                <div class="slds-grid slds-grid_vertical-align-center">
+                                                    <div class="slds-col slds-has-flexi-truncate">
+                                                        <div class="slds-text-heading_small slds-truncate">
+                                                            {interview.name}
+                                                            <template if:true={interview.isEditLocked}>
+                                                                <lightning-badge label="Locked" class="slds-badge_inverse slds-m-left_x-small"></lightning-badge>
+                                                            </template>
+                                                        </div>
+                                                        <div class="slds-text-body_small text-muted">
+                                                            {interview.dateDisplay} · {interview.purpose}
+                                                            <template if:true={interview.ownerName}>
+                                                                · <lightning-icon icon-name="utility:user" size="xx-small" class="slds-m-horizontal_xx-small"></lightning-icon>{interview.ownerName}
+                                                            </template>
+                                                        </div>
+                                                        <div class="slds-text-body_small">
+                                                            <lightning-icon icon-name="utility:warning" size="xx-small" class="slds-m-right_xx-small warning-icon"></lightning-icon>
+                                                            <span class="text-warning">{interview.signatureStatus}</span>
+                                                        </div>
+                                                        <template if:true={interview.editLockReason}>
+                                                            <div class="slds-text-body_small text-muted slds-m-top_xx-small">
+                                                                <lightning-icon icon-name="utility:lock" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+                                                                {interview.editLockReason}
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                    <div class="slds-col slds-no-flex slds-m-left_small">
+                                                        <div class="slds-button-group">
+                                                            <lightning-button
+                                                                label="Reassign"
+                                                                variant="neutral"
+                                                                size="small"
+                                                                onclick={handleReassignInterview}
+                                                                data-id={interview.sourceRecordId}
+                                                                data-name={interview.name}
+                                                                class="slds-m-right_x-small">
+                                                            </lightning-button>
+                                                            <template if:false={interview.isEditLocked}>
+                                                                <lightning-button
+                                                                    label="Complete"
+                                                                    variant="brand"
+                                                                    size="small"
+                                                                    onclick={handleCompleteInterview}
+                                                                    data-id={interview.sourceRecordId}
+                                                                    data-case-id={interview.caseId}
+                                                                    data-template-version-id={interview.templateVersionId}>
+                                                                </lightning-button>
+                                                            </template>
+                                                            <template if:true={interview.canAmend}>
+                                                                <lightning-button
+                                                                    label="Amend"
+                                                                    variant="neutral"
+                                                                    size="small"
+                                                                    onclick={handleAmendInterview}
+                                                                    data-id={interview.sourceRecordId}>
+                                                                </lightning-button>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                    </template>
                 </template>
                 
                 <template if:false={hasPendingItems}>
@@ -307,7 +400,7 @@
                 <div class="slds-modal__content modal-body">
                     <c-clinical-note 
                         record-id={recordId}
-                        draft-id={selectedDraftId}
+                        incoming-draft-id={selectedDraftId}
                         onclose={handleModalClose}>
                     </c-clinical-note>
                 </div>
@@ -349,6 +442,41 @@
                 </div>
                 <footer class="slds-modal__footer">
                     <lightning-button variant="neutral" label="Close" onclick={closePeerNoteModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Interview Session Modal -->
+    <template if:true={showInterviewModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="pending-interview-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeInterviewModal}>
+                    </lightning-button-icon>
+                    <h2 id="pending-interview-modal-heading" class="slds-text-heading_medium">
+                        Complete Interview
+                    </h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <c-interview-session 
+                        record-id={selectedInterviewId}
+                        onclose={handleModalClose}>
+                    </c-interview-session>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeInterviewModal}></lightning-button>
                 </footer>
             </div>
         </section>
@@ -410,6 +538,81 @@
                 <footer class="slds-modal__footer">
                     <lightning-button variant="neutral" label="Cancel" onclick={closeFlagModal}></lightning-button>
                     <lightning-button variant="brand" label="Flag for Action" onclick={submitFlagForAction}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+    
+    <!-- Note Approval Modal -->
+    <c-note-approval-modal 
+        onapproved={handleApprovalComplete}
+        onrejected={handleApprovalComplete}>
+    </c-note-approval-modal>
+    
+    <!-- Note Signature Modal (for completing unsigned notes) -->
+    <c-note-signature-modal 
+        onsigned={handleSignatureComplete}>
+    </c-note-signature-modal>
+    
+    <!-- Reassign Interview Modal -->
+    <template if:true={showReassignModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="reassign-modal-heading"
+            class="slds-modal slds-fade-in-open slds-modal_small">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeReassignModal}>
+                    </lightning-button-icon>
+                    <h2 id="reassign-modal-heading" class="slds-text-heading_medium">
+                        Reassign Interview
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-body_regular slds-m-bottom_medium">
+                        Select a user to reassign this interview to. They will receive a notification.
+                    </p>
+                    <div class="slds-form-element slds-m-bottom_medium">
+                        <label class="slds-form-element__label" for="reassignToUser">
+                            <abbr class="slds-required" title="required">*</abbr> Assign To
+                        </label>
+                        <div class="slds-form-element__control">
+                            <lightning-record-picker
+                                label="Assign To"
+                                placeholder="Search for a user..."
+                                object-api-name="User"
+                                value={reassignUserId}
+                                onchange={handleReassignUserChange}
+                                variant="label-hidden">
+                            </lightning-record-picker>
+                        </div>
+                    </div>
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="reassignNotes">
+                            Notes (optional)
+                        </label>
+                        <div class="slds-form-element__control">
+                            <lightning-textarea
+                                name="reassignNotes"
+                                value={reassignNotes}
+                                onchange={handleReassignNotesChange}
+                                placeholder="Add any notes for the new assignee..."
+                                max-length="2000">
+                            </lightning-textarea>
+                        </div>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Cancel" onclick={closeReassignModal}></lightning-button>
+                    <lightning-button variant="brand" label="Reassign" onclick={submitReassign}></lightning-button>
                 </footer>
             </div>
         </section>

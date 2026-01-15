@@ -4,7 +4,7 @@
       <span class="slds-icon_container slds-icon-standard-note slds-m-right_small">
         <lightning-icon icon-name="standard:note" size="small"></lightning-icon>
       </span>
-      Meeting Notes (Last 90 Days)
+      Interaction History (Last 90 Days)
     </h1>
     
   <template if:true={isLoading}>
@@ -421,15 +421,15 @@
                     </div>
                   </div>
                   
-                  <!-- Meeting Notes (Rich Text) -->
+                  <!-- Interaction Notes (Rich Text) -->
                   <div class="slds-form-element">
-                    <label class="slds-form-element__label" for="meeting-notes">Meeting Notes</label>
+                    <label class="slds-form-element__label" for="meeting-notes">Interaction Notes</label>
                     <div class="slds-form-element__control">
                       <lightning-input-rich-text
                         name="meeting-notes"
                         value={meetingNotes}
                         onchange={handleRichTextChange}
-                        placeholder="Enter meeting notes here..."
+                        placeholder="Enter interaction notes here..."
                         formats={richTextFormats}
                         label-visible="false"
                         required>
