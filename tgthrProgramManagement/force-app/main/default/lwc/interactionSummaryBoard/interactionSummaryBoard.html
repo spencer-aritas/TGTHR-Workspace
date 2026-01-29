@@ -55,7 +55,14 @@
                         <div class="slds-truncate">{row.Account_Name}</div>
                       </td>
                       <td>
-                        <div class="slds-truncate">{row.CreatedBy_Name}</div>
+                        <div class="slds-truncate">
+                            {row.CreatedBy_Name}
+                            <template if:true={row.isPendingApproval}>
+                                <div class="slds-m-top_xx-small">
+                                    <lightning-badge label="Pending Approval" class="slds-badge_warning" icon-name="utility:clock"></lightning-badge>
+                                </div>
+                            </template>
+                        </div>
                       </td>
                       <td class="rich-note-cell">
                         <div class="rich-cell-container slds-is-relative">
@@ -138,6 +145,9 @@
                 </span>
                 <template if:true={n.Notify_Case_Manager__c}>
                   <lightning-icon icon-name="utility:warning" size="x-small" class="warn"></lightning-icon>
+                </template>
+                <template if:true={n.isPendingApproval}>
+                  <lightning-badge label="Pending Approval" class="slds-badge_warning slds-m-left_small"></lightning-badge>
                 </template>
               </div>
               <div class="action-buttons">

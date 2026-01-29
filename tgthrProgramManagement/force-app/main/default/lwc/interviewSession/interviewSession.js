@@ -15,6 +15,7 @@ import checkForExistingDraftByTemplate from '@salesforce/apex/DocumentDraftServi
 import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
 import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
+import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
@@ -76,6 +77,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     // Manager Approval support
     @track requestManagerCoSign = false;
     @track managerInfo = null;
+    @track signingAuthorityOptions = [];
+    @track selectedApproverId = null;
     
     // Accordion state - open all sections by default for better UX
     activeSections = [];
@@ -87,9 +90,32 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     wiredManagerInfo({ data, error }) {
         if (data) {
             this.managerInfo = data;
+            // Default selected approver to manager if available
+            if (this.managerInfo.hasManager && !this.selectedApproverId) {
+                this.selectedApproverId = this.managerInfo.managerId;
+            }
         } else if (error) {
             console.error('Error getting manager info:', error);
             this.managerInfo = { hasManager: false };
+        }
+    }
+    
+    // Wire to get signing authorities
+    @wire(getSigningAuthorities)
+    wiredSigningAuthorities({ data, error }) {
+        if (data) {
+            this.signingAuthorityOptions = data.map(user => ({
+                label: user.Name,
+                value: user.Id
+            }));
+            
+            // If we have a manager, ensure they are in the list or pre-selected?
+            if (this.managerInfo && this.managerInfo.hasManager && !this.selectedApproverId) {
+                this.selectedApproverId = this.managerInfo.managerId;
+            }
+        } else if (error) {
+            console.error('Error getting signing authorities:', error);
+            this.signingAuthorityOptions = [];
         }
     }
 
@@ -551,7 +577,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     // Manager Approval getters
     get hasManager() {
-        return this.managerInfo?.hasManager === true;
+        return (this.managerInfo?.hasManager === true) || (this.signingAuthorityOptions && this.signingAuthorityOptions.length > 0);
     }
 
     get managerMissing() {
@@ -559,13 +585,19 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get managerName() {
+        if (this.selectedApproverId) {
+            const selected = this.signingAuthorityOptions.find(opt => opt.value === this.selectedApproverId);
+            if (selected) return selected.label;
+        }
         return this.managerInfo?.managerName || 'Your Manager';
     }
 
     get managerApprovalLabel() {
-        return this.hasManager 
-            ? `Request co-signature from ${this.managerName}`
-            : 'Request manager co-signature (no manager assigned)';
+        return 'Request Approval/Co-Signature';
+    }
+
+    handleApproverChange(event) {
+        this.selectedApproverId = event.detail.value;
     }
 
     get clientSignatureFilename() {
@@ -1227,7 +1259,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     try {
                         await requestManagerApproval({ 
                             recordId: result.interviewId, 
-                            recordType: 'Interview' 
+                            recordType: 'Interview',
+                            approverId: this.selectedApproverId
                         });
                         console.log('Manager approval requested successfully');
                     } catch (approvalErr) {

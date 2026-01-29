@@ -5,6 +5,7 @@ import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
 import saveClinicalNoteWithDiagnoses from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteWithDiagnoses';
+import saveClinicalNoteRequest from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteRequest';
 import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
 import getDiagnosesForCase from '@salesforce/apex/DiagnosisSummaryController.getDiagnosesForCase';
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
@@ -13,6 +14,7 @@ import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
 import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
 import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
+import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
@@ -75,25 +77,42 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     @track isLoading = false;
     @track isSaving = false;
     @track loadError;
-    @track interactionId;
+    @api interactionId;
 
     // SSRS Assessment integration
     @track showSsrsModal = false;
     @track ssrsAssessmentData = null;
+    @track ssrsAssessmentId = null;
 
     // Draft/Save for Later support
     @track draftId = null;
     @track hasDraft = false;
     @track isSavingDraft = false;
+    
+    // Signature clearing for rejected notes
+    _clearSignatureOnRender = false;
 
     // Manager Approval support
     @track requestManagerCoSign = false;
     @track managerInfo = null;
+    @track signingAuthorityOptions = [];
+    @track selectedApproverId = null;
+    @track isReapprovalScenario = false; // True when editing a rejected note that's already awaiting re-approval
+    @track reapprovalManagerName = null; // Name of manager who will re-approve
     
     // ICD-10 Diagnoses
     @track selectedDiagnoses = [];  // Diagnoses selected for THIS note (new or from existing)
+    selectedExistingDiagnosisIds = []; // IDs of existing diagnoses selected from diagnosisSelector
+    newDiagnosesToCreate = []; // New diagnoses to create from diagnosisSelector
     @track existingDiagnoses = [];  // All existing diagnoses for the client
     @track isLoadingDiagnoses = false;
+    
+    // Primary diagnosis confirmation
+    @track showPrimaryConfirmation = false;
+    @track pendingPrimaryChange = null;
+    
+    // Track if we are editing a confirmed/existing note vs a new/draft one
+    @track isExistingNote = false;
 
     originalFormState;
 
@@ -102,9 +121,38 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     wiredManagerInfo({ data, error }) {
         if (data) {
             this.managerInfo = data;
+            // Only auto-select manager if they are in the valid signing authorities list
+            if (this.managerInfo.hasManager && !this.selectedApproverId && this.signingAuthorityOptions && this.signingAuthorityOptions.length > 0) {
+                const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
+                if (managerInList) {
+                    this.selectedApproverId = this.managerInfo.managerId;
+                }
+            }
         } else if (error) {
             console.error('Error getting manager info:', error);
             this.managerInfo = { hasManager: false };
+        }
+    }
+
+    // Wire to get signing authorities
+    @wire(getSigningAuthorities)
+    wiredSigningAuthorities({ data, error }) {
+        if (data) {
+            this.signingAuthorityOptions = data.map(user => ({
+                label: user.Name,
+                value: user.Id
+            }));
+            
+            // Should only auto-select manager if they are in the returned list
+            if (this.managerInfo && this.managerInfo.hasManager && !this.selectedApproverId) {
+                const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
+                if (managerInList) {
+                    this.selectedApproverId = this.managerInfo.managerId;
+                }
+            }
+        } else if (error) {
+            console.error('Error getting signing authorities:', error);
+            this.signingAuthorityOptions = [];
         }
     }
 
@@ -148,52 +196,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         return Object.values(this.goalWorkState).filter(g => g.workedOn).length;
     }
     
-    get hasSelectedDiagnoses() {
-        return this.selectedDiagnoses && this.selectedDiagnoses.length > 0;
-    }
-    
-    get hasExistingDiagnoses() {
-        return this.existingDiagnoses && this.existingDiagnoses.length > 0;
-    }
 
-    /**
-     * Get diagnoses with computed display properties (selected for this note)
-     */
-    get formattedDiagnoses() {
-        return this.selectedDiagnoses.map(diag => ({
-            ...diag,
-            statusIconClass: this._getStatusIconClass(diag.status),
-            isExisting: diag.id ? true : false  // Has an ID = existing record
-        }));
-    }
-    
-    /**
-     * Get existing client diagnoses formatted for display/selection
-     */
-    get formattedExistingDiagnoses() {
-        // Filter out any that are already selected
-        const selectedCodes = new Set(this.selectedDiagnoses.map(d => d.code));
-        return this.existingDiagnoses
-            .filter(diag => !selectedCodes.has(diag.code))
-            .map(diag => ({
-                ...diag,
-                statusIconClass: this._getStatusIconClass(diag.status),
-                isSelectable: true
-            }));
-    }
-    
-    get hasUnselectedExistingDiagnoses() {
-        return this.formattedExistingDiagnoses.length > 0;
-    }
-
-    _getStatusIconClass(status) {
-        if (!status) return 'diagnosis-status-default';
-        const s = status.toLowerCase();
-        if (s === 'active') return 'diagnosis-status-active';
-        if (s === 'resolved') return 'diagnosis-status-resolved';
-        if (s === 'inactive') return 'diagnosis-status-inactive';
-        return 'diagnosis-status-default';
-    }
     
     get hasCodeOptions() {
         return this.codeOptions && this.codeOptions.length > 0;
@@ -209,7 +212,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
     // Manager Approval getters
     get hasManager() {
-        return this.managerInfo?.hasManager === true;
+        return (this.managerInfo?.hasManager === true) || (this.signingAuthorityOptions && this.signingAuthorityOptions.length > 0);
     }
 
     get managerMissing() {
@@ -217,13 +220,27 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     }
 
     get managerName() {
+        if (this.selectedApproverId) {
+            const selected = this.signingAuthorityOptions.find(opt => opt.value === this.selectedApproverId);
+            if (selected) return selected.label;
+        }
         return this.managerInfo?.managerName || 'Your Manager';
     }
 
     get managerApprovalLabel() {
-        return this.hasManager 
-            ? `Request co-signature from ${this.managerName}`
-            : 'Request manager co-signature (no manager assigned)';
+        return 'Request Approval/Co-Signature';
+    }
+    
+    handleManagerApprovalToggle(event) {
+        this.requestManagerCoSign = event.target.checked;
+        if (!this.requestManagerCoSign) {
+            // Optional: reset selection? 
+            // Keeping it might be better UX if they toggle back on
+        }
+    }
+
+    handleApproverChange(event) {
+        this.selectedApproverId = event.detail.value;
     }
 
     /**
@@ -294,6 +311,10 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         return !!this.ssrsAssessmentData;
     }
 
+    get isManagerApprovalDisabled() {
+        return this.managerMissing || this.isReapprovalScenario;
+    }
+
     @wire(getObjectInfo, { objectApiName: INTERACTION_OBJECT })
     objectInfo;
 
@@ -310,6 +331,18 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         console.log('[ClinicalNote] connectedCallback - recordId:', this.recordId);
         this.loadInitialData();
     }
+    
+    renderedCallback() {
+        // Clear signature if this is a rejected note being edited
+        if (this._clearSignatureOnRender) {
+            this._clearSignatureOnRender = false;
+            const signaturePad = this.template.querySelector('c-signature-pad');
+            if (signaturePad && typeof signaturePad.clearSignature === 'function') {
+                signaturePad.clearSignature();
+                console.log('Cleared staff signature for rejected note - staff must re-sign');
+            }
+        }
+    }
 
     async loadInitialData() {
         if (!this.recordId) {
@@ -319,9 +352,9 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         this.isLoading = true;
         this.loadError = null;
         try {
-            console.log('Loading clinical note for case:', this.recordId);
-            const data = await initClinicalNote({ caseId: this.recordId });
-            this._initializeFromResponse(data);
+            console.log('Loading clinical note for case:', this.recordId, ' interactionId:', this.interactionId);
+            const data = await initClinicalNote({ caseId: this.recordId, interactionId: this.interactionId });
+            await this._initializeFromResponse(data);
             
             // Log PHI access for audit compliance (18 HIPAA Safe Harbor identifiers)
             // Clinical notes access: Name, DOB, Phone, Email, Medicaid ID
@@ -340,8 +373,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 this.benefitOptions = [];
             }
             
-            // Load existing diagnoses for the client
-            await this._loadExistingDiagnoses();
+            // Note: diagnosisSelector component handles loading its own diagnoses
         } catch (error) {
             console.error('Error loading clinical note data:', error);
             this.loadError = this._reduceErrors(error).join(', ');
@@ -404,7 +436,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         }
     }
 
-    _initializeFromResponse(data) {
+    async _initializeFromResponse(data) {
         if (!data) {
             this.loadError = 'No data returned from server.';
             return;
@@ -418,7 +450,8 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             activeGoals,
             codeAssignments,
             currentUserName,
-            accountId
+            accountId,
+            existingNote
         } = data;
         const headerInfo = header || {};
         this.header = {
@@ -476,6 +509,106 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             };
         });
         
+        // Check for existing note data (Amendment flow)
+        if (existingNote) {
+            console.log('Pre-filling form with existing note data');
+            this.isExistingNote = true;
+            this.form = {
+                ...this.form,
+                interactionDate: existingNote.interactionDate || this.form.interactionDate,
+                startTime: existingNote.startTime || this.form.startTime,
+                endTime: existingNote.endTime || this.form.endTime,
+                interpreterUsed: existingNote.interpreterUsed === true,
+                pos: existingNote.pos,
+                reason: existingNote.reason,
+                services: existingNote.services,
+                response: existingNote.response,
+                plan: existingNote.plan
+            };
+            
+            // Set SSRS Assessment ID if present
+            if (existingNote.ssrsAssessmentId) {
+                this.ssrsAssessmentId = existingNote.ssrsAssessmentId;
+            }
+            
+            // Set manager approval info if already requested (e.g., after rejection)
+            if (existingNote.requiresManagerApproval === true || existingNote.wasRejected === true) {
+                this.requestManagerCoSign = true;
+                this.isReapprovalScenario = true; // Disable checkbox, show message
+                this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
+                if (existingNote.managerApproverId) {
+                    this.selectedApproverId = existingNote.managerApproverId;
+                }
+            }
+            
+            // If note was rejected, clear the signature so staff must re-sign
+            if (existingNote.wasRejected === true) {
+                // Signature will be cleared after template renders
+                this._clearSignatureOnRender = true;
+                
+                // FORCE re-approval mode (overrides above logic)
+                this.requestManagerCoSign = true;
+                this.isReapprovalScenario = true;
+                this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
+                // Ensure approver ID is set so notification goes to the right person
+                if (existingNote.managerApproverId) {
+                    this.selectedApproverId = existingNote.managerApproverId;
+                }
+            }
+            
+            // Populate goal work state
+            if (existingNote.goalWorkState) {
+                Object.keys(existingNote.goalWorkState).forEach(goalId => {
+                    if (this.goalWorkState[goalId]) {
+                        this.goalWorkState[goalId] = {
+                            ...this.goalWorkState[goalId],
+                            ...existingNote.goalWorkState[goalId],
+                            expanded: true
+                        };
+                    }
+                });
+                // Ensure form knows about selected goals
+                this.form.goalIds = Object.keys(existingNote.goalWorkState);
+            }
+            
+            // Populate SSRS Assessment ID if present
+            if (existingNote.ssrsAssessmentId) {
+                this.ssrsAssessmentId = existingNote.ssrsAssessmentId;
+                this.ssrsAssessmentData = {
+                    id: existingNote.ssrsAssessmentId,
+                    status: 'Completed' // or derive from server? For now assume valid ID means it exists
+                };
+                console.log('Restored linked SSRS Assessment:', this.ssrsAssessmentData);
+            }
+            
+            // Populate diagnoses from existing note - backend now returns full diagnosis data
+            if (existingNote.selectedDiagnoses && Array.isArray(existingNote.selectedDiagnoses) && existingNote.selectedDiagnoses.length > 0) {
+                this.selectedDiagnoses = existingNote.selectedDiagnoses.map((d, index) => ({
+                    key: `${d.codeId || d.id}_${Date.now()}_${index}`,
+                    code: d.code,
+                    description: d.description,
+                    status: d.status || 'Active',
+                    notes: d.notes || '',
+                    isPrimary: d.isPrimary || false,
+                    category: d.category || '',
+                    onsetDate: d.onsetDate || '',
+                    isExisting: true,
+                    diagnosisId: d.id,
+                    codeId: d.codeId,
+                    Id: d.id // Ensure Id matches what diagnosisSelector expects
+                }));
+                console.log('Loaded diagnoses from existing note:', this.selectedDiagnoses);
+            }
+            
+            // Populate codes and benefits
+            if (existingNote.codeIds && Array.isArray(existingNote.codeIds)) {
+                this.form.codeIds = existingNote.codeIds;
+            }
+            if (existingNote.benefitIds && Array.isArray(existingNote.benefitIds)) {
+                this.form.benefitIds = existingNote.benefitIds;
+            }
+        }
+
         this.codeOptions = (codeAssignments || []).map((item) => ({
             label: item.label,
             value: item.id,
@@ -715,50 +848,176 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         }
     }
     
-    handleDiagnosisAdded(event) {
-        const diagnosis = event.detail;
-        console.log('ICD-10 Diagnosis added:', diagnosis);
+    handleDiagnosisChange(event) {
+        // Event from diagnosisSelector component
+        const { selectedExisting, newDiagnoses } = event.detail;
         
-        // Check for duplicates
-        const exists = this.selectedDiagnoses.some(d => d.code === diagnosis.code);
-        if (exists) {
-            this._showToast('Info', `${diagnosis.code} is already selected`, 'info');
-            return;
+        // Map current state to preserve inputs
+        const currentMap = new Map();
+        if (this.selectedDiagnoses) {
+            this.selectedDiagnoses.forEach(d => {
+                // Key by ID if existing, or Code if new
+                const key = d.isExisting ? d.Id : d.code;
+                if (key) {
+                    currentMap.set(key, d);
+                }
+            });
         }
         
-        // Add to selected diagnoses
-        this.selectedDiagnoses = [...this.selectedDiagnoses, diagnosis];
-        this._showToast('Success', `Added ${diagnosis.code} - ${diagnosis.description}`, 'success');
+        // Store both selected existing diagnoses and new ones
+        this.selectedExistingDiagnosisIds = selectedExisting.map(d => d.Id);
+        this.newDiagnosesToCreate = newDiagnoses;
+        
+        const nextDiagnoses = [];
+
+        // Map selected existing diagnoses
+        if (selectedExisting && selectedExisting.length > 0) {
+            const existingMapped = selectedExisting.map(d => {
+                const key = d.Id;
+                const existing = currentMap.get(key);
+                
+                if (existing) {
+                    // Keep existing user inputs but ensure base fields are up to date
+                    // Note: If Status changed in DB, we typically want to see it, 
+                    // but if user changed it in UI, we want to keep UI state.
+                    // Assuming UI state takes precedence for this session.
+                    return existing;
+                }
+                
+                console.log('[ClinicalNote] Mapping diagnosis:', {
+                    Id: d.Id,
+                    'd.description': d.description,
+                    'd.Name': d.Name,
+                    'd.ICD10Code__c': d.ICD10Code__c,
+                    'ALL_KEYS': Object.keys(d)
+                });
+                
+                return {
+                Id: d.Id,
+                code: d.ICD10Code__c || d.code,
+                description: d.description || d.Name,
+                status: d.Status__c || 'Active',
+                isResolved: (d.Status__c === 'Resolved' || d.status === 'Resolved'),
+                diagnosisType: d.DiagnosisType__c || 'Chronic',
+                onsetDate: d.Onset_Date__c || null,
+                isPrimary: d.Primary__c === true,
+                notes: d.Notes__c || '',
+                category: d.Category__c || 'Mental Health',
+                isExisting: true,
+                expanded: false,
+                cardClass: 'goal-card',
+                expandIcon: 'utility:chevronright',
+                key: d.Id
+            }});
+            nextDiagnoses.push(...existingMapped);
+        }
+        
+        // Map new diagnoses
+        if (newDiagnoses && newDiagnoses.length > 0) {
+             const newMapped = newDiagnoses.map(d => {
+                const key = d.code || d.icd10Code;
+                const existing = currentMap.get(key);
+                
+                if (existing) {
+                    return existing;
+                }
+                
+                return {
+                code: d.code || d.icd10Code,
+                description: d.description,
+                status: d.status || 'Active',
+                isResolved: (d.status === 'Resolved'),
+                diagnosisType: d.diagnosisType,
+                onsetDate: d.onsetDate,
+                isPrimary: d.isPrimary,
+                notes: d.notes || '', // Ensure notes initialized
+                isExisting: false,
+                expanded: true, // Auto-expand new ones
+                cardClass: 'goal-card goal-card-selected',
+                expandIcon: 'utility:chevrondown',
+                key: d.code || d.icd10Code
+            }});
+            nextDiagnoses.push(...newMapped);
+        }
+        
+        this.selectedDiagnoses = nextDiagnoses;
     }
     
-    handleRemoveDiagnosis(event) {
-        const codeToRemove = event.currentTarget.dataset.code;
-        this.selectedDiagnoses = this.selectedDiagnoses.filter(d => d.code !== codeToRemove);
+    handleDiagnosisCardClick(event) {
+        event.stopPropagation();
+        const key = event.currentTarget.dataset.key;
+        const diag = this.selectedDiagnoses.find(d => d.key === key);
+        if (diag) {
+            diag.expanded = !diag.expanded;
+            // Update class and icon
+            diag.cardClass = diag.expanded ? 'goal-card goal-card-selected' : 'goal-card';
+            diag.expandIcon = diag.expanded ? 'utility:chevrondown' : 'utility:chevronright';
+        }
+    }
+
+    handleDiagnosisInputChange(event) {
+        event.stopPropagation();
+        const key = event.target.dataset.key;
+        const field = event.target.name;
+        // For checkboxes, use checked. For others, value.
+        const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+
+        const diag = this.selectedDiagnoses.find(d => d.key === key);
+        if (!diag) return;
+
+        // Special handling for Primary checkbox
+        if (field === 'isPrimary' && value === true) {
+            // Check if another diagnosis is already marked as Primary
+            const currentPrimary = this.selectedDiagnoses.find(d => d.key !== key && d.isPrimary === true);
+            if (currentPrimary) {
+                // Store pending change and show confirmation
+                this.pendingPrimaryChange = {
+                    newPrimaryKey: key,
+                    oldPrimaryKey: currentPrimary.key,
+                    oldPrimaryDisplay: `${currentPrimary.code} - ${currentPrimary.description}`
+                };
+                this.showPrimaryConfirmation = true;
+                // Don't apply the change yet - wait for confirmation
+                event.target.checked = false; // Visually uncheck until confirmed
+                return;
+            }
+        }
+            
+        diag[field] = value;
+        
+        // Special handling for Status toggle (Resolved)
+        if (field === 'isResolved') {
+             diag.status = value ? 'Resolved' : 'Active';
+        }
+    }
+
+    handleConfirmPrimaryChange() {
+        if (!this.pendingPrimaryChange) return;
+        
+        // Unmark the old primary
+        const oldPrimary = this.selectedDiagnoses.find(d => d.key === this.pendingPrimaryChange.oldPrimaryKey);
+        if (oldPrimary) {
+            oldPrimary.isPrimary = false;
+        }
+        
+        // Mark the new primary
+        const newPrimary = this.selectedDiagnoses.find(d => d.key === this.pendingPrimaryChange.newPrimaryKey);
+        if (newPrimary) {
+            newPrimary.isPrimary = true;
+        }
+        
+        this.showPrimaryConfirmation = false;
+        this.pendingPrimaryChange = null;
+        
+        this._showToast('Success', 'Primary diagnosis updated', 'success');
+    }
+
+    handleCancelPrimaryChange() {
+        this.showPrimaryConfirmation = false;
+        this.pendingPrimaryChange = null;
     }
     
-    /**
-     * Handle selecting an existing diagnosis to include in this note
-     */
-    handleSelectExistingDiagnosis(event) {
-        const diagCode = event.currentTarget.dataset.code;
-        const existingDiag = this.existingDiagnoses.find(d => d.code === diagCode);
-        
-        if (!existingDiag) {
-            console.warn('Could not find existing diagnosis with code:', diagCode);
-            return;
-        }
-        
-        // Check for duplicates (shouldn't happen due to filtering, but safety check)
-        const alreadySelected = this.selectedDiagnoses.some(d => d.code === diagCode);
-        if (alreadySelected) {
-            this._showToast('Info', `${diagCode} is already selected`, 'info');
-            return;
-        }
-        
-        // Add to selected diagnoses
-        this.selectedDiagnoses = [...this.selectedDiagnoses, { ...existingDiag }];
-        this._showToast('Success', `Added existing diagnosis: ${diagCode}`, 'success');
-    }
+
 
     // ========================================
     // SSRS Assessment Integration
@@ -768,6 +1027,12 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         if (!this.canLaunchSsrs) {
             this._showToast('Error', 'Cannot launch Risk Assessment without a linked Person Account.', 'error');
             return;
+        }
+        // DEBUG: Toast the ID we are about to launch with
+        if(this.ssrsAssessmentId) {
+             this._showToast('Info', 'Launching existing assessment: ' + this.ssrsAssessmentId, 'info');
+        } else {
+             // this._showToast('Info', 'Launching new assessment', 'info');
         }
         this.showSsrsModal = true;
     }
@@ -780,6 +1045,25 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         // Capture SSRS data from the assessment component
         if (event.detail) {
             this.ssrsAssessmentData = event.detail;
+            
+            // Critical Update: Specifically bind the assessmentId to the tracked property
+            // This ensures that when the user clicks "Edit", the child component receives the ID
+            if (this.ssrsAssessmentData.assessmentId) {
+                this.ssrsAssessmentId = this.ssrsAssessmentData.assessmentId;
+                // DEBUG: Confirm capture
+                this._showToast('Success', 'Captured Assessment ID: ' + this.ssrsAssessmentId, 'success');
+            } else {
+                console.warn('SSRS Complete event missing assessmentId in detail:', JSON.stringify(event.detail));
+                this._showToast('Warning', 'SSRS saved but ID not returned. Edit might fail.', 'warning');
+            }
+
+            // AUTO-BIND INTERACTION ID FROM SERVER
+            // If the server auto-created a shell Interaction, adopt it immediately.
+            if (this.ssrsAssessmentData.interactionSummaryId && !this.interactionId) {
+                this.interactionId = this.ssrsAssessmentData.interactionSummaryId;
+                console.log('Adopting Auto-Created Interaction ID:', this.interactionId);
+                this._showToast('Note Saved', 'A draft Clinical Note has been created.', 'info');
+            }
         }
         this.showSsrsModal = false;
         this._showToast('Success', 'Risk Assessment data captured. It will be saved with your note.', 'success');
@@ -931,7 +1215,16 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             this._showToast('Validation Error', validationMessage, 'error');
             return;
         }
-
+        // If editing an existing note (previously signed), require manager co-sign to proceed with changes.
+        // We allow the save if:
+        // 1. It's a NEW note (isExistingNote is false), even if interactionId exists (e.g. from SSRS auto-creation).
+        // 2. It's an EXISTING note AND the user is requesting co-sign (Re-approval flow).
+        if (this.isExistingNote && !this.requestManagerCoSign) {
+            this.isSaving = false;
+            this._showToast('Re-approval Required', 'This note has already been signed. Please make your changes and request manager co-sign instead of signing again.', 'warning');
+            return;
+        }
+        
         const signaturePad = this.template.querySelector('c-signature-pad');
         const signatureIsPresent = signaturePad && typeof signaturePad.hasSignature === 'function'
             ? signaturePad.hasSignature()
@@ -947,49 +1240,105 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             console.log('[ClinicalNote] recordId type:', typeof this.recordId);
             
             // Extract SSRS assessment ID if an assessment was completed
-            const ssrsAssessmentId = this.ssrsAssessmentData?.assessmentId || null;
+            // Prefer the tracked ID property which is consistently updated by handleSsrsComplete and initClinicalNote
+            let ssrsAssessmentId = this.ssrsAssessmentId;
+            
+            // Fallback to data object if tracked prop is missing (legacy safety)
+            if (!ssrsAssessmentId && this.ssrsAssessmentData) {
+                 ssrsAssessmentId = this.ssrsAssessmentData.assessmentId || this.ssrsAssessmentData.id;
+            }
+            
+            console.log('=== LWC SSRS DEBUG ===');
+            console.log('this.ssrsAssessmentId:', this.ssrsAssessmentId);
+            console.log('this.ssrsAssessmentData:', JSON.stringify(this.ssrsAssessmentData));
+            console.log('Final ssrsAssessmentId to save:', ssrsAssessmentId);
+            
             if (ssrsAssessmentId) {
                 console.log('Including SSRS Assessment ID:', ssrsAssessmentId);
+            } else {
+                console.log('No SSRS Assessment ID to include');
             }
 
-            // Prepare diagnoses for Apex - serialize to JSON for the new method
-            const diagnosesJson = this.selectedDiagnoses && this.selectedDiagnoses.length > 0
-                ? JSON.stringify(this.selectedDiagnoses.map(d => ({
-                    code: d.code,
+            // Get diagnoses from local state (managed via handleDiagnosisChange and card edits)
+            let diagnosesArray = [];
+            
+            console.log('=== LWC DIAGNOSIS DEBUG ===');
+            console.log('selectedDiagnoses:', this.selectedDiagnoses);
+            console.log('selectedDiagnoses length:', this.selectedDiagnoses ? this.selectedDiagnoses.length : 'null/undefined');
+            
+            if (this.selectedDiagnoses && this.selectedDiagnoses.length > 0) {
+                diagnosesArray = this.selectedDiagnoses.map(d => ({
+                    id: d.Id || null, // Pass ID for existing records to trigger update
+                    code: d.code || d.icd10Code,
                     description: d.description,
                     status: d.status || 'Active',
-                    diagnosisType: d.diagnosisType || d.type,
-                    onsetDate: d.onsetDate,
-                    isPrimary: d.isPrimary || false,
+                    diagnosisType: d.diagnosisType || 'Chronic',
+                    onsetDate: d.onsetDate || null,
+                    isPrimary: d.isPrimary === true,
                     notes: d.notes,
-                    category: d.category
-                })))
-                : null;
-            
-            if (diagnosesJson) {
-                console.log('Diagnoses JSON being sent:', diagnosesJson);
-                console.log('Selected diagnoses details:', JSON.stringify(this.selectedDiagnoses));
+                    category: d.category || 'Mental Health'
+                }));
+                console.log(`Sending ${diagnosesArray.length} diagnoses to save (updates + new)`);
+                console.log('diagnosesArray:', diagnosesArray);
+            } else {
+                console.log('No diagnoses to send - selectedDiagnoses is empty or null');
             }
 
-            // Use individual parameters method with diagnoses support
-            const result = await saveClinicalNoteWithDiagnoses({
+            // Build goal work details with progress tracking
+            const goalWorkDetails = [];
+            for (const [goalId, workState] of Object.entries(this.goalWorkState)) {
+                if (workState.workedOn) {
+                    goalWorkDetails.push({
+                        goalAssignmentId: goalId,
+                        narrative: workState.narrative || '',
+                        progressBefore: workState.progressBefore ?? 0,
+                        progressAfter: workState.progressAfter ?? 0,
+                        timeSpentMinutes: workState.timeSpentMinutes || null
+                    });
+                }
+            }
+            
+            if (goalWorkDetails.length > 0) {
+                console.log('Sending goal work details for ' + goalWorkDetails.length + ' goals');
+            }
+
+            // Use new request-based method that supports goalWorkDetails and diagnoses
+            const noteRequest = {
                 caseId: this.recordId,
-                interactionDateStr: this.form.interactionDate,
-                startTimeStr: this.form.startTime,
-                endTimeStr: this.form.endTime,
+                interactionSummaryId: this.interactionId,
+                accountId: this.accountId,
+                interactionDate: this.form.interactionDate,
+                startTime: this.form.startTime,
+                endTime: this.form.endTime,
                 interpreterUsed: this.form.interpreterUsed,
                 pos: this.form.pos,
                 reason: this.form.reason,
                 services: this.form.services,
                 response: this.form.response,
                 plan: this.form.plan,
-                goalAssignmentIds: this.form.goalIds,
+                goalWorkDetails: goalWorkDetails,  // ← Send full goal work data
                 codeAssignmentIds: this.form.codeIds,
                 benefitIds: this.form.benefitIds,
                 ssrsAssessmentId: ssrsAssessmentId,
                 noteType: this.noteType,
-                diagnosesJson: diagnosesJson
+                diagnoses: diagnosesArray  // ← Send new diagnoses to create
+            };
+
+            console.log('=== COMPLETE REQUEST DEBUG ===');
+            console.log('noteRequest:', noteRequest);
+            console.log('noteRequest.ssrsAssessmentId:', noteRequest.ssrsAssessmentId);
+            console.log('noteRequest.diagnoses:', noteRequest.diagnoses);
+            console.log('Request JSON:', JSON.stringify(noteRequest));
+
+            const result = await saveClinicalNoteRequest({
+                requestJson: JSON.stringify(noteRequest)
             });
+            
+            /* OLD METHOD - REPLACED WITH saveClinicalNoteRequest
+            const result = await saveClinicalNoteWithDiagnoses({
+                request: noteRequest
+            });
+            */
             
             if (!result || !result.success) {
                 const errorMessage =
@@ -999,23 +1348,29 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
             this.interactionId = result.interactionSummaryId;
 
-            // Save signature
+            // Save signature with user alias in filename
             if (signaturePad && typeof signaturePad.saveSignature === 'function') {
+                // Set filename before saving (use alias from managerInfo, fallback to 'user')
+                const userAlias = this.managerInfo?.userAlias || 'user';
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                signaturePad.filename = `signature_staff_${userAlias}_${timestamp}.png`;
+                
                 const signatureResult = await signaturePad.saveSignature(this.interactionId, true);
                 if (!signatureResult.success) {
                     throw new Error(signatureResult.error || 'Failed to save signature image.');
                 }
             }
 
-            // Save goal assignment details
-            await this._saveGoalWork(this.interactionId);
+            // Goal assignment details are now saved by the backend with goalWorkDetails
+            // No need for separate _saveGoalWork call
 
             // Request manager approval if toggled
             if (this.requestManagerCoSign && this.hasManager) {
                 try {
                     await requestManagerApproval({ 
                         recordId: this.interactionId, 
-                        recordType: 'Interaction' 
+                        recordType: 'Interaction',
+                        approverId: this.selectedApproverId
                     });
                     console.log('Manager approval requested successfully');
                 } catch (approvalErr) {
@@ -1060,10 +1415,6 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
     handleSignatureSaved() {
         // Placeholder for signature saved event handling
-    }
-
-    handleManagerApprovalToggle(event) {
-        this.requestManagerCoSign = event.target.checked;
     }
 
     /**

@@ -45,6 +45,7 @@ public with sharing class InteractionContextService {
         @AuraEnabled public List<OptionDTO> codeAssignments;
         @AuraEnabled public String currentUserName;
         @AuraEnabled public Id accountId;
+        @AuraEnabled public Map<String, Object> existingNote; // Note data if editing/amending
     }
 
     @AuraEnabled(cacheable=true)
@@ -99,6 +100,9 @@ public with sharing class InteractionContextService {
         if (accountFields.containsKey('Medicaid_ID__c')) {
             selectFields.add('Medicaid_ID__c');
         }
+        if (accountFields.containsKey('MEDICAID_Number__pc')) {
+            selectFields.add('MEDICAID_Number__pc');
+        }
 
         String accountQuery = 'SELECT ' + String.join(selectFields, ',') + ' FROM Account WHERE Id = :accountId';
         return (Account)Database.query(accountQuery);
@@ -116,6 +120,7 @@ public with sharing class InteractionContextService {
             ? (String)resolveFieldValue(
                 participant,
                 new List<String>{
+                    'MEDICAID_Number__pc',
                     'Medicaid_ID__pc',
                     'Medicaid_ID__c'
                 }

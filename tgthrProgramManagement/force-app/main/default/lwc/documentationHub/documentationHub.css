@@ -6,13 +6,13 @@
 }
 
 .documentation-modal .slds-modal__container {
-    width: 90%;
-    max-width: 70rem;
-    height: 92vh;
-    max-height: 92vh;
+    width: 95%;
+    max-width: 95rem;
+    height: 95vh;
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
-    margin: 1vh auto;
+    margin: 2.5vh auto;
 }
 
 .documentation-modal .slds-modal__content {

@@ -88,6 +88,7 @@ public with sharing class PendingDocumentationController {
                           'WHERE RelatedRecordId = :caseId ' +
                           'AND Requires_Manager_Approval__c = true ' +
                           'AND (Manager_Signed__c = false OR Manager_Signed__c = null) ' +
+                          'AND (Status = \'Published\' OR Status = null) ' +
                           'ORDER BY CreatedDate DESC ' +
                           'LIMIT 50';
             
@@ -209,7 +210,7 @@ public with sharing class PendingDocumentationController {
                           'FROM InterviewDocument__c ' +
                           'WHERE Case__c = :caseId ' +
                           'AND (Interview__r.Staff_Signed__c = false OR Interview__r.Client_Signed__c = false) ' +
-                          'AND Interview__r.Status__c NOT IN (\'Submitted\', \'Signed\', \'Voided\') ' +
+                          'AND Interview__r.Status__c NOT IN (\'Submitted\', \'Signed\', \'Voided\', \'Completed\') ' +
                           'ORDER BY Interview__r.Started_On__c DESC ' +
                           'LIMIT 50';
             
@@ -516,6 +517,8 @@ public with sharing class PendingDocumentationController {
         List<UnsignedInteractionDTO> results = new List<UnsignedInteractionDTO>();
         Id currentUserId = UserInfo.getUserId();
         
+        System.debug('🔍 getMyActionItems called for user: ' + currentUserId);
+        
         try {
             // Get InteractionSummary records with action assigned to current user
             // Note: InteractionSummary doesn't have staff/client signature fields
@@ -523,19 +526,23 @@ public with sharing class PendingDocumentationController {
                           'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, ' +
                           'Manager_Signed__c, Manager_Signed_Date__c, ' +
                           'Action_Required__c, Action_Assigned_To__c, Action_Assigned_To__r.Name, ' +
-                          'Action_Escalated_By__c, Action_Escalated_By__r.Name, Action_Notes__c ' +
+                          'Action_Escalated_By__c, Action_Escalated_By__r.Name, Action_Notes__c, ' +
+                          'RelatedRecordId, CreatedById, CreatedBy.Name ' +
                           'FROM InteractionSummary ' +
                           'WHERE Action_Assigned_To__c = :currentUserId ' +
                           'AND Action_Required__c = true ' +
                           'ORDER BY CreatedDate DESC ' +
                           'LIMIT 50';
             
+            System.debug('🔍 Action items query: ' + interactionQuery);
             List<SObject> interactions = Database.query(interactionQuery);
+            System.debug('🔍 Found ' + interactions.size() + ' InteractionSummary action items');
             
             for (SObject interaction : interactions) {
                 UnsignedInteractionDTO dto = buildInteractionDTO(interaction, currentUserId);
                 dto.recordType = 'Interaction';
                 dto.sourceRecordId = (Id)interaction.get('Id');
+                dto.caseId = (Id)interaction.get('RelatedRecordId');
                 results.add(dto);
             }
             
@@ -548,7 +555,7 @@ public with sharing class PendingDocumentationController {
                           'Interview__r.Manager_Signed_Date__c, Interview__r.Action_Required__c, ' +
                           'Interview__r.Action_Assigned_To__c, Interview__r.Action_Assigned_To__r.Name, ' +
                           'Interview__r.Action_Escalated_By__c, Interview__r.Action_Escalated_By__r.Name, ' +
-                          'Interview__r.Action_Notes__c, ' +
+                          'Interview__r.Action_Notes__c, Interview__r.Case__c, ' +
                           'InterviewTemplate__r.Name ' +
                           'FROM InterviewDocument__c ' +
                           'WHERE Interview__r.Action_Assigned_To__c = :currentUserId ' +
@@ -782,7 +789,23 @@ public with sharing class PendingDocumentationController {
         
         // Document info
         @AuraEnabled public Id documentId;
+        @AuraEnabled public Id contentVersionId;
         @AuraEnabled public String documentTitle;
+        
+        // SSRS Assessment
+        @AuraEnabled public Map<String, Object> ssrsAssessment;
+        
+        // Goals worked on
+        @AuraEnabled public List<Map<String, Object>> goals;
+        
+        // Benefits/Services provided
+        @AuraEnabled public List<Map<String, Object>> benefits;
+        
+        // Diagnoses (Clinical Notes only)
+        @AuraEnabled public List<Map<String, Object>> diagnoses;
+        
+        // Current user info for signature filename
+        @AuraEnabled public Map<String, Object> currentUser;
     }
     
     /**
@@ -803,8 +826,8 @@ public with sharing class PendingDocumentationController {
                     'Description_of_Services__c, Response_and_Progress__c, Plan__c, Chart_Note__c, MeetingNotes, ' +
                     'Start_Time__c, End_Time__c, ' +
                     'CreatedById, CreatedBy.Name, CreatedBy.Title, CreatedDate, ' +
-                    'RelatedRecordId, RelatedRecord.CaseNumber, ' +
-                    'AccountId, Account.Name, Account.PersonBirthdate, Account.Pronouns__c ' +
+                    'RelatedRecordId, TYPEOF RelatedRecord WHEN Case THEN CaseNumber END, ' +
+                    'AccountId, Account.Name, Account.PersonBirthdate, Account.PersonPronouns ' +
                     'FROM InteractionSummary WHERE Id = :recordId LIMIT 1'
                 );
                 
@@ -817,20 +840,32 @@ public with sharing class PendingDocumentationController {
                 dto.name = (String)record.get('Name');
                 dto.dateOfInteraction = (Date)record.get('Date_of_Interaction__c');
                 dto.purpose = (String)record.get('InteractionPurpose');
-                dto.descriptionOfServices = (String)record.get('Description_of_Services__c');
-                dto.responseAndProgress = (String)record.get('Response_and_Progress__c');
-                dto.plan = (String)record.get('Plan__c');
-                dto.chartNote = (String)record.get('Chart_Note__c');
-                dto.meetingNotes = (String)record.get('MeetingNotes');
+                
+                // Helper to safely unescape HTML content
+                String descServices = (String)record.get('Description_of_Services__c');
+                dto.descriptionOfServices = String.isNotBlank(descServices) ? descServices.unescapeHtml4() : descServices;
+                
+                String respProgress = (String)record.get('Response_and_Progress__c');
+                dto.responseAndProgress = String.isNotBlank(respProgress) ? respProgress.unescapeHtml4() : respProgress;
+                
+                String plan = (String)record.get('Plan__c');
+                dto.plan = String.isNotBlank(plan) ? plan.unescapeHtml4() : plan;
+                
+                String chartNote = (String)record.get('Chart_Note__c');
+                dto.chartNote = String.isNotBlank(chartNote) ? chartNote.unescapeHtml4() : chartNote;
+                
+                String meetingNotes = (String)record.get('MeetingNotes');
+                dto.meetingNotes = String.isNotBlank(meetingNotes) ? meetingNotes.unescapeHtml4() : meetingNotes;
                 
                 // Format times if present
-                Time startTime = (Time)record.get('Start_Time__c');
-                Time endTime = (Time)record.get('End_Time__c');
-                if (startTime != null) {
-                    dto.startTime = formatTime(startTime);
+                Datetime startDt = (Datetime)record.get('Start_Time__c');
+                Datetime endDt = (Datetime)record.get('End_Time__c');
+                
+                if (startDt != null) {
+                    dto.startTime = formatTime(startDt.time());
                 }
-                if (endTime != null) {
-                    dto.endTime = formatTime(endTime);
+                if (endDt != null) {
+                    dto.endTime = formatTime(endDt.time());
                 }
                 
                 dto.createdById = (Id)record.get('CreatedById');
@@ -839,13 +874,21 @@ public with sharing class PendingDocumentationController {
                 dto.createdDate = (Datetime)record.get('CreatedDate');
                 dto.recordType = 'Interaction';
                 
+                // Current user info for signature
+                User currentUser = [SELECT Id, Alias, Name FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+                dto.currentUser = new Map<String, Object>{
+                    'Id' => currentUser.Id,
+                    'Alias' => currentUser.Alias,
+                    'Name' => currentUser.Name
+                };
+                
                 // Case/Client info
                 dto.caseId = (Id)record.get('RelatedRecordId');
                 dto.caseNumber = (String)record.getSObject('RelatedRecord')?.get('CaseNumber');
                 dto.clientId = (Id)record.get('AccountId');
                 dto.clientName = (String)record.getSObject('Account')?.get('Name');
                 dto.clientDob = (Date)record.getSObject('Account')?.get('PersonBirthdate');
-                dto.clientPronouns = (String)record.getSObject('Account')?.get('Pronouns__c');
+                dto.clientPronouns = (String)record.getSObject('Account')?.get('PersonPronouns');
                 
                 // Try to get the attached document
                 try {
@@ -858,7 +901,8 @@ public with sharing class PendingDocumentationController {
                         LIMIT 1
                     ];
                     if (!docLinks.isEmpty()) {
-                        dto.documentId = docLinks[0].ContentDocument.LatestPublishedVersionId;
+                        dto.documentId = docLinks[0].ContentDocumentId;
+                        dto.contentVersionId = docLinks[0].ContentDocument.LatestPublishedVersionId;
                         dto.documentTitle = docLinks[0].ContentDocument.Title;
                     }
                 } catch (Exception e) {
@@ -872,7 +916,7 @@ public with sharing class PendingDocumentationController {
                     'SELECT Id, Name, Started_On__c, Status__c, ' +
                     'CreatedById, CreatedBy.Name, CreatedBy.Title, CreatedDate, ' +
                     'Case__c, Case__r.CaseNumber, Case__r.AccountId, Case__r.Account.Name, ' +
-                    'Case__r.Account.PersonBirthdate, Case__r.Account.Pronouns__c ' +
+                    'Case__r.Account.PersonBirthdate, Case__r.Account.PersonPronouns ' +
                     'FROM Interview__c WHERE Id = :recordId LIMIT 1'
                 );
                 
@@ -901,7 +945,7 @@ public with sharing class PendingDocumentationController {
                         dto.clientId = (Id)caseRecord.get('AccountId');
                         dto.clientName = (String)accountRecord.get('Name');
                         dto.clientDob = (Date)accountRecord.get('PersonBirthdate');
-                        dto.clientPronouns = (String)accountRecord.get('Pronouns__c');
+                        dto.clientPronouns = (String)accountRecord.get('PersonPronouns');
                     }
                 }
                 
@@ -916,11 +960,42 @@ public with sharing class PendingDocumentationController {
                         LIMIT 1
                     ];
                     if (!docLinks.isEmpty()) {
-                        dto.documentId = docLinks[0].ContentDocument.LatestPublishedVersionId;
+                        dto.documentId = docLinks[0].ContentDocumentId;
+                        dto.contentVersionId = docLinks[0].ContentDocument.LatestPublishedVersionId;
                         dto.documentTitle = docLinks[0].ContentDocument.Title;
                     }
                 } catch (Exception e) {
                     System.debug('Could not fetch document: ' + e.getMessage());
+                }
+            }
+            
+            // Fetch SSRS Assessment if linked to this note/interview
+            try {
+                dto.ssrsAssessment = fetchSsrsAssessment(recordId);
+            } catch (Exception e) {
+                System.debug('Could not fetch SSRS Assessment: ' + e.getMessage());
+            }
+            
+            // Fetch Goals worked on
+            try {
+                dto.goals = fetchGoalsWorkedOn(recordId, recordType);
+            } catch (Exception e) {
+                System.debug('Could not fetch Goals: ' + e.getMessage());
+            }
+            
+            // Fetch Benefits/Services provided
+            try {
+                dto.benefits = fetchBenefitsProvided(recordId, recordType);
+            } catch (Exception e) {
+                System.debug('Could not fetch Benefits: ' + e.getMessage());
+            }
+            
+            // Fetch Diagnoses (only for Interaction records)
+            if (recordType == 'Interaction') {
+                try {
+                    dto.diagnoses = fetchDiagnoses(dto.clientId, dto.caseId);
+                } catch (Exception e) {
+                    System.debug('Could not fetch Diagnoses: ' + e.getMessage());
                 }
             }
             
@@ -942,88 +1017,6 @@ public with sharing class PendingDocumentationController {
         String ampm = hour >= 12 ? 'PM' : 'AM';
         hour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
         return hour + ':' + (minute < 10 ? '0' : '') + minute + ' ' + ampm;
-    }
-    
-    /**
-     * Approve a note with optional approval notes
-     * 
-     * @param recordId The InteractionSummary or Interview__c Id
-     * @param recordType 'Interaction' or 'Interview'
-     * @param approvalNotes Optional notes from the manager
-     * @return Success message
-     */
-    @AuraEnabled
-    public static String approveNote(Id recordId, String recordType, String approvalNotes) {
-        try {
-            Id currentUserId = UserInfo.getUserId();
-            
-            if (recordType == 'Interaction') {
-                List<SObject> records = Database.query(
-                    'SELECT Id, Name, Manager_Approver__c, Manager_Signed__c, CreatedById, RelatedRecordId ' +
-                    'FROM InteractionSummary WHERE Id = :recordId LIMIT 1'
-                );
-                if (records.isEmpty()) {
-                    throw new AuraHandledException('Note not found');
-                }
-                SObject record = records[0];
-                
-                // Verify permission
-                Id approverId = (Id)record.get('Manager_Approver__c');
-                if (approverId != currentUserId) {
-                    throw new AuraHandledException('Only the assigned manager can approve this note.');
-                }
-                
-                record.put('Manager_Signed__c', true);
-                record.put('Manager_Signed_Date__c', Date.today());
-                record.put('Manager_Approval_Notes__c', approvalNotes);
-                record.put('Manager_Rejected__c', false); // Clear any previous rejection
-                record.put('Manager_Rejection_Reason__c', null);
-                update record;
-                
-                // Notify submitter
-                Id createdById = (Id)record.get('CreatedById');
-                Id caseId = (Id)record.get('RelatedRecordId');
-                String noteName = (String)record.get('Name');
-                if (createdById != null && createdById != currentUserId) {
-                    PendingDocNotificationService.notifySubmitterOfApproval(createdById, caseId, noteName);
-                }
-                
-            } else if (recordType == 'Interview') {
-                List<SObject> records = Database.query(
-                    'SELECT Id, Name, Manager_Approver__c, Manager_Signed__c, CreatedById, Case__c ' +
-                    'FROM Interview__c WHERE Id = :recordId LIMIT 1'
-                );
-                if (records.isEmpty()) {
-                    throw new AuraHandledException('Interview not found');
-                }
-                SObject record = records[0];
-                
-                // Verify permission
-                Id approverId = (Id)record.get('Manager_Approver__c');
-                if (approverId != currentUserId) {
-                    throw new AuraHandledException('Only the assigned manager can approve this interview.');
-                }
-                
-                record.put('Manager_Signed__c', true);
-                record.put('Manager_Signed_Date__c', Date.today());
-                // Note: Interview__c may not have approval notes field - would need to add
-                update record;
-                
-                // Notify submitter
-                Id createdById = (Id)record.get('CreatedById');
-                Id caseId = (Id)record.get('Case__c');
-                String docName = (String)record.get('Name');
-                if (createdById != null && createdById != currentUserId) {
-                    PendingDocNotificationService.notifySubmitterOfApproval(createdById, caseId, docName);
-                }
-            }
-            
-            return 'Success';
-        } catch (AuraHandledException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new AuraHandledException('Error approving note: ' + e.getMessage());
-        }
     }
     
     /**
@@ -1053,30 +1046,55 @@ public with sharing class PendingDocumentationController {
                 }
                 SObject record = records[0];
                 
-                // Verify permission
+                // Verify permission: assigned manager, delegated approver, OR Signing Authority
                 Id approverId = (Id)record.get('Manager_Approver__c');
-                if (approverId != currentUserId) {
-                    throw new AuraHandledException('Only the assigned manager can reject this note.');
+                
+                Boolean isDelegatedApprover = false;
+                if (approverId != currentUserId && approverId != null) {
+                    isDelegatedApprover = isDelegatedApproverFor(currentUserId, approverId);
+                }
+                
+                // Check Signing Authority permission if not the assigned manager or delegate
+                Boolean hasSigningAuthority = false;
+                if (approverId != currentUserId && !isDelegatedApprover) {
+                    List<PermissionSetAssignment> psa = [
+                        SELECT Id FROM PermissionSetAssignment 
+                        WHERE AssigneeId = :currentUserId 
+                        AND PermissionSet.Name = 'Signing_Authority'
+                        LIMIT 1
+                    ];
+                    hasSigningAuthority = !psa.isEmpty();
+                }
+                
+                if (approverId != currentUserId && !isDelegatedApprover && !hasSigningAuthority) {
+                    throw new AuraHandledException('Only the assigned manager, delegated approver, or users with Signing Authority can reject this note.');
                 }
                 
                 record.put('Manager_Rejected__c', true);
                 record.put('Manager_Rejected_Date__c', Date.today());
                 record.put('Manager_Rejection_Reason__c', rejectionReason);
                 record.put('Manager_Signed__c', false);
-                record.put('Requires_Manager_Approval__c', false); // Clear the request so it goes back to submitter
+                record.put('Requires_Manager_Approval__c', false); // Return to author
+                
+                // Flag for action by author
+                Id authorId = (Id)record.get('CreatedById');
+                record.put('Action_Required__c', true);
+                record.put('Action_Assigned_To__c', authorId);
+                record.put('Action_Escalated_By__c', currentUserId);
+                record.put('Action_Notes__c', 'Rejected: ' + rejectionReason);
+
                 update record;
                 
                 // Notify submitter of rejection
-                Id createdById = (Id)record.get('CreatedById');
                 Id caseId = (Id)record.get('RelatedRecordId');
                 String noteName = (String)record.get('Name');
-                if (createdById != null && createdById != currentUserId) {
-                    PendingDocNotificationService.notifySubmitterOfRejection(createdById, caseId, noteName, rejectionReason);
+                if (authorId != null && authorId != currentUserId) {
+                    PendingDocNotificationService.notifySubmitterOfRejection(authorId, caseId, noteName, rejectionReason);
                 }
                 
             } else if (recordType == 'Interview') {
                 List<SObject> records = Database.query(
-                    'SELECT Id, Name, Manager_Approver__c, CreatedById, Case__c ' +
+                    'SELECT Id, Name, Manager_Approver__c, CreatedById, OwnerId, Case__c ' +
                     'FROM Interview__c WHERE Id = :recordId LIMIT 1'
                 );
                 if (records.isEmpty()) {
@@ -1084,23 +1102,46 @@ public with sharing class PendingDocumentationController {
                 }
                 SObject record = records[0];
                 
-                // Verify permission
+                // Verify permission: assigned manager, delegated approver, OR Signing Authority
                 Id approverId = (Id)record.get('Manager_Approver__c');
-                if (approverId != currentUserId) {
-                    throw new AuraHandledException('Only the assigned manager can reject this interview.');
+                Boolean isDelegatedApprover = false;
+                if (approverId != currentUserId && approverId != null) {
+                    isDelegatedApprover = isDelegatedApproverFor(currentUserId, approverId);
+                }
+                
+                // Check Signing Authority permission if not the assigned manager or delegate
+                Boolean hasSigningAuthority = false;
+                if (approverId != currentUserId && !isDelegatedApprover) {
+                    List<PermissionSetAssignment> psa = [
+                        SELECT Id FROM PermissionSetAssignment 
+                        WHERE AssigneeId = :currentUserId 
+                        AND PermissionSet.Name = 'Signing_Authority'
+                        LIMIT 1
+                    ];
+                    hasSigningAuthority = !psa.isEmpty();
+                }
+                
+                if (approverId != currentUserId && !isDelegatedApprover && !hasSigningAuthority) {
+                    throw new AuraHandledException('Only the assigned manager, delegated approver, or users with Signing Authority can reject this interview.');
                 }
                 
                 record.put('Manager_Signed__c', false);
-                record.put('Requires_Manager_Approval__c', false);
-                // Note: Interview__c may not have rejection fields - would need to add
+                record.put('Requires_Manager_Approval__c', false); // Return to author
+                
+                // Flag for action by owner
+                Id ownerId = (Id)record.get('OwnerId');
+                record.put('Action_Required__c', true);
+                record.put('Action_Assigned_To__c', ownerId);
+                record.put('Action_Escalated_By__c', currentUserId);
+                record.put('Action_Notes__c', 'Rejected: ' + rejectionReason);
+                
                 update record;
                 
                 // Notify submitter
-                Id createdById = (Id)record.get('CreatedById');
                 Id caseId = (Id)record.get('Case__c');
                 String docName = (String)record.get('Name');
-                if (createdById != null && createdById != currentUserId) {
-                    PendingDocNotificationService.notifySubmitterOfRejection(createdById, caseId, docName, rejectionReason);
+                if (ownerId != null && ownerId != currentUserId) {
+                    PendingDocNotificationService.notifySubmitterOfRejection(ownerId, caseId, docName, rejectionReason);
                 }
             }
             
@@ -1109,6 +1150,174 @@ public with sharing class PendingDocumentationController {
             throw e;
         } catch (Exception e) {
             throw new AuraHandledException('Error rejecting note: ' + e.getMessage());
+        }
+    }
+    /**
+     * Approve a note with optional approval notes
+     * 
+     * @param recordId The InteractionSummary or Interview__c Id
+     * @param recordType 'Interaction' or 'Interview'
+     * @param approvalNotes Optional notes from the manager
+     * @param signatureData Optional signature data (base64 svg/png) if captured on pad
+     * @return Success message
+     */
+    @AuraEnabled
+    public static String approveNote(Id recordId, String recordType, String approvalNotes, String signatureData) {
+        try {
+            System.debug('🚀🚀🚀 approveNote METHOD CALLED!');
+            System.debug('🚀 recordId: ' + recordId + ', recordType: ' + recordType);
+            
+            Id currentUserId = UserInfo.getUserId();
+            User currentUserResult = [SELECT Name FROM User WHERE Id = :currentUserId LIMIT 1]; // To name signature
+            
+            if (recordType == 'Interaction') {
+                List<SObject> records = Database.query(
+                    'SELECT Id, Name, Manager_Approver__c, Manager_Signed__c, CreatedById, RelatedRecordId ' +
+                    'FROM InteractionSummary WHERE Id = :recordId LIMIT 1'
+                );
+                if (records.isEmpty()) {
+                    throw new AuraHandledException('Note not found');
+                }
+                SObject record = records[0];
+                
+                // Verify permission
+                Id approverId = (Id)record.get('Manager_Approver__c');
+                
+                Boolean isDelegatedApprover = false;
+                if (approverId != currentUserId && approverId != null) {
+                    isDelegatedApprover = isDelegatedApproverFor(currentUserId, approverId);
+                }
+                
+                // Check if user has permission to approve
+                // Allow if: 1) They are the assigned manager, 2) They are a delegated approver, 3) They have Signing_Authority permission
+                if (approverId != currentUserId && !isDelegatedApprover) {
+                    // Check for Signing_Authority permission set
+                    List<PermissionSetAssignment> psa = [
+                        SELECT Id FROM PermissionSetAssignment 
+                        WHERE AssigneeId = :currentUserId 
+                        AND PermissionSet.Name = 'Signing_Authority'
+                        LIMIT 1
+                    ];
+                    Boolean hasAuthority = !psa.isEmpty();
+                    
+                    if (!hasAuthority) {
+                        throw new AuraHandledException('Only the assigned manager, delegated approver, or users with Signing Authority can approve this note.');
+                    }
+                    
+                    // If it was unassigned, assign it to the signer now
+                    if (approverId == null) {
+                        record.put('Manager_Approver__c', currentUserId);
+                    }
+                }
+                
+                record.put('Manager_Signed__c', true);
+                record.put('Manager_Signed_Date__c', Date.today());
+                record.put('Manager_Approval_Notes__c', approvalNotes);
+                // Note: Manager_Signature__c is saved directly by the signature pad component
+                
+                record.put('Manager_Rejected__c', false); 
+                record.put('Manager_Rejection_Reason__c', null);
+                record.put('Status', 'Completed');
+                update record;
+                
+                System.debug('✅ Note approved and updated: ' + recordId);
+                System.debug('Manager_Signed__c: ' + record.get('Manager_Signed__c'));
+                
+                // Regenerate document with manager signature asynchronously
+                // Must use @future because we just did DML - Salesforce doesn't allow callouts after DML in same transaction
+                try {
+                    System.debug('🔄🔄🔄 Queueing async document regeneration for: ' + recordId);
+                    InterviewDocumentController.generateNoteDocumentAsync(recordId);
+                    System.debug('✅✅✅ Document regeneration queued successfully!');
+                } catch (Exception docEx) {
+                    System.debug('❌❌❌ FAILED to queue document regeneration!');
+                    System.debug('❌ Error message: ' + docEx.getMessage());
+                    System.debug('❌ Error type: ' + docEx.getTypeName());
+                    System.debug('❌ Stack trace: ' + docEx.getStackTraceString());
+                    // Continue even if regeneration fails - don't block approval
+                }
+                
+                // Notify submitter
+                Id createdById = (Id)record.get('CreatedById');
+                Id caseId = (Id)record.get('RelatedRecordId');
+                String name = (String)record.get('Name');
+                
+                if (createdById != null && caseId != null) {
+                    try {
+                        PendingDocNotificationService.notifySubmitterOfApproval(createdById, caseId, name);
+                    } catch (Exception ex) {
+                         System.debug('Failed to send notification: ' + ex.getMessage());
+                    }
+                }
+                
+            } else if (recordType == 'Interview') {
+                 List<SObject> records = Database.query(
+                    'SELECT Id, Name, Manager_Approver__c, OwnerId, Case__c, InteractionTemplate__r.Name ' +
+                    'FROM Interview__c WHERE Id = :recordId LIMIT 1'
+                );
+                
+                if (records.isEmpty()) {
+                    throw new AuraHandledException('Interview not found');
+                }
+                SObject record = records[0];
+                
+                Id approverId = (Id)record.get('Manager_Approver__c');
+                Boolean isDelegatedApprover = false;
+                 if (approverId != currentUserId && approverId != null) {
+                    isDelegatedApprover = isDelegatedApproverFor(currentUserId, approverId);
+                }
+                
+                if (approverId != currentUserId && !isDelegatedApprover) {
+                     Boolean hasAuthority = false;
+                     if (approverId == null) {
+                         List<PermissionSetAssignment> psa = [
+                            SELECT Id FROM PermissionSetAssignment 
+                            WHERE AssigneeId = :currentUserId 
+                            AND PermissionSet.Name = 'Signing_Authority'
+                            LIMIT 1
+                        ];
+                        hasAuthority = !psa.isEmpty();
+                     }
+                     if (!hasAuthority) {
+                        throw new AuraHandledException('Only the assigned manager or authorized signer can approve this interview.');
+                     }
+                     if (approverId == null) {
+                         record.put('Manager_Approver__c', currentUserId);
+                     }
+                }
+                
+                record.put('Manager_Signed__c', true);
+                record.put('Manager_Signed_Date__c', Date.today());
+                record.put('Manager_Approval_Notes__c', approvalNotes);
+                
+                 if (signatureData != null) {
+                    record.put('Manager_Signature__c', signatureData); 
+                }
+                
+                record.put('Manager_Rejected__c', false);
+                record.put('Manager_Rejection_Reason__c', null);
+                record.put('Status__c', 'Completed'); 
+                update record;
+                
+                Id ownerId = (Id)record.get('OwnerId');
+                Id caseId = (Id)record.get('Case__c');
+                String name = (String)record.get('Name');
+                
+                if (ownerId != null && caseId != null) {
+                     try {
+                        PendingDocNotificationService.notifySubmitterOfApproval(ownerId, caseId, name);
+                    } catch (Exception ex) {
+                         System.debug('Failed to send notification: ' + ex.getMessage());
+                    }
+                }
+            }
+            
+            return 'Success';
+            
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AuraHandledException('Error approving note: ' + e.getMessage());
         }
     }
     
@@ -1121,8 +1330,8 @@ public with sharing class PendingDocumentationController {
      */
     @AuraEnabled
     public static String managerApprove(Id recordId, String recordType) {
-        // Delegate to new method with empty notes
-        return approveNote(recordId, recordType, null);
+        // Delegate to new method with empty notes and no signature
+        return approveNote(recordId, recordType, null, null);
     }
     
     /**
@@ -1141,7 +1350,7 @@ public with sharing class PendingDocumentationController {
         
         try {
             User currentUser = [
-                SELECT Id, Name, ManagerId, Manager.Name 
+                SELECT Id, Name, Alias, ManagerId, Manager.Name 
                 FROM User 
                 WHERE Id = :UserInfo.getUserId() 
                 LIMIT 1
@@ -1151,6 +1360,7 @@ public with sharing class PendingDocumentationController {
             result.put('managerId', currentUser.ManagerId);
             result.put('managerName', currentUser.Manager?.Name);
             result.put('currentUserName', currentUser.Name);
+            result.put('userAlias', currentUser.Alias);
             
         } catch (Exception e) {
             result.put('hasManager', false);
@@ -1161,22 +1371,55 @@ public with sharing class PendingDocumentationController {
     }
     
     /**
+     * Get list of users with Signing Authority permission set
+     * 
+     * @return List of Users suitable for selection as approvers
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<User> getSigningAuthorities() {
+        try {
+            return [
+                SELECT Id, Name 
+                FROM User 
+                WHERE IsActive = true 
+                AND Id IN (
+                    SELECT AssigneeId 
+                    FROM PermissionSetAssignment 
+                    WHERE PermissionSet.Name = 'Signing_Authority'
+                )
+                ORDER BY Name
+            ];
+        } catch (Exception e) {
+            System.debug('Error fetching signing authorities: ' + e.getMessage());
+            return new List<User>();
+        }
+    }
+
+    /**
      * Request manager approval for an interaction or interview
      * Auto-populates manager from current user's manager and sends a notification
      * 
      * @param recordId The InteractionSummary or Interview__c Id
      * @param recordType 'Interaction' or 'Interview'
+     * @param approverId Optional specific approver ID (overrides manager default)
      * @return Success message or error
      */
     @AuraEnabled
-    public static String requestManagerApproval(Id recordId, String recordType) {
+    public static String requestManagerApproval(Id recordId, String recordType, Id approverId) {
         try {
             Id currentUserId = UserInfo.getUserId();
+            Id targetApproverId = approverId;
             
-            // Get current user's manager
-            User currentUser = [SELECT Id, ManagerId FROM User WHERE Id = :currentUserId LIMIT 1];
-            if (currentUser.ManagerId == null) {
-                throw new AuraHandledException('You do not have a manager assigned. Please contact your administrator.');
+            // If no specific approver provided, try to find manager
+            if (targetApproverId == null) {
+                User currentUser = [SELECT Id, ManagerId FROM User WHERE Id = :currentUserId LIMIT 1];
+                if (currentUser.ManagerId != null) {
+                    targetApproverId = currentUser.ManagerId;
+                }
+            }
+
+            if (targetApproverId == null) {
+                throw new AuraHandledException('No approver selected and no manager assigned. Please select an approver.');
             }
             
             String noteName = '';
@@ -1192,7 +1435,7 @@ public with sharing class PendingDocumentationController {
                 }
                 SObject interaction = interactions[0];
                 interaction.put('Requires_Manager_Approval__c', true);
-                interaction.put('Manager_Approver__c', currentUser.ManagerId);
+                interaction.put('Manager_Approver__c', targetApproverId);
                 update interaction;
                 noteName = (String)interaction.get('Name');
                 caseId = (Id)interaction.get('RelatedRecordId');
@@ -1206,17 +1449,17 @@ public with sharing class PendingDocumentationController {
                 }
                 SObject interview = interviews[0];
                 interview.put('Requires_Manager_Approval__c', true);
-                interview.put('Manager_Approver__c', currentUser.ManagerId);
+                interview.put('Manager_Approver__c', targetApproverId);
                 update interview;
                 noteName = (String)interview.get('Name');
                 caseId = (Id)interview.get('Case__c');
             }
             
-            // Send notification to manager - targets the Case so they land on Pending Documentation tab
+            // Send notification to manager/approver - targets the Case so they land on Pending Documentation tab
             if (caseId != null) {
                 try {
-                    PendingDocNotificationService.notifyManagerOfCoSignRequest(
-                        currentUser.ManagerId, caseId, noteName
+                    PendingDocNotificationService.notifyApproverOfCoSignRequest(
+                        targetApproverId, caseId, noteName
                     );
                 } catch (Exception notifEx) {
                     System.debug('Non-fatal: Failed to send notification: ' + notifEx.getMessage());
@@ -1287,7 +1530,7 @@ public with sharing class PendingDocumentationController {
             }
 
             // 2. Get pending manager approvals (items waiting for current user to co-sign)
-            String approvalQuery = 'SELECT Id, Name, RelatedRecordId, RelatedRecord.CaseNumber ' +
+            String approvalQuery = 'SELECT Id, Name, RelatedRecordId, TYPEOF RelatedRecord WHEN Case THEN CaseNumber END ' +
                                   'FROM InteractionSummary ' +
                                   'WHERE Manager_Approver__c = :currentUserId ' +
                                   'AND Requires_Manager_Approval__c = true ' +
@@ -1325,7 +1568,7 @@ public with sharing class PendingDocumentationController {
             }
 
             // 3. Get action items assigned to current user
-            String actionQuery = 'SELECT Id, Name, RelatedRecordId, RelatedRecord.CaseNumber ' +
+            String actionQuery = 'SELECT Id, Name, RelatedRecordId, TYPEOF RelatedRecord WHEN Case THEN CaseNumber END ' +
                                 'FROM InteractionSummary ' +
                                 'WHERE Action_Assigned_To__c = :currentUserId ' +
                                 'AND Action_Required__c = true ' +
@@ -1371,5 +1614,144 @@ public with sharing class PendingDocumentationController {
         }
 
         return summary;
+    }
+    
+    /**
+     * Fetch SSRS Assessment linked to this InteractionSummary
+     */
+    private static Map<String, Object> fetchSsrsAssessment(Id interactionSummaryId) {
+        try {
+            List<SObject> assessments = Database.query(
+                'SELECT Id, Name, Assessment_Date__c, Risk_Level__c, Total_Score__c, ' +
+                'Status__c, Assessed_By__r.Name ' +
+                'FROM Assessment__c ' +
+                'WHERE Interaction_Summary__c = :interactionSummaryId ' +
+                'AND Assessment_Type__c = \'SSRS\' ' +
+                'ORDER BY CreatedDate DESC LIMIT 1'
+            );
+            
+            if (!assessments.isEmpty()) {
+                SObject assessment = assessments[0];
+                Map<String, Object> data = new Map<String, Object>();
+                data.put('id', assessment.get('Id'));
+                data.put('name', assessment.get('Name'));
+                data.put('assessmentDate', assessment.get('Assessment_Date__c'));
+                data.put('riskLevel', assessment.get('Risk_Level__c'));
+                data.put('totalScore', assessment.get('Total_Score__c'));
+                data.put('status', assessment.get('Status__c'));
+                data.put('assessedBy', assessment.getSObject('Assessed_By__r')?.get('Name'));
+                return data;
+            }
+        } catch (Exception e) {
+            System.debug('Could not fetch SSRS Assessment: ' + e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * Fetch Goals that were worked on during this note/interview
+     */
+    private static List<Map<String, Object>> fetchGoalsWorkedOn(Id recordId, String recordType) {
+        List<Map<String, Object>> goalsList = new List<Map<String, Object>>();
+        try {
+            String query = 'SELECT Id, GoalAssignment.Goal__r.Name, ' +
+                          'GoalAssignment.Goal__r.Description__c, ' +
+                          'Narrative__c, ProgressBefore__c, ProgressAfter__c, ' +
+                          'TimeSpentMinutes__c ' +
+                          'FROM GoalAssignmentDetail ' +
+                          'WHERE InteractionSummary__c = :recordId ' +
+                          'ORDER BY CreatedDate';
+            
+            List<SObject> details = Database.query(query);
+            
+            for (SObject detail : details) {
+                Map<String, Object> goal = new Map<String, Object>();
+                SObject goalAssignment = detail.getSObject('GoalAssignment');
+                if (goalAssignment != null) {
+                    SObject goalObj = goalAssignment.getSObject('Goal__r');
+                    if (goalObj != null) {
+                        goal.put('name', goalObj.get('Name'));
+                        goal.put('description', goalObj.get('Description__c'));
+                    }
+                }
+                goal.put('narrative', detail.get('Narrative__c'));
+                goal.put('progressBefore', detail.get('ProgressBefore__c'));
+                goal.put('progressAfter', detail.get('ProgressAfter__c'));
+                goal.put('timeSpent', detail.get('TimeSpentMinutes__c'));
+                goalsList.add(goal);
+            }
+        } catch (Exception e) {
+            System.debug('Could not fetch goals: ' + e.getMessage());
+        }
+        return goalsList;
+    }
+    
+    /**
+     * Fetch Benefits/Services that were provided during this note/interview
+     */
+    private static List<Map<String, Object>> fetchBenefitsProvided(Id recordId, String recordType) {
+        List<Map<String, Object>> benefitsList = new List<Map<String, Object>>();
+        try {
+            String query = 'SELECT Id, Benefit__r.Name, Benefit__r.BenefitType__c, ' +
+                          'StartDate, DisbursedQuantity, Status ' +
+                          'FROM BenefitDisbursement ' +
+                          'WHERE InteractionSummary__c = :recordId ' +
+                          'ORDER BY StartDate DESC';
+            
+            List<SObject> disbursements = Database.query(query);
+            
+            for (SObject disbursement : disbursements) {
+                Map<String, Object> benefit = new Map<String, Object>();
+                SObject benefitObj = disbursement.getSObject('Benefit__r');
+                if (benefitObj != null) {
+                    benefit.put('name', benefitObj.get('Name'));
+                    benefit.put('type', benefitObj.get('BenefitType__c'));
+                }
+                benefit.put('serviceDate', disbursement.get('StartDate'));
+                benefit.put('quantity', disbursement.get('DisbursedQuantity'));
+                benefit.put('status', disbursement.get('Status'));
+                benefitsList.add(benefit);
+            }
+        } catch (Exception e) {
+            System.debug('Could not fetch benefits: ' + e.getMessage());
+        }
+        return benefitsList;
+    }
+    
+    /**
+     * Fetch Diagnoses for the client
+     */
+    private static List<Map<String, Object>> fetchDiagnoses(Id accountId, Id caseId) {
+        List<Map<String, Object>> diagnosesList = new List<Map<String, Object>>();
+        if (accountId == null) {
+            return diagnosesList;
+        }
+        
+        try {
+            String query = 'SELECT Id, ICD10Code__c, Name, Status__c, ' +
+                          'Type__c, Primary__c, Onset_Date__c, Notes__c ' +
+                          'FROM Diagnosis__c ' +
+                          'WHERE Account__c = :accountId ' +
+                          'AND (Case__c = :caseId OR Case__c = null) ' +
+                          'AND Status__c = \'Active\' ' +
+                          'ORDER BY Primary__c DESC, ICD10Code__c';
+            
+            List<SObject> diagnoses = Database.query(query);
+            
+            for (SObject diagnosis : diagnoses) {
+                Map<String, Object> diag = new Map<String, Object>();
+                diag.put('code', diagnosis.get('ICD10Code__c'));
+                diag.put('description', diagnosis.get('Name'));
+                diag.put('status', diagnosis.get('Status__c'));
+                diag.put('type', diagnosis.get('Type__c'));
+                diag.put('isPrimary', diagnosis.get('Primary__c'));
+                diag.put('onsetDate', diagnosis.get('Onset_Date__c'));
+                diag.put('notes', diagnosis.get('Notes__c'));
+                diagnosesList.add(diag);
+            }
+        } catch (Exception e) {
+            System.debug('Could not fetch diagnoses: ' + e.getMessage());
+        }
+        return diagnosesList;
     }
 }

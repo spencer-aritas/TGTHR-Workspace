@@ -452,6 +452,8 @@ function createInitialForm() {
 export default class SsrsAssessment extends LightningElement {
     @api recordId; // Account Id
     @api caseId;   // Case Id
+    // @api assessmentId; // Replaced by getter/setter below
+    @api interactionId; // Interaction Summary Id
 
     booleanOptions = BOOLEAN_OPTIONS;
 
@@ -474,6 +476,19 @@ export default class SsrsAssessment extends LightningElement {
     assessmentDate;
 
     activeSection = 'ideation';
+    
+    _assessmentId;
+    @api 
+    get assessmentId() {
+        return this._assessmentId;
+    }
+    set assessmentId(value) {
+        this._assessmentId = value;
+        // If connected and we get a new value (that isn't null/undefined), try reloading
+        if (value && this.accountId) { 
+             this.loadInitialData();
+        }
+    }
 
     connectedCallback() {
         this.loadInitialData();
@@ -607,8 +622,15 @@ export default class SsrsAssessment extends LightningElement {
     async loadInitialData() {
         this.isLoading = true;
         this.loadError = null;
+        console.log('[ssrsAssessment] loadInitialData start. assessmentId:', this.assessmentId, 'interactionId:', this.interactionId, 'caseId:', this.caseId);
         try {
-            const response = await initAssessment({ caseId: this.caseId });
+            const response = await initAssessment({ 
+                caseId: this.caseId,
+                assessmentId: this.assessmentId,
+                interactionId: this.interactionId
+            });
+            console.log('[ssrsAssessment] initAssessment response:', JSON.stringify(response));
+
             if (!response) {
                 throw new Error('No data returned from server.');
             }
@@ -616,9 +638,38 @@ export default class SsrsAssessment extends LightningElement {
             this.assessmentDate = response.today;
             this.assessedByName = response.assessedByName;
             this.accountId = response.accountId || this.recordId;
-            this.form = createInitialForm();
+            
+            // Populate form if existing data was loaded
+            if (response.existingData) {
+                console.log('Restoring existing SSRS assessment data:', response.existingData);
+                // Merge active form fields with server data
+                const initial = createInitialForm();
+                this.form = { ...initial };
+                
+                Object.keys(response.existingData).forEach(key => {
+                    const val = response.existingData[key];
+                    if (this.form.hasOwnProperty(key)) {
+                        this.form[key] = val;
+                         // Force boolean casting if needed? No, Apex returns boolean as boolean.
+                    }
+                });
+                console.log('[ssrsAssessment] Form restored:', JSON.stringify(this.form));
+
+                // Set Assessment Date if available from existing record
+                // (Note: response.existingData doesn't contain the date, the SObject query does but it's not in map)
+                // We'd rely on response.today or need to add it to InitResponse if we want the ORIGINAL date.
+                // Assuming we are editing for "Correction/Amendment", so keeping today's date for signature is likely correct,
+                // OR we should capture the original date if the user wants. 
+                // For now, respect what the server interaction gave us.
+                
+            } else {
+                console.log('[ssrsAssessment] No existing data found in response.');
+                this.form = createInitialForm();
+            }
+            
             this._ensureActiveSectionVisible();
         } catch (error) {
+            console.error('[ssrsAssessment] Error loading initial data:', error);
             this.loadError = this._reduceErrors(error).join(', ');
         } finally {
             this.isLoading = false;
@@ -747,8 +798,10 @@ export default class SsrsAssessment extends LightningElement {
         try {
             const payload = this._buildAssessmentPayload();
             const request = {
+                assessmentId: this.assessmentId, // Ensure existing ID is passed for updates
                 accountId: this.accountId || this.recordId,
                 caseId: this.caseId,
+                interactionSummaryId: this.interactionId,
                 assessmentDate: this.assessmentDate || new Date().toISOString().slice(0, 10),
                 assessedById: '',
                 assessmentData: payload
@@ -772,7 +825,8 @@ export default class SsrsAssessment extends LightningElement {
                     recommendations: result.recommendations || [],
                     assessmentDate: request.assessmentDate,
                     accountId: request.accountId,
-                    caseId: request.caseId
+                    caseId: request.caseId,
+                    interactionSummaryId: result.interactionSummaryId // Pass back potentially new ID
                 }
             }));
         } catch (error) {

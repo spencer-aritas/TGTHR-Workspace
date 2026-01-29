@@ -343,118 +343,6 @@
                             </div>
                         </lightning-accordion-section>
 
-                        <lightning-accordion-section name="codes" label="Diagnosis Codes">
-                            <div data-section="codes">
-                                <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
-                                    <div class="slds-col">
-                                        <lightning-button
-                                            label="Add ICD-10 Diagnosis"
-                                            icon-name="utility:add"
-                                            onclick={handleOpenIcd10Selector}
-                                            variant="brand">
-                                        </lightning-button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Selected Diagnoses Display -->
-                                <template if:true={hasSelectedDiagnoses}>
-                                    <div class="slds-m-bottom_medium">
-                                        <p class="slds-text-title_caps slds-m-bottom_small">Selected Diagnoses</p>
-                                        <div class="diagnosis-cards-container">
-                                            <template for:each={formattedDiagnoses} for:item="diag">
-                                                <article key={diag.code} class="slds-card diagnosis-card">
-                                                    <div class="slds-card__header slds-grid">
-                                                        <header class="slds-media slds-media_center slds-has-flexi-truncate">
-                                                            <div class="slds-media__figure">
-                                                                <lightning-icon 
-                                                                    icon-name="utility:record" 
-                                                                    size="small"
-                                                                    class={diag.statusIconClass}>
-                                                                </lightning-icon>
-                                                            </div>
-                                                            <div class="slds-media__body">
-                                                                <h2 class="slds-card__header-title">
-                                                                    <span class="slds-text-heading_small slds-truncate">{diag.code}</span>
-                                                                </h2>
-                                                            </div>
-                                                        </header>
-                                                        <div class="slds-no-flex">
-                                                            <template if:true={diag.isPrimary}>
-                                                                <lightning-badge label="Primary" class="slds-m-right_x-small primary-badge"></lightning-badge>
-                                                            </template>
-                                                            <lightning-button-icon
-                                                                icon-name="utility:close"
-                                                                alternative-text="Remove diagnosis"
-                                                                variant="bare"
-                                                                size="small"
-                                                                onclick={handleRemoveDiagnosis}
-                                                                data-code={diag.code}>
-                                                            </lightning-button-icon>
-                                                        </div>
-                                                    </div>
-                                                    <div class="slds-card__body slds-card__body_inner">
-                                                        <p class="slds-text-body_regular slds-m-bottom_x-small">{diag.description}</p>
-                                                        <div class="slds-grid slds-wrap slds-gutters_x-small diagnosis-meta">
-                                                            <template if:true={diag.status}>
-                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
-                                                                    <span class="slds-text-color_weak slds-text-body_small">Status:</span>
-                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.status}</span>
-                                                                </div>
-                                                            </template>
-                                                            <template if:true={diag.diagnosisType}>
-                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
-                                                                    <span class="slds-text-color_weak slds-text-body_small">Type:</span>
-                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.diagnosisType}</span>
-                                                                </div>
-                                                            </template>
-                                                            <template if:true={diag.onsetDate}>
-                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
-                                                                    <span class="slds-text-color_weak slds-text-body_small">Onset:</span>
-                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.onsetDate}</span>
-                                                                </div>
-                                                            </template>
-                                                            <template if:true={diag.category}>
-                                                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_xx-small">
-                                                                    <span class="slds-text-color_weak slds-text-body_small">Category:</span>
-                                                                    <span class="slds-text-body_small slds-m-left_xx-small">{diag.category}</span>
-                                                                </div>
-                                                            </template>
-                                                        </div>
-                                                        <template if:true={diag.notes}>
-                                                            <div class="slds-m-top_x-small diagnosis-notes">
-                                                                <span class="slds-text-color_weak slds-text-body_small">Notes:</span>
-                                                                <p class="slds-text-body_small slds-m-top_xx-small">{diag.notes}</p>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </article>
-                                            </template>
-                                        </div>
-                                    </div>
-                                </template>
-                                
-                                <!-- Existing Code Assignments (from system) -->
-                                <template if:true={hasCodeOptions}>
-                                    <lightning-dual-listbox
-                                        name="codes"
-                                        label="Existing Code Assignments"
-                                        source-label="Available Codes"
-                                        selected-label="Codes Applied"
-                                        value={form.codeIds}
-                                        options={codeOptions}
-                                        onchange={handleCodesChange}>
-                                    </lightning-dual-listbox>
-                                </template>
-                            </div>
-                        </lightning-accordion-section>
-                        
-                        <!-- ICD-10 Code Selector Modal -->
-                        <c-icd10-code-selector
-                            account-id={accountId}
-                            case-id={recordId}
-                            ondiagnosisadded={handleDiagnosisAdded}>
-                        </c-icd10-code-selector>
-
                         <lightning-accordion-section name="signature" label="Signature">
                             <div data-section="signature">
                                 <p class="slds-text-body_small slds-m-bottom_small">
@@ -468,6 +356,19 @@
 
                                 <!-- Manager Co-Signature Request -->
                                 <div class="slds-box slds-box_x-small slds-theme_shade slds-m-top_medium">
+                                    <!-- Correction Mode Banner -->
+                                    <template if:true={isReapprovalScenario}>
+                                        <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small" role="alert">
+                                            <span class="slds-assistive-text">warning</span>
+                                            <lightning-icon icon-name="utility:warning" variant="inverse" size="x-small"
+                                                class="slds-m-right_x-small"></lightning-icon>
+                                            <h2>
+                                                <strong>Correction Mode:</strong> This note must be re-submitted to
+                                                <strong>{reapprovalManagerName}</strong> for approval.
+                                            </h2>
+                                        </div>
+                                    </template>
+
                                     <div class="slds-grid slds-grid_vertical-align-center">
                                         <div class="slds-col slds-grow">
                                             <lightning-input
@@ -475,7 +376,7 @@
                                                 label={managerApprovalLabel}
                                                 checked={requestManagerCoSign}
                                                 onchange={handleManagerApprovalToggle}
-                                                disabled={managerMissing}>
+                                                disabled={isManagerApprovalDisabled}>
                                             </lightning-input>
                                             <template if:false={hasManager}>
                                                 <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
@@ -483,6 +384,20 @@
                                                 </p>
                                             </template>
                                             <template if:true={requestManagerCoSign}>
+                                                <!-- Approver Selection - Hidden in re-approval/correction mode -->
+                                                <template if:false={isReapprovalScenario}>
+                                                    <div class="slds-m-top_small slds-m-bottom_small">
+                                                        <lightning-combobox
+                                                            name="approver"
+                                                            label="Select Approver"
+                                                            value={selectedApproverId}
+                                                            placeholder="Select a user..."
+                                                            options={signingAuthorityOptions}
+                                                            onchange={handleApproverChange}
+                                                            required>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                </template>
                                                 <p class="slds-text-body_small slds-text-color_success slds-m-top_xx-small">
                                                     <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
                                                     {managerName} will be notified to co-sign this note after you save.
@@ -553,6 +468,8 @@
                     <c-ssrs-assessment 
                         record-id={accountId} 
                         case-id={recordId}
+                        assessment-id={ssrsAssessmentId}
+                        interaction-id={interactionId}
                         oncomplete={handleSsrsComplete}>
                     </c-ssrs-assessment>
                 </div>

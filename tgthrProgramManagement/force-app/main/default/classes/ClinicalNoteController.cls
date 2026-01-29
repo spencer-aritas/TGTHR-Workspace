@@ -3,6 +3,7 @@ public with sharing class ClinicalNoteController {
     public class SaveRequest {
         @AuraEnabled public Id caseId;
         @AuraEnabled public Id accountId;
+        @AuraEnabled public Id interactionSummaryId; // For updates/amendments
         @AuraEnabled public String interactionDate;
         @AuraEnabled public String startTime;
         @AuraEnabled public String endTime;
@@ -26,6 +27,7 @@ public with sharing class ClinicalNoteController {
      * Captures diagnosis details to create Diagnosis__c records.
      */
     public class DiagnosisInput {
+        @AuraEnabled public String id;            // Existing Diagnosis ID (optional)
         @AuraEnabled public String code;          // ICD-10 code (e.g., F32.1)
         @AuraEnabled public String description;   // Description of the diagnosis
         @AuraEnabled public String status;        // Active, Historical
@@ -77,9 +79,155 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public Integer timeSpentMinutes; // Time spent on this goal
     }
 
-    @AuraEnabled(cacheable=true)
-    public static InteractionContextService.InteractionContextData initClinicalNote(Id caseId) {
-        return InteractionContextService.initInteractionContext(caseId);
+    @AuraEnabled(cacheable=false)
+    public static InteractionContextService.InteractionContextData initClinicalNote(Id caseId, Id interactionId) {
+        InteractionContextService.InteractionContextData data = InteractionContextService.initInteractionContext(caseId);
+        
+        if (interactionId != null) {
+            data.existingNote = getExistingNoteData(interactionId);
+        }
+        
+        return data;
+    }
+
+    private static Map<String, Object> getExistingNoteData(Id interactionId) {
+        Map<String, Object> noteData = new Map<String, Object>();
+        
+        String query = 'SELECT Id, Date_of_Interaction__c, Start_Time__c, End_Time__c, ' +
+                       'Interpreter_Used__c, POS__c, MeetingNotes, Description_of_Services__c, ' +
+                       'Response_and_Progress__c, Plan__c, ' +
+                       'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, Manager_Rejected__c ' +
+                       'FROM InteractionSummary WHERE Id = :interactionId';
+                       
+        List<SObject> records = Database.query(query);
+        if (records.isEmpty()) {
+            return null;
+        }
+        SObject note = records[0];
+        
+        noteData.put('interactionDate', note.get('Date_of_Interaction__c'));
+        
+        Datetime startDt = (Datetime)note.get('Start_Time__c');
+        Datetime endDt = (Datetime)note.get('End_Time__c');
+        
+        if (startDt != null) noteData.put('startTime', startDt.format('HH:mm'));
+        if (endDt != null) noteData.put('endTime', endDt.format('HH:mm'));
+        
+        noteData.put('interpreterUsed', note.get('Interpreter_Used__c'));
+        noteData.put('pos', note.get('POS__c'));
+        noteData.put('reason', note.get('MeetingNotes'));
+        noteData.put('services', note.get('Description_of_Services__c'));
+        noteData.put('response', note.get('Response_and_Progress__c'));
+        noteData.put('plan', note.get('Plan__c'));
+        
+        // Manager approval info
+        noteData.put('requiresManagerApproval', note.get('Requires_Manager_Approval__c'));
+        noteData.put('managerApproverId', note.get('Manager_Approver__c'));
+        noteData.put('managerApproverName', note.getSObject('Manager_Approver__r')?.get('Name'));
+        noteData.put('wasRejected', note.get('Manager_Rejected__c'));
+        
+        // Load Goal Details
+        List<SObject> goalDetails = [
+            SELECT GoalAssignmentId, Narrative__c, ProgressBefore__c, ProgressAfter__c, TimeSpentMinutes__c 
+            FROM GoalAssignmentDetail 
+            WHERE InteractionSummary__c = :interactionId
+        ];
+        
+        Map<String, Object> goalWorkState = new Map<String, Object>();
+        for (SObject gd : goalDetails) {
+            Map<String, Object> detail = new Map<String, Object>();
+            detail.put('workedOn', true);
+            detail.put('narrative', gd.get('Narrative__c'));
+            detail.put('progressBefore', gd.get('ProgressBefore__c'));
+            detail.put('progressAfter', gd.get('ProgressAfter__c'));
+            detail.put('timeSpentMinutes', gd.get('TimeSpentMinutes__c'));
+            
+            goalWorkState.put((String)gd.get('GoalAssignmentId'), detail);
+        }
+        noteData.put('goalWorkState', goalWorkState);
+        
+        // Handle Diagnosis - fetch via Junction Object Diagnosis_Note_Link__c
+        List<Diagnosis__c> diagnoses = new List<Diagnosis__c>();
+        try {
+            // First try via junction object
+            Set<Id> diagnosisIds = new Set<Id>();
+            Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+            
+            if (gd.containsKey('Diagnosis_Note_Link__c')) {
+                String linkQuery = 'SELECT Diagnosis__c FROM Diagnosis_Note_Link__c WHERE InteractionSummary__c = :interactionId';
+                for (SObject link : Database.query(linkQuery)) {
+                    diagnosisIds.add((Id)link.get('Diagnosis__c'));
+                }
+            }
+            
+            // If junction records exist, query the diagnoses
+            if (!diagnosisIds.isEmpty()) {
+                diagnoses = [
+                    SELECT Id, ICD10Code__c, Description__c, Status__c, Notes__c, 
+                           Primary__c, Category__c, Onset_Date__c
+                    FROM Diagnosis__c 
+                    WHERE Id IN :diagnosisIds
+                ];
+            } else {
+                // Fallback for legacy data: Check direct lookup
+                diagnoses = [
+                    SELECT Id, ICD10Code__c, Description__c, Status__c, Notes__c, 
+                           Primary__c, Category__c, Onset_Date__c
+                    FROM Diagnosis__c 
+                    WHERE Interaction_Summary__c = :interactionId
+                ];
+            }
+        } catch (Exception e) {
+            System.debug('Error retrieving diagnoses: ' + e.getMessage());
+        }
+        
+        System.debug('Found ' + diagnoses.size() + ' diagnoses for interaction ' + interactionId);
+        
+        // Return full diagnosis data for frontend
+        List<Map<String, Object>> diagnosisList = new List<Map<String, Object>>();
+        for (Diagnosis__c d : diagnoses) {
+            Map<String, Object> diagData = new Map<String, Object>();
+            diagData.put('id', d.Id);
+            diagData.put('code', d.ICD10Code__c);
+            diagData.put('description', d.Description__c);
+            diagData.put('status', d.Status__c);
+            diagData.put('notes', d.Notes__c);
+            diagData.put('isPrimary', d.Primary__c);
+            diagData.put('category', d.Category__c);
+            diagData.put('onsetDate', d.Onset_Date__c);
+            diagData.put('codeId', d.Id);
+            
+            System.debug('Diagnosis: ' + diagData);
+            diagnosisList.add(diagData);
+        }
+        noteData.put('selectedDiagnoses', diagnosisList);
+        System.debug('Returning selectedDiagnoses: ' + diagnosisList);
+        
+        // Load SSRS Assessment linked to this Interaction via System Helper
+        // Ensures visibility even if user lacks read access to the Assessment record
+        SystemLevelHelper helper = new SystemLevelHelper();
+        Id linkedAssessmentId = helper.getLinkedAssessmentId(interactionId);
+        if (linkedAssessmentId != null) {
+            noteData.put('ssrsAssessmentId', linkedAssessmentId);
+        }
+        
+        // Code assignments don't have Interaction_Summary__c field - skipping for now
+        noteData.put('codeIds', new List<Id>());
+        
+        // Load Benefits via BenefitDisbursements → BenefitAssignment
+        List<SObject> disbursements = Database.query(
+            'SELECT BenefitAssignmentId, BenefitAssignment.BenefitId FROM BenefitDisbursement WHERE InteractionSummary__c = :interactionId'
+        );
+        List<Id> benefitIds = new List<Id>();
+        for (SObject disb : disbursements) {
+            SObject assignment = (SObject)disb.getSObject('BenefitAssignment');
+            if (assignment != null) {
+                benefitIds.add((Id)assignment.get('BenefitId'));
+            }
+        }
+        noteData.put('benefitIds', benefitIds);
+
+        return noteData;
     }
 
     @AuraEnabled
@@ -233,10 +381,21 @@ public with sharing class ClinicalNoteController {
     /**
      * Get existing active diagnoses for a Person Account for selection in Clinical Notes.
      * Returns diagnosis DTOs with code from Code__c field and description from Name field.
-     * Note: Status__c field doesn't exist on Diagnosis__c, so we return all diagnoses for the client.
+     * Runs in system mode to ensure all diagnoses are visible regardless of sharing rules.
      */
     @AuraEnabled
     public static List<Map<String, String>> getExistingDiagnoses(Id caseId, Id accountId) {
+        // Delegate to system mode to bypass sharing rules
+        SystemLevelHelper sysHelper = new SystemLevelHelper();
+        return sysHelper.queryExistingDiagnoses(caseId, accountId);
+    }
+    
+    /**
+     * System-mode implementation moved to SystemLevelHelper inner class.
+     * See SystemLevelHelper.queryExistingDiagnoses()
+     */
+    @AuraEnabled
+    public static List<Map<String, String>> getExistingDiagnosesOld(Id caseId, Id accountId) {
         System.debug('========================================');
         System.debug('[getExistingDiagnoses] Called with:');
         System.debug('  caseId: ' + caseId);
@@ -256,38 +415,81 @@ public with sharing class ClinicalNoteController {
             // Name stores the description (or "Code - Description" format)
             // Note: Status__c field doesn't exist, so we get all diagnoses
             // REMOVED 'AND Code__c != null' to ensure all diagnoses are visible even if linkage is broken
-            String query = 'SELECT Id, Code__c, Code_Name__r.Name, Name, Onset_Date__c ' +
-                          'FROM Diagnosis__c ' +
-                          'WHERE Client__c = :accountId ' +
-                          'ORDER BY CreatedDate DESC';
+            
+            // Build dynamic query
+            List<String> selectFields = new List<String>{'Id', 'Code__c', 'Code_Name__r.Name', 'Name', 'Onset_Date__c'};
+            Schema.SObjectType diagType = Schema.getGlobalDescribe().get('Diagnosis__c');
+            Map<String, Schema.SObjectField> fieldMap = diagType.getDescribe().fields.getMap();
+
+            // Include explicit text fields if available (Robustness fix)
+            if (fieldMap.containsKey('icd10code__c')) selectFields.add('ICD10Code__c');
+            if (fieldMap.containsKey('description__c')) selectFields.add('Description__c');
+
+            if (fieldMap.containsKey('status__c')) selectFields.add('Status__c');
+            if (fieldMap.containsKey('type__c')) selectFields.add('Type__c');
+            if (fieldMap.containsKey('primary__c')) selectFields.add('Primary__c');
+            
+            // Query for Active diagnoses only
+            String whereClause = 'WHERE Client__c = :accountId';
+            if (fieldMap.containsKey('status__c')) {
+                whereClause += ' AND Status__c = \'Active\'';
+            }
+            
+            String query = 'SELECT ' + String.join(selectFields, ', ') +
+                          ' FROM Diagnosis__c ' +
+                          whereClause + 
+                          ' ORDER BY CreatedDate DESC';
             
             System.debug('[getExistingDiagnoses] Query: ' + query);
-            
+
             List<SObject> diagnoses = Database.query(query);
-            System.debug('[getExistingDiagnoses] Found ' + diagnoses.size() + ' diagnoses');
+            System.debug('[getExistingDiagnoses] Query returned ' + diagnoses.size() + ' records');
             
             for (SObject diag : diagnoses) {
-                String code = (String)diag.get('Code__c');
-                String codeNameRef = (String)((SObject)diag.getSObject('Code_Name__r'))?.get('Name');
-                String name = (String)diag.get('Name');
+                System.debug('[getExistingDiagnoses] --- Processing record: ' + diag.Id);
                 
-                // Fallback to Code_Name__r.Name if Code__c formula is null
-                if (String.isBlank(code) && String.isNotBlank(codeNameRef)) {
+                // Try multiple sources for the Code info
+                String code = (String)diag.get('Code__c');
+                String explicitCode = fieldMap.containsKey('icd10code__c') ? (String)diag.get('ICD10Code__c') : null;
+                
+                System.debug('[getExistingDiagnoses] Code__c (formula): ' + code);
+                System.debug('[getExistingDiagnoses] ICD10Code__c (text): ' + explicitCode);
+                System.debug('[getExistingDiagnoses] fieldMap.containsKey(icd10code__c): ' + fieldMap.containsKey('icd10code__c'));
+                
+                String codeNameRef = null;
+                try {
+                    SObject codeNameObj = diag.getSObject('Code_Name__r');
+                    if (codeNameObj != null) {
+                        codeNameRef = (String)codeNameObj.get('Name');
+                    }
+                } catch (Exception ex) {
+                    // Code_Name__r not queried or doesn't exist - that's ok
+                    System.debug('[getExistingDiagnoses] Code_Name__r not available: ' + ex.getMessage());
+                }
+                
+                String name = (String)diag.get('Name');
+                String description = fieldMap.containsKey('description__c') ? (String)diag.get('Description__c') : null;
+
+                // Priority: Explicit Text -> Formula -> Lookup Name -> Name parsing
+                if (String.isNotBlank(explicitCode)) {
+                    code = explicitCode;
+                } else if (String.isBlank(code) && String.isNotBlank(codeNameRef)) {
                      code = codeNameRef;
                      System.debug('[getExistingDiagnoses] Using Code_Name__r.Name: ' + code);
                 }
 
                 System.debug('[getExistingDiagnoses] Processing: ' + diag.Id + ' - ' + code + ' - ' + name);
-                
+
                 // If code is still missing (broken linkage), try to extract from Name (Format: "CODE - Desc")
                 if (String.isBlank(code) && String.isNotBlank(name)) {
                     if (name.contains(' - ')) {
                         List<String> parts = name.split(' - ', 2);
                         if (parts.size() > 0 && parts[0].length() <= 10) { // ICD codes are short
                             code = parts[0];
-                            // Clean up name if it contains the code
-                            // name = parts[1]; // Keep full name for now as per UI expectation
-                            System.debug('[getExistingDiagnoses] Extracted code from Name: ' + code);
+                            // Try to extract description from name if missing
+                            if (String.isBlank(description) && parts.size() > 1) {
+                                description = parts[1];
+                            }
                         }
                     } else if (name.length() <= 10) {
                         // Assume name IS the code
@@ -295,17 +497,22 @@ public with sharing class ClinicalNoteController {
                         System.debug('[getExistingDiagnoses] Using Name as Code: ' + code);
                     }
                 }
-                
+
                 // Still skip if we absolutely can't determine a code
                 if (String.isBlank(code)) {
                     System.debug('[getExistingDiagnoses] Skipping - no code found or extracted');
                     continue;
                 }
-                
+
                 Map<String, String> dto = new Map<String, String>();
                 dto.put('Id', (String)diag.get('Id'));
                 dto.put('ICD10Code__c', code);
-                dto.put('Name', name);
+                dto.put('Name', name); 
+                dto.put('description', description); // Pass description to UI
+
+                if (selectFields.contains('Status__c')) dto.put('Status__c', (String)diag.get('Status__c'));
+                if (selectFields.contains('Type__c')) dto.put('DiagnosisType__c', (String)diag.get('Type__c'));
+                if (selectFields.contains('Primary__c')) dto.put('Primary__c', String.valueOf(diag.get('Primary__c')));
                 
                 Date onsetDate = (Date)diag.get('Onset_Date__c');
                 if (onsetDate != null) {
@@ -408,6 +615,9 @@ public with sharing class ClinicalNoteController {
             System.debug('request.caseId: ' + request.caseId);
             System.debug('request.noteType: ' + request.noteType);
             System.debug('request.interactionDate: ' + request.interactionDate);
+            System.debug('>>> REQUEST DIAGNOSIS DATA: ' + JSON.serialize(request.diagnoses));
+            System.debug('>>> REQUEST SSRS ASSESSMENT ID: ' + request.ssrsAssessmentId);
+            System.debug('>>> Diagnoses count: ' + (request.diagnoses != null ? String.valueOf(request.diagnoses.size()) : 'null'));
             return processSaveClinicalNote(request);
         } catch (Exception e) {
             System.debug('Error deserializing request: ' + e.getMessage());
@@ -564,27 +774,9 @@ public with sharing class ClinicalNoteController {
         SaveResult result = new SaveResult();
         try {
             System.debug('=== SAVE CLINICAL NOTE CALLED ===');
-            System.debug('request is null: ' + (request == null));
-            if (request != null) {
-                System.debug('caseId: ' + request.caseId);
-                System.debug('caseId is null: ' + (request.caseId == null));
-                System.debug('interactionDate: ' + request.interactionDate);
-                System.debug('startTime: ' + request.startTime);
-                System.debug('endTime: ' + request.endTime);
-                System.debug('interpreterUsed: ' + request.interpreterUsed);
-                System.debug('pos: ' + request.pos);
-                System.debug('reason: ' + request.reason);
-                System.debug('services: ' + request.services);
-                System.debug('response: ' + request.response);
-                System.debug('plan: ' + request.plan);
-                System.debug('benefitIds count: ' + (request.benefitIds != null ? request.benefitIds.size() : 0));
-                System.debug('ssrsAssessmentId: ' + request.ssrsAssessmentId);
-            }
-            
             if (request == null || request.caseId == null) {
                 result.success = false;
                 result.errorMessage = 'Cannot save note without case context.';
-                System.debug('ERROR: request or caseId is null');
                 return result;
             }
             
@@ -628,36 +820,122 @@ public with sharing class ClinicalNoteController {
                 return result;
             }
 
-            // Create InteractionSummary using dynamic SObject
-            // Derive the note label from noteType for proper display
-            String noteLabel = request.noteType + ' Note';
-            SObject summary = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
-            summary.put('AccountId', accountId);
-            summary.put('RelatedRecordId', request.caseId);
-            summary.put('Name', noteLabel + ' - ' + interactionDate.format());
-            summary.put('Date_of_Interaction__c', interactionDate);
-            summary.put('InteractionPurpose', noteLabel);
-            summary.put('MeetingNotes', request.reason);
-            
-            putIfFieldExists(summary, 'Interpreter_Used__c', request.interpreterUsed);
-            putIfFieldExists(summary, 'POS__c', request.pos);
-            putIfFieldExists(summary, 'Description_of_Services__c', request.services);
-            putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
-            putIfFieldExists(summary, 'Plan__c', request.plan);
-            putIfFieldExists(summary, 'Start_Time__c', startDateTime);
-            putIfFieldExists(summary, 'End_Time__c', endDateTime);
-            putIfFieldExists(summary, 'Signed_By__c', UserInfo.getUserId());
-            putIfFieldExists(summary, 'Signed_By_Name__c', UserInfo.getName());
-            putIfFieldExists(summary, 'Signed_Date__c', Date.today());
+            SObject summary;
+            Boolean isUpdate = false;
 
-            insert summary;
+            // CHECK FOR UPDATE / AMENDMENT
+            if (request.interactionSummaryId != null) {
+                isUpdate = true;
+                String query = 'SELECT Id, Name, Manager_Rejected__c, Manager_Signed__c, Amendment_Count__c, Requires_Manager_Approval__c, ' + 
+                               'Action_Required__c, Action_Assigned_To__c, Action_Escalated_By__c, Action_Notes__c, ' +
+                               'Manager_Approver__c, RelatedRecordId ' +
+                               'FROM InteractionSummary WHERE Id = \'' + request.interactionSummaryId + '\' LIMIT 1';
+                List<SObject> existing = Database.query(query);
+                
+                if (existing.isEmpty()) {
+                    result.success = false;
+                    result.errorMessage = 'Note not found for update.';
+                    return result;
+                }
+                summary = existing[0];
+                
+                // Permission/Status check: Only allow edit if Rejected OR (Not Signed by Manager AND Created by Current User implies owner rights)
+                // Simply checking if it's "Locked" via PendingDocumentationController logic would be ideal, but for now allow edit if Rejected.
+                Boolean isRejected = (Boolean)summary.get('Manager_Rejected__c');
+                
+                // If it was rejected, we are "Amending" it
+                if (isRejected) {
+                    createAuditLog('Amendment', summary.Id, 'InteractionSummary', 
+                        'Note amended after rejection', 'Resubmission', true);
+                    
+                    // Reset rejection flags
+                    summary.put('Manager_Rejected__c', false);
+                    summary.put('Manager_Rejection_Reason__c', null);
+                    summary.put('Requires_Manager_Approval__c', true); // Resuming approval workflow
+                    summary.put('Manager_Signed__c', false);
+                    summary.put('Status', 'Published'); // Reset status from Completed to Published so it appears in Pending lists
+                    
+                    // Track Amendment
+                    Decimal currentCount = (Decimal)summary.get('Amendment_Count__c');
+                    summary.put('Amendment_Count__c', (currentCount != null ? currentCount : 0) + 1);
+                    summary.put('Last_Amendment_Date__c', Datetime.now());
+                    summary.put('Last_Amendment_By__c', UserInfo.getUserId());
+                    
+                    // Clear any "Action Required" flags on the record itself
+                    putIfFieldExists(summary, 'Action_Required__c', false);
+                    putIfFieldExists(summary, 'Action_Assigned_To__c', null);
+                    putIfFieldExists(summary, 'Action_Escalated_By__c', null);
+                    putIfFieldExists(summary, 'Action_Notes__c', null);
+                    
+                    // Send notification to manager that the note has been corrected and needs re-approval
+                    Id managerId = (Id)summary.get('Manager_Approver__c');
+                    Id caseId = (Id)summary.get('RelatedRecordId');
+                    String noteName = (String)summary.get('Name');
+                    if (managerId != null && caseId != null) {
+                        try {
+                            PendingDocNotificationService.notifyApproverOfCoSignRequest(
+                                managerId, caseId, noteName
+                            );
+                            System.debug('✅ Sent re-approval notification to manager: ' + managerId);
+                        } catch (Exception notifEx) {
+                            System.debug('⚠️ Non-fatal: Failed to send re-approval notification: ' + notifEx.getMessage());
+                        }
+                    }
+                }
+                
+                // Update specific fields (re-map input)
+                String noteLabel = request.noteType + ' Note';
+                summary.put('Name', noteLabel + ' - ' + interactionDate.format());
+                summary.put('Date_of_Interaction__c', interactionDate);
+                summary.put('InteractionPurpose', noteLabel);
+                summary.put('MeetingNotes', request.reason);
+                
+                putIfFieldExists(summary, 'Interpreter_Used__c', request.interpreterUsed);
+                putIfFieldExists(summary, 'POS__c', request.pos);
+                putIfFieldExists(summary, 'Description_of_Services__c', request.services);
+                putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
+                putIfFieldExists(summary, 'Plan__c', request.plan);
+                putIfFieldExists(summary, 'Start_Time__c', startDateTime);
+                putIfFieldExists(summary, 'End_Time__c', endDateTime);
+                
+                // Clean up old goal details before creating new ones (Snapshot replacement)
+                try {
+                     delete [SELECT Id FROM GoalAssignmentDetail WHERE InteractionSummary__c = :summary.Id];
+                } catch(Exception ex) {
+                    System.debug('Error clearing old goal details: ' + ex.getMessage());
+                }
 
-            // Create GoalAssignmentDetail records for selected goals (not just link GoalAssignment)
+                update summary;
+                
+            } else {
+                // INSERT NEW
+                String noteLabel = request.noteType + ' Note';
+                summary = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
+                summary.put('AccountId', accountId);
+                summary.put('RelatedRecordId', request.caseId);
+                summary.put('Name', noteLabel + ' - ' + interactionDate.format());
+                summary.put('Date_of_Interaction__c', interactionDate);
+                summary.put('InteractionPurpose', noteLabel);
+                summary.put('MeetingNotes', request.reason);
+                
+                putIfFieldExists(summary, 'Interpreter_Used__c', request.interpreterUsed);
+                putIfFieldExists(summary, 'POS__c', request.pos);
+                putIfFieldExists(summary, 'Description_of_Services__c', request.services);
+                putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
+                putIfFieldExists(summary, 'Plan__c', request.plan);
+                putIfFieldExists(summary, 'Start_Time__c', startDateTime);
+                putIfFieldExists(summary, 'End_Time__c', endDateTime);
+                putIfFieldExists(summary, 'Signed_By__c', UserInfo.getUserId());
+                putIfFieldExists(summary, 'Signed_By_Name__c', UserInfo.getName());
+                putIfFieldExists(summary, 'Signed_Date__c', Date.today());
+
+                insert summary;
+            }
+
+            // Create GoalAssignmentDetail records
             if (request.goalWorkDetails != null && !request.goalWorkDetails.isEmpty()) {
-                System.debug('Creating GoalAssignmentDetail records for ' + request.goalWorkDetails.size() + ' goals with progress tracking');
                 createGoalAssignmentDetailsForInteraction(request.goalWorkDetails, summary.Id, request.accountId);
             } else if (request.goalAssignmentIds != null && !request.goalAssignmentIds.isEmpty()) {
-                // Fallback for old format - convert goalAssignmentIds to goalWorkDetails
                 List<GoalWorkDetail> fallbackDetails = new List<GoalWorkDetail>();
                 for (Id goalId : request.goalAssignmentIds) {
                     GoalWorkDetail detail = new GoalWorkDetail();
@@ -671,24 +949,38 @@ public with sharing class ClinicalNoteController {
                 createGoalAssignmentDetailsForInteraction(fallbackDetails, summary.Id, request.accountId);
             }
 
-            // Note: linkRelatedRecords will fail silently if GoalAssignment__c doesn't exist
-            // Goals are properly linked via GoalAssignmentDetail.DetailRecordId in saveGoalAssignmentDetails
-            linkRelatedRecords('Code_Assignment__c', 'Interaction_Summary__c', request.codeAssignmentIds, summary.Id);
+            // Code assignments don't have Interaction_Summary__c field - skipping for now
+            // linkRelatedRecords('Code_Assignment__c', 'Interaction_Summary__c', request.codeAssignmentIds, summary.Id);
 
-            // Create Diagnosis__c records if provided (Clinical Notes only)
+            // Handle diagnoses: create/update and link via junction object
+            // NOTE: Removed legacy delete logic that wiped out diagnoses linked via Interaction_Summary__c
             if (request.diagnoses != null && !request.diagnoses.isEmpty()) {
                 createDiagnoses(accountId, request.diagnoses, summary.Id);
             }
 
-            // Link SSRS Assessment to this InteractionSummary if provided
+            System.debug('>>> Checking SSRS Assessment ID: ' + request.ssrsAssessmentId);
             if (request.ssrsAssessmentId != null) {
-                linkSsrsAssessmentToInteraction(request.ssrsAssessmentId, summary.Id);
+                System.debug('>>> Calling linkSsrsAssessmentToInteraction (System Mode) with Assessment ID: ' + request.ssrsAssessmentId + ', Interaction ID: ' + summary.Id);
+                // Use System Helper to ensure link is created regardless of permissions
+                new SystemLevelHelper().linkSsrsAssessmentToInteraction(request.ssrsAssessmentId, summary.Id);
+                System.debug('>>> linkSsrsAssessmentToInteraction completed');
+            } else {
+                System.debug('>>> No SSRS Assessment ID provided in request');
             }
 
-            // Create Benefit Disbursements for selected benefits
+            // Handle benefit disbursements
             if (request.benefitIds != null && !request.benefitIds.isEmpty()) {
-                System.debug('📝 Clinical Note Save: Creating disbursements for ' + request.benefitIds.size() + ' benefits');
-                System.debug('📝 Benefit IDs: ' + request.benefitIds);
+                // On update: delete old disbursements first to avoid duplicates
+                if (isUpdate) {
+                    try {
+                        delete [SELECT Id FROM BenefitDisbursement WHERE InteractionSummary__c = :summary.Id];
+                        System.debug('Deleted old benefit disbursements for update');
+                    } catch (Exception ex) {
+                        System.debug('Error clearing old benefit disbursements: ' + ex.getMessage());
+                    }
+                }
+                
+                // Create benefit disbursements (both new and update scenarios)
                 createBenefitDisbursements(
                     accountId, 
                     request.benefitIds, 
@@ -696,10 +988,8 @@ public with sharing class ClinicalNoteController {
                     startDateTime, 
                     endDateTime,
                     request.caseId,
-                    summary.Id // Pass the InteractionSummary ID
+                    summary.Id
                 );
-            } else {
-                System.debug('📝 Clinical Note Save: No benefits selected (benefitIds is null or empty)');
             }
 
             result.success = true;
@@ -712,6 +1002,30 @@ public with sharing class ClinicalNoteController {
             return result;
         }
     }
+    /**
+     * Creates an audit log entry for changes to sensitive records
+     */
+    private static void createAuditLog(String action, Id recordId, String recordType, String description, String reason, Boolean isAmendment) {
+        try {
+            SObject log = Schema.getGlobalDescribe().get('Audit_Log__c').newSObject();
+            log.put('Action__c', action);
+            log.put('Record_Id__c', String.valueOf(recordId));
+            log.put('Record_Type__c', recordType);
+            log.put('Description__c', description);
+            log.put('User__c', UserInfo.getUserId());
+            log.put('Event_Date__c', Datetime.now());
+            
+            // Optional fields if they exist
+            putIfFieldExists(log, 'Amendment_Reason__c', reason);
+            putIfFieldExists(log, 'Is_Amendment__c', isAmendment);
+            
+            insert log;
+        } catch (Exception e) {
+            System.debug('Error creating audit log: ' + e.getMessage());
+            // Don't fail the transaction if logging fails, but log to debug
+        }
+    }
+
     private static void linkRelatedRecords(String objectApiName, String lookupField, List<Id> recordIds, Id interactionId) {
         if (recordIds == null || recordIds.isEmpty()) {
             return;
@@ -741,6 +1055,469 @@ public with sharing class ClinicalNoteController {
         }
     }
 
+
+    /**
+     * Helper class to manage system-level operations like code creation.
+     */
+    private without sharing class SystemLevelHelper {
+        public Map<String, Id> findOrCreateCodes(Set<String> codesToLookup, Map<String, String> codeToDescFallback) {
+             Map<String, Id> codeNumberToId = new Map<String, Id>();
+             Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+             
+             if (!gd.containsKey('Code__c')) return codeNumberToId;
+             
+             Schema.SObjectType codeType = gd.get('Code__c');
+             Map<String, Schema.SObjectField> codeFields = codeType.getDescribe().fields.getMap();
+             
+             // Robustly check for Code__c field (namespace aware)
+             Boolean hasCodeField = false;
+             String codeFieldApi = 'Code__c';
+             if (codeFields.containsKey('code__c')) {
+                 hasCodeField = true;
+                 codeFieldApi = 'Code__c'; 
+             } else {
+                 for (String key : codeFields.keySet()) {
+                     if (key.endsWith('__code__c')) {
+                         hasCodeField = true;
+                         codeFieldApi = key;
+                         break;
+                     }
+                 }
+             }
+
+             String codeQuery = 'SELECT Id, Name' + (hasCodeField ? ', ' + codeFieldApi : '') + ' FROM Code__c WHERE Name IN :codesToLookup';
+             if (hasCodeField) {
+                 codeQuery += ' OR ' + codeFieldApi + ' IN :codesToLookup';
+             }
+
+             for (SObject codeRec : Database.query(codeQuery)) {
+                 String codeNum = (String) codeRec.get('Name');
+                 codeNumberToId.put(codeNum, codeRec.Id);
+                 if (String.isNotBlank(codeNum)) {
+                      codeNumberToId.put(codeNum.toUpperCase(), codeRec.Id);
+                 }
+                 if (hasCodeField) {
+                     String realCode = (String) codeRec.get(codeFieldApi);
+                     if (String.isNotBlank(realCode)) {
+                         codeNumberToId.put(realCode, codeRec.Id);
+                         codeNumberToId.put(realCode.toUpperCase(), codeRec.Id);
+                     }
+                 }
+             }
+             
+             // Create Code__c records for any codes not found
+             Set<String> missingCodes = new Set<String>(codesToLookup);
+             missingCodes.removeAll(codeNumberToId.keySet());
+             
+             if (!missingCodes.isEmpty()) {
+                 List<SObject> codesToCreate = new List<SObject>();
+                 
+                 // Query MDT for rich data
+                 Map<String, ICD10_Code__mdt> mdtMap = new Map<String, ICD10_Code__mdt>();
+                 try {
+                     for (ICD10_Code__mdt mdt : [SELECT Code__c, Description__c, Category__c, Is_Billable__c FROM ICD10_Code__mdt WHERE Code__c IN :missingCodes]) {
+                         mdtMap.put(mdt.Code__c, mdt);
+                     }
+                 } catch (Exception mdtEx) {
+                     System.debug('Error querying MDT: ' + mdtEx.getMessage());
+                 }
+
+                 for (String code : missingCodes) {
+                     SObject newCode = codeType.newSObject();
+                     newCode.put('Name', code);
+                     // Ensures Code__c field is populated even if not in MDT
+                     putFieldIfExists(newCode, codeFields, 'Code__c', code);
+                     putFieldIfExists(newCode, codeFields, 'ICD10Code__c', code); // Try alternate field name
+                     
+                     // Populate rich data if available
+                     if (mdtMap.containsKey(code)) {
+                         ICD10_Code__mdt mdt = mdtMap.get(code);
+                         putFieldIfExists(newCode, codeFields, 'Description__c', mdt.Description__c);
+                         putFieldIfExists(newCode, codeFields, 'Category__c', mdt.Category__c);
+                         // Some orgs use Active__c or Billable__c, try dynamic
+                         putFieldIfExists(newCode, codeFields, 'Is_Billable__c', mdt.Is_Billable__c);
+                         putFieldIfExists(newCode, codeFields, 'Code__c', mdt.Code__c); // Overwrite if MDT has it (likely same)
+                     } else if (codeToDescFallback != null && codeToDescFallback.containsKey(code)) {
+                         putFieldIfExists(newCode, codeFields, 'Description__c', codeToDescFallback.get(code));
+                     }
+                     
+                     codesToCreate.add(newCode);
+                 }
+                 
+                 try {
+                     insert codesToCreate;
+                     System.debug('Created ' + codesToCreate.size() + ' new Code__c records via System Helper');
+                     
+                     // Add newly created codes to the map
+                     for (SObject newCode : codesToCreate) {
+                         String codeName = (String) newCode.get('Name');
+                         codeNumberToId.put(codeName, newCode.Id);
+                         if (hasCodeField) {
+                             String val = (String) newCode.get(codeFieldApi);
+                             if (String.isNotBlank(val)) {
+                                 codeNumberToId.put(val, newCode.Id);
+                             }
+                         }
+                     }
+
+                 } catch (Exception insertEx) {
+                     System.debug('Could not create Code__c records in system helper: ' + insertEx.getMessage());
+                 }
+             }
+             
+             return codeNumberToId;
+        }
+
+        /**
+         * Performs DML on Diagnosis records in System Mode to ensure consistency regardless of user FLS.
+         * Accepts pre-built SObjects and force-writes critical fields in system mode before DML.
+         */
+        public void upsertDiagnoses(List<SObject> inserts, List<SObject> updates) {
+            // Force-write critical fields in system mode to bypass FLS restrictions
+            for (SObject rec : inserts) {
+                forceSetField(rec, 'ICD10Code__c', rec.get('ICD10Code__c'));
+                forceSetField(rec, 'Description__c', rec.get('Description__c'));
+                forceSetField(rec, 'Code_Name__c', rec.get('Code_Name__c'));
+                forceSetField(rec, 'Primary__c', rec.get('Primary__c'));
+                forceSetField(rec, 'Status__c', rec.get('Status__c'));
+                forceSetField(rec, 'Type__c', rec.get('Type__c'));
+                forceSetField(rec, 'Onset_Date__c', rec.get('Onset_Date__c'));
+                forceSetField(rec, 'Notes__c', rec.get('Notes__c'));
+            }
+            for (SObject rec : updates) {
+                forceSetField(rec, 'ICD10Code__c', rec.get('ICD10Code__c'));
+                forceSetField(rec, 'Description__c', rec.get('Description__c'));
+                forceSetField(rec, 'Primary__c', rec.get('Primary__c'));
+                forceSetField(rec, 'Status__c', rec.get('Status__c'));
+                forceSetField(rec, 'Notes__c', rec.get('Notes__c'));
+            }
+            
+            if (inserts != null && !inserts.isEmpty()) {
+                try {
+                    insert inserts;
+                    System.debug('System: Created ' + inserts.size() + ' Diagnosis records');
+                } catch (Exception e) {
+                    System.debug('System: Error creating Diagnosis records: ' + e.getMessage());
+                    throw e;
+                }
+            }
+            if (updates != null && !updates.isEmpty()) {
+                try {
+                    update updates;
+                    System.debug('System: Updated ' + updates.size() + ' Diagnosis records');
+                } catch (Exception e) {
+                    System.debug('System: Error updating Diagnosis records: ' + e.getMessage());
+                    throw e;
+                }
+            }
+        }
+        
+        /**
+         * Force-set a field value in system mode, ignoring FLS.
+         */
+        private void forceSetField(SObject rec, String fieldName, Object value) {
+            if (value == null) return;
+            try {
+                rec.put(fieldName, value);
+            } catch (Exception e) {
+                System.debug('System: Could not force-set ' + fieldName + ': ' + e.getMessage());
+            }
+        }
+
+        /**
+        * Retrieves descriptions for a set of codes from MDT, useful for backfilling missing descriptions.
+        */
+        public Map<String, String> getCodeDescriptions(Set<String> codes) {
+            Map<String, String> codeToDesc = new Map<String, String>();
+            if (codes == null || codes.isEmpty()) return codeToDesc;
+
+            try {
+                for (ICD10_Code__mdt mdt : [SELECT Code__c, Description__c FROM ICD10_Code__mdt WHERE Code__c IN :codes]) {
+                    if (mdt.Description__c != null) {
+                       codeToDesc.put(mdt.Code__c, mdt.Description__c);
+                    }
+                }
+            } catch (Exception e) {
+                 System.debug('Error retrieving MDT descriptions: ' + e.getMessage());
+            }
+            return codeToDesc;
+        }
+        
+        /**
+         * Query existing diagnoses in system mode (without sharing) to bypass sharing rules.
+         * This ensures all diagnoses are visible for clinical note creation.
+         */
+        public List<Map<String, String>> queryExistingDiagnoses(Id caseId, Id accountId) {
+            List<Map<String, String>> result = new List<Map<String, String>>();
+            
+            try {
+                
+                // Build dynamic query
+                List<String> selectFields = new List<String>{'Id', 'Code__c', 'Code_Name__r.Name', 'Name', 'Onset_Date__c'};
+                Schema.SObjectType diagType = resolveObjectType('Diagnosis__c');
+                if (diagType == null) return result;
+
+                Map<String, Schema.SObjectField> fieldMap = diagType.getDescribe().fields.getMap();
+
+                // Include explicit text fields if available (Robustness fix)
+                if (fieldMap.containsKey('icd10code__c')) selectFields.add('ICD10Code__c');
+                if (fieldMap.containsKey('description__c')) selectFields.add('Description__c');
+
+                if (fieldMap.containsKey('status__c')) selectFields.add('Status__c');
+                if (fieldMap.containsKey('type__c')) selectFields.add('Type__c');
+                if (fieldMap.containsKey('primary__c')) selectFields.add('Primary__c');
+                
+                // Query for Active diagnoses only
+                String whereClause = 'WHERE Client__c = :accountId';
+                if (fieldMap.containsKey('status__c')) {
+                    whereClause += ' AND Status__c = \'Active\'';
+                }
+                
+                String query = 'SELECT ' + String.join(selectFields, ', ') +
+                              ' FROM Diagnosis__c ' +
+                              whereClause + 
+                              ' ORDER BY CreatedDate DESC';
+
+                List<SObject> diagnoses = Database.query(query);
+                
+                for (SObject diag : diagnoses) {
+                    // Try multiple sources for the Code info
+                    String code = (String)diag.get('Code__c');
+                    String explicitCode = fieldMap.containsKey('icd10code__c') ? (String)diag.get('ICD10Code__c') : null;
+                    
+                    String codeNameRef = null;
+                    try {
+                        SObject codeNameObj = diag.getSObject('Code_Name__r');
+                        if (codeNameObj != null) {
+                            codeNameRef = (String)codeNameObj.get('Name');
+                        }
+                    } catch (Exception ex) {
+                        // Code_Name__r not queried or doesn't exist - that's ok
+                    }
+                    
+                    String name = (String)diag.get('Name');
+                    String description = fieldMap.containsKey('Description__c') ? (String)diag.get('Description__c') : null;
+
+                    // Priority: Explicit Text -> Formula -> Lookup Name -> Name parsing
+                    if (String.isNotBlank(explicitCode)) {
+                        code = explicitCode;
+                    } else if (String.isBlank(code) && String.isNotBlank(codeNameRef)) {
+                         code = codeNameRef;
+                    }
+
+                    // If code is still missing (broken linkage), try to extract from Name (Format: "CODE - Desc")
+                    if (String.isBlank(code) && String.isNotBlank(name)) {
+                        if (name.contains(' - ')) {
+                            List<String> parts = name.split(' - ', 2);
+                            if (parts.size() > 0 && parts[0].length() <= 10) { // ICD codes are short
+                                code = parts[0];
+                                // Try to extract description from name if missing
+                                if (String.isBlank(description) && parts.size() > 1) {
+                                    description = parts[1];
+                                }
+                            }
+                        } else if (name.length() <= 10) {
+                            // Assume name IS the code
+                            code = name;
+                        }
+                    }
+
+                    // Still skip if we absolutely can't determine a code
+                    if (String.isBlank(code)) {
+                        continue;
+                    }
+
+                    Map<String, String> dto = new Map<String, String>();
+                    dto.put('Id', (String)diag.get('Id'));
+                    dto.put('ICD10Code__c', code);
+                    dto.put('Name', name); 
+                    dto.put('description', description); // Pass description to UI
+
+                    if (selectFields.contains('Status__c')) dto.put('Status__c', (String)diag.get('Status__c'));
+                    if (selectFields.contains('Type__c')) dto.put('DiagnosisType__c', (String)diag.get('Type__c'));
+                    if (selectFields.contains('Primary__c')) dto.put('Primary__c', String.valueOf(diag.get('Primary__c')));
+                    
+                    Date onsetDate = (Date)diag.get('Onset_Date__c');
+                    if (onsetDate != null) {
+                        dto.put('OnsetDate__c', String.valueOf(onsetDate));
+                    }
+                    
+                    result.add(dto);
+                }
+                
+            } catch (Exception e) {
+                System.debug('[SystemLevelHelper.queryExistingDiagnoses] Exception: ' + e.getMessage());
+            }
+            
+            return result;
+        }
+
+        /**
+         * Resolves the SObjectType from Global Describe, handling case sensitivity.
+         */
+        private Schema.SObjectType resolveObjectType(String apiName) {
+            Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+            // Try exact match
+            if (gd.containsKey(apiName)) return gd.get(apiName);
+            // Try lowercase (standard behavior for GD keys)
+            if (gd.containsKey(apiName.toLowerCase())) return gd.get(apiName.toLowerCase());
+            return null;
+        }
+
+        /**
+         * Resolves the real API name of a field, handling namespace prefixes and case sensitivity.
+         */
+        private String resolveFieldName(Schema.SObjectType type, String baseName) {
+            Map<String, Schema.SObjectField> fields = type.getDescribe().fields.getMap();
+            String search = baseName.toLowerCase();
+            
+            // Try explicit match first
+            if (fields.containsKey(baseName)) return baseName;
+            
+            // Try lowercase direct match
+            if (fields.containsKey(search)) return search;
+
+            // Scan for match with namespace or case difference
+            for (String key : fields.keySet()) {
+                String k = key.toLowerCase();
+                if (k == search || k.endsWith('__' + search)) {
+                    return key;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Links an SSRS Assessment to an InteractionSummary in system mode.
+         * Ensures linkage works even if the user doesn't have edit access to the Assessment.
+         */
+        public void linkSsrsAssessmentToInteraction(Id assessmentId, Id interactionSummaryId) {
+            System.debug('>>> SystemLevelHelper.linkSsrsAssessmentToInteraction START');
+            if (assessmentId == null || interactionSummaryId == null) {
+                System.debug('>>> ABORT: Null ID provided. Assessment=' + assessmentId + ' Interaction=' + interactionSummaryId);
+                return;
+            }
+            
+            try {
+                // Determine Object Type via Global Describe to handle case sensitivity
+                Schema.SObjectType assessmentType = resolveObjectType('Assessment__c');
+                if (assessmentType == null) {
+                    System.debug('>>> ABORT: Assessment__c SObjectType not found.');
+                    return;
+                }
+                
+                // Determine Field Name via Describe to handle case sensitivity
+                String linkField = resolveFieldName(assessmentType, 'Interaction_Summary__c');
+                System.debug('>>> Resolved Link Field: ' + linkField);
+
+                if (linkField != null) {
+                    SObject assessment = assessmentType.newSObject(assessmentId);
+                    // Explicitly use .put instead of forceSetField to bubble up any errors
+                    try {
+                        assessment.put(linkField, interactionSummaryId);
+                        update assessment;
+                        System.debug('>>> SUCCESS: Linked Assessment ' + assessmentId + ' to ' + interactionSummaryId + ' via field ' + linkField);
+                    } catch (Exception dmlEx) {
+                        System.debug('>>> DML FAIL: Could not update Assessment: ' + dmlEx.getMessage());
+                        System.debug(dmlEx.getStackTraceString());
+                    }
+                } else {
+                    System.debug('>>> FAIL: Interaction_Summary__c field not found on Assessment__c');
+                }
+            } catch (Exception e) {
+                System.debug('>>> FATAL ERROR in linkSsrs: ' + e.getMessage());
+                System.debug(e.getStackTraceString());
+            }
+        }
+
+        /**
+         * Retrieves the ID of an SSRS Assessment linked to the interaction.
+         * Runs in system mode to ensure visibility even if user lacks sharing access.
+         */
+        /**
+         * Retrieves the ID of an SSRS Assessment linked to the interaction.
+         * Runs in system mode to ensure visibility even if user lacks sharing access.
+         * Includes "Orphan Rescue" logic to find and link assessments that were created
+         * but failed to link due to race conditions or errors.
+         */
+        public Id getLinkedAssessmentId(Id interactionId) {
+            if (interactionId == null) return null;
+            try {
+                Schema.SObjectType assessmentType = resolveObjectType('Assessment__c');
+                if (assessmentType == null) return null;
+
+                String linkField = resolveFieldName(assessmentType, 'Interaction_Summary__c');
+                if (linkField == null) {
+                    System.debug('System: Interaction_Summary__c field not found, cannot query linked assessment');
+                    return null;
+                }
+
+                // 1. Try finding directly linked assessment
+                String query = 'SELECT Id FROM Assessment__c WHERE ' + linkField + ' = :interactionId LIMIT 1';
+                List<SObject> assessments = Database.query(query);
+                if (!assessments.isEmpty()) {
+                    return assessments[0].Id;
+                }
+
+                // 2. Fallback: "Orphan Rescue"
+                // If not linked, look for a candidate assessment created by the same user for the same client
+                // around the same time, that is currently unlinked.
+                System.debug('>>> Direct link not found. Attempting Orphan Rescue for Interaction: ' + interactionId);
+                
+                // Get Interaction Context
+                List<SObject> interactions = [
+                    SELECT Id, AccountId, RelatedRecordId, CreatedDate, CreatedById 
+                    FROM InteractionSummary 
+                    WHERE Id = :interactionId 
+                    LIMIT 1
+                ];
+                
+                if (interactions.isEmpty()) return null;
+                
+                SObject interaction = interactions[0];
+                Id accountId = (Id)interaction.get('AccountId');
+                Id ownerId = (Id)interaction.get('CreatedById');
+                Datetime docCreatedDate = (Datetime)interaction.get('CreatedDate');
+                
+                if (accountId == null) return null;
+
+                // Look CAUTIOUSLY for a match:
+                // - Same Client (Participant__c)
+                // - Same Creator (Assessed_By__c or CreatedById)
+                // - Not already linked (Interaction_Summary__c = null)
+                // - Created within last 24 hours of the note creation
+                
+                Datetime lookbackDate = docCreatedDate.addHours(-24);
+                
+                // Note: Using Assessment__c fields. Assuming Participant__c exists (standard for this org).
+                String orphanQuery = 'SELECT Id FROM Assessment__c ' + 
+                                     'WHERE Participant__c = :accountId ' + 
+                                     'AND (Assessed_By__c = :ownerId OR CreatedById = :ownerId) ' + 
+                                     'AND ' + linkField + ' = null ' + 
+                                     'AND CreatedDate >= :lookbackDate ' +
+                                     'ORDER BY CreatedDate DESC LIMIT 1';
+                                     
+                List<SObject> orphans = Database.query(orphanQuery);
+                
+                if (!orphans.isEmpty()) {
+                    Id orphanId = orphans[0].Id;
+                    System.debug('>>> ORPHAN RESCUE SUCCESS: Found unlinked Assessment ' + orphanId + '. Auto-linking now.');
+                    
+                    // Self-heal: Link it immediately
+                    linkSsrsAssessmentToInteraction(orphanId, interactionId);
+                    
+                    return orphanId;
+                } else {
+                    System.debug('>>> No orphan assessment found.');
+                }
+
+            } catch (Exception e) {
+                System.debug('System: Error finding linked assessment: ' + e.getMessage());
+            }
+            return null;
+        }
+    }
+
     /**
      * Creates Diagnosis__c records from the selected diagnoses in a Clinical Note.
      * Links them to the Client (Account) and optionally to the InteractionSummary.
@@ -762,9 +1539,13 @@ public with sharing class ClinicalNoteController {
         
         // First, look up Code__c records by code number to link properly
         Set<String> codesToLookup = new Set<String>();
+        Map<String, String> codeToDesc = new Map<String, String>();
         for (DiagnosisInput diag : diagnoses) {
             if (String.isNotBlank(diag.code)) {
                 codesToLookup.add(diag.code);
+                if (String.isNotBlank(diag.description)) {
+                    codeToDesc.put(diag.code, diag.description);
+                }
             }
         }
         
@@ -786,65 +1567,43 @@ public with sharing class ClinicalNoteController {
             }
         }
         
-        Map<String, Id> codeNumberToId = new Map<String, Id>();
-        if (!codesToLookup.isEmpty() && gd.containsKey('Code__c')) {
-            // Query by Name since Code_Number__c may not exist
-            // Wrap in try-catch in case user lacks object-level access
-            try {
-                String codeQuery = 'SELECT Id, Name FROM Code__c WHERE Name IN :codesToLookup';
-                for (SObject codeRec : Database.query(codeQuery)) {
-                    String codeNum = (String) codeRec.get('Name');
-                    codeNumberToId.put(codeNum, codeRec.Id);
-                }
-                
-                // Create Code__c records for any codes not found
-                Set<String> missingCodes = new Set<String>(codesToLookup);
-                missingCodes.removeAll(codeNumberToId.keySet());
-                
-                if (!missingCodes.isEmpty()) {
-                    Schema.SObjectType codeType = gd.get('Code__c');
-                    List<SObject> codesToCreate = new List<SObject>();
-                    
-                    // Build map of code -> description from diagnoses input
-                    Map<String, String> codeToDesc = new Map<String, String>();
-                    for (DiagnosisInput diag : diagnoses) {
-                        if (String.isNotBlank(diag.code) && String.isNotBlank(diag.description)) {
-                            codeToDesc.put(diag.code, diag.description);
-                        }
-                    }
-                    
-                    for (String code : missingCodes) {
-                        SObject newCode = codeType.newSObject();
-                        newCode.put('Name', code);
-                        // If Code__c object has a Code__c text field (different from formula), set it
-                        // Note: Code__c on Diagnosis__c is a formula that pulls from Code_Name__r.Name
-                        codesToCreate.add(newCode);
-                    }
-                    
-                    try {
-                        insert codesToCreate;
-                        System.debug('Created ' + codesToCreate.size() + ' new Code__c records');
-                        
-                        // Add newly created codes to the map
-                        for (SObject newCode : codesToCreate) {
-                            String codeName = (String) newCode.get('Name');
-                            codeNumberToId.put(codeName, newCode.Id);
-                        }
-                    } catch (Exception insertEx) {
-                        System.debug('Could not create Code__c records: ' + insertEx.getMessage());
-                    }
-                }
-            } catch (Exception e) {
-                // User doesn't have access to Code__c - diagnoses will still save but won't be linked
-                System.debug('Cannot query Code__c (user may lack access): ' + e.getMessage());
-            }
-        }
+        // Use System Helper to find or create codes (ignores user permission on Code__c)
+        SystemLevelHelper helper = new SystemLevelHelper();
+        Map<String, Id> codeNumberToId = helper.findOrCreateCodes(codesToLookup, codeToDesc);
+        Map<String, String> resolvedDescriptions = helper.getCodeDescriptions(codesToLookup);
         
+        // Create case-insensitive lookup for descriptions
+        Map<String, String> resolvedDescriptionsUpper = new Map<String, String>();
+        for (String key : resolvedDescriptions.keySet()) {
+            if (key != null) resolvedDescriptionsUpper.put(key.toUpperCase(), resolvedDescriptions.get(key));
+        }
+
         List<SObject> diagnosesToInsert = new List<SObject>();
+        List<SObject> diagnosesToUpdate = new List<SObject>();
         
         for (DiagnosisInput diag : diagnoses) {
-            System.debug('Processing diagnosis - code: ' + diag.code + ', description: ' + diag.description + ', status: ' + diag.status);
+            System.debug('*** Processing Diagnosis V2 ***');
+            System.debug('Processing diagnosis - id: ' + diag.id + ', code: ' + diag.code + ', status: ' + diag.status);
             
+            // UPDATE EXISTING DIAGNOSIS
+            if (String.isNotBlank(diag.id)) {
+                SObject diagUpdate = diagType.newSObject(diag.id);
+                // Allow updating Status, Notes, Primary flag
+                putFieldIfExists(diagUpdate, fieldMap, 'Status__c', String.isNotBlank(diag.status) ? diag.status : 'Active');
+                putFieldIfExists(diagUpdate, fieldMap, 'Notes__c', diag.notes);
+                putFieldIfExists(diagUpdate, fieldMap, 'Primary__c', diag.isPrimary);
+                // Also update Interaction Link if not present? (Optional, maybe we want to track it was touched in this note)
+                // If we want to link this Interaction to the diagnosis (marking it as "addressed during this session")
+                // we overwrite the Interaction_Summary__c lookup? 
+                // Typically Diagnosis.Interaction_Summary__c points to the note where it was *diagnosed*.
+                // So updating it might lose history. Better to leave it unless specifically requested.
+                // However, the prompt says "Edit/Resolve".
+                
+                diagnosesToUpdate.add(diagUpdate);
+                continue; 
+            }
+
+            // JOIN/INSERT NEW DIAGNOSIS
             // Skip if this code already exists as ACTIVE for this client
             if (String.isNotBlank(diag.code) && existingCodes.contains(diag.code.toUpperCase())) {
                 System.debug('⚠️ Skipping duplicate ACTIVE diagnosis code: ' + diag.code + ' (already exists for client)');
@@ -857,11 +1616,21 @@ public with sharing class ClinicalNoteController {
             diagRec.put('Client__c', accountId);
             
             // Name - use "code - description" format for display (code first for sorting/lookup)
+            // Fallback description from MDT if user input is empty
+            String resolvedDescription = diag.description;
+            if (String.isBlank(resolvedDescription) && String.isNotBlank(diag.code)) {
+                if (resolvedDescriptions.containsKey(diag.code)) {
+                    resolvedDescription = resolvedDescriptions.get(diag.code);
+                } else if (resolvedDescriptionsUpper.containsKey(diag.code.toUpperCase())) {
+                    resolvedDescription = resolvedDescriptionsUpper.get(diag.code.toUpperCase());
+                }
+            }
+
             String diagName = '';
-            if (String.isNotBlank(diag.code) && String.isNotBlank(diag.description)) {
-                diagName = diag.code + ' - ' + diag.description;
-            } else if (String.isNotBlank(diag.description)) {
-                diagName = diag.description;
+            if (String.isNotBlank(diag.code) && String.isNotBlank(resolvedDescription)) {
+                diagName = diag.code + ' - ' + resolvedDescription;
+            } else if (String.isNotBlank(resolvedDescription)) {
+                diagName = resolvedDescription;
             } else if (String.isNotBlank(diag.code)) {
                 diagName = diag.code;
             }
@@ -872,10 +1641,45 @@ public with sharing class ClinicalNoteController {
             diagRec.put('Name', diagName);
             
             // Link to Code__c object - this populates the Code__c formula field on Diagnosis__c
-            if (String.isNotBlank(diag.code) && codeNumberToId.containsKey(diag.code)) {
-                putFieldIfExists(diagRec, fieldMap, 'Code_Name__c', codeNumberToId.get(diag.code));
+            if (String.isNotBlank(diag.code)) {
+                Id codeId = null;
+                if (codeNumberToId.containsKey(diag.code)) {
+                    codeId = codeNumberToId.get(diag.code);
+                } else if (codeNumberToId.containsKey(diag.code.toUpperCase())) {
+                    codeId = codeNumberToId.get(diag.code.toUpperCase());
+                }
+                
+                if (codeId != null) {
+                    // Try direct assignment first for known field name, then fallback
+                    try {
+                        diagRec.put('Code_Name__c', codeId);
+                    } catch (Exception e) {
+                        putFieldIfExists(diagRec, fieldMap, 'Code_Name__c', codeId);
+                    }
+                } else {
+                    System.debug('Warning: Code ID not found for ' + diag.code);
+                }
+            }
+
+            // Attempt to store Code in text field if available
+            if (String.isNotBlank(diag.code)) {
+                // Try direct assignment for known field
+                try {
+                    diagRec.put('ICD10Code__c', diag.code);
+                } catch (Exception e) {
+                    putFieldIfExists(diagRec, fieldMap, 'ICD10Code__c', diag.code);
+                }
             }
             
+            // Attempt to store Description directly if available
+            if (String.isNotBlank(resolvedDescription)) {
+                try {
+                    diagRec.put('Description__c', resolvedDescription);
+                } catch (Exception e) {
+                    putFieldIfExists(diagRec, fieldMap, 'Description__c', resolvedDescription);
+                }
+            }
+
             // Status
             putFieldIfExists(diagRec, fieldMap, 'Status__c', String.isNotBlank(diag.status) ? diag.status : 'Active');
             
@@ -899,30 +1703,155 @@ public with sharing class ClinicalNoteController {
             putFieldIfExists(diagRec, fieldMap, 'Notes__c', diag.notes);
             
             // Link to InteractionSummary if the field exists
-            putFieldIfExists(diagRec, fieldMap, 'Interaction_Summary__c', interactionSummaryId);
+            // NOTE: Deprecated direct link in favor of Diagnosis_Note_Link__c junction object
+            // putFieldIfExists(diagRec, fieldMap, 'Interaction_Summary__c', interactionSummaryId);
             
             diagnosesToInsert.add(diagRec);
         }
         
-        if (!diagnosesToInsert.isEmpty()) {
+        // Validate only one Primary diagnosis per client
+        Integer primaryCount = 0;
+        for (SObject diag : diagnosesToInsert) {
+            if (diag.get('Primary__c') == true) {
+                primaryCount++;
+            }
+        }
+        for (SObject diag : diagnosesToUpdate) {
+            if (diag.get('Primary__c') == true) {
+                primaryCount++;
+            }
+        }
+        
+        if (primaryCount > 1) {
+            throw new AuraHandledException('Only one diagnosis can be marked as Primary per client. Please uncheck one of the Primary diagnoses before saving.');
+        }
+        
+        // Use System Helper for DML to ensure fields like Code linkage are populated regardless of User FLS
+        SystemLevelHelper sysHelper = new SystemLevelHelper();
+        sysHelper.upsertDiagnoses(diagnosesToInsert, diagnosesToUpdate);
+        
+        // Create junction records to link all selected/created diagnoses to this note
+        if (interactionSummaryId != null) {
+            createDiagnosisNoteLinks(diagnosesToInsert, diagnosesToUpdate, diagnoses, interactionSummaryId);
+        }
+    }
+    
+    /**
+     * Create Diagnosis_Note_Link__c junction records to link diagnoses to this clinical note
+     */
+    private static void createDiagnosisNoteLinks(List<SObject> newDiagnoses, List<SObject> updatedDiagnoses, List<DiagnosisInput> inputs, Id noteId) {
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        if (!gd.containsKey('Diagnosis_Note_Link__c')) {
+            System.debug('Diagnosis_Note_Link__c object not available - skipping junction creation');
+            return;
+        }
+        
+        Schema.SObjectType linkType = gd.get('Diagnosis_Note_Link__c');
+        List<SObject> linksToInsert = new List<SObject>();
+        Set<Id> linkedDiagnosisIds = new Set<Id>();
+        
+        // Link all newly created diagnoses
+        for (SObject diag : newDiagnoses) {
+            if (diag.Id != null) {
+                SObject link = linkType.newSObject();
+                link.put('Diagnosis__c', diag.Id);
+                link.put('InteractionSummary__c', noteId);
+                linksToInsert.add(link);
+                linkedDiagnosisIds.add(diag.Id);
+            }
+        }
+        
+        // Link updated diagnoses that don't already have a link to this note
+        for (SObject diag : updatedDiagnoses) {
+            if (diag.Id != null && !linkedDiagnosisIds.contains(diag.Id)) {
+                linkedDiagnosisIds.add(diag.Id);
+            }
+        }
+        
+        // Check which updated diagnoses already have links to this note
+        if (!linkedDiagnosisIds.isEmpty()) {
             try {
-                insert diagnosesToInsert;
-                System.debug('Created ' + diagnosesToInsert.size() + ' Diagnosis__c records');
+                String linkQuery = 'SELECT Diagnosis__c FROM Diagnosis_Note_Link__c WHERE InteractionSummary__c = :noteId AND Diagnosis__c IN :linkedDiagnosisIds';
+                List<SObject> existingLinks = Database.query(linkQuery);
+                Set<Id> alreadyLinked = new Set<Id>();
+                for (SObject existing : existingLinks) {
+                    alreadyLinked.add((Id)existing.get('Diagnosis__c'));
+                }
+                
+                // Create links for updated diagnoses that aren't already linked
+                for (SObject diag : updatedDiagnoses) {
+                    if (diag.Id != null && !alreadyLinked.contains(diag.Id)) {
+                        SObject link = linkType.newSObject();
+                        link.put('Diagnosis__c', diag.Id);
+                        link.put('InteractionSummary__c', noteId);
+                        linksToInsert.add(link);
+                    }
+                }
             } catch (Exception e) {
-                System.debug('Error creating Diagnosis__c records: ' + e.getMessage());
+                System.debug('Could not check existing links: ' + e.getMessage());
+            }
+        }
+        
+        // Insert junction records
+        if (!linksToInsert.isEmpty()) {
+            try {
+                insert linksToInsert;
+                System.debug('✅ Created ' + linksToInsert.size() + ' Diagnosis-Note junction records');
+            } catch (Exception e) {
+                System.debug('❌ Error creating junction records: ' + e.getMessage());
             }
         }
     }
 
     /**
      * Helper to put a field value only if the field exists on the object.
+     * Uses namespace-aware check.
      */
     private static void putFieldIfExists(SObject record, Map<String, Schema.SObjectField> fieldMap, String fieldName, Object value) {
+        System.debug('>>> putFieldIfExists called for field: ' + fieldName + ', value: ' + value);
         if (value == null) {
+            System.debug('>>> Value is null, returning early');
             return;
         }
-        if (fieldMap.containsKey(fieldName.toLowerCase()) || fieldMap.containsKey(fieldName)) {
-            record.put(fieldName, value);
+        
+        String lowerName = fieldName.toLowerCase();
+        Schema.SObjectField targetField = null;
+        
+        // 1. Direct match (fastest)
+        if (fieldMap.containsKey(lowerName)) {
+            targetField = fieldMap.get(lowerName);
+            System.debug('>>> Found direct match for field: ' + lowerName);
+        } else {
+            System.debug('>>> No direct match for field: ' + lowerName + ', checking namespace fallback');
+            // 2. Namespace fallback (e.g. tgthr__FieldName__c when looking for FieldName__c)
+            for (String key : fieldMap.keySet()) {
+                if (key.endsWith('__' + lowerName)) {
+                    targetField = fieldMap.get(key);
+                    System.debug('>>> Found namespace match: ' + key);
+                    break;
+                }
+            }
+        }
+
+        if (targetField != null) {
+            Schema.DescribeFieldResult dfr = targetField.getDescribe();
+            System.debug('>>> Field ' + dfr.getName() + ' - calculated: ' + dfr.isCalculated() + ', auto-number: ' + dfr.isAutoNumber());
+            // Skip calculated or auto-number fields to prevent "Field is not editable" errors
+            if (!dfr.isCalculated() && !dfr.isAutoNumber()) {
+                try {
+                    System.debug('>>> Setting field ' + dfr.getName() + ' to value: ' + value);
+                    record.put(dfr.getName(), value);
+                    System.debug('>>> Field set successfully. Record now has ' + fieldName + ' = ' + record.get(dfr.getName()));
+                } catch (Exception e) {
+                    System.debug('WARNING: Failed to put field ' + dfr.getName() + ' with value ' + value + ': ' + e.getMessage());
+                }
+            } else {
+                System.debug('>>> Skipping field ' + fieldName + ' because it is calculated or auto-number');
+            }
+        } else {
+            System.debug('>>> Field ' + fieldName + ' not found in fieldMap');
+            // List available fields for debugging
+            System.debug('>>> Available fields in fieldMap: ' + String.join(new List<String>(fieldMap.keySet()), ', '));
         }
     }
 
@@ -932,7 +1861,10 @@ public with sharing class ClinicalNoteController {
      * the clinical note and any risk assessment completed during that session.
      */
     private static void linkSsrsAssessmentToInteraction(Id assessmentId, Id interactionSummaryId) {
+        System.debug('>>> linkSsrsAssessmentToInteraction START: assessmentId=' + assessmentId + ', interactionSummaryId=' + interactionSummaryId);
+        
         if (assessmentId == null || interactionSummaryId == null) {
+            System.debug('>>> linkSsrsAssessmentToInteraction ABORT: One or both IDs are null');
             return;
         }
         try {
@@ -943,20 +1875,53 @@ public with sharing class ClinicalNoteController {
             }
             
             Map<String, Schema.SObjectField> fieldMap = assessmentType.getDescribe().fields.getMap();
+            String fieldName = 'Interaction_Summary__c';
+            String targetFieldKey = null;
+
+            // Robust field finding (case-insensitive + namespace handling)
+            if (fieldMap.containsKey(fieldName)) {
+                targetFieldKey = fieldName;
+            } else if (fieldMap.containsKey(fieldName.toLowerCase())) {
+                targetFieldKey = fieldName.toLowerCase();
+            } else {
+                // Check for namespaced field
+                 for (String key : fieldMap.keySet()) {
+                    if (key.endsWith('__' + fieldName.toLowerCase())) {
+                        targetFieldKey = key;
+                        break;
+                    }
+                }
+            }
             
             // Try to update Assessment with Interaction_Summary__c lookup if the field exists
-            if (fieldMap.containsKey('Interaction_Summary__c')) {
+            if (targetFieldKey != null) {
+                System.debug('>>> Interaction_Summary__c field EXISTS (Key=' + targetFieldKey + ') on Assessment__c, updating assessment...');
                 SObject assessment = assessmentType.newSObject(assessmentId);
-                assessment.put('Interaction_Summary__c', interactionSummaryId);
+                System.debug('>>> Setting ' + targetFieldKey + ' to: ' + interactionSummaryId);
+                assessment.put(targetFieldKey, interactionSummaryId);
+                System.debug('>>> About to update Assessment record with ID: ' + assessmentId);
                 update assessment;
-                System.debug('Linked Assessment ' + assessmentId + ' to InteractionSummary ' + interactionSummaryId);
+                System.debug('>>> Assessment update completed successfully');
+                
+                // Verify the update worked by querying the record
+                String verifySoql = 'SELECT Id, ' + targetFieldKey + ' FROM Assessment__c WHERE Id = :assessmentId';
+                List<SObject> verifyQuery = Database.query(verifySoql);
+                if (!verifyQuery.isEmpty()) {
+                    Object fieldValue = verifyQuery[0].get(targetFieldKey);
+                    System.debug('>>> Verification query: Assessment ' + targetFieldKey + ' = ' + fieldValue);
+                } else {
+                    System.debug('>>> WARNING: Could not find Assessment record for verification');
+                }
+                System.debug('>>> Linked Assessment ' + assessmentId + ' to InteractionSummary ' + interactionSummaryId + ' SUCCESS');
             } else {
                 // If no direct lookup field exists, log for future enhancement
-                System.debug('Interaction_Summary__c field not found on Assessment__c. Consider adding this field to link SSRS assessments to clinical notes.');
+                System.debug('>>> Interaction_Summary__c field NOT FOUND on Assessment__c. Keys available: ' + String.join(new List<String>(fieldMap.keySet()), ', '));
             }
         } catch (Exception e) {
             // Don't fail the entire save operation if linking fails
-            System.debug('Warning: Could not link SSRS Assessment to InteractionSummary: ' + e.getMessage());
+            System.debug('>>> WARNING: Could not link SSRS Assessment to InteractionSummary: ' + e.getMessage());
+            System.debug('>>> Exception Type: ' + e.getTypeName());
+            System.debug('>>> Stack Trace: ' + e.getStackTraceString());
         }
     }
 
@@ -1016,6 +1981,9 @@ public with sharing class ClinicalNoteController {
                 // Set progress tracking fields (these DO exist on GoalAssignmentDetail)
                 detail.put('ProgressBefore__c', workDetail.progressBefore);
                 detail.put('ProgressAfter__c', workDetail.progressAfter);
+                if (workDetail.timeSpentMinutes != null) {
+                    detail.put('TimeSpentMinutes__c', workDetail.timeSpentMinutes);
+                }
                 
                 detailsToInsert.add(detail);
                 

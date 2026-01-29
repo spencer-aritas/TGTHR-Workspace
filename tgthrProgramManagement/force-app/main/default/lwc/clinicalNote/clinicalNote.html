@@ -1,5 +1,6 @@
 <template>
     <div class="note-shell">
+        <!-- Clinical Note Main Template -->
         <template if:true={isLoading}>
             <div class="loading-overlay">
                 <lightning-spinner alternative-text="Loading clinical note" size="medium"></lightning-spinner>
@@ -150,7 +151,7 @@
                                 </div>
 
                                 <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Description of Services</label>
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Intervention</label>
                                     <lightning-input-rich-text
                                         value={form.services}
                                         formats={richTextFormats}
@@ -345,137 +346,81 @@
 
                         <lightning-accordion-section name="codes" label="Diagnosis Codes">
                             <div data-section="codes">
-                                <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
-                                    <div class="slds-col">
-                                        <lightning-button
-                                            label="Add ICD-10 Diagnosis"
-                                            icon-name="utility:add"
-                                            onclick={handleOpenIcd10Selector}
-                                            variant="brand">
-                                        </lightning-button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Selected Diagnoses Display -->
-                                <template if:true={hasSelectedDiagnoses}>
-                                    <div class="slds-m-bottom_medium">
-                                        <p class="slds-text-title_caps slds-m-bottom_small">Selected Diagnoses</p>
-                                        <div class="diagnosis-list-compact">
-                                            <template for:each={formattedDiagnoses} for:item="diag">
-                                                <div key={diag.code} class="diagnosis-row">
-                                                    <div class="diagnosis-row-main">
-                                                        <lightning-icon 
-                                                            icon-name="utility:record" 
-                                                            size="x-small"
-                                                            class={diag.statusIconClass}>
-                                                        </lightning-icon>
-                                                        <span class="diagnosis-code">{diag.code}</span>
-                                                        <template if:true={diag.description}>
-                                                            <span class="diagnosis-description" title={diag.description}>
-                                                                - {diag.description}
-                                                            </span>
-                                                        </template>
-                                                        <template if:true={diag.isPrimary}>
-                                                            <lightning-badge label="Primary" class="primary-badge-compact"></lightning-badge>
-                                                        </template>
-                                                    </div>
-                                                    <div class="diagnosis-row-meta">
-                                                        <span class="diagnosis-meta-item status-{diag.status}">{diag.status}</span>
-                                                        <template if:true={diag.diagnosisType}>
-                                                            <span class="diagnosis-meta-separator">•</span>
-                                                            <span class="diagnosis-meta-item">{diag.diagnosisType}</span>
-                                                        </template>
-                                                        <template if:true={diag.onsetDate}>
-                                                            <span class="diagnosis-meta-separator">•</span>
-                                                            <span class="diagnosis-meta-item">Onset: {diag.onsetDate}</span>
-                                                        </template>
-                                                    </div>
-                                                    <template if:true={diag.notes}>
-                                                        <div class="diagnosis-row-notes">
-                                                            <lightning-icon icon-name="utility:note" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                                                            <span class="diagnosis-note-text">{diag.notes}</span>
+                                <!-- Diagnosis Selector Component -->
+                                <c-diagnosis-selector
+                                    account-id={accountId}
+                                    case-id={recordId}
+                                    selected-diagnoses={selectedDiagnoses}
+                                    ondiagnosischange={handleDiagnosisChange}>
+                                </c-diagnosis-selector>
+
+                                <!-- Selected Diagnoses Cards (Edit/Resolve) -->
+                                <template if:true={selectedDiagnoses}>
+                                    <div class="slds-m-top_medium goal-cards-container">
+                                        <template for:each={selectedDiagnoses} for:item="diag">
+                                            <div key={diag.key} class={diag.cardClass}>
+                                                <div class="goal-card-header" data-key={diag.key} onclick={handleDiagnosisCardClick}>
+                                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                                        <div class="slds-col slds-grow">
+                                                            <p class="goal-name">{diag.code} - {diag.description}</p>
+                                                            <p class="goal-category">
+                                                                Status: <span class="slds-text-color_success">{diag.status}</span>
+                                                                <template if:true={diag.onsetDate}> • Onset: {diag.onsetDate}</template>
+                                                            </p>
                                                         </div>
-                                                    </template>
-                                                    <lightning-button-icon
-                                                        icon-name="utility:close"
-                                                        alternative-text="Remove diagnosis"
-                                                        variant="bare"
-                                                        size="small"
-                                                        class="diagnosis-remove-btn"
-                                                        onclick={handleRemoveDiagnosis}
-                                                        data-code={diag.code}>
-                                                    </lightning-button-icon>
+                                                        <div class="slds-col slds-grow-none slds-m-left_small">
+                                                            <lightning-icon 
+                                                                icon-name={diag.expandIcon}
+                                                                size="x-small"
+                                                                alternative-text="Toggle details">
+                                                            </lightning-icon>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </template>
-                                        </div>
+                                                
+                                                <template if:true={diag.expanded}>
+                                                    <div class="goal-card-body">
+                                                        <div class="slds-form-element slds-m-bottom_small">
+                                                            <lightning-textarea
+                                                                label="Clinical Notes"
+                                                                name="notes"
+                                                                value={diag.notes}
+                                                                data-key={diag.key}
+                                                                onchange={handleDiagnosisInputChange}
+                                                                placeholder="Add notes specific to this diagnosis...">
+                                                            </lightning-textarea>
+                                                        </div>
+                                                        <div class="slds-grid slds-gutters">
+                                                            <div class="slds-col">
+                                                                <lightning-input
+                                                                    type="checkbox"
+                                                                    label="Primary Diagnosis"
+                                                                    name="isPrimary"
+                                                                    checked={diag.isPrimary}
+                                                                    data-key={diag.key}
+                                                                    onchange={handleDiagnosisInputChange}>
+                                                                </lightning-input>
+                                                            </div>
+                                                            <div class="slds-col">
+                                                                <lightning-input
+                                                                    type="checkbox"
+                                                                    label="Mark as Resolved"
+                                                                    name="isResolved"
+                                                                    checked={diag.isResolved}
+                                                                    data-key={diag.key}
+                                                                    onchange={handleDiagnosisInputChange}>
+                                                                </lightning-input>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
                                     </div>
-                                </template>
-                                
-                                <!-- Existing Client Diagnoses (can be added to this note) -->
-                                <template if:true={hasUnselectedExistingDiagnoses}>
-                                    <div class="slds-m-bottom_medium">
-                                        <p class="slds-text-title_caps slds-m-bottom_small">Client's Existing Diagnoses</p>
-                                        <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_small">
-                                            Click to include in this note
-                                        </p>
-                                        <div class="existing-diagnosis-list-compact">
-                                            <template for:each={formattedExistingDiagnoses} for:item="diag">
-                                                <div key={diag.id} 
-                                                     class="existing-diagnosis-row"
-                                                     data-code={diag.code}
-                                                     onclick={handleSelectExistingDiagnosis}>
-                                                    <lightning-icon 
-                                                        icon-name="utility:add" 
-                                                        size="x-small"
-                                                        class="add-icon">
-                                                    </lightning-icon>
-                                                    <span class="existing-diag-code">{diag.code}</span>
-                                                    <span class="existing-diag-description" title={diag.description}>
-                                                        - {diag.description}
-                                                    </span>
-                                                    <template if:true={diag.isPrimary}>
-                                                        <lightning-badge label="Primary" class="primary-badge-compact"></lightning-badge>
-                                                    </template>
-                                                    <span class="existing-diag-meta">
-                                                        {diag.status}
-                                                        <template if:true={diag.type}> • {diag.type}</template>
-                                                        <template if:true={diag.onsetDate}> • Onset: {diag.onsetDate}</template>
-                                                    </span>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </div>
-                                </template>
-                                
-                                <!-- Loading indicator for diagnoses -->
-                                <template if:true={isLoadingDiagnoses}>
-                                    <div class="slds-m-vertical_medium slds-align_absolute-center">
-                                        <lightning-spinner alternative-text="Loading diagnoses" size="small"></lightning-spinner>
-                                        <span class="slds-m-left_small">Loading existing diagnoses...</span>
-                                    </div>
-                                </template>
-                                
-                                <!-- Existing Code Assignments (from system) -->
-                                <template if:true={hasCodeOptions}>
-                                    <lightning-dual-listbox
-                                        name="codes"
-                                        label="Existing Code Assignments"
-                                        source-label="Available Codes"
-                                        selected-label="Codes Applied"
-                                        value={form.codeIds}
-                                        options={codeOptions}
-                                        onchange={handleCodesChange}>
-                                    </lightning-dual-listbox>
                                 </template>
                             </div>
                         </lightning-accordion-section>
-                        
-                        <!-- ICD-10 Code Selector Modal -->
-                        <c-icd10-code-selector
-                            account-id={accountId}
-                            case-id={recordId}
-                            ondiagnosisadded={handleDiagnosisAdded}>
-                        </c-icd10-code-selector>
+
                         
                         <!-- Child Components for creating codes -->
                         <c-code-assignment-creator
@@ -499,23 +444,70 @@
                                 <div class="slds-box slds-box_x-small slds-theme_shade slds-m-top_medium">
                                     <div class="slds-grid slds-grid_vertical-align-center">
                                         <div class="slds-col slds-grow">
-                                            <lightning-input
-                                                type="checkbox"
-                                                label={managerApprovalLabel}
-                                                checked={requestManagerCoSign}
-                                                onchange={handleManagerApprovalToggle}
-                                                disabled={managerMissing}>
-                                            </lightning-input>
-                                            <template if:false={hasManager}>
-                                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                                                    No manager is assigned to your user profile. Contact your administrator if you need manager approval capabilities.
-                                                </p>
+                                            <!-- Re-approval scenario: Show message instead of checkbox -->
+                                            <template if:true={isReapprovalScenario}>
+                                                <div class="slds-box slds-box_x-small slds-theme_warning slds-m-bottom_small">
+                                                    <p class="slds-text-body_small slds-text-color_default">
+                                                        <lightning-icon icon-name="utility:warning" size="xx-small" class="slds-m-right_xx-small" variant="warning"></lightning-icon>
+                                                        <strong>Updates Requested</strong> - {reapprovalManagerName} requested changes to this note. After saving your edits, it will be sent back for re-approval.
+                                                    </p>
+                                                </div>
                                             </template>
+                                            
+                                            <!-- Request Manager Co-Sign Toggle -->
+                                            <template if:false={isReapprovalScenario}>
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    label={managerApprovalLabel}
+                                                    checked={requestManagerCoSign}
+                                                    onchange={handleManagerApprovalToggle}
+                                                    disabled={isManagerApprovalDisabled}>
+                                                </lightning-input>
+                                                <template if:false={hasManager}>
+                                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                                        No manager is assigned to your user profile. Contact your administrator if you need manager approval capabilities.
+                                                    </p>
+                                                </template>
+                                            </template>
+                                            
                                             <template if:true={requestManagerCoSign}>
-                                                <p class="slds-text-body_small slds-text-color_success slds-m-top_xx-small">
-                                                    <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                                                    {managerName} will be notified to co-sign this note after you save.
-                                                </p>
+                                                <!-- RE-APPROVAL MODE: Hide selection, show static info -->
+                                                <template if:true={isReapprovalScenario}>
+                                                    <div class="slds-box slds-box_x-small slds-theme_shade slds-m-vertical_small">
+                                                        <div class="slds-media slds-media_center">
+                                                            <div class="slds-media__figure">
+                                                                <lightning-icon icon-name="utility:sync" size="small" variant="warning"></lightning-icon>
+                                                            </div>
+                                                            <div class="slds-media__body">
+                                                                <p><strong>Correction Mode</strong></p>
+                                                                <p class="slds-text-body_small">This note will be automatically resubmitted to <strong>{reapprovalManagerName}</strong> for approval upon saving.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                <!-- STANDARD MODE: Select Approver -->
+                                                <template if:false={isReapprovalScenario}>
+                                                    <div class="slds-m-top_small slds-m-bottom_small">
+                                                        <lightning-combobox
+                                                            name="approver"
+                                                            label="Select Approver"
+                                                            value={selectedApproverId}
+                                                            placeholder="Select a user..."
+                                                            options={signingAuthorityOptions}
+                                                            onchange={handleApproverChange}
+                                                            required>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                </template>
+                                                
+                                                <!-- Confirmation Text (Standard Mode Only) -->
+                                                <template if:false={isReapprovalScenario}>
+                                                    <p class="slds-text-body_small slds-text-color_success slds-m-top_xx-small">
+                                                        <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+                                                        {managerName} will be notified to co-sign this note after you save.
+                                                    </p>
+                                                </template>
                                             </template>
                                         </div>
                                     </div>
@@ -582,11 +574,44 @@
                     <c-ssrs-assessment 
                         record-id={accountId} 
                         case-id={recordId}
+                        assessment-id={ssrsAssessmentId}
+                        interaction-id={interactionId}
                         oncomplete={handleSsrsComplete}>
                     </c-ssrs-assessment>
                 </div>
                 <footer class="slds-modal__footer">
                     <lightning-button variant="neutral" label="Close" onclick={closeSsrsModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Primary Diagnosis Confirmation Modal -->
+    <template if:true={showPrimaryConfirmation}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_medium"
+            aria-labelledby="primary-modal-heading" aria-modal="true">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 id="primary-modal-heading" class="slds-text-heading_medium">
+                        Change Primary Diagnosis?
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-m-bottom_medium">
+                        A primary diagnosis is already selected:
+                    </p>
+                    <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_medium">
+                        <p><strong>Current Primary:</strong></p>
+                        <p>{pendingPrimaryChange.oldPrimaryDisplay}</p>
+                    </div>
+                    <p>
+                        Are you sure you want to change the primary diagnosis? This will unmark the current primary diagnosis.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Cancel" onclick={handleCancelPrimaryChange}></lightning-button>
+                    <lightning-button variant="brand" label="Confirm Change" onclick={handleConfirmPrimaryChange}></lightning-button>
                 </footer>
             </div>
         </section>

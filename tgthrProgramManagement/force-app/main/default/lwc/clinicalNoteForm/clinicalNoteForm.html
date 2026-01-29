@@ -363,6 +363,19 @@
 
                                 <!-- Manager Co-Signature Request -->
                                 <div class="slds-box slds-box_x-small slds-theme_shade slds-m-top_medium">
+                                    <!-- Correction Mode Banner -->
+                                    <template if:true={isReapprovalScenario}>
+                                        <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small" role="alert">
+                                            <span class="slds-assistive-text">warning</span>
+                                            <lightning-icon icon-name="utility:warning" variant="inverse" size="x-small"
+                                                class="slds-m-right_x-small"></lightning-icon>
+                                            <h2>
+                                                <strong>Correction Mode:</strong> This note must be re-submitted to
+                                                <strong>{reapprovalManagerName}</strong> for approval.
+                                            </h2>
+                                        </div>
+                                    </template>
+
                                     <div class="slds-grid slds-grid_vertical-align-center">
                                         <div class="slds-col slds-grow">
                                             <lightning-input
@@ -370,7 +383,7 @@
                                                 label={managerApprovalLabel}
                                                 checked={requestManagerCoSign}
                                                 onchange={handleManagerApprovalToggle}
-                                                disabled={managerMissing}>
+                                                disabled={isManagerApprovalDisabled}>
                                             </lightning-input>
                                             <template if:false={hasManager}>
                                                 <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
@@ -378,6 +391,20 @@
                                                 </p>
                                             </template>
                                             <template if:true={requestManagerCoSign}>
+                                                <!-- Approver Selection - Hidden in re-approval/correction mode -->
+                                                <template if:false={isReapprovalScenario}>
+                                                    <div class="slds-m-top_small slds-m-bottom_small">
+                                                        <lightning-combobox
+                                                            name="approver"
+                                                            label="Select Approver"
+                                                            value={selectedApproverId}
+                                                            placeholder="Select a user..."
+                                                            options={signingAuthorityOptions}
+                                                            onchange={handleApproverChange}
+                                                            required>
+                                                        </lightning-combobox>
+                                                    </div>
+                                                </template>
                                                 <p class="slds-text-body_small slds-text-color_success slds-m-top_xx-small">
                                                     <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
                                                     {managerName} will be notified to co-sign this note after you save.
@@ -448,6 +475,8 @@
                     <c-ssrs-assessment 
                         record-id={accountId} 
                         case-id={recordId}
+                        assessment-id={ssrsAssessmentId}
+                        interaction-id={interactionId}
                         oncomplete={handleSsrsComplete}>
                     </c-ssrs-assessment>
                 </div>

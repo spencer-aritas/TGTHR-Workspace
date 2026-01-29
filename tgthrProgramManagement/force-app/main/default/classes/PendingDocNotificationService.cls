@@ -90,13 +90,13 @@ public with sharing class PendingDocNotificationService {
      * Send notification when a co-sign is requested (called after saving a note)
      * Targets the CASE so user lands on the Pending Documentation tab
      * 
-     * @param managerId The manager to notify
+     * @param approverId The approver (manager or authorized signer) to notify
      * @param caseId The Case ID to link to (user will see Pending Documentation tab)
      * @param noteName The name of the note for the notification body
      */
     @AuraEnabled
-    public static void notifyManagerOfCoSignRequest(Id managerId, Id caseId, String noteName) {
-        if (managerId == null || caseId == null) return;
+    public static void notifyApproverOfCoSignRequest(Id approverId, Id caseId, String noteName) {
+        if (approverId == null || caseId == null) return;
         
         try {
             CustomNotificationType notificationType = [
@@ -114,7 +114,7 @@ public with sharing class PendingDocNotificationService {
             notification.setNotificationTypeId(notificationType.Id);
             notification.setTargetId(caseId); // Target the Case, not the InteractionSummary
             
-            notification.send(new Set<String>{ managerId });
+            notification.send(new Set<String>{ approverId });
             
         } catch (Exception e) {
             System.debug('Error sending co-sign notification: ' + e.getMessage());
@@ -257,10 +257,79 @@ public with sharing class PendingDocNotificationService {
         notification.setTitle('Pending Documentation');
         notification.setBody(body);
         notification.setNotificationTypeId(notificationTypeId);
-        // Target the user's home page or a specific record
-        notification.setTargetId(userId); // Links to user record, they can navigate from there
+        
+        // Intelligent navigation: If pending items relate to a Case, go there.
+        // Otherwise default to User record.
+        Id targetId = getNotificationTargetId(userId, hasPendingApprovals, hasActionItems, hasUnsignedNotes);
+        notification.setTargetId(targetId);
         
         notification.send(new Set<String>{ userId });
+    }
+    
+    /**
+     * Determines the best target record for the notification.
+     * Checks if pending items are linked to a Case.
+     */
+    private static Id getNotificationTargetId(Id userId, Boolean hasApprovals, Boolean hasAction, Boolean hasUnsigned) {
+        Id targetId = userId; // Default
+        
+        try {
+            // Check Approvals (InteractionSummary)
+            if (hasApprovals) {
+                // Check for assigned items first
+                List<SObject> items = Database.query(
+                    'SELECT RelatedRecordId FROM InteractionSummary ' +
+                    'WHERE Manager_Approver__c = :userId ' +
+                    'AND Requires_Manager_Approval__c = true ' + 
+                    'AND Manager_Signed__c = false LIMIT 1'
+                );
+                if (!items.isEmpty() && items[0].get('RelatedRecordId') != null) {
+                    return (Id)items[0].get('RelatedRecordId');
+                }
+                
+                // Check if user is a Signing Authority and there are unassigned items
+                if (hasSigningAuthority(userId)) {
+                    List<SObject> unassignedItems = Database.query(
+                        'SELECT RelatedRecordId FROM InteractionSummary ' +
+                        'WHERE Manager_Approver__c = null ' +
+                        'AND Requires_Manager_Approval__c = true ' + 
+                        'AND Manager_Signed__c = false LIMIT 1'
+                    );
+                    if (!unassignedItems.isEmpty() && unassignedItems[0].get('RelatedRecordId') != null) {
+                        return (Id)unassignedItems[0].get('RelatedRecordId');
+                    }
+                }
+            }
+            
+            // Check Action Items
+            if (hasAction) {
+                List<SObject> actions = Database.query(
+                    'SELECT RelatedRecordId FROM InteractionSummary ' +
+                    'WHERE Action_Assigned_To__c = :userId ' +
+                    'AND Action_Required__c = true LIMIT 1'
+                );
+                if (!actions.isEmpty() && actions[0].get('RelatedRecordId') != null) {
+                    return (Id)actions[0].get('RelatedRecordId');
+                }
+            }
+            
+            // Notes: similar pattern if needed (omitted for brevity)
+            
+        } catch (Exception e) {
+            System.debug('Error determining target ID: ' + e.getMessage());
+        }
+        
+        return targetId;
+    }
+
+    private static Boolean hasSigningAuthority(Id userId) {
+        List<PermissionSetAssignment> psa = [
+            SELECT Id FROM PermissionSetAssignment 
+            WHERE AssigneeId = :userId 
+            AND PermissionSet.Name = 'Signing_Authority'
+            LIMIT 1
+        ];
+        return !psa.isEmpty();
     }
     
     private static Set<Id> getUsersWithPendingApprovals() {
@@ -276,9 +345,25 @@ public with sharing class PendingDocNotificationService {
             for (SObject so : Database.query(query)) {
                 userIds.add((Id)so.get('Manager_Approver__c'));
             }
+            
+            // Also check for UNASSIGNED items if they require approval
+            String unassignedQuery = 'SELECT Id ' +
+                                    'FROM InteractionSummary ' +
+                                    'WHERE Requires_Manager_Approval__c = true ' +
+                                    'AND Manager_Signed__c = false ' +
+                                    'AND Manager_Approver__c = null LIMIT 1';
+            
+            if (!Database.query(unassignedQuery).isEmpty()) {
+                // Find all users with Signing Authority
+                for (PermissionSetAssignment psa : [SELECT AssigneeId FROM PermissionSetAssignment WHERE PermissionSet.Name = 'Signing_Authority']) {
+                    userIds.add(psa.AssigneeId);
+                }
+            }
+            
         } catch (Exception e) {
             System.debug('Error querying InteractionSummary approvals: ' + e.getMessage());
         }
+
         
         // Interview approvals - using dynamic SOQL
         try {
@@ -350,12 +435,26 @@ public with sharing class PendingDocNotificationService {
     // User-specific queries (for single user checks)
     private static List<SObject> getUserPendingApprovals(Id userId) {
         try {
-            return Database.query(
+            List<SObject> assigned = Database.query(
                 'SELECT Id FROM InteractionSummary ' +
                 'WHERE Manager_Approver__c = :userId ' +
                 'AND Requires_Manager_Approval__c = true ' +
                 'AND Manager_Signed__c = false LIMIT 1'
             );
+            
+            if (!assigned.isEmpty()) return assigned;
+            
+            // Check for unassigned items if user has authority
+            if (hasSigningAuthority(userId)) {
+                return Database.query(
+                    'SELECT Id FROM InteractionSummary ' +
+                    'WHERE Manager_Approver__c = null ' +
+                    'AND Requires_Manager_Approval__c = true ' +
+                    'AND Manager_Signed__c = false LIMIT 1'
+                );
+            }
+            
+            return new List<SObject>();
         } catch (Exception e) {
             System.debug('Error in getUserPendingApprovals: ' + e.getMessage());
             return new List<SObject>();

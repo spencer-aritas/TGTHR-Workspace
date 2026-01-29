@@ -4,13 +4,14 @@ import { NavigationMixin } from 'lightning/navigation';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
-import saveClinicalNoteWithSsrs from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteWithSsrs';
+import saveClinicalNoteRequest from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteRequest';
 import getCaseManagementBenefits from '@salesforce/apex/ClinicalNoteController.getCaseManagementBenefits';
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
+import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
@@ -70,11 +71,20 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     @track isLoading = false;
     @track isSaving = false;
     @track loadError;
-    @track interactionId;
+    
+    _interactionId;
+    @api 
+    get interactionId() {
+        return this._interactionId;
+    }
+    set interactionId(value) {
+        this._interactionId = value;
+    }
 
     // SSRS Assessment integration
     @track showSsrsModal = false;
     @track ssrsAssessmentData = null;
+    @track ssrsAssessmentId = null;
 
     // Draft/Save for Later support
     @track draftId = null;
@@ -84,17 +94,55 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     // Manager Approval support
     @track requestManagerCoSign = false;
     @track managerInfo = null;
+    @track signingAuthorityOptions = [];
+    @track selectedApproverId;
+    @track isReapprovalScenario = false;
+    @track reapprovalManagerName = '';
+    
+    // Track existing note for re-approval logic
+    existingNote = null;
 
     // ICD-10 Diagnosis codes
     @track selectedDiagnoses = [];
 
     originalFormState;
 
+    // Wire to get signing authorities
+    @wire(getSigningAuthorities)
+    wiredSigningAuthorities({ data, error }) {
+        if (data) {
+            this.signingAuthorityOptions = data.map(user => ({
+                label: user.Name,
+                value: user.Id
+            }));
+            
+            // Only auto-select manager IF they are in this list
+            if (this.managerInfo && this.managerInfo.hasManager && !this.selectedApproverId) {
+                const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
+                if (managerInList) {
+                    this.selectedApproverId = this.managerInfo.managerId;
+                }
+            }
+        } else if (error) {
+            console.error('Error getting signing authorities:', error);
+            this.signingAuthorityOptions = [];
+        }
+    }
+
     // Wire to get current user's manager info
     @wire(getCurrentUserManagerInfo)
     wiredManagerInfo({ data, error }) {
         if (data) {
             this.managerInfo = data;
+            // Pre-select manager if options are already loaded AND manager is in that list
+            if (this.managerInfo.hasManager && !this.selectedApproverId && 
+                this.signingAuthorityOptions.length > 0) {
+                
+                const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
+                if (managerInList) {
+                    this.selectedApproverId = this.managerInfo.managerId;
+                }
+            }
         } else if (error) {
             console.error('Error getting manager info:', error);
             this.managerInfo = { hasManager: false };
@@ -184,7 +232,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     // Manager Approval getters
     get hasManager() {
-        return this.managerInfo?.hasManager === true;
+        return (this.managerInfo?.hasManager === true) || (this.signingAuthorityOptions && this.signingAuthorityOptions.length > 0);
     }
 
     get managerMissing() {
@@ -192,7 +240,15 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     }
 
     get managerName() {
+        if (this.selectedApproverId) {
+            const selected = this.signingAuthorityOptions.find(opt => opt.value === this.selectedApproverId);
+            if (selected) return selected.label;
+        }
         return this.managerInfo?.managerName || 'Your Manager';
+    }
+
+    get isManagerApprovalDisabled() {
+        return this.managerMissing || this.isReapprovalScenario;
     }
 
     get managerApprovalLabel() {
@@ -277,8 +333,8 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         this.isLoading = true;
         this.loadError = null;
         try {
-            console.log('Loading case note for case:', this.recordId);
-            const data = await initClinicalNote({ caseId: this.recordId });
+            console.log('Loading case note for case:', this.recordId, ' interactionId:', this.interactionId);
+            const data = await initClinicalNote({ caseId: this.recordId, interactionId: this.interactionId });
             this._initializeFromResponse(data);
             
             // Load case management benefits for Case Notes
@@ -324,7 +380,8 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             activeGoals,
             codeAssignments,
             currentUserName,
-            accountId
+            accountId,
+            existingNote
         } = data;
         const headerInfo = header || {};
         this.header = {
@@ -383,6 +440,62 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             };
         });
         
+        // Check for existing note data (Amendment flow)
+        if (existingNote) {
+            console.log('Pre-filling form with existing note data');
+            this.form = {
+                ...this.form,
+                interactionDate: existingNote.interactionDate || this.form.interactionDate,
+                startTime: existingNote.startTime || this.form.startTime,
+                endTime: existingNote.endTime || this.form.endTime,
+                interpreterUsed: existingNote.interpreterUsed === true,
+                pos: existingNote.pos,
+                reason: existingNote.reason,
+                services: existingNote.services,
+                response: existingNote.response,
+                plan: existingNote.plan
+            };
+            
+            // Populate goal work state
+            if (existingNote.goalWorkState) {
+                Object.keys(existingNote.goalWorkState).forEach(goalId => {
+                    if (this.goalWorkState[goalId]) {
+                        this.goalWorkState[goalId] = {
+                            ...this.goalWorkState[goalId],
+                            ...existingNote.goalWorkState[goalId],
+                            expanded: true
+                        };
+                    }
+                });
+                // Ensure form knows about selected goals
+                this.form.goalIds = Object.keys(existingNote.goalWorkState);
+            }
+            
+            // Populate diagnoses
+            if (existingNote.selectedDiagnoses && Array.isArray(existingNote.selectedDiagnoses)) {
+                this.selectedDiagnoses = existingNote.selectedDiagnoses;
+            }
+            
+            // Save reference to existing note for save logic
+            this.existingNote = existingNote;
+            
+            // Set SSRS Assessment ID if present
+            if (existingNote.ssrsAssessmentId) {
+                this.ssrsAssessmentId = existingNote.ssrsAssessmentId;
+            }
+            
+            // Set manager approval info if already requested (e.g., after rejection)
+            if (existingNote.requiresManagerApproval === true || existingNote.wasRejected === true) {
+                this.requestManagerCoSign = true;
+                this.isReapprovalScenario = true; // Disable checkbox, show message
+                this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
+                
+                if (existingNote.managerApproverId) {
+                    this.selectedApproverId = existingNote.managerApproverId;
+                }
+            }
+        }
+
         this.codeOptions = (codeAssignments || []).map((item) => ({
             label: item.label,
             value: item.id,
@@ -664,6 +777,10 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             this._showToast('Error', 'Cannot launch Risk Assessment without a linked Person Account.', 'error');
             return;
         }
+        // DEBUG: Toast the ID we are about to launch with
+        if(this.ssrsAssessmentId) {
+             this._showToast('Info', 'Launching existing assessment: ' + this.ssrsAssessmentId, 'info');
+        }
         this.showSsrsModal = true;
     }
 
@@ -675,6 +792,25 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         // Capture SSRS data from the assessment component
         if (event.detail) {
             this.ssrsAssessmentData = event.detail;
+            
+            // Critical Update: Specifically bind the assessmentId to the tracked property
+            // This ensures that when the user clicks "Edit", the child component receives the ID
+            if (this.ssrsAssessmentData.assessmentId) {
+                this.ssrsAssessmentId = this.ssrsAssessmentData.assessmentId;
+                // DEBUG: Confirm capture
+                this._showToast('Success', 'Captured Assessment ID: ' + this.ssrsAssessmentId, 'success');
+            } else {
+                console.warn('SSRS Complete event missing assessmentId in detail:', JSON.stringify(event.detail));
+                this._showToast('Warning', 'SSRS saved but ID not returned. Edit might fail.', 'warning');
+            }
+
+            // AUTO-BIND INTERACTION ID FROM SERVER
+            // If the server auto-created a shell Interaction, adopt it immediately.
+            if (this.ssrsAssessmentData.interactionSummaryId && !this.interactionId) {
+                this.interactionId = this.ssrsAssessmentData.interactionSummaryId;
+                console.log('Adopting Auto-Created Interaction ID:', this.interactionId);
+                this._showToast('Note Saved', 'A draft Case Note has been created.', 'info');
+            }
         }
         this.showSsrsModal = false;
         this._showToast('Success', 'Risk Assessment data captured. It will be saved with your note.', 'success');
@@ -800,24 +936,64 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             console.log('[ClinicalNoteForm] Saving - recordId:', this.recordId);
             console.log('[ClinicalNoteForm] recordId type:', typeof this.recordId);
 
-            // Use individual parameters method (same as clinicalNote) to avoid object deserialization issues
-            const result = await saveClinicalNoteWithSsrs({
+            // Extract SSRS assessment ID if an assessment was completed
+            // Prefer the tracked ID property which is consistently updated by handleSsrsComplete and initClinicalNote
+            let ssrsAssessmentId = this.ssrsAssessmentId;
+            
+            // Fallback to data object if tracked prop is missing (legacy safety)
+            if (!ssrsAssessmentId && this.ssrsAssessmentData) {
+                 ssrsAssessmentId = this.ssrsAssessmentData.assessmentId || this.ssrsAssessmentData.id;
+            }
+            
+            console.log('=== LWC SSRS DEBUG ===');
+            console.log('this.ssrsAssessmentId:', this.ssrsAssessmentId);
+            console.log('this.ssrsAssessmentData:', JSON.stringify(this.ssrsAssessmentData));
+            console.log('Final ssrsAssessmentId to save:', ssrsAssessmentId);
+            
+            if (ssrsAssessmentId) {
+                console.log('Including SSRS Assessment ID:', ssrsAssessmentId);
+            } else {
+                console.log('No SSRS Assessment ID to include');
+            }
+
+            // Build goal work details
+            const goalWorkDetails = [];
+            for (const [goalId, workState] of Object.entries(this.goalWorkState)) {
+                if (workState.workedOn) {
+                    goalWorkDetails.push({
+                        goalAssignmentId: goalId,
+                        narrative: workState.narrative || '',
+                        progressBefore: workState.progressBefore ?? 0,
+                        progressAfter: workState.progressAfter ?? 0,
+                        timeSpentMinutes: workState.timeSpentMinutes || null
+                    });
+                }
+            }
+
+            const request = {
                 caseId: this.recordId,
-                interactionDateStr: this.form.interactionDate,
-                startTimeStr: this.form.startTime,
-                endTimeStr: this.form.endTime,
+                interactionSummaryId: this.interactionId,
+                accountId: this.accountId,
+                interactionDate: this.form.interactionDate,
+                startTime: this.form.startTime,
+                endTime: this.form.endTime,
                 interpreterUsed: this.form.interpreterUsed,
                 pos: this.form.pos,
                 reason: this.form.reason,
                 services: this.form.services,
                 response: this.form.response,
                 plan: this.form.plan,
-                goalAssignmentIds: this.form.goalIds,
+                goalWorkDetails: goalWorkDetails,
                 codeAssignmentIds: this.form.codeIds,
                 benefitIds: this.form.benefitIds,
-                ssrsAssessmentId: null,
+                ssrsAssessmentId: ssrsAssessmentId,
                 noteType: this.noteType
+            };
+
+            const result = await saveClinicalNoteRequest({
+                requestJson: JSON.stringify(request)
             });
+
             if (!result || !result.success) {
                 const errorMessage =
                     result && result.errorMessage ? result.errorMessage : 'Unable to save case note.';
@@ -840,9 +1016,18 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             // Request manager approval if toggled
             if (this.requestManagerCoSign && this.hasManager) {
                 try {
+                    // Handle manager approval - Force correct approver in re-approval scenarios
+                    let managerApproverId = this.selectedApproverId;
+                    if (this.requestManagerCoSign && this.isReapprovalScenario && this.existingNote?.managerApproverId) {
+                        // FORCE the original approver when in correction mode
+                        managerApproverId = this.existingNote.managerApproverId;
+                        console.log('Correction Mode: Forcing original manager approver:', managerApproverId);
+                    }
+
                     await requestManagerApproval({ 
                         recordId: this.interactionId, 
-                        recordType: 'Interaction' 
+                        recordType: 'Interaction',
+                        approverId: managerApproverId
                     });
                     console.log('Manager approval requested successfully');
                 } catch (approvalErr) {
@@ -872,6 +1057,10 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
 
     handleManagerApprovalToggle(event) {
         this.requestManagerCoSign = event.target.checked;
+    }
+
+    handleApproverChange(event) {
+        this.selectedApproverId = event.detail.value;
     }
 
     /**

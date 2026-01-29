@@ -11,6 +11,7 @@ import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.g
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
 import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
+import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
@@ -50,12 +51,10 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         response: '',
         plan: '',
         goalIds: [],
-        codeIds: [],
         benefitIds: []
     };
 
     @track goalOptions = [];
-    @track codeOptions = [];
     @track benefitOptions = [];
     @track posOptions = [];
 
@@ -72,11 +71,20 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     @track isLoading = false;
     @track isSaving = false;
     @track loadError;
-    @track interactionId;
+
+    _interactionId;
+    @api 
+    get interactionId() {
+        return this._interactionId;
+    }
+    set interactionId(value) {
+        this._interactionId = value;
+    }
 
     // SSRS Assessment integration
     @track showSsrsModal = false;
     @track ssrsAssessmentData = null;
+    @track ssrsAssessmentId = null;
 
     // Draft/Save for Later support
     @track draftId = null;
@@ -86,9 +94,9 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     // Manager Approval support
     @track requestManagerCoSign = false;
     @track managerInfo = null;
-
-    // ICD-10 Diagnosis codes
-    @track selectedDiagnoses = [];
+    @track isReapprovalScenario = false;
+    @track reapprovalManagerName = '';
+    @track _clearSignatureOnRender = false;
 
     originalFormState;
 
@@ -97,9 +105,38 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     wiredManagerInfo({ data, error }) {
         if (data) {
             this.managerInfo = data;
+            // Only auto-select manager IF they are in the loaded signing list
+            if (this.managerInfo.hasManager && !this.selectedApproverId && this.signingAuthorityOptions && this.signingAuthorityOptions.length > 0) {
+                 const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
+                 if (managerInList) {
+                    this.selectedApproverId = this.managerInfo.managerId;
+                 }
+            }
         } else if (error) {
             console.error('Error getting manager info:', error);
             this.managerInfo = { hasManager: false };
+        }
+    }
+    
+    // Wire to get signing authorities
+    @wire(getSigningAuthorities)
+    wiredSigningAuthorities({ data, error }) {
+        if (data) {
+            this.signingAuthorityOptions = data.map(user => ({
+                label: user.Name,
+                value: user.Id
+            }));
+            
+            // Only auto-select manager if they are in this list
+            if (this.managerInfo && this.managerInfo.hasManager && !this.selectedApproverId) {
+                const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
+                if (managerInList) {
+                    this.selectedApproverId = this.managerInfo.managerId;
+                }
+            }
+        } else if (error) {
+            console.error('Error getting signing authorities:', error);
+            this.signingAuthorityOptions = [];
         }
     }
 
@@ -139,31 +176,6 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         return this.activeGoals && this.activeGoals.length > 0;
     }
 
-    // ICD-10 Diagnosis code getters
-    get hasCodeOptions() {
-        return this.codeOptions && this.codeOptions.length > 0;
-    }
-
-    get hasSelectedDiagnoses() {
-        return this.selectedDiagnoses && this.selectedDiagnoses.length > 0;
-    }
-
-    get formattedDiagnoses() {
-        return this.selectedDiagnoses.map(diag => ({
-            ...diag,
-            statusIconClass: this._getStatusIconClass(diag.status)
-        }));
-    }
-
-    _getStatusIconClass(status) {
-        if (!status) return 'diagnosis-status-default';
-        const s = status.toLowerCase();
-        if (s === 'active') return 'diagnosis-status-active';
-        if (s === 'resolved') return 'diagnosis-status-resolved';
-        if (s === 'inactive') return 'diagnosis-status-inactive';
-        return 'diagnosis-status-default';
-    }
-
     get goalsWorkedOnCount() {
         return Object.values(this.goalWorkState).filter(g => g.workedOn).length;
     }
@@ -178,7 +190,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
 
     // Manager Approval getters
     get hasManager() {
-        return this.managerInfo?.hasManager === true;
+        return (this.managerInfo?.hasManager === true) || (this.signingAuthorityOptions && this.signingAuthorityOptions.length > 0);
     }
 
     get managerMissing() {
@@ -186,13 +198,23 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     }
 
     get managerName() {
+        if (this.selectedApproverId) {
+            const selected = this.signingAuthorityOptions.find(opt => opt.value === this.selectedApproverId);
+            if (selected) return selected.label;
+        }
         return this.managerInfo?.managerName || 'Your Manager';
     }
 
     get managerApprovalLabel() {
-        return this.hasManager 
-            ? `Request co-signature from ${this.managerName}`
-            : 'Request manager co-signature (no manager assigned)';
+        return 'Request Approval/Co-Signature';
+    }
+
+    get isManagerApprovalDisabled() {
+        return this.managerMissing || this.isReapprovalScenario;
+    }
+
+    handleApproverChange(event) {
+        this.selectedApproverId = event.detail.value;
     }
 
     /**
@@ -276,6 +298,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     }
 
     connectedCallback() {
+        console.log('[PeerNote] connectedCallback - recordId:', this.recordId);
         this.loadInitialData();
     }
 
@@ -287,8 +310,8 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         this.isLoading = true;
         this.loadError = null;
         try {
-            console.log('Loading peer note for case:', this.recordId);
-            const data = await initClinicalNote({ caseId: this.recordId });
+            console.log('Loading peer note for case:', this.recordId, ' interactionId:', this.interactionId);
+            const data = await initClinicalNote({ caseId: this.recordId, interactionId: this.interactionId });
             this._initializeFromResponse(data);
             
             // Log PHI access for audit compliance (18 HIPAA Safe Harbor identifiers)
@@ -327,10 +350,16 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             defaultEndTime,
             goalAssignments,
             activeGoals,
-            codeAssignments,
             currentUserName,
-            accountId
+            accountId,
+            existingNote
         } = data;
+        
+        // ... (rest of method, but I need to modify the end part)
+        // I will replace the whole method to be safe, or just the end part.
+        // It's safer to read the method again and replace carefully.
+        // Actually, I'll use a larger block replacement.
+        
         const headerInfo = header || {};
         this.header = {
             personName: headerInfo.personName || '',
@@ -351,7 +380,6 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             response: '',
             plan: '',
             goalIds: [],
-            codeIds: [],
             benefitIds: []
         };
         this.goalOptions = (goalAssignments || []).map((item) => ({
@@ -387,12 +415,59 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             };
         });
         
-        // Peer notes typically don't have code assignments, but keep options available
-        this.codeOptions = (codeAssignments || []).map((item) => ({
-            label: item.label,
-            value: item.id,
-            description: item.description
-        }));
+        // Check for existing note data (Amendment flow)
+        if (existingNote) {
+            console.log('Pre-filling form with existing note data');
+            this.form = {
+                ...this.form,
+                interactionDate: existingNote.interactionDate || this.form.interactionDate,
+                startTime: existingNote.startTime || this.form.startTime,
+                endTime: existingNote.endTime || this.form.endTime,
+                interpreterUsed: existingNote.interpreterUsed === true,
+                pos: existingNote.pos,
+                reason: existingNote.reason,
+                services: existingNote.services,
+                response: existingNote.response,
+                plan: existingNote.plan
+            };
+            
+            // Set SSRS Assessment ID if present
+            if (existingNote.ssrsAssessmentId) {
+                this.ssrsAssessmentId = existingNote.ssrsAssessmentId;
+            }
+            
+            // Set manager approval info if already requested (e.g., after rejection)
+            if (existingNote.requiresManagerApproval === true || existingNote.wasRejected === true) {
+                this.requestManagerCoSign = true;
+                this.isReapprovalScenario = true; // Disable checkbox, show message
+                this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
+                if (existingNote.managerApproverId) {
+                    this.selectedApproverId = existingNote.managerApproverId;
+                }
+            }
+            
+            // If note was rejected, clear the signature so staff must re-sign
+            if (existingNote.wasRejected === true) {
+                // Signature will be cleared after template renders
+                this._clearSignatureOnRender = true;
+            }
+            
+            // Populate goal work state
+            if (existingNote.goalWorkState) {
+                Object.keys(existingNote.goalWorkState).forEach(goalId => {
+                    if (this.goalWorkState[goalId]) {
+                        this.goalWorkState[goalId] = {
+                            ...this.goalWorkState[goalId],
+                            ...existingNote.goalWorkState[goalId],
+                            expanded: true
+                        };
+                    }
+                });
+                // Ensure form knows about selected goals
+                this.form.goalIds = Object.keys(existingNote.goalWorkState);
+            }
+        }
+
         this.signatureContext = {
             signerName: currentUserName || 'Current User',
             signDate: today || this._todayAsString()
@@ -439,42 +514,6 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
 
     handleGoalsChange(event) {
         this.form = { ...this.form, goalIds: event.detail.value || [] };
-    }
-
-    handleCodesChange(event) {
-        this.form = { ...this.form, codeIds: event.detail.value || [] };
-    }
-
-    // ========================================
-    // ICD-10 Diagnosis Handlers
-    // ========================================
-    
-    handleOpenIcd10Selector() {
-        const selector = this.template.querySelector('c-icd10-code-selector');
-        if (selector) {
-            selector.open();
-        }
-    }
-    
-    handleDiagnosisAdded(event) {
-        const diagnosis = event.detail;
-        console.log('ICD-10 Diagnosis added:', diagnosis);
-        
-        // Check for duplicates
-        const exists = this.selectedDiagnoses.some(d => d.code === diagnosis.code);
-        if (exists) {
-            this._showToast('Info', `${diagnosis.code} is already selected`, 'info');
-            return;
-        }
-        
-        // Add to selected diagnoses
-        this.selectedDiagnoses = [...this.selectedDiagnoses, diagnosis];
-        this._showToast('Success', `Added ${diagnosis.code} - ${diagnosis.description}`, 'success');
-    }
-    
-    handleRemoveDiagnosis(event) {
-        const codeToRemove = event.currentTarget.dataset.code;
-        this.selectedDiagnoses = this.selectedDiagnoses.filter(d => d.code !== codeToRemove);
     }
 
     handleBenefitsChange(event) {
@@ -590,6 +629,10 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             this._showToast('Error', 'Cannot launch Risk Assessment without a linked Person Account.', 'error');
             return;
         }
+        // DEBUG: Toast the ID we are about to launch with
+        if(this.ssrsAssessmentId) {
+             this._showToast('Info', 'Launching existing assessment: ' + this.ssrsAssessmentId, 'info');
+        }
         this.showSsrsModal = true;
     }
 
@@ -601,6 +644,25 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         // Capture SSRS data from the assessment component
         if (event.detail) {
             this.ssrsAssessmentData = event.detail;
+            
+            // Critical Update: Specifically bind the assessmentId to the tracked property
+            // This ensures that when the user clicks "Edit", the child component receives the ID
+            if (this.ssrsAssessmentData.assessmentId) {
+                this.ssrsAssessmentId = this.ssrsAssessmentData.assessmentId;
+                // DEBUG: Confirm capture
+                this._showToast('Success', 'Captured Assessment ID: ' + this.ssrsAssessmentId, 'success');
+            } else {
+                console.warn('SSRS Complete event missing assessmentId in detail:', JSON.stringify(event.detail));
+                this._showToast('Warning', 'SSRS saved but ID not returned. Edit might fail.', 'warning');
+            }
+
+            // AUTO-BIND INTERACTION ID FROM SERVER
+            // If the server auto-created a shell Interaction, adopt it immediately.
+            if (this.ssrsAssessmentData.interactionSummaryId && !this.interactionId) {
+                this.interactionId = this.ssrsAssessmentData.interactionSummaryId;
+                console.log('Adopting Auto-Created Interaction ID:', this.interactionId);
+                this._showToast('Note Saved', 'A draft Peer Note has been created.', 'info');
+            }
         }
         this.showSsrsModal = false;
         this._showToast('Success', 'Risk Assessment data captured. It will be saved with your note.', 'success');
@@ -687,7 +749,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 goalWorkState: this.goalWorkState,
                 activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
                 ssrsAssessmentData: this.ssrsAssessmentData,
-                selectedDiagnoses: this.selectedDiagnoses, // Preserve ICD-10 selections
+                // selectedDiagnoses removed for Peer Note
                 activeSection: this.activeSection,
                 savedAt: new Date().toISOString()
             };
@@ -767,29 +829,67 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             console.log('Saving peer note for case:', this.recordId);
             
             // Extract SSRS assessment ID if an assessment was completed
-            const ssrsAssessmentId = this.ssrsAssessmentData?.assessmentId || null;
+            // Prefer the tracked ID property which is consistently updated by handleSsrsComplete and initClinicalNote
+            let ssrsAssessmentId = this.ssrsAssessmentId;
+            
+            // Fallback to data object if tracked prop is missing (legacy safety)
+            if (!ssrsAssessmentId && this.ssrsAssessmentData) {
+                 ssrsAssessmentId = this.ssrsAssessmentData.assessmentId || this.ssrsAssessmentData.id;
+            }
+            
+            console.log('=== LWC SSRS DEBUG ===');
+            console.log('this.ssrsAssessmentId:', this.ssrsAssessmentId);
+            console.log('this.ssrsAssessmentData:', JSON.stringify(this.ssrsAssessmentData));
+            console.log('Final ssrsAssessmentId to save:', ssrsAssessmentId);
+            
             if (ssrsAssessmentId) {
                 console.log('Including SSRS Assessment ID:', ssrsAssessmentId);
+            } else {
+                console.log('No SSRS Assessment ID to include');
             }
 
-            const result = await saveClinicalNoteRequest({
-                request: {
-                    caseId: this.recordId,
-                    interactionDate: this.form.interactionDate,
-                    startTime: this.form.startTime,
-                    endTime: this.form.endTime,
-                    interpreterUsed: this.form.interpreterUsed,
-                    pos: this.form.pos,
-                    reason: this.form.reason,
-                    services: this.form.services,
-                    response: this.form.response,
-                    plan: this.form.plan,
-                    goalAssignmentIds: this.form.goalIds,
-                    codeAssignmentIds: this.form.codeIds,
-                    benefitIds: this.form.benefitIds,
-                    ssrsAssessmentId: ssrsAssessmentId,
-                    noteType: this.noteType
+            // Build goal work details with progress tracking
+            const goalWorkDetails = [];
+            for (const [goalId, workState] of Object.entries(this.goalWorkState)) {
+                if (workState.workedOn) {
+                    goalWorkDetails.push({
+                        goalAssignmentId: goalId,
+                        narrative: workState.narrative || '',
+                        progressBefore: workState.progressBefore ?? 0,
+                        progressAfter: workState.progressAfter ?? 0,
+                        timeSpentMinutes: workState.timeSpentMinutes || null
+                    });
                 }
+            }
+            
+            if (goalWorkDetails.length > 0) {
+                console.log('Sending goal work details for ' + goalWorkDetails.length + ' goals');
+            }
+
+            console.log('[PeerNote] Saving - recordId:', this.recordId);
+            console.log('[PeerNote] recordId type:', typeof this.recordId);
+
+            const peerNoteRequest = {
+                caseId: this.recordId,
+                interactionSummaryId: this.interactionId,
+                accountId: this.accountId,
+                interactionDate: this.form.interactionDate,
+                startTime: this.form.startTime,
+                endTime: this.form.endTime,
+                interpreterUsed: this.form.interpreterUsed,
+                pos: this.form.pos,
+                reason: this.form.reason,
+                services: this.form.services,
+                response: this.form.response,
+                plan: this.form.plan,
+                goalWorkDetails: goalWorkDetails,  // ← Send full goal work data
+                benefitIds: this.form.benefitIds,
+                ssrsAssessmentId: ssrsAssessmentId,
+                noteType: this.noteType
+            };
+
+            const result = await saveClinicalNoteRequest({
+                requestJson: JSON.stringify(peerNoteRequest)
             });
             
             if (!result || !result.success) {
@@ -808,15 +908,21 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 }
             }
 
-            // Save goal assignment details
-            await this._saveGoalWork(this.interactionId);
-
             // Request manager approval if toggled
             if (this.requestManagerCoSign && this.hasManager) {
                 try {
+                    // Handle manager approval - Force correct approver in re-approval scenarios
+                    let managerApproverId = this.selectedApproverId;
+                    if (this.requestManagerCoSign && this.isReapprovalScenario && this.existingNote?.managerApproverId) {
+                        // FORCE the original approver when in correction mode
+                        managerApproverId = this.existingNote.managerApproverId;
+                        console.log('Correction Mode: Forcing original manager approver:', managerApproverId);
+                    }
+
                     await requestManagerApproval({ 
                         recordId: this.interactionId, 
-                        recordType: 'Interaction' 
+                        recordType: 'Interaction',
+                        approverId: managerApproverId
                     });
                     console.log('Manager approval requested successfully');
                 } catch (approvalErr) {

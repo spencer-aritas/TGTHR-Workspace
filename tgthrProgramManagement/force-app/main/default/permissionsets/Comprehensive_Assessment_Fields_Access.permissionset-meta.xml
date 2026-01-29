@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>AssessmentService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>ClinicalNoteController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SSRSAssessmentController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SSRSAssessmentHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <description>Full read/write access to all Comprehensive Assessment fields on Assessment__c, including MSE (Mental Status Exam), presenting problem, screening, clinical summary, and other intake fields.</description>
     <label>Comprehensive Assessment Fields Access</label>
     <hasActivationRequired>false</hasActivationRequired>
@@ -407,4 +423,15 @@
         <field>BenefitDisbursement.InteractionSummary__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Assessment__c.Response_Data__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Assessment__c.Interaction_Summary__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+
 </PermissionSet>

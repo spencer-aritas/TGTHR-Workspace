@@ -412,6 +412,11 @@ export default class InteractionSummaryBoard extends LightningElement {
 
           // Extract the data safely with more defensive coding
           const needsAttention = r.Notify_Case_Manager__c === true;
+          // Check if approval is pending
+          const requiresApproval = r.Requires_Manager_Approval__c === true;
+          const managerSigned = r.Manager_Signed__c === true;
+          const isPendingApproval = requiresApproval && !managerSigned;
+          
           const accountId = r.AccountId || "";
           const accountName =
             r.Account && typeof r.Account === "object" && r.Account.Name
@@ -521,7 +526,8 @@ export default class InteractionSummaryBoard extends LightningElement {
             Date_of_Interaction__c: interactionDate,
             // Store the raw date object for sorting if available
             _dateObj: r._dateObj || null,
-            notesCellClass: needsAttention ? "needs-attn-soft" : ""
+            notesCellClass: needsAttention ? "needs-attn-soft" : "",
+            isPendingApproval: isPendingApproval // Flag for UI badge
           };
 
           mappedRows.push(rowObj);
@@ -673,7 +679,8 @@ export default class InteractionSummaryBoard extends LightningElement {
       MeetingNotes: r.MeetingNotes,
       CreatedBy_Name: r.CreatedBy ? r.CreatedBy.Name : null,
       Notify_Case_Manager__c: r.Notify_Case_Manager__c,
-      noteClass: r.Notify_Case_Manager__c ? "note note-attn" : "note"
+      noteClass: r.Notify_Case_Manager__c ? "note note-attn" : "note",
+      isPendingApproval: r.Requires_Manager_Approval__c === true && r.Manager_Signed__c !== true
     }));
 
     this.incidents = inc.map((x) => ({
