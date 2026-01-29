@@ -96,6 +96,8 @@
                                                             Flagged by: {item.actionEscalatedByName}
                                                         </div>
                                                     </div>
+                                                    <!-- Hide Clear Action button - users must fix and re-sign the note -->
+                                                    <!--
                                                     <div class="slds-col slds-no-flex slds-m-left_small">
                                                         <template if:true={item.canClearAction}>
                                                             <lightning-button
@@ -108,6 +110,7 @@
                                                             </lightning-button>
                                                         </template>
                                                     </div>
+                                                    -->
                                                 </div>
                                             </div>
                                         </li>
@@ -401,6 +404,7 @@
                     <c-clinical-note 
                         record-id={recordId}
                         incoming-draft-id={selectedDraftId}
+                        interaction-id={selectedInteractionId}
                         onclose={handleModalClose}>
                     </c-clinical-note>
                 </div>

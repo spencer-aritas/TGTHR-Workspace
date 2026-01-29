@@ -1,0 +1,21 @@
+-- Find rejected notes for Case 3774 (500VY00000BI3yRYAT)
+SELECT Id, Name, CreatedById, CreatedBy.Name,
+       Manager_Rejected__c, Manager_Rejected_Date__c, Manager_Rejection_Reason__c,
+       Action_Required__c, Action_Assigned_To__c, Action_Assigned_To__r.Name,
+       Action_Escalated_By__c, Action_Escalated_By__r.Name, Action_Notes__c,
+       RelatedRecordId, Date_of_Interaction__c
+FROM InteractionSummary
+WHERE RelatedRecordId = '500VY00000BI3yRYAT'
+AND Manager_Rejected__c = true
+ORDER BY Manager_Rejected_Date__c DESC
+LIMIT 5
+
+-- Or just find ANY recently rejected notes
+SELECT Id, Name, CreatedById, CreatedBy.Name,
+       Manager_Rejected__c, Manager_Rejected_Date__c, Manager_Rejection_Reason__c,
+       Action_Required__c, Action_Assigned_To__c, Action_Assigned_To__r.Name,
+       RelatedRecordId
+FROM InteractionSummary
+WHERE Manager_Rejected__c = true
+AND Manager_Rejected_Date__c = TODAY
+ORDER BY Manager_Rejected_Date__c DESC

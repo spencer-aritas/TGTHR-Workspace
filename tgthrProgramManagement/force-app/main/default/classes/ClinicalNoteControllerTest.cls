@@ -5,9 +5,9 @@ private class ClinicalNoteControllerTest {
     static void saveClinicalNoteRequiresCase() {
         // Test with empty request - should fail due to missing caseId
         ClinicalNoteController.SaveRequest request = new ClinicalNoteController.SaveRequest();
-        // All fields are null by default
+        String requestJson = JSON.serialize(request);
         
-        ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(request);
+        ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(requestJson);
         
         System.assertEquals(false, result.success, 'Result should indicate failure when caseId is missing.');
         System.assertNotEquals(null, result.errorMessage, 'Error message should be populated.');
@@ -20,8 +20,9 @@ private class ClinicalNoteControllerTest {
         request.caseId = '500000000000001AAA'; // Fake Case ID (will fail in real org but tests validation logic)
         request.interactionDate = String.valueOf(Date.today());
         // Deliberately leaving startTime and endTime null
+        String requestJson = JSON.serialize(request);
         
-        ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(request);
+        ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(requestJson);
         
         System.assertEquals(false, result.success, 'Result should indicate failure when time fields are missing.');
         System.assert(result.errorMessage.containsIgnoreCase('time'), 'Error should mention time requirement.');

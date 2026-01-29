@@ -4,6 +4,7 @@ import { NavigationMixin } from 'lightning/navigation';
 import getNoteForApproval from '@salesforce/apex/PendingDocumentationController.getNoteForApproval';
 import approveNote from '@salesforce/apex/PendingDocumentationController.approveNote';
 import rejectNote from '@salesforce/apex/PendingDocumentationController.rejectNote';
+import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 
 export default class NoteApprovalModal extends NavigationMixin(LightningElement) {
     @track isOpen = false;
@@ -12,6 +13,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
     @track noteData = {};
     @track approvalNotes = '';
     @track rejectionReason = '';
+    @track hasSignature = false;
     
     recordId = null;
     recordType = null;
@@ -37,15 +39,21 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
     async loadNoteData() {
         this.isLoading = true;
         try {
+            console.log('Loading note data for:', this.recordId, this.recordType);
             const data = await getNoteForApproval({ 
                 recordId: this.recordId, 
                 recordType: this.recordType 
             });
+            console.log('Note data loaded successfully:', data);
             this.noteData = data;
         } catch (error) {
             console.error('Error loading note:', error);
-            this.showToast('Error', 'Failed to load note details: ' + this.reduceErrors(error), 'error');
-            this.close();
+            const errorMsg = this.reduceErrors(error);
+            console.error('Detailed error:', JSON.stringify(error));
+            this.showToast('Error', 'Failed to load note details: ' + errorMsg, 'error');
+            
+            // Keep modal open but show error state
+            this.noteData = { error: errorMsg };
         } finally {
             this.isLoading = false;
         }
@@ -81,55 +89,19 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
         });
     }
 
+    get hasDiagnoses() {
+        return this.noteData.diagnoses && this.noteData.diagnoses.length > 0;
+    }
+
+    get hasGoals() {
+        return this.noteData.goals && this.noteData.goals.length > 0;
+    }
+
+    get hasBenefits() {
+        return this.noteData.benefits && this.noteData.benefits.length > 0;
+    }
+
     // Navigation handlers
-    handleViewClient() {
-        if (this.noteData.clientId) {
-            this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
-                attributes: {
-                    recordId: this.noteData.clientId,
-                    objectApiName: 'Account',
-                    actionName: 'view'
-                }
-            });
-        }
-    }
-
-    handleViewCase() {
-        if (this.noteData.caseId) {
-            this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
-                attributes: {
-                    recordId: this.noteData.caseId,
-                    objectApiName: 'Case',
-                    actionName: 'view'
-                }
-            });
-        }
-    }
-
-    handleViewDocument() {
-        if (this.noteData.documentId) {
-            this[NavigationMixin.Navigate]({
-                type: 'standard__namedPage',
-                attributes: {
-                    pageName: 'filePreview'
-                },
-                state: {
-                    selectedRecordId: this.noteData.documentId
-                }
-            });
-        }
-    }
-
-    handleDownloadDocument() {
-        if (this.noteData.documentId) {
-            // Build download URL for ContentVersion
-            const downloadUrl = `/sfc/servlet.shepherd/version/download/${this.noteData.documentId}`;
-            window.open(downloadUrl, '_blank');
-        }
-    }
-
     handleApprovalNotesChange(event) {
         this.approvalNotes = event.target.value;
     }
@@ -138,15 +110,83 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
         this.rejectionReason = event.target.value;
     }
 
+    handleSignatureSaved(event) {
+        this.hasSignature = true;
+        // Signature is already saved to the record by the signature pad component
+    }
+
+    async handleViewDocument() {
+        if (!this.noteData.documentId) {
+            // Try to generate document if it doesn't exist
+            try {
+                this.showToast('Generating', 'Generating document...', 'info');
+                await generateNoteDocument({ noteId: this.recordId });
+                // Reload note data to get the new document
+                await this.loadNoteData();
+                
+                if (!this.noteData.documentId) {
+                    this.showToast('Error', 'Document generation failed', 'error');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error generating document:', error);
+                this.showToast('Error', 'Failed to generate document: ' + this.reduceErrors(error), 'error');
+                return;
+            }
+        }
+
+        // Navigate to file preview
+        this[NavigationMixin.Navigate]({
+            type: 'standard__namedPage',
+            attributes: {
+                pageName: 'filePreview'
+            },
+            state: {
+                selectedRecordId: this.noteData.documentId
+            }
+        });
+    }
+
     async handleApprove() {
         this.isProcessing = true;
         try {
+            console.log('Approving note:', this.recordId, this.recordType);
+            console.log('Approval notes:', this.approvalNotes);
+            console.log('Has signature:', this.hasSignature);
+            
+            // Capture and save manager signature first
+            const signaturePad = this.template.querySelector('c-signature-pad');
+            if (signaturePad) {
+                const hasSignature = typeof signaturePad.hasSignature === 'function' ? signaturePad.hasSignature() : false;
+                if (!hasSignature) {
+                    this.showToast('Signature Required', 'Please sign before approving', 'error');
+                    this.isProcessing = false;
+                    return;
+                }
+                
+                // Save the signature as PNG with manager alias in filename
+                const managerAlias = this.noteData?.currentUser?.Alias || 'manager';
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                signaturePad.filename = `signature_manager_${managerAlias}_${timestamp}.png`;
+                
+                const signatureResult = await signaturePad.saveSignature(this.recordId, false);
+                if (!signatureResult.success) {
+                    throw new Error(signatureResult.error || 'Failed to save manager signature');
+                }
+                console.log('Manager signature saved successfully:', signaturePad.filename);
+            }
+            
+            console.log('🚀🚀🚀 FRONTEND CALLING approveNote NOW');
+            console.log('🚀 recordId:', this.recordId, 'recordType:', this.recordType);
+            
             await approveNote({
                 recordId: this.recordId,
                 recordType: this.recordType,
-                approvalNotes: this.approvalNotes
+                approvalNotes: this.approvalNotes,
+                signatureData: null
             });
             
+            console.log('✅✅✅ FRONTEND approveNote RETURNED SUCCESSFULLY');
             this.showToast('Success', 'Note approved and co-signed successfully', 'success');
             this.dispatchEvent(new CustomEvent('approved', { 
                 detail: { recordId: this.recordId, recordType: this.recordType }
@@ -154,7 +194,9 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
             this.close();
         } catch (error) {
             console.error('Error approving note:', error);
-            this.showToast('Error', 'Failed to approve: ' + this.reduceErrors(error), 'error');
+            console.error('Full error object:', JSON.stringify(error));
+            const errorMsg = this.reduceErrors(error);
+            this.showToast('Error', 'Failed to approve: ' + errorMsg, 'error');
         } finally {
             this.isProcessing = false;
         }

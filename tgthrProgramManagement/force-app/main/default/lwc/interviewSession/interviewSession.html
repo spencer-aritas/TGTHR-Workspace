@@ -501,6 +501,18 @@
                                         </p>
                                     </template>
                                     <template if:true={requestManagerCoSign}>
+                                        <!-- Approver Selection -->
+                                        <div class="slds-m-top_small slds-m-bottom_small">
+                                            <lightning-combobox
+                                                name="approver"
+                                                label="Select Approver"
+                                                value={selectedApproverId}
+                                                placeholder="Select a user..."
+                                                options={signingAuthorityOptions}
+                                                onchange={handleApproverChange}
+                                                required>
+                                            </lightning-combobox>
+                                        </div>
                                         <p class="slds-text-body_small slds-text-color_success slds-m-top_xx-small">
                                             <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
                                             {managerName} will be notified to co-sign this interview after you save.

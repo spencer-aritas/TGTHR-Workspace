@@ -2,6 +2,7 @@ import { LightningElement, api, wire, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
+import Id from '@salesforce/user/Id';
 import getDraftsForCase from '@salesforce/apex/DocumentDraftService.getDraftsForCase';
 import getUnsignedInteractions from '@salesforce/apex/PendingDocumentationController.getUnsignedInteractions';
 import getUnsignedInterviews from '@salesforce/apex/PendingDocumentationController.getUnsignedInterviews';
@@ -15,6 +16,7 @@ import reassignInterview from '@salesforce/apex/PsychoSocialRenewalService.reass
 
 export default class PendingDocumentation extends NavigationMixin(LightningElement) {
     _recordId;
+    userId = Id;
     @api showManagerView = false; // Optional: show manager approval queue
     
     @api
@@ -42,6 +44,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     @track showPeerNoteModal = false;
     @track showInterviewModal = false;
     @track selectedDraftId = null;
+    @track selectedInteractionId = null; // For editing rejected notes
     @track selectedInterviewId = null;
     
     // Action Flag Modal
@@ -122,7 +125,20 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     wiredActionItems(result) {
         this.wiredActionItemsResult = result;
         if (result.data) {
-            this.actionItems = this.formatUnsignedNotes(result.data);
+            console.log('=== Action Items Raw Data ===');
+            console.log('All action items:', JSON.stringify(result.data));
+            console.log('Current recordId (caseId):', this._recordId);
+            let items = this.formatUnsignedNotes(result.data);
+            console.log('Formatted items before filter:', JSON.stringify(items));
+            // Filter to current case if recordId is set (case page context)
+            if (this._recordId) {
+                items = items.filter(item => {
+                    console.log(`Checking item ${item.name}: caseId=${item.caseId}, matches=${item.caseId === this._recordId}`);
+                    return item.caseId === this._recordId;
+                });
+            }
+            console.log('Filtered action items:', JSON.stringify(items));
+            this.actionItems = items;
             this.checkLoadingComplete();
         } else if (result.error) {
             console.error('Error loading action items:', result.error);
@@ -290,26 +306,72 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     }
     
     handleNoteClick(event) {
+        event.stopPropagation();
         const noteId = event.currentTarget.dataset.id;
-        // Navigate to the InteractionSummary record
-        this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
-            attributes: {
-                recordId: noteId,
-                objectApiName: 'InteractionSummary',
-                actionName: 'view'
+        
+        // Check if this is from action items or unsigned notes
+        const actionItem = this.actionItems?.find(n => n.id === noteId || n.sourceRecordId === noteId);
+        const unsignedNote = this.unsignedNotes?.find(n => n.id === noteId || n.sourceRecordId === noteId);
+        
+        const note = actionItem || unsignedNote;
+        if (!note) return;
+        
+        const recordId = note.sourceRecordId;
+        
+        // If it's an action item (rejected note), open the editing modal to fix it
+        if (actionItem) {
+            // Set interaction ID for loading existing note (not draft ID)
+            this.selectedInteractionId = recordId;
+            this.selectedDraftId = null; // Clear draft ID to avoid confusion
+            
+            // Determine note type from the name or purpose
+            const noteName = note.name || '';
+            if (noteName.includes('Clinical Note') || note.purpose === 'Clinical Note') {
+                this.showClinicalNoteModal = true;
+            } else if (noteName.includes('Case Note') || note.purpose === 'Case Note') {
+                this.showCaseNoteModal = true;
+            } else if (noteName.includes('Peer Note') || note.purpose === 'Peer Note') {
+                this.showPeerNoteModal = true;
+            } else {
+                // Default to clinical note if type unclear
+                this.showClinicalNoteModal = true;
             }
-        });
+        } else {
+            // Unsigned note - open approval modal for co-signing
+            const approvalModal = this.template.querySelector('c-note-approval-modal');
+            if (approvalModal) {
+                approvalModal.open(recordId, 'Interaction');
+            }
+        }
     }
     
     handleCompleteSignatures(event) {
         event.stopPropagation();
         const noteId = event.target.dataset.id;
         
-        // Open the signature modal for review and signing
-        const modal = this.template.querySelector('c-note-signature-modal');
-        if (modal) {
-            modal.open(noteId, 'Interaction');
+        console.log('=== handleCompleteSignatures START ===');
+        console.log('noteId from button:', noteId);
+        console.log('All unsigned notes:', JSON.stringify(this.unsignedNotes));
+        
+        // Find the note to get its sourceRecordId (InteractionSummary ID)
+        const note = this.unsignedNotes.find(n => n.id === noteId);
+        const recordId = note ? note.sourceRecordId : noteId;
+        
+        console.log('Found matching note:', JSON.stringify(note));
+        console.log('Using InteractionSummary recordId:', recordId);
+        
+        // Query for BOTH modals to see what we have
+        const approvalModal = this.template.querySelector('c-note-approval-modal');
+        const signatureModal = this.template.querySelector('c-note-signature-modal');
+        
+        console.log('approvalModal exists:', !!approvalModal);
+        console.log('signatureModal exists:', !!signatureModal);
+        
+        if (approvalModal) {
+            console.log('OPENING APPROVAL MODAL with recordId:', recordId);
+            approvalModal.open(recordId, 'Interaction');
+        } else {
+            console.error('Could not find c-note-approval-modal');
         }
     }
     
@@ -403,6 +465,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     closeClinicalNoteModal() {
         this.showClinicalNoteModal = false;
         this.selectedDraftId = null;
+        this.selectedInteractionId = null;
         this.refreshData();
     }
     
@@ -425,6 +488,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         this.showPeerNoteModal = false;
         this.showInterviewModal = false;
         this.selectedDraftId = null;
+        this.selectedInteractionId = null;
         this.selectedInterviewId = null;
         this.refreshData();
     }
@@ -499,6 +563,8 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     
     // Called when approval or rejection is complete
     async handleApprovalComplete() {
+        // Small delay to ensure database commits before refresh
+        await new Promise(resolve => setTimeout(resolve, 500));
         await this.refreshData();
     }
     

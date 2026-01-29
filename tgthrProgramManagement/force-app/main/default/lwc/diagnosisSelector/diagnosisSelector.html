@@ -1,0 +1,136 @@
+<template>
+    <lightning-card title="Diagnoses" icon-name="standard:healthcare_diagnosis">
+        <div class="slds-card__body slds-card__body_inner">
+            <!-- Loading State -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-m-vertical_medium">
+                    <lightning-spinner alternative-text="Loading diagnoses..." size="small"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Error State -->
+            <template if:true={error}>
+                <div class="slds-text-color_error slds-m-around_small">
+                    <lightning-icon icon-name="utility:error" size="small" variant="error" class="slds-m-right_x-small"></lightning-icon>
+                    {error}
+                </div>
+            </template>
+
+            <!-- Content -->
+            <template if:false={isLoading}>
+                <!-- Existing Diagnoses Section -->
+                <template if:true={hasExistingDiagnoses}>
+                    <div class="slds-section slds-is-open">
+                        <h3 class="slds-section__title slds-theme_shade">
+                            <span class="slds-truncate slds-p-horizontal_small" title="Active Diagnoses">
+                                Active Diagnoses
+                            </span>
+                        </h3>
+                        <div class="slds-section__content slds-p-around_small">
+                            <ul class="slds-has-dividers_bottom-space">
+                                <template for:each={existingDiagnoses} for:item="diagnosis">
+                                    <li key={diagnosis.Id} class="slds-item slds-p-vertical_x-small">
+                                        <lightning-input 
+                                            type="checkbox"
+                                            label={diagnosis.displayLabel}
+                                            checked={diagnosis.isSelected}
+                                            data-id={diagnosis.Id}
+                                            onchange={handleExistingDiagnosisToggle}>
+                                            <span slot="label">
+                                                <strong>{diagnosis.ICD10Code__c}</strong>
+                                                <template if:true={diagnosis.description}>
+                                                    - {diagnosis.description}
+                                                </template>
+                                                <template if:true={diagnosis.Primary__c}>
+                                                    <span class="slds-badge slds-badge_lightest slds-m-left_x-small">Primary</span>
+                                                </template>
+                                                <template if:true={diagnosis.OnsetDate__c}>
+                                                    <br/>
+                                                    <span class="slds-text-color_weak slds-text-body_small">
+                                                        Onset: {diagnosis.OnsetDate__c}
+                                                    </span>
+                                                </template>
+                                            </span>
+                                        </lightning-input>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="slds-m-vertical_small"></div>
+                </template>
+
+                <!-- No Existing Diagnoses Message -->
+                <template if:false={hasExistingDiagnoses}>
+                    <div class="slds-text-color_weak slds-text-align_center slds-m-vertical_small">
+                        <lightning-icon icon-name="utility:info" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        No active diagnoses found for this participant
+                    </div>
+                    <div class="slds-m-vertical_small"></div>
+                </template>
+
+                <!-- New Diagnoses Section -->
+                <div class="slds-section slds-is-open">
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Add New Diagnosis">
+                            Add New Diagnosis
+                        </span>
+                    </h3>
+                    <div class="slds-section__content slds-p-around_small">
+                        <!-- Add Diagnosis Button -->
+                        <lightning-button
+                            label="Add Diagnosis"
+                            icon-name="utility:add"
+                            variant="brand"
+                            onclick={handleOpenDiagnosisSelector}
+                            class="slds-m-bottom_small">
+                        </lightning-button>
+                        
+                        <!-- ICD-10 Code Selector Component (Modal) -->
+                        <c-icd10-code-selector
+                            account-id={accountId}
+                            case-id={caseId}
+                            ondiagnosisadded={handleNewDiagnosisAdded}>
+                        </c-icd10-code-selector>
+
+                        <!-- Display newly added diagnoses (not yet saved) -->
+                        <template if:true={hasNewDiagnoses}>
+                            <div class="slds-m-top_medium">
+                                <div class="slds-text-title_caps slds-m-bottom_x-small">
+                                    New Diagnoses to Add:
+                                </div>
+                                <ul class="slds-has-dividers_bottom-space">
+                                    <template for:each={newDiagnoses} for:item="diagnosis" for:index="index">
+                                        <li key={diagnosis.icd10Code} class="slds-item slds-p-vertical_x-small">
+                                            <div class="slds-grid slds-grid_vertical-align-center">
+                                                <div class="slds-col slds-grow">
+                                                    <strong>{diagnosis.icd10Code}</strong> - {diagnosis.description}
+                                                    <template if:true={diagnosis.onsetDate}>
+                                                        <br/>
+                                                        <span class="slds-text-color_weak slds-text-body_small">
+                                                            Onset: {diagnosis.onsetDate}
+                                                        </span>
+                                                    </template>
+                                                </div>
+                                                <div class="slds-col slds-no-flex">
+                                                    <lightning-button-icon
+                                                        icon-name="utility:close"
+                                                        alternative-text="Remove"
+                                                        title="Remove this diagnosis"
+                                                        variant="bare"
+                                                        data-index={index}
+                                                        onclick={handleRemoveNewDiagnosis}>
+                                                    </lightning-button-icon>
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

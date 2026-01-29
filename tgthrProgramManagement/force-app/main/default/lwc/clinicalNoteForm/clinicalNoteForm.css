@@ -21,10 +21,11 @@
 
 .note-layout {
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 280px 1fr;
     gap: var(--lwc-spacingLarge, 1.5rem);
     flex: 1;
     min-height: 0;
+    overflow: hidden;
 }
 
 .note-header {

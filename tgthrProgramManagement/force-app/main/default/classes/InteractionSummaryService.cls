@@ -555,7 +555,8 @@ public with sharing class InteractionSummaryService {
     try {
       String interactionQuery = 
         'SELECT Id, AccountId, Account.Name, CreatedBy.Name, MeetingNotes, Notify_Case_Manager__c, ' +
-        'Date_of_Interaction__c, Program__c, InteractionPurpose, Name ' +
+        'Date_of_Interaction__c, Program__c, InteractionPurpose, Name, ' +
+        'Requires_Manager_Approval__c, Manager_Signed__c ' +
         'FROM InteractionSummary ' +
         'WHERE Program__c = :pid ' +
         'AND Date_of_Interaction__c >= :startDate ' +
@@ -634,7 +635,8 @@ public with sharing class InteractionSummaryService {
     String query =
       'SELECT Id, AccountId, Date_of_Interaction__c, InteractionPurpose, ' +
       'MeetingNotes, CreatedBy.Name, CreatedDate, Notify_Case_Manager__c, Program__c, ' +
-      'Program__r.Name, Program__r.Id ' +
+      'Program__r.Name, Program__r.Id, ' +
+      'Requires_Manager_Approval__c, Manager_Signed__c ' +
       'FROM InteractionSummary ' +
       'WHERE AccountId = :accountId ' +
       'ORDER BY Date_of_Interaction__c DESC, CreatedDate DESC ' +

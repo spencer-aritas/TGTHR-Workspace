@@ -118,10 +118,39 @@ public with sharing class InterviewDocumentController {
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
             'WHERE Case__c = :caseId ' +
-            'AND Interview__r.Completed_On__c != null ' +
-            'ORDER BY Interview__r.Completed_On__c DESC NULLS LAST, CreatedDate DESC';
+            'AND Interview__r.Completed_On__c != null ';
+            
+        // EXCLUDE Pending Manager Approvals for Interviews as well
+        // Assuming Interview__c has the same fields
+        // We can't easily check fields dynamically in this static query block without breaking it up,
+        // but let's assume the schema is consistent with InteractionSummary from previous context.
+        // If these fields are possibly missing, we'd need dynamic SOQL here too.
+        // For now, let's switch this to dynamic SOQL to be safe and consistent with the notes query below.
         
-        List<SObject> docs = Database.query(query);
+        // REPLACED STATIC QUERY WITH DYNAMIC QUERY
+        String interviewQuery = 
+            'SELECT Id, Interview__c, Interview__r.Name, Interview__r.Completed_On__c, ' +
+            'Interview__r.Started_On__c, Interview__r.Status__c, ' +
+            'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
+            'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
+            'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
+            'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
+            'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
+            'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
+            'Case__c, Interaction_Summary__c, CreatedDate ' +
+            'FROM InterviewDocument__c ' +
+            'WHERE Case__c = :caseId ' +
+            'AND Interview__r.Completed_On__c != null ';
+            
+        // Check for approval fields on Interview__c
+        Map<String, SObjectField> interviewFields = Schema.SObjectType.Interview__c.fields.getMap();
+        if (interviewFields.containsKey('Requires_Manager_Approval__c') && interviewFields.containsKey('Manager_Signed__c')) {
+            interviewQuery += 'AND (Interview__r.Requires_Manager_Approval__c = false OR Interview__r.Manager_Signed__c = true) ';
+        }
+        
+        interviewQuery += 'ORDER BY Interview__r.Completed_On__c DESC NULLS LAST, CreatedDate DESC';
+        
+        List<SObject> docs = Database.query(interviewQuery);
         result.addAll(buildDocumentInfoList(docs));
         
         // Also query Notes (InteractionSummary records with note types)
@@ -167,8 +196,8 @@ public with sharing class InterviewDocumentController {
             if (fieldMap.containsKey('manager_signed_date__c')) {
                 query += ', Manager_Signed_Date__c ';
             }
-            if (fieldMap.containsKey('manager_signed_by_name__c')) {
-                query += ', Manager_Signed_By_Name__c ';
+            if (fieldMap.containsKey('manager_approver__c')) {
+                query += ', Manager_Approver__c, Manager_Approver__r.Name ';
             }
             
             // Add optional note content fields if they exist
@@ -186,8 +215,15 @@ public with sharing class InterviewDocumentController {
             // requires the variables to be in scope. For IN clause, build it explicitly.
             query += 'FROM InteractionSummary ' +
                 'WHERE RelatedRecordId = \'' + String.escapeSingleQuotes(String.valueOf(caseId)) + '\' ' +
-                'AND InteractionPurpose IN (\'Clinical Note\', \'Case Note\', \'Peer Note\') ' +
-                'ORDER BY Date_of_Interaction__c DESC NULLS LAST, CreatedDate DESC';
+                'AND InteractionPurpose IN (\'Clinical Note\', \'Case Note\', \'Peer Note\') ';
+            
+            // EXCLUDE Pending Approvals: If it requires approval and manager hasn't signed, don't show it here.
+            // These should live in Pending Documentation.
+            if (fieldMap.containsKey('requires_manager_approval__c') && fieldMap.containsKey('manager_signed__c')) {
+                query += 'AND (Requires_Manager_Approval__c = false OR Manager_Signed__c = true) ';
+            }
+                
+            query += 'ORDER BY Date_of_Interaction__c DESC NULLS LAST, CreatedDate DESC';
             
             System.debug('getNotesForCase query: ' + query);
             List<SObject> notes = Database.query(query);
@@ -250,8 +286,11 @@ public with sharing class InterviewDocumentController {
                 if (fieldMap.containsKey('manager_signed__c') && note.get('Manager_Signed__c') != null && (Boolean)note.get('Manager_Signed__c') == true) {
                     info.managerSigned = true;
                     
-                    if (fieldMap.containsKey('manager_signed_by_name__c')) {
-                        info.managerSignerName = (String) note.get('Manager_Signed_By_Name__c');
+                    if (fieldMap.containsKey('manager_approver__c') && note.get('Manager_Approver__c') != null) {
+                        SObject managerApprover = note.getSObject('Manager_Approver__r');
+                        if (managerApprover != null) {
+                            info.managerSignerName = (String) managerApprover.get('Name');
+                        }
                     }
                     
                     if (fieldMap.containsKey('manager_signed_date__c')) {
@@ -650,6 +689,24 @@ public with sharing class InterviewDocumentController {
         // Parse JSON response
         Map<String, Object> result = (Map<String, Object>) JSON.deserializeUntyped(response.getBody());
         return result;
+    }
+    
+    /**
+     * Regenerate note document asynchronously (after DML).
+     * Use this when you need to regenerate a document after updating the record.
+     * 
+     * @param interactionSummaryId InteractionSummary record ID
+     */
+    @future(callout=true)
+    public static void generateNoteDocumentAsync(Id interactionSummaryId) {
+        try {
+            System.debug('🔄 Async document regeneration started for: ' + interactionSummaryId);
+            Map<String, Object> result = generateNoteDocument(interactionSummaryId);
+            System.debug('✅ Async document regeneration completed: ' + JSON.serialize(result));
+        } catch (Exception e) {
+            System.debug('❌ Async document regeneration failed: ' + e.getMessage());
+            System.debug('❌ Stack trace: ' + e.getStackTraceString());
+        }
     }
     
     /**

@@ -1260,7 +1260,7 @@ public with sharing class InterviewSessionController {
             Map<String, Schema.SObjectField> fieldMap = assessmentType.getDescribe().fields.getMap();
             
             // Try to update Assessment with Interaction_Summary__c lookup if the field exists
-            if (fieldMap.containsKey('interaction_summary__c')) {
+            if (fieldMap.containsKey('Interaction_Summary__c')) {
                 SObject assessment = assessmentType.newSObject(assessmentId);
                 assessment.put('Interaction_Summary__c', interactionSummaryId);
                 update assessment;

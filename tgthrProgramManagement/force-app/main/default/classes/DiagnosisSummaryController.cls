@@ -95,6 +95,8 @@ public with sharing class DiagnosisSummaryController {
             
             // Add optional fields if they exist - use lowercase keys for checking
             addFieldIfExists(selectFields, fieldMap, 'Code__c');           // Formula field showing code
+            addFieldIfExists(selectFields, fieldMap, 'ICD10Code__c');      // TEXT field for code (Direct capture)
+            addFieldIfExists(selectFields, fieldMap, 'Description__c');    // TEXT field for description (Direct capture)
             addFieldIfExists(selectFields, fieldMap, 'Code_Name__c');      // Lookup to Code__c
             addFieldIfExists(selectFields, fieldMap, 'Code_Name__r.Name');
             // Code__c object has: Name, Code__c, Type__c, Primary_Diagnosis_Eligible__c, Active__c
@@ -226,61 +228,42 @@ public with sharing class DiagnosisSummaryController {
         dto.id = rec.Id;
         dto.createdDate = (Datetime)rec.get('CreatedDate');
         
-        // Code info - get from Code__c text field (stores ICD-10 code directly)
-        dto.code = getStringField(rec, 'Code__c');
-        dto.codeNumber = dto.code; // Default codeNumber to same as code
+        // Code info - prioritize ICD10Code__c text field over formula Code__c
+        String codeText = getStringField(rec, 'Code__c');
+        String icd10Code = getStringField(rec, 'ICD10Code__c');
         
+        dto.code = String.isNotBlank(icd10Code) ? icd10Code : codeText;
+        dto.codeNumber = dto.code;
+        
+        // Description - get from Description__c text field (direct storage)
+        dto.description = getStringField(rec, 'Description__c');
+
         // Try to get additional code details from Code_Name__r relationship if available
-        try {
-            SObject codeRec = rec.getSObject('Code_Name__r');
-            if (codeRec != null) {
-                // Code__c.Name stores the description, Code__c.Code__c stores the ICD-10 code
-                String codeFromRel = (String)codeRec.get('Code__c');
-                String descFromRel = (String)codeRec.get('Name');
-                if (String.isNotBlank(codeFromRel)) {
-                    dto.code = codeFromRel;
-                    dto.codeNumber = codeFromRel;
+        // ONLY if Description__c is not populated
+        if (String.isBlank(dto.description)) {
+            try {
+                SObject codeRec = rec.getSObject('Code_Name__r');
+                if (codeRec != null) {
+                    // Code__c.Name stores the description, Code__c.Code__c stores the ICD-10 code
+                    String codeFromRel = (String)codeRec.get('Code__c');
+                    String descFromRel = (String)codeRec.get('Name');
+                    if (String.isNotBlank(codeFromRel) && String.isBlank(dto.code)) {
+                        dto.code = codeFromRel;
+                        dto.codeNumber = codeFromRel;
+                    }
+                    // Also capture the description from the related Code record if not already set
+                    if (String.isNotBlank(descFromRel)) {
+                        dto.description = descFromRel;
+                    }
                 }
-                // Also capture the description from the related Code record
-                if (String.isNotBlank(descFromRel)) {
-                    dto.description = descFromRel;
-                }
-            }
-        } catch (Exception e) {
-            // Relationship not queried or not available
-            System.debug('Could not get Code relationship: ' + e.getMessage());
-        }
-        
-        // Description comes from Diagnosis record Name as fallback
-        // Format is "Code - Description" (e.g., "F32.89 - Other specified depressive episode")
-        // or "Description - Code" (e.g., "Alcohol abuse, uncomplicated - F10.10")
-        String diagName = (String)rec.get('Name');
-        
-        // Only parse Name if we don't already have a description from Code_Name__r
-        if (String.isBlank(dto.description) && String.isNotBlank(diagName)) {
-            // Parse "Code - Description" format to extract just the description
-            if (String.isNotBlank(dto.code) && diagName.contains(' - ')) {
-                // Check if the code is at the START of the name (format: "F32.89 - Description")
-                if (diagName.startsWith(dto.code + ' - ')) {
-                    dto.description = diagName.removeStart(dto.code + ' - ');
-                }
-                // Also check format where code is at END (format: "Description - F32.89")
-                else if (diagName.endsWith(' - ' + dto.code)) {
-                    dto.description = diagName.removeEnd(' - ' + dto.code);
-                }
-                else {
-                    // Just use the full name
-                    dto.description = diagName;
-                }
-            } else {
-                dto.description = diagName;
+            } catch (Exception e) {
+                // Relationship not queried or not available
+                System.debug('Could not get Code relationship: ' + e.getMessage());
             }
         }
         
-        // If description is still empty or just the code, clear it for metadata lookup later
-        if (String.isBlank(dto.description) || dto.description == dto.code) {
-            dto.description = '';
-        }
+        // REMOVED: Name field parsing - we now rely on Description__c text field only
+        // The Name field format "F09 -" is incomplete and should not be used for display
         
         // Status
         dto.status = getStringField(rec, 'Status__c');
