@@ -1,4 +1,4 @@
-﻿{
+{
   "folders": [
     { "path": "tgthrProgramManagement" },
     { "path": "pwa-sync-starter" },
@@ -10,7 +10,8 @@
       "**/__pycache__": true,
       "**/node_modules": true
     },
-    "xml.preferences.showSchemaDocumentationType": "none"
+    "xml.preferences.showSchemaDocumentationType": "none",
+    "powershell.cwd": "tgthrProgramManagement"
   },
   "launch": {
     "configurations": []
