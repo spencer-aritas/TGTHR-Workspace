@@ -177,9 +177,9 @@ public with sharing class GoalAssignmentController {
     }
 
     private static Id getOrCreateCarePlan(Id caseId, Id assigneeId) {
-        List<SObject> plans = Database.query('SELECT Id FROM CarePlan WHERE CaseId = :caseId LIMIT 1');
-        if (!plans.isEmpty()) {
-            return (Id)plans[0].get('Id');
+        SObject existingPlan = CarePlanService.fetchCarePlan(caseId, assigneeId, new List<String>{ 'Id' });
+        if (existingPlan != null) {
+            return (Id)existingPlan.get('Id');
         }
         
         if (assigneeId == null) {
@@ -207,7 +207,7 @@ public with sharing class GoalAssignmentController {
         
         SObject newPlan = Schema.getGlobalDescribe().get('CarePlan').newSObject();
         newPlan.put('Name', 'Care Plan - ' + Date.today().format()); 
-        newPlan.put('CaseId', caseId);
+        CarePlanService.applyCarePlanLinkFields(newPlan, caseId, assigneeId);
         newPlan.put('Status', 'Active');
         newPlan.put('Type__c', 'Clinical'); // Defaulting to Clinical as per requirements context
         

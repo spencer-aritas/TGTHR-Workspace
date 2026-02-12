@@ -9,6 +9,19 @@
     background-color: var(--slds-c-card-color-background-hover, #f3f3f3);
 }
 
+.pending-item-selected {
+    background-color: var(--slds-c-card-color-background, #eef4ff);
+    border-left: 3px solid var(--slds-c-text-color-brand, #1b96ff);
+}
+
+.document-list-panel {
+    border-right: 1px solid var(--slds-c-color-border, #dddbda);
+}
+
+.preview-panel {
+    min-height: 300px;
+}
+
 .text-muted {
     color: var(--slds-c-text-color-weak, #706e6b);
 }
@@ -68,4 +81,38 @@
 .slds-badge_info {
     background-color: var(--slds-c-badge-color-background-info, #d8edff);
     color: var(--slds-c-badge-text-color-info, #014486);
+}
+
+.pending-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    background-color: #6b7280;
+}
+
+.pending-badge__icon {
+    --slds-c-icon-color-foreground-default: #ffffff;
+}
+
+.pending-badge--draft {
+    background-color: #546E7A;
+}
+
+.pending-badge--approval {
+    background-color: #F9A825;
+}
+
+.pending-badge--published {
+    background-color: #43A047;
+}
+
+.pending-badge--action {
+    background-color: #D81B60;
 }

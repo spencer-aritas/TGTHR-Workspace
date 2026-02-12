@@ -1,24 +1,44 @@
 import { LightningElement, api, wire } from 'lwc';
-import { NavigationMixin } from 'lightning/navigation';
+import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getDocumentsForContext from '@salesforce/apex/InterviewDocumentController.getDocumentsForContext';
 import getDownloadUrl from '@salesforce/apex/InterviewDocumentController.getDownloadUrl';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
+import generateInterviewDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 export default class InterviewDocumentViewer extends NavigationMixin(LightningElement) {
-    @api recordId; // Context record ID (Case, InteractionSummary, or Account)
+    _recordId;
+    _contextRecordId;
+    _preselectInterviewId;
+    _preselectDocumentId;
+    _caseId;
+
+    @api
+    get recordId() {
+        return this._recordId;
+    }
+    set recordId(value) {
+        this._recordId = value;
+        if (value) {
+            this._contextRecordId = value;
+            this._caseId = value;
+        }
+    }
     
     documents = [];
     selectedDocumentId = null;
     selectedDocument = null;
     isLoading = true;
     hasInitialized = false; // Track if we've attempted to load data at least once
+    isOpeningInFiles = false;
+    lastLoggedDocumentId = null;
     
     // Wire to load documents based on context
-    @wire(getDocumentsForContext, { recordId: '$recordId' })
+    @wire(getDocumentsForContext, { recordId: '$_contextRecordId' })
     wiredDocuments({ error, data }) {
         // Don't process if recordId isn't set yet (prevents premature error toasts)
-        if (!this.recordId) {
+        if (!this._contextRecordId) {
             return;
         }
         
@@ -29,8 +49,13 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             console.log('Documents loaded:', data);
             this.documents = this.formatDocuments(data);
             
-            // Auto-select first document if available
-            if (this.documents.length > 0 && !this.selectedDocumentId) {
+            const preselectId = this.resolvePreselectId();
+
+            // Auto-select matching document if available
+            if (preselectId) {
+                this.selectDocument(preselectId);
+            } else if (this.documents.length > 0 && !this.selectedDocumentId) {
+                // Auto-select first document if available
                 this.selectDocument(this.documents[0].id);
             }
         } else if (error) {
@@ -56,6 +81,30 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             this.documents = [];
         }
     }
+
+    @wire(CurrentPageReference)
+    handlePageReference(pageRef) {
+        if (!pageRef || !pageRef.state) {
+            return;
+        }
+
+        const caseId = pageRef.state.c__caseId || pageRef.state.caseId || pageRef.state.recordId;
+        const interviewId = pageRef.state.c__interviewId || pageRef.state.interviewId;
+        const documentId = pageRef.state.c__documentId || pageRef.state.documentId;
+
+        if (caseId && !this._contextRecordId) {
+            this._contextRecordId = caseId;
+        }
+        if (caseId) {
+            this._caseId = caseId;
+        }
+        if (interviewId) {
+            this._preselectInterviewId = interviewId;
+        }
+        if (documentId) {
+            this._preselectDocumentId = documentId;
+        }
+    }
     
     /**
      * Format document data for display
@@ -64,6 +113,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         return data.map(doc => {
             const completedDate = doc.completedDate ? new Date(doc.completedDate) : null;
             const startDate = doc.startDate ? new Date(doc.startDate) : null;
+            const statusLabel = this.getDocumentStatusLabel(doc);
             
             return {
                 ...doc,
@@ -85,9 +135,75 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
                     }) : 'Draft',
                 signatureStatus: this.getSignatureStatus(doc),
                 itemClass: this.getDocumentItemClass(doc),
-                signatureClass: this.getSignatureClass(doc)
+                signatureClass: this.getSignatureClass(doc),
+                statusBadgeLabel: statusLabel,
+                statusBadgeClass: this.getStatusBadgeClass(statusLabel)
             };
         });
+    }
+
+    resolvePreselectId() {
+        if (!this.documents || this.documents.length === 0) {
+            return null;
+        }
+
+        if (this._preselectDocumentId) {
+            const match = this.documents.find((doc) => doc.id === this._preselectDocumentId);
+            if (match) {
+                return match.id;
+            }
+        }
+
+        if (this._preselectInterviewId) {
+            const match = this.documents.find((doc) => doc.interviewId === this._preselectInterviewId);
+            if (match) {
+                return match.id;
+            }
+        }
+
+        return null;
+    }
+
+    get hasCaseContext() {
+        return !!this._caseId;
+    }
+
+    handleBackToCase() {
+        if (!this._caseId) {
+            return;
+        }
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this._caseId,
+                objectApiName: 'Case',
+                actionName: 'view'
+            }
+        });
+    }
+
+    getDocumentStatusLabel(doc) {
+        if (doc.documentType === 'Note') {
+            return doc.staffSigned ? 'Completed' : 'Pending Signature';
+        }
+        if (doc.clientSigned && doc.staffSigned) {
+            return 'Completed';
+        }
+        if (doc.clientSigned || doc.staffSigned) {
+            return 'Awaiting Signatures';
+        }
+        return 'Pending Signatures';
+    }
+
+    getStatusBadgeClass(status) {
+        if (status === 'Completed') {
+            return 'completed-badge completed-badge--success';
+        }
+        if (status === 'Awaiting Signatures' || status === 'Pending Signature' || status === 'Pending Signatures') {
+            return 'completed-badge completed-badge--warning';
+        }
+        return 'completed-badge';
     }
     
     /**
@@ -138,6 +254,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         
         // Update selection state in list
         this.updateDocumentClasses();
+        this.logSelectedDocumentAccess('CompletedDocsList');
     }
     
     /**
@@ -167,6 +284,8 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         if (!this.selectedDocument) {
             return;
         }
+
+        this.logSelectedDocumentAccess('CompletedDocsDownload');
         
         try {
             // Check if this is a Note or an Interview document
@@ -215,20 +334,48 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     /**
      * Open document in Salesforce Files
      */
-    handleOpenInFiles() {
-        if (!this.selectedDocument || !this.selectedDocument.contentDocumentId) {
+    async handleOpenInFiles() {
+        if (!this.selectedDocument) {
             return;
         }
-        
-        this[NavigationMixin.Navigate]({
-            type: 'standard__namedPage',
-            attributes: {
-                pageName: 'filePreview'
-            },
-            state: {
-                selectedRecordId: this.selectedDocument.contentDocumentId
+
+        try {
+            this.isOpeningInFiles = true;
+            this.logSelectedDocumentAccess('CompletedDocsOpenFiles');
+            if (!this.selectedDocument.contentDocumentId) {
+                this.showToast('Info', 'Generating file...', 'info');
+
+                if (this.selectedDocument.documentType === 'Note') {
+                    const result = await generateNoteDocument({
+                        interactionSummaryId: this.selectedDocument.id
+                    });
+                    this.selectedDocument.contentDocumentId = result.content_document_id;
+                } else {
+                    const interactionSummaryId = this.selectedDocument.interactionSummaryId;
+                    if (!interactionSummaryId) {
+                        this.showToast('Error', 'Interaction Summary not available for this interview.', 'error');
+                        return;
+                    }
+                    const contentDocId = await generateInterviewDocument({ interactionSummaryId });
+                    this.selectedDocument.contentDocumentId = contentDocId;
+                }
             }
-        });
+
+            this[NavigationMixin.Navigate]({
+                type: 'standard__namedPage',
+                attributes: {
+                    pageName: 'filePreview'
+                },
+                state: {
+                    selectedRecordId: this.selectedDocument.contentDocumentId
+                }
+            });
+        } catch (error) {
+            console.error('Error opening file preview:', error);
+            this.showToast('Error', 'Failed to open file: ' + (error.body?.message || error.message), 'error');
+        } finally {
+            this.isOpeningInFiles = false;
+        }
     }
     
     /**
@@ -324,7 +471,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     }
     
     get hasNoContentDocument() {
-        return !this.selectedDocument?.contentDocumentId;
+        return false;
     }
     
     get statusBadgeClass() {
@@ -374,6 +521,20 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         }
         return '/' + this.selectedDocument.id;
     }
+
+    get interviewDetailRecordId() {
+        if (this.selectedDocument?.interviewId) {
+            return this.selectedDocument.interviewId;
+        }
+        if (this.selectedDocument?.interactionSummaryId) {
+            return this.selectedDocument.interactionSummaryId;
+        }
+        return null;
+    }
+
+    get interviewDetailRecordType() {
+        return this.selectedDocument?.interviewId ? 'Interview' : 'Interaction';
+    }
     
     /**
      * Computed status based on signatures - document is complete when all required signatures are present
@@ -400,13 +561,21 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     }
     
     get computedStatusBadgeClass() {
-        const status = this.computedStatus;
-        if (status === 'Completed') {
-            return 'slds-badge slds-theme_success';
-        } else if (status === 'Awaiting Signatures' || status === 'Pending Signature') {
-            return 'slds-badge slds-theme_warning';
-        }
-        return 'slds-badge slds-theme_light';
+        return this.getStatusBadgeClass(this.computedStatus);
+    }
+
+    get submittedByDisplay() {
+        return this.selectedDocument?.staffSignerName || this.selectedDocument?.createdByName || '—';
+    }
+
+    get submittedOnDisplay() {
+        const date = this.selectedDocument?.staffSignedDate || this.selectedDocument?.completedDate;
+        if (!date) return '—';
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
     }
     
     get needsSignatures() {
@@ -503,6 +672,8 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             this.showToast('Error', 'Interview record not found', 'error');
             return;
         }
+
+        this.logSelectedDocumentAccess('CompletedDocsOpenInterview');
         
         // Navigate to interview session page to complete signatures
         this[NavigationMixin.Navigate]({
@@ -544,5 +715,48 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             message,
             variant
         }));
+    }
+
+    logSelectedDocumentAccess(accessSource) {
+        if (!this.selectedDocument) {
+            return;
+        }
+
+        const recordId = this.selectedDocument.interviewId || this.selectedDocument.id || this.selectedDocument.interactionSummaryId;
+        const objectType = this.selectedDocument.interviewId ? 'Interview' : 'InteractionSummary';
+
+        if (accessSource === 'CompletedDocsList' && this.lastLoggedDocumentId === recordId) {
+            return;
+        }
+        if (accessSource === 'CompletedDocsList') {
+            this.lastLoggedDocumentId = recordId;
+        }
+
+        try {
+            logRecordAccessWithPii({
+                recordId,
+                objectType,
+                accessSource,
+                piiFieldsAccessed: null
+            }).catch(err => {
+                console.warn('Failed to log document access:', err);
+            });
+
+            const piiCategories = [];
+            if (this.selectedDocument?.clientName) piiCategories.push('NAMES');
+
+            if (this.selectedDocument?.clientId && piiCategories.length > 0) {
+                logRecordAccessWithPii({
+                    recordId: this.selectedDocument.clientId,
+                    objectType: 'PersonAccount',
+                    accessSource,
+                    piiFieldsAccessed: JSON.stringify(piiCategories)
+                }).catch(err => {
+                    console.warn('Failed to log PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in logSelectedDocumentAccess:', e);
+        }
     }
 }

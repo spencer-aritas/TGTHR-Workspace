@@ -2,6 +2,7 @@ import { LightningElement, api, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import getNoteForApproval from '@salesforce/apex/PendingDocumentationController.getNoteForApproval';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 import approveNote from '@salesforce/apex/PendingDocumentationController.approveNote';
 import rejectNote from '@salesforce/apex/PendingDocumentationController.rejectNote';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
@@ -17,6 +18,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
     
     recordId = null;
     recordType = null;
+    _lastLoggedRecordId;
 
     @api
     open(recordId, recordType) {
@@ -46,6 +48,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
             });
             console.log('Note data loaded successfully:', data);
             this.noteData = data;
+            this.logAccess('PendingApprovalReview');
         } catch (error) {
             console.error('Error loading note:', error);
             const errorMsg = this.reduceErrors(error);
@@ -88,6 +91,24 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
             day: 'numeric'
         });
     }
+    
+    get formattedAuthorSignedDate() {
+        if (!this.noteData.authorSignedDate) return 'N/A';
+        return new Date(this.noteData.authorSignedDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+    
+    get formattedManagerSignedDate() {
+        if (!this.noteData.managerSignedDate) return 'N/A';
+        return new Date(this.noteData.managerSignedDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
 
     get hasDiagnoses() {
         return this.noteData.diagnoses && this.noteData.diagnoses.length > 0;
@@ -99,6 +120,10 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
 
     get hasBenefits() {
         return this.noteData.benefits && this.noteData.benefits.length > 0;
+    }
+    
+    get hasCptCodes() {
+        return this.noteData.cptCodes && this.noteData.cptCodes.length > 0;
     }
 
     // Navigation handlers
@@ -135,6 +160,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
             }
         }
 
+        this.logAccess('PendingApprovalOpenFiles');
         // Navigate to file preview
         this[NavigationMixin.Navigate]({
             type: 'standard__namedPage',
@@ -145,6 +171,44 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
                 selectedRecordId: this.noteData.documentId
             }
         });
+    }
+
+    logAccess(accessSource) {
+        if (!this.recordId || this.recordId === this._lastLoggedRecordId && accessSource === 'PendingApprovalReview') {
+            return;
+        }
+        if (accessSource === 'PendingApprovalReview') {
+            this._lastLoggedRecordId = this.recordId;
+        }
+
+        const objectType = this.recordType === 'Interview' ? 'Interview' : 'InteractionSummary';
+        try {
+            logRecordAccessWithPii({
+                recordId: this.recordId,
+                objectType,
+                accessSource,
+                piiFieldsAccessed: null
+            }).catch(err => {
+                console.warn('Failed to log note access:', err);
+            });
+
+            const piiCategories = [];
+            if (this.noteData?.clientName) piiCategories.push('NAMES');
+            if (this.noteData?.clientDob) piiCategories.push('DATES');
+
+            if (this.noteData?.clientId && piiCategories.length > 0) {
+                logRecordAccessWithPii({
+                    recordId: this.noteData.clientId,
+                    objectType: 'PersonAccount',
+                    accessSource,
+                    piiFieldsAccessed: JSON.stringify(piiCategories)
+                }).catch(err => {
+                    console.warn('Failed to log PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in logAccess:', e);
+        }
     }
 
     async handleApprove() {

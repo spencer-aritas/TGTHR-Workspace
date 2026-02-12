@@ -1,0 +1,65 @@
+<template>
+    <lightning-card title="CPT Billing Codes" icon-name="standard:sales_channel">
+        <div class="slds-p-around_medium">
+            <!-- Header Info -->
+            <div class="slds-m-bottom_small">
+                <p class="slds-text-body_small slds-text-color_weak">
+                    Select the CPT code(s) that apply to this {noteTypeLabel}. 
+                    Date and duration will be automatically calculated from the note.
+                </p>
+            </div>
+
+            <!-- Loading State -->
+            <template if:true={isLoading}>
+                <lightning-spinner alternative-text="Loading CPT codes..." size="small"></lightning-spinner>
+            </template>
+
+            <!-- Error State -->
+            <template if:true={error}>
+                <div class="slds-box slds-box_small slds-theme_error slds-m-bottom_small">
+                    <p>{error}</p>
+                </div>
+            </template>
+
+            <!-- CPT Code Options -->
+            <template if:false={isLoading}>
+                <template if:true={hasCptCodes}>
+                    <div class="cpt-code-list">
+                        <template for:each={cptCodeOptions} for:item="option">
+                            <div key={option.code} class="cpt-code-item slds-box slds-box_x-small slds-m-bottom_x-small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label={option.displayLabel}
+                                    value={option.code}
+                                    checked={option.isSelected}
+                                    onchange={handleCptCodeChange}
+                                    class="cpt-checkbox"
+                                ></lightning-input>
+                                
+                                <!-- Show modifiers if present -->
+                                <template if:true={option.hasModifiers}>
+                                    <div class="slds-m-left_xx-large slds-text-body_small slds-text-color_weak">
+                                        Modifiers: {option.modifierDisplay}
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Selected Count -->
+                    <template if:true={hasSelectedCodes}>
+                        <div class="slds-m-top_small slds-text-body_small">
+                            <strong>{selectedCount}</strong> code(s) selected
+                        </div>
+                    </template>
+                </template>
+
+                <template if:false={hasCptCodes}>
+                    <div class="slds-text-align_center slds-text-color_weak slds-p-vertical_medium">
+                        No CPT codes available for this note type.
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

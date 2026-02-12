@@ -55,6 +55,8 @@ public with sharing class DocumentDraftService {
         @AuraEnabled public String title;
         @AuraEnabled public DateTime createdDate;
         @AuraEnabled public DateTime lastModifiedDate;
+        @AuraEnabled public String createdByName;
+        @AuraEnabled public String lastModifiedByName;
         @AuraEnabled public String participantName;
         @AuraEnabled public Id caseId;
         @AuraEnabled public String templateName; // For interviews
@@ -268,7 +270,8 @@ public with sharing class DocumentDraftService {
             
             for (ContentVersion cv : [
                 SELECT Id, ContentDocumentId, Title, Description, 
-                       PathOnClient, CreatedDate, LastModifiedDate
+                      PathOnClient, CreatedDate, LastModifiedDate,
+                      CreatedBy.Name, LastModifiedBy.Name
                 FROM ContentVersion
                 WHERE ContentDocumentId IN :documentIds
                 AND PathOnClient LIKE :likePattern
@@ -281,6 +284,8 @@ public with sharing class DocumentDraftService {
                 summary.title = cv.Title;
                 summary.createdDate = cv.CreatedDate;
                 summary.lastModifiedDate = cv.LastModifiedDate;
+                summary.createdByName = (String) cv.getSObject('CreatedBy')?.get('Name');
+                summary.lastModifiedByName = (String) cv.getSObject('LastModifiedBy')?.get('Name');
                 summary.caseId = caseId;
                 
                 // Extract document type from filename

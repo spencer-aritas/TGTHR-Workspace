@@ -10,14 +10,18 @@
                 <lightning-button
                     label="Clear"
                     onclick={handleClear}
-                    variant="neutral">
+                    variant="neutral"
+                    disabled={isSaving}>
                 </lightning-button>
                 <lightning-button
                     label="Save Signature"
                     onclick={handleSave}
                     variant="brand"
-                    disabled={isEmpty}>
+                    disabled={isEmptyOrSaving}>
                 </lightning-button>
+                <template if:true={isSaving}>
+                    <lightning-spinner alternative-text="Saving signature" size="small"></lightning-spinner>
+                </template>
             </div>
         </template>
     </div>

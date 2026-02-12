@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TargetUser__c</fullName>
+    <label>Target User</label>
+    <type>Lookup</type>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Pending Doc Open Requests</relationshipLabel>
+    <relationshipName>PendingDocOpenRequests</relationshipName>
+    <required>false</required>
+</CustomField>

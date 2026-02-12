@@ -137,10 +137,11 @@
                     icon-name="utility:new_window" 
                     size="xx-small" 
                     class="record-link slds-m-left_xx-small"
-                    alternative-text="Open record" 
-                    title="Open record in a new tab"
+                    alternative-text="Open case" 
+                    title="Open case in a new tab"
                     data-recordid={n.Id}
-                    onclick={navigateToRecord}>
+                    data-caseid={n.CaseId}
+                    onclick={navigateToCase}>
                   </lightning-icon>
                 </span>
                 <template if:true={n.Notify_Case_Manager__c}>
@@ -151,6 +152,13 @@
                 </template>
               </div>
               <div class="action-buttons">
+                <lightning-button 
+                  variant="neutral"
+                  label="View Details" 
+                  class="view-details-btn slds-m-right_xx-small" 
+                  data-recordid={n.Id}
+                  onclick={openDetailView}>
+                </lightning-button>
                 <lightning-button 
                   variant="brand" 
                   label="Follow Up" 
@@ -476,6 +484,33 @@
             <div>
               <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
             </div>
+          </footer>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+    
+    <!-- Detail View Modal -->
+    <template if:true={showDetailModal}>
+      <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-modal="true">
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <lightning-button-icon
+              icon-name="utility:close"
+              alternative-text="Close"
+              class="slds-modal__close"
+              onclick={closeDetailView}>
+            </lightning-button-icon>
+            <h2 class="slds-text-heading_medium">
+              <lightning-icon icon-name="utility:preview" size="small" class="slds-m-right_small"></lightning-icon>
+              Note Details
+            </h2>
+          </header>
+          <div class="slds-modal__content slds-p-around_medium" style="max-height: 70vh; overflow-y: auto;">
+            <c-note-detail-display record-id={detailRecordId} record-type="Interaction"></c-note-detail-display>
+          </div>
+          <footer class="slds-modal__footer">
+            <lightning-button label="Close" onclick={closeDetailView}></lightning-button>
           </footer>
         </div>
       </section>

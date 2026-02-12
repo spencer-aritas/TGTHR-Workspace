@@ -1,66 +1,266 @@
 # Copilot instructions for tgthrProgramManagement
 
-This repository is a Salesforce packaging-style source tree (Apex classes, LWC, Aura) focused on program & interaction management.
-The interactionSummaryBoard LWC is a key component for viewing and managing participant interactions., eventually the goal is to have it mirror a propr EHR system's notes and interaction tracking capabilities.
-The ProgramCensusBoard LWC is another important component for viewing program enrollment data, and managing the Disbursement of Benefits. Everyything is centered around these two components. and our two active Program 1440 Pine and Nest 46.
+Salesforce program & clinical interaction management system built on Non-Profit Cloud objects with external document generation via Python service. Focus: case notes, benefit disbursement, goal tracking, and EHR-style clinical documentation for supportive housing programs (1440 Pine, Nest 46).
 
-ProgramCensusBoard is used to get quick info of Participants enrolled in a Program like, their Unit Number (editable), Resident Name (should link to the ProgramEnrollemnt record), Pronouns (editable), Pets (editable), Case Manager, Out of Unit (editable), Referal Source (editable). All of these fields should write back the updates to the object/record theyy came from.
-From this Board we also have Benefit Type and Benefit dropdowns with Service Date (defaulted to today) and Quantity, these should reference actual Benefits and their Types in relation to the Program context. Once these are selected we can click Disburse Benefits and it will first check the right BenefitAssignment records for are created for the Program and ProgramEnrollment. If the right Assignments arent' found the User is prompted with the correct flow to create them automatically, then goes on to create the Disbursements.
-The Weekly Enagagement Calendar should reflect the Benefits Disbursed in this manner in Program context. If the Benefit Type = Clinical or Case Management the User should also be prompted to add the specific time spent and notes about the interaction, these should be tied to the most active recent Case, and thus be reflected in the Meeting Notes on the Interaction Summary Board.
+## Quick Start
 
-Keep guidance short and actionable so AI coding agents can make safe, predictable changes.
+Only modify code under `force-app/main/default/` and `scripts/` unless explicitly targeting other areas. Before any behavioral change:
 
-Do this first
+```bash
+npm run lint && npm run test:unit
+```
 
-- Only modify code under `force-app/main/default/` and supporting `scripts/` unless the task explicitly targets other areas.
-- Run unit/static checks locally before changing behavior: `npm run lint` and `npm run test:unit`.
+## Architecture Overview
 
-Big-picture architecture (quick):
+**Core Components**:
+- `interactionSummaryBoard` (LWC): Display/manage participant case notes, clinical interactions
+- `programCensusBoard` (LWC): Program enrollment roster with inline-editable fields, benefit disbursement UI
+- `clinicalNote` / `peerNote` (LWC): Clinical/peer/case note entry forms that create `InteractionSummary__c` records
 
-- Apex server-side logic lives in `force-app/main/default/classes/` (e.g. `BenefitDisbursementService.cls`). These classes use dynamic SOQL (Database.query) and generic SObject access patterns.
-- Front-end components are Lightning Web Components under `force-app/main/default/lwc/` and Aura under `force-app/main/default/aura/` when present. LWC unit tests use `sfdx-lwc-jest` (see `package.json`).
-- Lightweight scripts for local experimentation and debugging live in `scripts/apex/` and `scripts/soql/` (e.g. `scripts/apex/createBenefitAssignmentSimple.apex`). These are developer convenience scripts meant to be run via the Salesforce CLI.
+**Data Flow** (Note Creation → Document Generation):
+1. UI creates `InteractionSummary__c` with related records (`GoalAssignmentDetail`, `BenefitDisbursement`, `Diagnosis__c`)
+2. Backend links via lookup fields (e.g., `InteractionSummary__c` on disbursements/goals)
+3. External Python service (`tgthr-docgen`) queries by `InteractionSummary__c` ID to generate DOCX documents
+4. Documents rendered with Jinja2 templates, uploaded as `ContentVersion` attached to `InteractionSummary__c`
 
-Important patterns and conventions
+**Apex Services** (`force-app/main/default/classes/`):
+- `ClinicalNoteController.cls`: Central note-saving logic with `SaveRequest` DTO pattern, handles diagnoses/goals/benefits
+- `BenefitDisbursementService.cls`: Dynamic SOQL for benefits, partial DML error handling
+- `InteractionContextService.cls`: Fetch participant/goal/code context for note forms
+- `SystemLevelHelper` (inner class): `without sharing` helpers for FLS bypass (diagnosis creation, SSRS linking)
 
-- Use dynamic SOQL + SObject.get/put when the org uses Non-Profit Cloud objects (e.g. `Benefit`, `BenefitAssignment`, `ProgramEnrollment`) to avoid compile-time schema dependencies. See `BenefitDisbursementService.cls` for examples.
-- DTOs used for LWC <-> Apex data exchange are simple inner classes annotated with `@AuraEnabled` (e.g. `DisburseRequest`, `DisburseResult`, `BenefitAssignmentCheckResult`). Prefer creating server-side request objects when front-end serialization has caused issues (see `createDisbursementsWithParams`).
-- Partial DML insert patterns use `Database.insert(list, false)` and iterate `Database.SaveResult[]` to report per-record failures. Follow existing error-handling: log debug details and return a user-facing message rather than throwing on partial failures.
-- When creating related records, code often needs ProgramId resolution fallbacks: check `programId`, then `programName`, then derive from related Benefit record. Mirror that resolution order in new code.
+## Critical Patterns
 
-Developer workflows (commands)
+### Dynamic SOQL for NPC Objects
+Use `Database.query()` + `SObject.get()/put()` to avoid compile-time dependencies on Non-Profit Cloud schema:
 
-- Run linters and formatting: `npm run lint` and `npm run prettier` (pre-commit hooks are configured via husky).
-- Run LWC unit tests: `npm run test:unit` or `npm run test:unit:watch` for iterative development. Tests use `sfdx-lwc-jest`.
-- Deploy to a scratch org or org with Salesforce CLI: `sf project deploy start -o benefits` (project uses SFDX source format; see `sfdx-project.json`). Use `sfdx force:source:deploy` or new `sf project deploy start` depending on CLI version.
-- Use `scripts/apex/*.apex` snippet files as one-off apex execute scripts. They are not automatically run; open and paste into the CLI (`sfdx force:apex:execute -f <file>`) against a dev org for debugging.
+```apex
+// Example: BenefitDisbursementService.cls
+String query = 'SELECT Id, Name FROM Benefit WHERE IsActive = true AND ProgramId = :programId';
+List<SObject> benefits = Database.query(query);
+for (SObject b : benefits) {
+    String name = (String) b.get('Name');
+}
+```
 
-Testing & debugging notes
+### DTOs for LWC ↔ Apex
+All public methods use `@AuraEnabled` inner classes. LWCs serialize to JSON then deserialize server-side:
 
-- Apex exceptions are surfaced to the logs. Use debug statements already present in service classes (System.debug) and check the target org's debug logs when reproducing issues.
-- For partial DML failure investigations, inspect `Database.SaveResult[].getErrors()` and prefer not to parse error messages (use status codes where possible).
+```apex
+public class SaveRequest {
+    @AuraEnabled public Id caseId;
+    @AuraEnabled public List<DiagnosisInput> diagnoses;
+    @AuraEnabled public List<GoalWorkDetail> goalWorkDetails;
+}
 
-Integration points & external dependencies
+@AuraEnabled
+public static SaveResult saveClinicalNoteRequest(String requestJson) {
+    SaveRequest request = (SaveRequest) JSON.deserialize(requestJson, SaveRequest.class);
+    // ...
+}
+```
 
-- This repo assumes Salesforce platform objects (Program, Benefit, BenefitAssignment, ProgramEnrollment). Tests and deployments require an org with those NPC objects or a compatible scratch org definition (NPC) (`config/project-scratch-def.json`).
-- Front-end tests rely on LWC Jest tooling (`@salesforce/sfdx-lwc-jest`) configured in `package.json`.
+**Why JSON string parameter?** Salesforce LWC→Apex deserialization fails with deeply nested objects; stringify client-side, deserialize in Apex.
 
-When changing behavior
+### Partial DML Error Handling
+Never throw on partial failures. Use `Database.insert(records, false)` and report per-record errors:
 
-- Add/adjust small Apex unit tests where logic is critical. If adding an LWC, add a matching Jest test under the component folder and run `npm run test:unit`.
-- Preserve existing public method signatures annotated with `@AuraEnabled` unless the UI is being updated at the same time; otherwise prefer adding new methods (e.g. `createDisbursementsWithParams`) to avoid breaking callers.
+```apex
+Database.SaveResult[] saveResults = Database.insert(detailsToInsert, false);
+for (Integer i = 0; i < saveResults.size(); i++) {
+    Database.SaveResult sr = saveResults[i];
+    if (!sr.isSuccess()) {
+        System.debug('Failed: ' + sr.getErrors()[0].getMessage());
+    }
+}
+```
 
-Files worth checking when making changes
+### System Mode for FLS Bypass
+Use `without sharing` inner classes when creating/updating records that require ignoring field-level security (e.g., `Code__c` auto-creation, diagnosis linking):
 
-- `force-app/main/default/classes/` — Apex services and tests (e.g. `BenefitDisbursementService.cls`, `BenefitService.cls`).
-- `force-app/main/default/lwc/` — LWC components and their Jest tests.
-- `scripts/apex/` — developer apex scripts for manual run/debug.
-- `package.json`, `sfdx-project.json`, and `config/project-scratch-def.json` — toolchain and org configuration.
+```apex
+private without sharing class SystemLevelHelper {
+    public void upsertDiagnoses(List<SObject> inserts, List<SObject> updates) {
+        // Force-set fields regardless of FLS
+        for (SObject rec : inserts) {
+            rec.put('ICD10Code__c', rec.get('ICD10Code__c'));
+        }
+        insert inserts;
+    }
+}
+```
 
-If unsure
+**When to use:** Creating `Code__c` records from ICD-10 codes, linking SSRS assessments, querying all diagnoses for clinical context (see `ClinicalNoteController.SystemLevelHelper`).
 
-- Ask the human reviewer to confirm target org shape (custom objects/fields) and whether the change needs a backend migration or data seed script.
+### Program Resolution Fallback
+Many operations need `ProgramId`. Always try multiple sources:
 
-Feedback request
+```apex
+// 1. Direct programId parameter
+// 2. Lookup by programName
+// 3. Derive from related Benefit record
+// 4. Query ProgramEnrollment via Case → AccountId
+Id programId = request.programId != null ? request.programId : resolveProgramByName(request.programName);
+```
 
-- I added this file based on discoverable repository patterns. Please tell me which areas need more detail (test commands, CI steps, org setup) and I'll iterate.
+See `ClinicalNoteController.getProgramIdForCase()` for Case→Program resolution pattern.
+
+## Developer Workflows
+
+### Local Development
+```bash
+npm run lint                  # ESLint (Apex/LWC)
+npm run lint:md               # Markdown documentation
+npm run test:unit             # LWC Jest tests
+npm run test:unit:watch       # Watch mode
+npm run validate-dto-sync     # Check Apex ↔ TypeScript DTO alignment
+npm run prettier              # Format all code
+```
+
+**PowerShell Terminal Note**: `grep` doesn't work in PowerShell. Use `Select-String` instead or switch to bash/WSL terminal for grep commands.
+
+### Debugging Apex
+One-off scripts in `scripts/apex/*.apex` - run via CLI:
+
+```bash
+sf apex run -f scripts/apex/createBenefitAssignmentSimple.apex -o myorg
+```
+
+Scripts use dynamic SOQL to query/create test data. Check `System.debug()` output in org's debug logs.
+
+### Deployment Workflows
+
+**tgthrProgramManagement (Salesforce Metadata)**:
+```bash
+# Deploy Apex/LWC changes to Salesforce org
+sf project deploy start -o targetorg           # Deploy all metadata
+sf project deploy start -d force-app/main/default/classes -o targetorg  # Deploy specific directory
+```
+
+**pwa-sync-starter & tgthr-docgen (Python Services on EC2)**:
+```bash
+# 1. Commit and push changes to GitHub
+git add .
+git commit -m "description"
+git push
+
+# 2. SSH into EC2 instance
+ssh user@ec2-instance
+
+# 3. Pull latest changes
+cd ~/pwa-sync-starter  # or ~/tgthr-docgen
+git pull
+
+# 4. Restart Docker containers
+docker-compose down
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f
+```
+
+**Complete Deployment** (all three components):
+1. Deploy Salesforce metadata changes to org
+2. Push Python service changes to GitHub
+3. SSH to EC2, pull changes, restart containers
+
+## External Integration: tgthr-docgen
+
+Python FastAPI service generates DOCX documents from `InteractionSummary__c` records.
+
+**Query Pattern** (Python side):
+```python
+benefit_query = """
+    SELECT Id, Benefit__r.Name, ServiceDate__c, Quantity__c
+    FROM BenefitDisbursement
+    WHERE InteractionSummary__c = '{}'
+""".format(note_id)
+```
+
+**Critical Link Fields** (Apex must populate):
+- `BenefitDisbursement.InteractionSummary__c` (lookup)
+- `GoalAssignmentDetail.InteractionSummary__c` (lookup)
+- `Diagnosis__c.Case__c` (lookup, NOT InteractionSummary - queried via Case)
+- `Assessment__c.Interaction_Summary__c` (SSRS linkage via SystemLevelHelper)
+
+**If adding new data to notes:** Ensure backend creates records with `InteractionSummary__c` populated, then update `tgthr-docgen/generate_note_docs.py` query logic.
+
+## Salesforce Schema Questions
+
+**Use the Salesforce MCP Server tools** for schema/object questions:
+- Query field existence: Check if custom fields exist on objects
+- SOQL queries: Run queries to inspect data structure
+- Object metadata: Get field types, picklist values, relationships
+
+These tools have direct access to the org schema and avoid guessing field names.
+
+## Testing Guidelines
+
+### Apex Tests
+- Use `@isTest` classes with `Test.startTest()` / `Test.stopTest()` boundaries
+- Test files mirror class names: `BenefitDisbursementService.cls` → `BenefitDisbursementServiceTest.cls`
+- Mock data setup via dynamic SOQL (see `BenefitDisbursementServiceTest.setupTestData()`)
+- Run tests: `sf apex run test --code-coverage` or VS Code task `SF: test (apex)`
+
+### LWC Tests
+- Jest tests in `__tests__/` subfolder of each component
+- Use `@salesforce/sfdx-lwc-jest` mocks for platform APIs
+- Run: `npm run test:unit` (all tests) or `npm run test:unit:watch` (iterative)
+
+## Common Tasks
+
+### Adding New Note Fields
+1. Add field to `InteractionSummary__c` object (Salesforce metadata)
+2. Update `ClinicalNoteController.SaveRequest` DTO with `@AuraEnabled` property
+3. Add field to LWC form (`clinicalNote` or `peerNote`)
+4. Update `processSaveClinicalNote()` to populate field via `putIfFieldExists()`
+5. If field needs to appear in document, update `tgthr-docgen/generate_note_docs.py` query
+
+### Preserving Backward Compatibility
+When updating `@AuraEnabled` methods, **add new methods** instead of changing signatures:
+
+```apex
+// Old (keep for existing callers)
+@AuraEnabled
+public static SaveResult saveClinicalNote(Id caseId, String notes) { /*...*/ }
+
+// New (preferred)
+@AuraEnabled
+public static SaveResult saveClinicalNoteRequest(String requestJson) { /*...*/ }
+```
+
+### Handling Missing Fields Dynamically
+Use `putIfFieldExists()` helper to avoid exceptions when fields don't exist:
+
+```apex
+private static void putIfFieldExists(SObject record, Map<String, Schema.SObjectField> fieldMap, String fieldName, Object value) {
+    if (value == null) return;
+    String lowerName = fieldName.toLowerCase();
+    if (fieldMap.containsKey(lowerName)) {
+        record.put(fieldName, value);
+    }
+}
+```
+
+## Key Files Reference
+
+| File | Purpose |
+|------|---------|
+| `ClinicalNoteController.cls` | Clinical note CRUD, diagnosis/goal/benefit linking |
+| `BenefitDisbursementService.cls` | Benefit disbursement logic, partial DML patterns |
+| `InteractionContextService.cls` | Fetch note form context (goals, codes, demographics) |
+| `ProgramCensusController.cls` | Census board backend, inline-edit field updates |
+| `scripts/apex/` | One-off debug/test scripts (run via `sf apex run`) |
+| `package.json` | NPM scripts (lint, test, dto-sync validation) |
+| `jest.config.js` | LWC Jest configuration |
+| `CLINICAL_NOTE_SYSTEM_STATUS.md` | Current state of note system (goals/benefits/diagnoses) |
+
+## Documentation
+
+Comprehensive docs in `/docs/` organized by purpose:
+- `/docs/architecture/` - System design, DTO ecosystem
+- `/docs/api/` - REST endpoints, field mappings
+- `/docs/guides/` - Quick reference for developers
+- `/docs/INDEX.md` - Auto-generated navigation (run `npm run docs:index` to update)
+
+When adding features, update relevant docs AND run `npm run docs:index` before commit.

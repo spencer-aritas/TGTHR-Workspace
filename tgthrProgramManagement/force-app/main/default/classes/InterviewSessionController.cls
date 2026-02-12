@@ -56,6 +56,7 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public String endTime;
         @AuraEnabled public String meetingNotes;
         @AuraEnabled public String location;
+        @AuraEnabled public Boolean interpreterUsed;
         
         public InteractionInput() {
             // No-arg constructor for proper deserialization
@@ -99,6 +100,9 @@ public with sharing class InterviewSessionController {
     public class CarePlanConsentDTO {
         @AuraEnabled public Boolean consentParticipated;
         @AuraEnabled public Boolean consentOffered;
+        @AuraEnabled public Date nextReviewDate;
+        @AuraEnabled public Date dischargeDate;
+        @AuraEnabled public String dischargePlan;
         
         public CarePlanConsentDTO() {
             // No-arg constructor for proper deserialization
@@ -221,9 +225,13 @@ public with sharing class InterviewSessionController {
                 startTime,
                 endTime,
                 request.interaction != null ? request.interaction.meetingNotes : null,
-                request.interaction != null ? request.interaction.location : null
+                request.interaction != null ? request.interaction.location : null,
+                request.interaction != null ? request.interaction.interpreterUsed : null
             );
             insert summary;
+
+            // Create Interaction Service Line records for Comp Assess billing
+            createInteractionServiceLines((Id)summary.get('Id'), 'Comp Assess', accountId, request.caseId);
 
             // Create Assessment__c record
             SObject assessment = buildAssessment(
@@ -626,6 +634,67 @@ public with sharing class InterviewSessionController {
         return values;
     }
 
+    private static String normalizePicklistKey(String value) {
+        if (String.isBlank(value)) {
+            return null;
+        }
+        String normalized = value.trim().toLowerCase();
+        normalized = normalized.replaceAll('\\(.*?\\)', '');
+        normalized = normalized.replaceAll('[^a-z0-9]+', ' ');
+        normalized = normalized.replaceAll('\\s+', ' ').trim();
+        return String.isBlank(normalized) ? null : normalized;
+    }
+
+    private static String coercePicklistValue(Schema.DescribeFieldResult fieldDescribe, String rawValue) {
+        if (fieldDescribe == null || String.isBlank(rawValue)) {
+            return null;
+        }
+
+        List<Schema.PicklistEntry> entries = fieldDescribe.getPicklistValues();
+        if (entries == null || entries.isEmpty()) {
+            return null;
+        }
+
+        for (Schema.PicklistEntry entry : entries) {
+            String entryValue = entry.getValue();
+            String entryLabel = entry.getLabel();
+            if (rawValue == entryValue || rawValue.equalsIgnoreCase(entryValue) || rawValue.equalsIgnoreCase(entryLabel)) {
+                return entryValue;
+            }
+        }
+
+        String normalizedRaw = normalizePicklistKey(rawValue);
+        if (String.isBlank(normalizedRaw)) {
+            return null;
+        }
+
+        for (Schema.PicklistEntry entry : entries) {
+            String entryValue = entry.getValue();
+            String entryLabel = entry.getLabel();
+            if (normalizedRaw == normalizePicklistKey(entryValue) || normalizedRaw == normalizePicklistKey(entryLabel)) {
+                return entryValue;
+            }
+        }
+
+        return null;
+    }
+
+    private static String coerceMultiPicklistValue(Schema.DescribeFieldResult fieldDescribe, String rawValue) {
+        if (String.isBlank(rawValue)) {
+            return null;
+        }
+
+        List<String> selected = new List<String>();
+        for (String value : rawValue.split(';')) {
+            String coerced = coercePicklistValue(fieldDescribe, value != null ? value.trim() : null);
+            if (String.isNotBlank(coerced)) {
+                selected.add(coerced);
+            }
+        }
+
+        return selected.isEmpty() ? null : String.join(selected, ';');
+    }
+
     private static Date extractInteractionDate(InteractionInput input) {
         if (input == null || String.isBlank(input.interactionDate)) {
             return Date.today();
@@ -725,9 +794,19 @@ public with sharing class InterviewSessionController {
                     if (String.isNotBlank(dto.value)) {
                         assessment.put(apiName, Datetime.valueOf(dto.value));
                     }
-                } else if (fieldType == Schema.DisplayType.PICKLIST || fieldType == Schema.DisplayType.MULTIPICKLIST) {
-                    if (String.isNotBlank(dto.value)) {
-                        assessment.put(apiName, dto.value);
+                } else if (fieldType == Schema.DisplayType.PICKLIST) {
+                    String coercedValue = coercePicklistValue(fieldDescribe, dto.value);
+                    if (String.isNotBlank(coercedValue)) {
+                        assessment.put(apiName, coercedValue);
+                    }
+                } else if (fieldType == Schema.DisplayType.MULTIPICKLIST) {
+                    String rawValue = dto.value;
+                    if (String.isBlank(rawValue) && dto.values != null && !dto.values.isEmpty()) {
+                        rawValue = String.join(dto.values, ';');
+                    }
+                    String coercedValue = coerceMultiPicklistValue(fieldDescribe, rawValue);
+                    if (String.isNotBlank(coercedValue)) {
+                        assessment.put(apiName, coercedValue);
                     }
                 }
             } catch (Exception e) {
@@ -894,9 +973,20 @@ public with sharing class InterviewSessionController {
                         account.put(targetApiName, Datetime.valueOf(dto.value));
                         accountModified = true;
                     }
-                } else if (fieldType == Schema.DisplayType.PICKLIST || fieldType == Schema.DisplayType.MULTIPICKLIST) {
-                    if (String.isNotBlank(dto.value)) {
-                        account.put(targetApiName, dto.value);
+                } else if (fieldType == Schema.DisplayType.PICKLIST) {
+                    String coercedValue = coercePicklistValue(fieldDescribe, dto.value);
+                    if (String.isNotBlank(coercedValue)) {
+                        account.put(targetApiName, coercedValue);
+                        accountModified = true;
+                    }
+                } else if (fieldType == Schema.DisplayType.MULTIPICKLIST) {
+                    String rawValue = dto.value;
+                    if (String.isBlank(rawValue) && dto.values != null && !dto.values.isEmpty()) {
+                        rawValue = String.join(dto.values, ';');
+                    }
+                    String coercedValue = coerceMultiPicklistValue(fieldDescribe, rawValue);
+                    if (String.isNotBlank(coercedValue)) {
+                        account.put(targetApiName, coercedValue);
                         accountModified = true;
                     }
                 }
@@ -1000,7 +1090,8 @@ public with sharing class InterviewSessionController {
         Time startTime,
         Time endTime,
         String meetingNotes,
-        String location
+        String location,
+        Boolean interpreterUsed
     ) {
         SObject summary = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
         summary.put('AccountId', accountId);
@@ -1014,6 +1105,10 @@ public with sharing class InterviewSessionController {
         // Set POS__c (location) if provided
         if (String.isNotBlank(location)) {
             putIfFieldExists(summary, 'POS__c', location);
+        }
+
+        if (interpreterUsed != null) {
+            putIfFieldExists(summary, 'Interpreter_Used__c', interpreterUsed);
         }
         
         // Convert Time to Datetime by combining with the interaction date
@@ -1520,23 +1615,39 @@ public with sharing class InterviewSessionController {
             System.debug('CaseId: ' + caseId);
             System.debug('consentParticipated: ' + consent.consentParticipated);
             System.debug('consentOffered: ' + consent.consentOffered);
+            System.debug('nextReviewDate: ' + consent.nextReviewDate);
 
-            // Query CarePlan linked to Case (using CaseId, not Case__c)
-            String query = 'SELECT Id, Care_Plan_Reviewed__c, Documentation_Offered__c ' +
-                           'FROM CarePlan ' +
-                           'WHERE CaseId = :caseId ' +
-                           'LIMIT 1';
-            
-            List<SObject> carePlans = Database.query(query);
-            
-            if (carePlans.isEmpty()) {
+            Id accountId;
+            try {
+                Case c = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+                accountId = c.AccountId;
+            } catch (Exception e) {
+                System.debug('Error resolving case account for CarePlan: ' + e.getMessage());
+            }
+
+            SObject carePlan = CarePlanService.fetchCarePlan(
+                caseId,
+                accountId,
+                new List<String>{ 'Id', 'Care_Plan_Reviewed__c', 'Documentation_Offered__c', 'Next_Review_Date__c' }
+            );
+
+            if (carePlan == null) {
                 System.debug('No CarePlan found for Case ' + caseId + ', skipping consent update');
                 return;
             }
-            
-            SObject carePlan = carePlans[0];
             carePlan.put('Care_Plan_Reviewed__c', consent.consentParticipated == true);
             carePlan.put('Documentation_Offered__c', consent.consentOffered == true);
+
+            if (consent.dischargeDate != null) {
+                putIfFieldExists(carePlan, 'Expected_Discharge_Date__c', consent.dischargeDate);
+            }
+            if (String.isNotBlank(consent.dischargePlan)) {
+                putIfFieldExists(carePlan, 'Discharge_Plan__c', consent.dischargePlan);
+            }
+
+            if (consent.nextReviewDate != null) {
+                putIfFieldExists(carePlan, 'Next_Review_Date__c', consent.nextReviewDate);
+            }
             
             update carePlan;
             System.debug('CarePlan consent updated successfully');
@@ -1801,6 +1912,180 @@ public with sharing class InterviewSessionController {
             }
         } else {
             System.debug('No Income & Benefit records to insert after processing');
+        }
+    }
+
+    /**
+     * Creates Interaction Service Line records for CPT billing codes.
+     * Auto-creates appropriate service codes based on note type.
+     * Users only need to edit billing details (units, billing status, etc.) from the modal.
+     * 
+     * @param interactionSummaryId The InteractionSummary record ID
+     * @param noteType The type of note (Clinical, Peer, Case Management, Comp Assess)
+     * @param accountId The participant's Account ID
+     * @param caseId The related Case ID
+     */
+    private static void createInteractionServiceLines(
+        Id interactionSummaryId, 
+        String noteType, 
+        Id accountId, 
+        Id caseId
+    ) {
+        if (interactionSummaryId == null || String.isBlank(noteType)) {
+            System.debug('Cannot create service lines: missing InteractionSummary ID or note type');
+            return;
+        }
+        
+        // Check if object exists
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        if (!gd.containsKey('Interaction_Service_Line__c')) {
+            System.debug('Interaction_Service_Line__c object not available in this org');
+            return;
+        }
+        
+        Schema.SObjectType serviceLineType = gd.get('Interaction_Service_Line__c');
+        Map<String, Schema.SObjectField> fieldMap = serviceLineType.getDescribe().fields.getMap();
+        
+        // Get the CPT codes for this note type
+        List<ServiceLineConfig> configs = getCptCodesForNoteType(noteType);
+        
+        if (configs.isEmpty()) {
+            System.debug('No CPT codes configured for note type: ' + noteType);
+            return;
+        }
+        
+        // Create service line records
+        List<SObject> serviceLinesToInsert = new List<SObject>();
+        
+        for (ServiceLineConfig config : configs) {
+            SObject serviceLine = serviceLineType.newSObject();
+            
+            // Required fields
+            serviceLine.put('Interaction_Summary__c', interactionSummaryId);
+            serviceLine.put('Service_Code__c', config.code);
+            
+            // Build name with modifiers for clarity
+            String lineName = config.code;
+            if (String.isNotBlank(config.modifier1)) {
+                lineName += ' + ' + config.modifier1;
+            }
+            if (String.isNotBlank(config.modifier2)) {
+                lineName += ' + ' + config.modifier2;
+            }
+            if (String.isNotBlank(config.description)) {
+                lineName += ' - ' + config.description;
+            }
+            // Truncate to 80 chars (Name field limit)
+            if (lineName.length() > 80) {
+                lineName = lineName.substring(0, 80);
+            }
+            serviceLine.put('Name', lineName);
+            
+            // Optional fields if they exist
+            putFieldIfExists(serviceLine, fieldMap, 'Client__c', accountId);
+            putFieldIfExists(serviceLine, fieldMap, 'Case__c', caseId);
+            putFieldIfExists(serviceLine, fieldMap, 'Modifier_1__c', config.modifier1);
+            putFieldIfExists(serviceLine, fieldMap, 'Modifier_2__c', config.modifier2);
+            putFieldIfExists(serviceLine, fieldMap, 'Billing_Status__c', 'Pending');
+            
+            serviceLinesToInsert.add(serviceLine);
+        }
+        
+        // Insert service lines with partial success handling
+        if (!serviceLinesToInsert.isEmpty()) {
+            Database.SaveResult[] saveResults = Database.insert(serviceLinesToInsert, false);
+            
+            Integer successCount = 0;
+            Integer failCount = 0;
+            
+            for (Integer i = 0; i < saveResults.size(); i++) {
+                Database.SaveResult sr = saveResults[i];
+                ServiceLineConfig config = configs[i];
+                
+                if (sr.isSuccess()) {
+                    successCount++;
+                    System.debug('✓ Created service line: ' + config.code + 
+                                 (config.modifier1 != null ? ' + ' + config.modifier1 : '') +
+                                 (config.modifier2 != null ? ' + ' + config.modifier2 : ''));
+                } else {
+                    failCount++;
+                    String errorMsg = '';
+                    for (Database.Error err : sr.getErrors()) {
+                        errorMsg += err.getMessage() + ' ';
+                    }
+                    System.debug('✗ Failed to create service line ' + config.code + ': ' + errorMsg.trim());
+                }
+            }
+            
+            System.debug('Created ' + successCount + ' service lines for ' + noteType + ' note (' + failCount + ' failed)');
+        }
+    }
+
+    /**
+     * CPT Code definition for each note type with modifiers.
+     */
+    public class ServiceLineConfig {
+        public String code;
+        public String modifier1;
+        public String modifier2;
+        public String description;
+        
+        public ServiceLineConfig(String code, String modifier1, String modifier2, String description) {
+            this.code = code;
+            this.modifier1 = modifier1;
+            this.modifier2 = modifier2;
+            this.description = description;
+        }
+    }
+    
+    /**
+     * Get CPT code configurations for a given note type.
+     * Returns the list of service codes that should be available for billing.
+     */
+    private static List<ServiceLineConfig> getCptCodesForNoteType(String noteType) {
+        List<ServiceLineConfig> configs = new List<ServiceLineConfig>();
+        
+        if (noteType == 'Clinical') {
+            configs.add(new ServiceLineConfig('90791', null, null, 'Intake w/o Medical Services'));
+            configs.add(new ServiceLineConfig('90832', null, null, 'Individual Psychotherapy 30 min'));
+            configs.add(new ServiceLineConfig('90834', null, null, 'Individual Psychotherapy 45 min'));
+            configs.add(new ServiceLineConfig('90837', null, null, 'Individual Psychotherapy 60 min'));
+            configs.add(new ServiceLineConfig('90839', null, null, 'Psychotherapy for Crisis'));
+            configs.add(new ServiceLineConfig('90846', null, null, 'Family Therapy w/o Client'));
+            configs.add(new ServiceLineConfig('90847', null, null, 'Family Therapy with Client'));
+            configs.add(new ServiceLineConfig('90853', null, null, 'Group Psychotherapy'));
+            configs.add(new ServiceLineConfig('H0002', null, null, 'BH Screening'));
+            configs.add(new ServiceLineConfig('H0004', null, null, 'BH Counseling'));
+            configs.add(new ServiceLineConfig('H0023', null, null, 'BH Outreach'));
+            configs.add(new ServiceLineConfig('H2011', null, null, 'Crisis Services'));
+            configs.add(new ServiceLineConfig('T1017', 'U2', null, 'Targeted Case Management'));
+        } else if (noteType == 'Comp Assess') {
+            configs.add(new ServiceLineConfig('90791', null, null, 'Intake w/o Medical Services'));
+            configs.add(new ServiceLineConfig('H0002', null, null, 'BH Screening'));
+        } else if (noteType == 'Peer' || noteType == 'Case Management') {
+            configs.add(new ServiceLineConfig('T1017', 'U2', null, 'Targeted Case Management'));
+            configs.add(new ServiceLineConfig('H0043', 'U2', 'UA', 'Supportive Housing, Per diem - Pre-tenancy supports'));
+            configs.add(new ServiceLineConfig('H0043', 'U2', 'UB', 'Supportive Housing, Per diem - Tenancy sustaining services'));
+            configs.add(new ServiceLineConfig('H0044', 'U2', 'UA', 'Supportive Housing, Per diem - Pre-tenancy supports'));
+            configs.add(new ServiceLineConfig('H0044', 'U2', 'UB', 'Supportive Housing, Per diem - Tenancy sustaining services'));
+            configs.add(new ServiceLineConfig('H2014', 'U2', 'UA', 'Supportive Housing, Per 15 min - Pre-tenancy navigation services'));
+            configs.add(new ServiceLineConfig('H2014', 'U2', 'UB', 'Supportive Housing, Per 15 min - Tenancy sustaining services'));
+        }
+        
+        return configs;
+    }
+
+    /**
+     * Helper to put a field value only if the field exists on the object.
+     */
+    private static void putFieldIfExists(SObject record, Map<String, Schema.SObjectField> fieldMap, String fieldName, Object value) {
+        if (value == null) {
+            return;
+        }
+        
+        String lowerName = fieldName.toLowerCase();
+        if (fieldMap.containsKey(lowerName)) {
+            record.put(fieldName, value);
         }
     }
 }

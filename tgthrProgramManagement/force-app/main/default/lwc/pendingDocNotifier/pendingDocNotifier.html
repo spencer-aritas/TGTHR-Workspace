@@ -35,6 +35,9 @@
                                         class="pending-item-link slds-grid slds-grid_vertical-align-center"
                                         data-case-id={item.caseId}
                                         data-record-id={item.recordId}
+                                        data-record-type={item.recordType}
+                                        data-category={item.category}
+                                        data-action={item.action}
                                         onclick={handleItemClick}>
                                         <div class="slds-col slds-grow">
                                             <div class="slds-text-body_regular slds-text-link">
@@ -68,4 +71,5 @@
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
+    <c-note-approval-modal></c-note-approval-modal>
 </template>

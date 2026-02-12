@@ -20,6 +20,7 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public Id ssrsAssessmentId; // Link to SSRS Assessment if completed during this note
         @AuraEnabled public String noteType; // Type of note: 'Clinical', 'Peer', or 'Case'
         @AuraEnabled public List<DiagnosisInput> diagnoses; // ICD-10 diagnoses selected in the note
+        @AuraEnabled public List<String> selectedCptCodes; // List of CPT code strings selected by user for billing
     }
 
     /**
@@ -226,6 +227,23 @@ public with sharing class ClinicalNoteController {
             }
         }
         noteData.put('benefitIds', benefitIds);
+        
+        // Load CPT Codes via Interaction_Service_Line__c records
+        List<String> selectedCptCodes = new List<String>();
+        try {
+            String serviceLineQuery = 'SELECT Service_Code__c FROM Interaction_Service_Line__c WHERE Interaction_Summary__c = :interactionId';
+            List<SObject> serviceLines = Database.query(serviceLineQuery);
+            for (SObject sl : serviceLines) {
+                String code = (String)sl.get('Service_Code__c');
+                if (String.isNotBlank(code) && !selectedCptCodes.contains(code)) {
+                    selectedCptCodes.add(code);
+                }
+            }
+            System.debug('Found ' + selectedCptCodes.size() + ' unique CPT codes for interaction ' + interactionId);
+        } catch (Exception e) {
+            System.debug('Error loading CPT codes: ' + e.getMessage());
+        }
+        noteData.put('selectedCptCodes', selectedCptCodes);
 
         return noteData;
     }
@@ -375,6 +393,100 @@ public with sharing class ClinicalNoteController {
         }
         
         System.debug('No active ProgramEnrollment found for Case: ' + caseId);
+        return null;
+    }
+
+    /**
+     * Get the Program Name for a Case to determine CPT code modifiers.
+     * Used to derive Modifier 2 (UA/UB) based on program context.
+     * 
+     * @param caseId The Case ID
+     * @param accountId The Account ID (participant)
+     * @return The Program Name if found, null otherwise
+     */
+    private static String getProgramNameForCase(Id caseId, Id accountId) {
+        if (caseId == null) {
+            return null;
+        }
+        
+        // First, try to find enrollment directly linked to the Case via Case__c
+        try {
+            String enrollmentQuery = 'SELECT Id, Program.Name, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+            List<SObject> enrollments = Database.query(enrollmentQuery);
+            
+            if (!enrollments.isEmpty()) {
+                SObject program = enrollments[0].getSObject('Program');
+                if (program != null) {
+                    String programName = (String) program.get('Name');
+                    System.debug('Program Name from ProgramEnrollment (via Case__c): ' + programName);
+                    return programName;
+                }
+            }
+        } catch (Exception e1) {
+            System.debug('Error querying ProgramEnrollment via Case__c: ' + e1.getMessage());
+        }
+        
+        // Fallback: Get the Case's AccountId if not provided, then find enrollment via AccountId
+        try {
+            Id participantId = accountId;
+            if (participantId == null) {
+                List<Case> cases = [SELECT Id, AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+                if (!cases.isEmpty()) {
+                    participantId = cases[0].AccountId;
+                }
+            }
+            
+            if (participantId != null) {
+                String enrollmentQuery = 'SELECT Id, Program.Name, Status FROM ProgramEnrollment WHERE AccountId = :participantId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                List<SObject> enrollments = Database.query(enrollmentQuery);
+                
+                if (!enrollments.isEmpty()) {
+                    SObject program = enrollments[0].getSObject('Program');
+                    if (program != null) {
+                        String programName = (String) program.get('Name');
+                        System.debug('Program Name from ProgramEnrollment (via AccountId): ' + programName);
+                        return programName;
+                    }
+                }
+            }
+        } catch (Exception e2) {
+            System.debug('Error querying ProgramEnrollment via AccountId: ' + e2.getMessage());
+        }
+        
+        System.debug('No active ProgramEnrollment found for Case: ' + caseId);
+        return null;
+    }
+
+    /**
+     * Derive CPT code Modifier 2 (UA/UB) based on program context.
+     * 
+     * Modifier 2 Logic:
+     * - UA: Pre-tenancy supports (Outreach and Drop In Program)
+     * - UB: Tenancy sustaining services (1440 Pine, Nest 56)
+     * - null: Not applicable (e.g., T1017 case management)
+     * 
+     * @param programName The program name from ProgramEnrollment
+     * @return 'UA', 'UB', or null
+     */
+    private static String deriveModifier2FromProgram(String programName) {
+        if (String.isBlank(programName)) {
+            return null;
+        }
+        
+        String lowerName = programName.toLowerCase();
+        
+        // Pre-tenancy programs (UA modifier)
+        if (lowerName.contains('outreach') || lowerName.contains('drop in') || lowerName.contains('drop-in')) {
+            return 'UA';
+        }
+        
+        // Tenancy sustaining programs (UB modifier)
+        if (lowerName.contains('1440 pine') || lowerName.contains('nest 56') || lowerName.contains('nest56')) {
+            return 'UB';
+        }
+        
+        // Default to null if program doesn't match known patterns
+        System.debug('Unknown program type for modifier derivation: ' + programName + ' - defaulting to no Modifier 2');
         return null;
     }
 
@@ -591,6 +703,15 @@ public with sharing class ClinicalNoteController {
     }
 
     /**
+     * Get available CPT codes for a given note type (for UI selection).
+     * Returns configurations with code, description, and modifiers.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<ServiceLineConfig> getAvailableCptCodes(String noteType) {
+        return getCptCodesForNoteType(noteType);
+    }
+
+    /**
      * Primary method to save a clinical note. Accepts a SaveRequest DTO.
      * This is the preferred method for LWC callers - pass a single request object
      * instead of individual parameters.
@@ -618,6 +739,8 @@ public with sharing class ClinicalNoteController {
             System.debug('>>> REQUEST DIAGNOSIS DATA: ' + JSON.serialize(request.diagnoses));
             System.debug('>>> REQUEST SSRS ASSESSMENT ID: ' + request.ssrsAssessmentId);
             System.debug('>>> Diagnoses count: ' + (request.diagnoses != null ? String.valueOf(request.diagnoses.size()) : 'null'));
+            System.debug('>>> REQUEST CPT CODES: ' + JSON.serialize(request.selectedCptCodes));
+            System.debug('>>> CPT Codes count: ' + (request.selectedCptCodes != null ? String.valueOf(request.selectedCptCodes.size()) : 'null'));
             return processSaveClinicalNote(request);
         } catch (Exception e) {
             System.debug('Error deserializing request: ' + e.getMessage());
@@ -628,6 +751,62 @@ public with sharing class ClinicalNoteController {
         }
     }
 
+    /**
+     * CPT Code definition for each note type with modifiers.
+     * Returns a list of Service Line configurations (code, modifier1, modifier2, description).
+     */
+    public class ServiceLineConfig {
+        @AuraEnabled public String code;
+        @AuraEnabled public String modifier1;
+        @AuraEnabled public String modifier2;
+        @AuraEnabled public String description;
+        
+        public ServiceLineConfig(String code, String modifier1, String modifier2, String description) {
+            this.code = code;
+            this.modifier1 = modifier1;
+            this.modifier2 = modifier2;
+            this.description = description;
+        }
+    }
+    
+    /**
+     * Get CPT code configurations for a given note type.
+     * Returns the list of service codes that should be available for billing.
+     */
+    private static List<ServiceLineConfig> getCptCodesForNoteType(String noteType) {
+        List<ServiceLineConfig> configs = new List<ServiceLineConfig>();
+        
+        if (noteType == 'Clinical') {
+            configs.add(new ServiceLineConfig('90791', null, null, 'Intake w/o Medical Services'));
+            configs.add(new ServiceLineConfig('90832', null, null, 'Individual Psychotherapy 30 min'));
+            configs.add(new ServiceLineConfig('90834', null, null, 'Individual Psychotherapy 45 min'));
+            configs.add(new ServiceLineConfig('90837', null, null, 'Individual Psychotherapy 60 min'));
+            configs.add(new ServiceLineConfig('90839', null, null, 'Psychotherapy for Crisis'));
+            configs.add(new ServiceLineConfig('90846', null, null, 'Family Therapy w/o Client'));
+            configs.add(new ServiceLineConfig('90847', null, null, 'Family Therapy with Client'));
+            configs.add(new ServiceLineConfig('90853', null, null, 'Group Psychotherapy'));
+            configs.add(new ServiceLineConfig('H0002', null, null, 'BH Screening'));
+            configs.add(new ServiceLineConfig('H0004', null, null, 'BH Counseling'));
+            configs.add(new ServiceLineConfig('H0023', null, null, 'BH Outreach'));
+            configs.add(new ServiceLineConfig('H2011', null, null, 'Crisis Services'));
+            configs.add(new ServiceLineConfig('T1017', 'U2', null, 'Targeted Case Management'));
+        } else if (noteType == 'Comp Assess') {
+            configs.add(new ServiceLineConfig('90791', null, null, 'Intake w/o Medical Services'));
+            configs.add(new ServiceLineConfig('H0002', null, null, 'BH Screening'));
+        } else if (noteType == 'Peer' || noteType == 'Case Management') {
+            // For Peer/Case Management notes:
+            // - Modifier 1 (U2) is auto-derived (peer-provided service)
+            // - Modifier 2 (UA/UB) is auto-derived from program (see createInteractionServiceLines)
+            // UI shows UNIQUE codes only - modifiers applied at save time based on program context
+            configs.add(new ServiceLineConfig('T1017', null, null, 'Targeted Case Management'));
+            configs.add(new ServiceLineConfig('H0043', null, null, 'Supportive Housing, Per diem'));
+            configs.add(new ServiceLineConfig('H0044', null, null, 'Supportive Housing, Per diem'));
+            configs.add(new ServiceLineConfig('H2014', null, null, 'Supportive Housing, Per 15 min'));
+        }
+        
+        return configs;
+    }
+    
     /**
      * @deprecated Use saveClinicalNoteRequest(SaveRequest) instead.
      * Kept for backward compatibility with existing integrations.
@@ -874,7 +1053,7 @@ public with sharing class ClinicalNoteController {
                     if (managerId != null && caseId != null) {
                         try {
                             PendingDocNotificationService.notifyApproverOfCoSignRequest(
-                                managerId, caseId, noteName
+                                managerId, caseId, noteName, (Id)summary.get('Id'), 'Interaction'
                             );
                             System.debug('✅ Sent re-approval notification to manager: ' + managerId);
                         } catch (Exception notifEx) {
@@ -930,6 +1109,44 @@ public with sharing class ClinicalNoteController {
                 putIfFieldExists(summary, 'Signed_Date__c', Date.today());
 
                 insert summary;
+            }
+
+            // Create Interaction Service Line records for selected CPT codes only
+            // First, delete existing service lines if this is an update (prevents duplicates when re-saving)
+            if (request.interactionSummaryId != null && request.selectedCptCodes != null && !request.selectedCptCodes.isEmpty()) {
+                Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+                if (gd.containsKey('Interaction_Service_Line__c')) {
+                    try {
+                        Id summaryId = summary.Id;
+                        String deleteQuery = 'SELECT Id FROM Interaction_Service_Line__c WHERE Interaction_Summary__c = :summaryId';
+                        List<SObject> existingLines = Database.query(deleteQuery);
+                        if (!existingLines.isEmpty()) {
+                            Database.delete(existingLines, false);
+                            System.debug('Deleted ' + existingLines.size() + ' existing CPT service lines before re-creating');
+                        }
+                    } catch (Exception e) {
+                        System.debug('Error deleting existing CPT service lines: ' + e.getMessage());
+                    }
+                }
+            }
+            
+            if (request.selectedCptCodes != null && !request.selectedCptCodes.isEmpty()) {
+                System.debug('>>> CREATING CPT SERVICE LINES');
+                System.debug('>>> Selected CPT Codes: ' + JSON.serialize(request.selectedCptCodes));
+                System.debug('>>> InteractionSummary ID: ' + summary.Id);
+                System.debug('>>> Note Type: ' + request.noteType);
+                createInteractionServiceLines(
+                    summary.Id, 
+                    request.noteType, 
+                    accountId, 
+                    request.caseId, 
+                    request.selectedCptCodes,
+                    interactionDate,
+                    startDateTime,
+                    endDateTime
+                );
+            } else {
+                System.debug('>>> NO CPT CODES TO CREATE - selectedCptCodes is ' + (request.selectedCptCodes == null ? 'null' : 'empty'));
             }
 
             // Create GoalAssignmentDetail records
@@ -2159,6 +2376,160 @@ public with sharing class ClinicalNoteController {
     }
 
     /**
+     * Creates Interaction Service Line records for user-selected CPT billing codes.
+     * Only creates records for codes that the user explicitly selected in the UI.
+     * 
+     * @param interactionSummaryId The InteractionSummary record ID
+     * @param noteType The type of note (Clinical, Peer, Case Management, Comp Assess)
+     * @param accountId The participant's Account ID
+     * @param caseId The related Case ID
+     * @param selectedCptCodes List of CPT code strings selected by user
+     * @param serviceDate The date of service from the interaction
+     * @param startDateTime The start datetime from the interaction
+     * @param endDateTime The end datetime from the interaction
+     */
+    private static void createInteractionServiceLines(
+        Id interactionSummaryId, 
+        String noteType, 
+        Id accountId, 
+        Id caseId,
+        List<String> selectedCptCodes,
+        Date serviceDate,
+        Datetime startDateTime,
+        Datetime endDateTime
+    ) {
+        if (interactionSummaryId == null || selectedCptCodes == null || selectedCptCodes.isEmpty()) {
+            System.debug('Cannot create service lines: missing required data');
+            return;
+        }
+        
+        // Check if object exists
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        if (!gd.containsKey('Interaction_Service_Line__c')) {
+            System.debug('Interaction_Service_Line__c object not available in this org');
+            return;
+        }
+        
+        Schema.SObjectType serviceLineType = gd.get('Interaction_Service_Line__c');
+        Map<String, Schema.SObjectField> fieldMap = serviceLineType.getDescribe().fields.getMap();
+        
+        // Determine program context for modifier derivation
+        String programName = getProgramNameForCase(caseId, accountId);
+        String modifier2 = deriveModifier2FromProgram(programName);
+        System.debug('Program context: ' + programName + ' → Modifier 2: ' + modifier2);
+        
+        // Get all possible CPT codes for this note type
+        List<ServiceLineConfig> allConfigs = getCptCodesForNoteType(noteType);
+        
+        // Filter to only the selected codes
+        List<ServiceLineConfig> selectedConfigs = new List<ServiceLineConfig>();
+        for (ServiceLineConfig config : allConfigs) {
+            if (selectedCptCodes.contains(config.code)) {
+                selectedConfigs.add(config);
+            }
+        }
+        
+        if (selectedConfigs.isEmpty()) {
+            System.debug('No matching CPT code configurations found for selected codes');
+            return;
+        }
+        
+        // Create service line records
+        List<SObject> serviceLinesToInsert = new List<SObject>();
+        
+        for (ServiceLineConfig config : selectedConfigs) {
+            SObject serviceLine = serviceLineType.newSObject();
+            
+            // Required fields
+            serviceLine.put('Interaction_Summary__c', interactionSummaryId);
+            serviceLine.put('Service_Code__c', config.code);
+            
+            // Derive modifiers dynamically
+            String appliedModifier1 = config.modifier1;
+            String appliedModifier2 = config.modifier2;
+            
+            // For Peer/Case Management notes, apply U2 as Modifier 1 (peer-provided)
+            if (noteType == 'Peer' || noteType == 'Case Management') {
+                appliedModifier1 = 'U2';
+                // Apply program-based Modifier 2 for housing codes (not T1017)
+                if (config.code != 'T1017' && String.isNotBlank(modifier2)) {
+                    appliedModifier2 = modifier2;
+                }
+            }
+            
+            // Build name with modifiers for clarity
+            String lineName = config.code;
+            if (String.isNotBlank(appliedModifier1)) {
+                lineName += ' + ' + appliedModifier1;
+            }
+            if (String.isNotBlank(appliedModifier2)) {
+                lineName += ' + ' + appliedModifier2;
+            }
+            if (String.isNotBlank(config.description)) {
+                lineName += ' - ' + config.description;
+            }
+            // Truncate to 80 chars (Name field limit)
+            if (lineName.length() > 80) {
+                lineName = lineName.substring(0, 80);
+            }
+            serviceLine.put('Name', lineName);
+            
+            // Optional fields if they exist
+            putFieldIfExists(serviceLine, fieldMap, 'Client__c', accountId);
+            putFieldIfExists(serviceLine, fieldMap, 'Case__c', caseId);
+            putFieldIfExists(serviceLine, fieldMap, 'Modifier_1__c', appliedModifier1);
+            putFieldIfExists(serviceLine, fieldMap, 'Modifier_2__c', appliedModifier2);
+            putFieldIfExists(serviceLine, fieldMap, 'Billing_Status__c', 'Draft');
+            
+            // Add date and duration from interaction
+            if (serviceDate != null) {
+                putFieldIfExists(serviceLine, fieldMap, 'Service_Date__c', serviceDate);
+            }
+            if (startDateTime != null && endDateTime != null) {
+                // Calculate duration in minutes
+                Long durationMs = endDateTime.getTime() - startDateTime.getTime();
+                Decimal durationMinutes = Decimal.valueOf(durationMs) / 60000;
+                putFieldIfExists(serviceLine, fieldMap, 'Duration_Minutes__c', durationMinutes);
+                
+                // Calculate units (15-minute increments for most codes)
+                Decimal units = (durationMinutes / 15).setScale(2);
+                putFieldIfExists(serviceLine, fieldMap, 'Units__c', units);
+            }
+            
+            serviceLinesToInsert.add(serviceLine);
+        }
+        
+        // Insert service lines with partial success handling
+        if (!serviceLinesToInsert.isEmpty()) {
+            Database.SaveResult[] saveResults = Database.insert(serviceLinesToInsert, false);
+            
+            Integer successCount = 0;
+            Integer failCount = 0;
+            
+            for (Integer i = 0; i < saveResults.size(); i++) {
+                Database.SaveResult sr = saveResults[i];
+                ServiceLineConfig config = selectedConfigs[i];
+                
+                if (sr.isSuccess()) {
+                    successCount++;
+                    System.debug('✓ Created service line: ' + config.code + 
+                                 (config.modifier1 != null ? ' + ' + config.modifier1 : '') +
+                                 (config.modifier2 != null ? ' + ' + config.modifier2 : ''));
+                } else {
+                    failCount++;
+                    String errorMsg = '';
+                    for (Database.Error err : sr.getErrors()) {
+                        errorMsg += err.getMessage() + ' ';
+                    }
+                    System.debug('✗ Failed to create service line ' + config.code + ': ' + errorMsg.trim());
+                }
+            }
+            
+            System.debug('Created ' + successCount + ' service lines for ' + noteType + ' note (' + failCount + ' failed)');
+        }
+    }
+
+    /**
      * Save GoalAssignmentDetail records for goals worked on during a clinical session.
      * Creates one GoalAssignmentDetail per goal with narrative, progress, and time tracking.
      * The trigger on GoalAssignmentDetail will automatically roll up progress to GoalAssignment.
@@ -2274,18 +2645,25 @@ public with sharing class ClinicalNoteController {
                 return result;
             }
             
-            // Find CarePlan linked to the Case
-            String query = 'SELECT Id, Name, Last_Review_Date__c, Next_Review_Date__c, Review_Frequency_Days__c ' +
-                           'FROM CarePlan WHERE CaseId = :caseId LIMIT 1';
-            List<SObject> carePlans = Database.query(query);
-            
-            if (carePlans.isEmpty()) {
+            Id accountId;
+            try {
+                Case c = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+                accountId = c.AccountId;
+            } catch (Exception e) {
+                System.debug('Error resolving case account for CarePlan: ' + e.getMessage());
+            }
+
+            SObject carePlan = CarePlanService.fetchCarePlan(
+                caseId,
+                accountId,
+                new List<String>{ 'Id', 'Name', 'Last_Review_Date__c', 'Next_Review_Date__c', 'Review_Frequency_Days__c' }
+            );
+
+            if (carePlan == null) {
                 result.put('success', false);
                 result.put('errorMessage', 'No Care Plan found for this Case');
                 return result;
             }
-            
-            SObject carePlan = carePlans[0];
             
             // Determine review frequency
             Integer frequency = reviewFrequencyDays;
@@ -2342,16 +2720,23 @@ public with sharing class ClinicalNoteController {
                 return null;
             }
             
-            String query = 'SELECT Id, Name, Last_Review_Date__c, Next_Review_Date__c, ' +
-                           'Review_Frequency_Days__c, Discharge_Plan__c, Expected_Discharge_Date__c ' +
-                           'FROM CarePlan WHERE CaseId = :caseId LIMIT 1';
-            List<SObject> carePlans = Database.query(query);
-            
-            if (carePlans.isEmpty()) {
+            Id accountId;
+            try {
+                Case c = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+                accountId = c.AccountId;
+            } catch (Exception e) {
+                System.debug('Error resolving case account for CarePlan: ' + e.getMessage());
+            }
+
+            SObject carePlan = CarePlanService.fetchCarePlan(
+                caseId,
+                accountId,
+                new List<String>{ 'Id', 'Name', 'Last_Review_Date__c', 'Next_Review_Date__c', 'Review_Frequency_Days__c', 'Discharge_Plan__c', 'Expected_Discharge_Date__c' }
+            );
+
+            if (carePlan == null) {
                 return null;
             }
-            
-            SObject carePlan = carePlans[0];
             
             result.put('id', carePlan.get('Id'));
             result.put('name', carePlan.get('Name'));

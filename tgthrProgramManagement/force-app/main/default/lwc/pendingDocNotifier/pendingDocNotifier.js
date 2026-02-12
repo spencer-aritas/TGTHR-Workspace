@@ -2,6 +2,7 @@ import { LightningElement, track } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getPendingNotificationSummary from '@salesforce/apex/PendingDocumentationController.getPendingNotificationSummary';
+import createOpenRequest from '@salesforce/apex/PendingDocumentationController.createOpenRequest';
 
 // Session storage key to track if notification was shown this session
 const SESSION_KEY = 'pendingDocNotifierShown';
@@ -123,9 +124,29 @@ export default class PendingDocNotifier extends NavigationMixin(LightningElement
         }
     }
 
-    handleItemClick(event) {
+    async handleItemClick(event) {
         const caseId = event.currentTarget.dataset.caseId;
         const recordId = event.currentTarget.dataset.recordId;
+        const recordType = event.currentTarget.dataset.recordType;
+        const category = event.currentTarget.dataset.category;
+        const action = event.currentTarget.dataset.action || 'open';
+
+        if (category === 'approval' && recordId && recordType && recordType !== 'Draft') {
+            const modal = this.template.querySelector('c-note-approval-modal');
+            if (modal) {
+                modal.open(recordId, recordType);
+                this.closeModal();
+                return;
+            }
+        }
+
+        if (caseId && recordId && recordType && recordType !== 'Draft') {
+            try {
+                await createOpenRequest({ caseId, recordId, recordType, action });
+            } catch (error) {
+                console.warn('Failed to create open request:', error);
+            }
+        }
         
         // Navigate to the Case record (which has the pendingDocumentation component)
         if (caseId) {
@@ -135,6 +156,9 @@ export default class PendingDocNotifier extends NavigationMixin(LightningElement
                     recordId: caseId,
                     objectApiName: 'Case',
                     actionName: 'view'
+                },
+                state: {
+                    c__pendingDocOpen: String(Date.now())
                 }
             });
             this.closeModal();

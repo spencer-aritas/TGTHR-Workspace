@@ -17,6 +17,7 @@ import checkBenefitAssignmentsWithParams from "@salesforce/apex/BenefitDisbursem
 import createMissingBenefitAssignments from "@salesforce/apex/BenefitDisbursementService.createMissingBenefitAssignments";
 import recentDisbursementsByProgramId from "@salesforce/apex/InteractionSummaryService.recentDisbursementsByProgramId";
 import getThemeByProgramId from "@salesforce/apex/ProgramThemeService.getThemeByProgramId";
+import logRecordAccessWithPii from "@salesforce/apex/RecordAccessService.logRecordAccessWithPii";
 //import UserPreferencesShowTerritoryTimeZoneShifts from "@salesforce/schema/User.UserPreferencesShowTerritoryTimeZoneShifts";
 
 const SINGLE_NOTE_OPTION = [
@@ -29,6 +30,9 @@ const MULTI_NOTE_OPTIONS = [
 ];
 
 export default class ProgramCensusGrid extends LightningElement {
+  _loggedParticipantIds = new Set();
+  _loggedEnrollmentIds = new Set();
+  _loggedEngagementIds = new Set();
   @api
   set programName(value) {
     this._programName = value;
@@ -330,6 +334,12 @@ export default class ProgramCensusGrid extends LightningElement {
       dayOfMonth: serviceDate.getDate(),
       dayName: serviceDate.toLocaleString("default", { weekday: "short" }),
       residentName,
+      accountId:
+        raw.AccountId ||
+        (raw.Account && raw.Account.Id) ||
+        raw.RecipientId ||
+        (raw.Recipient && raw.Recipient.Id) ||
+        null,
       benefitTypeName: benefitTypeName || "Benefit",
       benefitName: benefitName || "",
       recordType: "Disbursement",
@@ -1304,6 +1314,22 @@ async loadRecentEngagements() {
       );
 
       if (engagement) {
+        if (!recordId.startsWith("mock-")) {
+          this._logDisbursementAccess(
+            recordId,
+            "ProgramCensusEngagementOpen"
+          );
+
+          const piiCategories = [];
+          if (engagement.residentName) piiCategories.push("NAMES");
+          if (engagement.date) piiCategories.push("DATES");
+          this._logParticipantAccess(
+            engagement.accountId,
+            "ProgramCensusEngagementOpen",
+            piiCategories
+          );
+        }
+
         // Check if this is a mock record or a real record
         if (recordId.startsWith("mock-")) {
           // For mock data, just show details in a toast
@@ -1365,6 +1391,17 @@ async loadRecentEngagements() {
     const count = this.selectionCount;
     console.log("Selection updated:", this.selection);
     console.log("Number of selected rows:", count);
+
+    if (Array.isArray(this.selection) && this.selection.length > 0) {
+      this.selection.forEach((row) => {
+        const piiCategories = row?.residentName ? ["NAMES"] : [];
+        this._logParticipantAccess(
+          row?.accountId,
+          "ProgramCensusSelection",
+          piiCategories
+        );
+      });
+    }
   }
   handleEventTypeChange(e) {
     this.eventType = e.detail.value;
@@ -1885,6 +1922,7 @@ async loadRecentEngagements() {
         const residentName = participant
           ? participant.residentName
           : "Participant";
+        const participantAccountId = participant ? participant.accountId : null;
         const engagementId =
           result.disbursementId || `new-${Date.now()}-${index}`;
         return {
@@ -1893,6 +1931,7 @@ async loadRecentEngagements() {
           dayOfMonth,
           dayName,
           residentName,
+          accountId: result.accountId || participantAccountId || null,
           benefitTypeName: benefitTypeLabel,
           benefitName: benefitLabel,
           recordType: "Disbursement",
@@ -1918,6 +1957,72 @@ async loadRecentEngagements() {
 
   toast(title, message, variant) {
     this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+  }
+
+  _logParticipantAccess(accountId, accessSource, piiCategories) {
+    if (!accountId || !accessSource) return;
+
+    const key = `${accessSource}:${accountId}`;
+    if (this._loggedParticipantIds.has(key)) return;
+    this._loggedParticipantIds.add(key);
+
+    try {
+      logRecordAccessWithPii({
+        recordId: accountId,
+        objectType: "PersonAccount",
+        accessSource,
+        piiFieldsAccessed:
+          piiCategories && piiCategories.length
+            ? JSON.stringify(piiCategories)
+            : null
+      }).catch((err) => {
+        console.warn("Failed to log participant access:", err);
+      });
+    } catch (e) {
+      console.warn("Error in _logParticipantAccess:", e);
+    }
+  }
+
+  _logEnrollmentAccess(enrollmentId, accessSource) {
+    if (!enrollmentId || !accessSource) return;
+
+    const key = `${accessSource}:${enrollmentId}`;
+    if (this._loggedEnrollmentIds.has(key)) return;
+    this._loggedEnrollmentIds.add(key);
+
+    try {
+      logRecordAccessWithPii({
+        recordId: enrollmentId,
+        objectType: "ProgramEnrollment",
+        accessSource,
+        piiFieldsAccessed: null
+      }).catch((err) => {
+        console.warn("Failed to log enrollment access:", err);
+      });
+    } catch (e) {
+      console.warn("Error in _logEnrollmentAccess:", e);
+    }
+  }
+
+  _logDisbursementAccess(disbursementId, accessSource) {
+    if (!disbursementId || !accessSource) return;
+
+    const key = `${accessSource}:${disbursementId}`;
+    if (this._loggedEngagementIds.has(key)) return;
+    this._loggedEngagementIds.add(key);
+
+    try {
+      logRecordAccessWithPii({
+        recordId: disbursementId,
+        objectType: "BenefitDisbursement",
+        accessSource,
+        piiFieldsAccessed: null
+      }).catch((err) => {
+        console.warn("Failed to log engagement access:", err);
+      });
+    } catch (e) {
+      console.warn("Error in _logDisbursementAccess:", e);
+    }
   }
   handleRowAction(event) {
     // Placeholder for row action handler
@@ -2042,6 +2147,15 @@ async loadRecentEngagements() {
       (row) => row.accountId === accountId
     );
     if (enrollment) {
+      this._logParticipantAccess(
+        enrollment.accountId,
+        "ProgramCensusAwaitingIntake",
+        enrollment.residentName ? ["NAMES"] : []
+      );
+      this._logEnrollmentAccess(
+        enrollment.enrollmentId,
+        "ProgramCensusAwaitingIntake"
+      );
       this.toast(
         "Selected Enrollment",
         `Selected ${enrollment.residentName} with status: ${enrollment.status}`,
@@ -2058,6 +2172,15 @@ async loadRecentEngagements() {
       (row) => row.accountId === accountId
     );
     if (enrollment) {
+      this._logParticipantAccess(
+        enrollment.accountId,
+        "ProgramCensusPendingExit",
+        enrollment.residentName ? ["NAMES"] : []
+      );
+      this._logEnrollmentAccess(
+        enrollment.enrollmentId,
+        "ProgramCensusPendingExit"
+      );
       this.toast(
         "Selected Enrollment",
         `Selected ${enrollment.residentName} with status: ${enrollment.status}`,
@@ -2082,6 +2205,15 @@ async loadRecentEngagements() {
     const enrollment = intakeEnrollment || exitEnrollment;
 
     if (enrollment) {
+      this._logParticipantAccess(
+        enrollment.accountId,
+        "ProgramCensusEnrollmentOpen",
+        enrollment.residentName ? ["NAMES"] : []
+      );
+      this._logEnrollmentAccess(
+        enrollment.enrollmentId,
+        "ProgramCensusEnrollmentOpen"
+      );
       this.toast(
         "Opening Record",
         `Opening record for ${enrollment.residentName}`,

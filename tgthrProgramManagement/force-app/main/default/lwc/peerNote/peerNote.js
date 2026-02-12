@@ -9,6 +9,7 @@ import getPeerBenefits from '@salesforce/apex/ClinicalNoteController.getPeerBene
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
+import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
 import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
 import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
@@ -63,6 +64,9 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     // Track work done on each goal: { [goalId]: { workedOn, narrative, progressBefore, progressAfter, timeSpentMinutes, expanded } }
     @track goalWorkState = {};
 
+    // CPT Code selection for billing
+    @track selectedCptCodes = [];
+
     @track signatureContext = {
         signerName: '',
         signDate: ''
@@ -87,9 +91,10 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     @track ssrsAssessmentId = null;
 
     // Draft/Save for Later support
-    @track draftId = null;
+    @api draftId = null;
     @track hasDraft = false;
     @track isSavingDraft = false;
+    _pendingDraftState = null;
 
     // Manager Approval support
     @track requestManagerCoSign = false;
@@ -147,6 +152,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
         { name: 'goals', label: 'Goals Addressed' },
+        { name: 'cptCodes', label: 'CPT Billing Codes' },
         { name: 'signature', label: 'Signature' }
     ];
 
@@ -310,6 +316,19 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         this.isLoading = true;
         this.loadError = null;
         try {
+            if (this.draftId) {
+                try {
+                    const draftResult = await loadDraft({ draftId: this.draftId });
+                    if (draftResult && draftResult.found && draftResult.draftJson) {
+                        this._pendingDraftState = JSON.parse(draftResult.draftJson);
+                        this.hasDraft = true;
+                        console.log('Loaded draft data for Peer Note:', this.draftId);
+                    }
+                } catch (draftError) {
+                    console.warn('Failed to load draft data for Peer Note:', draftError);
+                }
+            }
+
             console.log('Loading peer note for case:', this.recordId, ' interactionId:', this.interactionId);
             const data = await initClinicalNote({ caseId: this.recordId, interactionId: this.interactionId });
             this._initializeFromResponse(data);
@@ -466,6 +485,12 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 // Ensure form knows about selected goals
                 this.form.goalIds = Object.keys(existingNote.goalWorkState);
             }
+            
+            // Populate CPT codes
+            if (existingNote.selectedCptCodes && Array.isArray(existingNote.selectedCptCodes)) {
+                this.selectedCptCodes = existingNote.selectedCptCodes;
+                console.log('Loaded existing CPT codes:', this.selectedCptCodes);
+            }
         }
 
         this.signatureContext = {
@@ -474,6 +499,51 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         };
         this.originalFormState = JSON.parse(JSON.stringify(this.form));
         this.activeSection = 'visit';
+
+        if (this._pendingDraftState) {
+            this._applyDraftState(this._pendingDraftState);
+            this._pendingDraftState = null;
+        }
+    }
+
+    _applyDraftState(savedState) {
+        console.log('Applying draft state to peer note form');
+
+        if (savedState.header) {
+            this.header = { ...this.header, ...savedState.header };
+        }
+
+        if (savedState.form) {
+            this.form = { ...this.form, ...savedState.form };
+        }
+
+        if (savedState.benefitIds && Array.isArray(savedState.benefitIds)) {
+            this.form = { ...this.form, benefitIds: savedState.benefitIds };
+        }
+
+        if (savedState.goalWorkState) {
+            this.goalWorkState = { ...this.goalWorkState, ...savedState.goalWorkState };
+        }
+
+        if (savedState.ssrsAssessmentData) {
+            this.ssrsAssessmentData = savedState.ssrsAssessmentData;
+        }
+
+        if (savedState.ssrsAssessmentId) {
+            this.ssrsAssessmentId = savedState.ssrsAssessmentId;
+        } else if (savedState.ssrsAssessmentData) {
+            this.ssrsAssessmentId = savedState.ssrsAssessmentData.assessmentId || savedState.ssrsAssessmentData.id || null;
+        }
+
+        if (savedState.selectedCptCodes && Array.isArray(savedState.selectedCptCodes)) {
+            this.selectedCptCodes = savedState.selectedCptCodes;
+        }
+
+        if (savedState.activeSection) {
+            this.activeSection = savedState.activeSection;
+        }
+
+        this._showToast('Draft Restored', 'Your previous work has been restored.', 'info');
     }
     
     _getPriorityClass(priority) {
@@ -684,6 +754,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         if (accordion) {
             accordion.activeSectionName = targetSection;
         }
+        this._logSectionAccess(targetSection, 'PeerNoteSidebar');
         this._scrollSectionIntoView(targetSection);
     }
 
@@ -697,6 +768,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         }
         if (latestSection && latestSection !== this.activeSection) {
             this.activeSection = latestSection;
+            this._logSectionAccess(latestSection, 'PeerNoteAccordion');
             this._scrollSectionIntoView(latestSection);
         }
     }
@@ -746,9 +818,12 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 accountId: this.accountId,
                 header: this.header,
                 form: this.form,
+                benefitIds: this.form.benefitIds,
                 goalWorkState: this.goalWorkState,
                 activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
                 ssrsAssessmentData: this.ssrsAssessmentData,
+                ssrsAssessmentId: this.ssrsAssessmentId,
+                selectedCptCodes: this.selectedCptCodes,
                 // selectedDiagnoses removed for Peer Note
                 activeSection: this.activeSection,
                 savedAt: new Date().toISOString()
@@ -798,6 +873,15 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
      */
     async handleSaveAndClose() {
         await this._saveDraft(true);
+    }
+
+    /**
+     * Handle CPT code selection from cptCodeSelector component
+     */
+    handleCptCodeSelection(event) {
+        const selected = event.detail.selectedCodes || [];
+        this.selectedCptCodes = selected.length > 0 ? [selected[0]] : [];
+        console.log('CPT Codes selected:', this.selectedCptCodes);
     }
 
     async handleSave() {
@@ -885,7 +969,8 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 goalWorkDetails: goalWorkDetails,  // ← Send full goal work data
                 benefitIds: this.form.benefitIds,
                 ssrsAssessmentId: ssrsAssessmentId,
-                noteType: this.noteType
+                noteType: this.noteType,
+                selectedCptCodes: this.selectedCptCodes
             };
 
             const result = await saveClinicalNoteRequest({
@@ -1132,6 +1217,45 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             });
         } catch (e) {
             console.warn('Error in _logPhiAccess:', e);
+        }
+    }
+
+    _logSectionAccess(sectionName, accessSource) {
+        if (!sectionName) {
+            return;
+        }
+
+        try {
+            if (this.recordId) {
+                logRecordAccessWithPii({
+                    recordId: this.recordId,
+                    objectType: 'Case',
+                    accessSource: `${accessSource}:${sectionName}`,
+                    piiFieldsAccessed: null
+                }).catch(err => {
+                    console.warn('Failed to log case access:', err);
+                });
+            }
+
+            if (this.accountId) {
+                const piiCategories = [];
+                if (this.header?.personName) piiCategories.push('NAMES');
+                if (this.header?.birthdate) piiCategories.push('DATES');
+                if (this.header?.phone) piiCategories.push('PHONE');
+                if (this.header?.email) piiCategories.push('EMAIL');
+                if (this.header?.medicaidId) piiCategories.push('MEDICAL_RECORD');
+
+                logRecordAccessWithPii({
+                    recordId: this.accountId,
+                    objectType: 'PersonAccount',
+                    accessSource: `${accessSource}:${sectionName}`,
+                    piiFieldsAccessed: piiCategories.length ? JSON.stringify(piiCategories) : null
+                }).catch(err => {
+                    console.warn('Failed to log PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in _logSectionAccess:', e);
         }
     }
 }

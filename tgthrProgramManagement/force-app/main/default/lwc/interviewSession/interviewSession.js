@@ -39,10 +39,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track templateData = null;
     @track accountData = {};
     @track interactionInput = {
+        interactionDate: null,
         startDateTime: null,
         endDateTime: null,
         meetingNotes: '',
-        location: ''
+        location: '',
+        interpreterUsed: false
     };
     @track answers = new Map();
     @track errorMessage = '';
@@ -62,7 +64,13 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track incomeBenefitsFileIds = []; // ContentDocument IDs for Case linking
     @track demographicsData = {}; // Demographics for Account update
     @track goals = [];
-    @track carePlanConsent = { consentParticipated: false, consentOffered: false }; // Care Plan consent checkboxes
+    @track carePlanConsent = {
+        consentParticipated: false,
+        consentOffered: false,
+        nextReviewDate: null,
+        dischargeDate: null,
+        dischargePlan: ''
+    }; // Care Plan consent & discharge details
     
     // SSRS Assessment integration
     @track showSsrsModal = false;
@@ -169,6 +177,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         // Set default end datetime to 1 hour from now
         const endTime = new Date(now.getTime() + 60 * 60 * 1000);
         this.interactionInput.endDateTime = this.formatDateTimeForInput(endTime);
+
         
         // If parameters are already set via @api (from page configuration), load immediately
         if (this.effectiveCaseId && this.effectiveTemplateVersionId && !this.parametersLoaded) {
@@ -211,6 +220,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             
             // Check for existing draft
             await this.checkForDraft();
+
+            // Apply treatment plan defaults if applicable (without overriding draft values)
+            this.applyTreatmentPlanDefaults();
             
             // After draft check, apply startStep if provided and no draft was restored
             // This allows jumping directly to a step (e.g., 'review') when coming from Pending Documentation
@@ -385,6 +397,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             if (requestedIndex !== -1) {
                 console.log('Applying startStep:', requestedStep, 'index:', requestedIndex);
                 this.currentStepIndex = requestedIndex;
+                this._logStepAccess('InterviewSessionStepJump');
             } else {
                 console.warn('Invalid startStep requested:', requestedStep, 'Valid steps:', STEPS);
             }
@@ -498,11 +511,22 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get isFirstStep() {
-        return this.currentStepIndex === 0;
+        return this.isSinglePageMode || this.currentStepIndex === 0;
     }
 
     get isLastStep() {
-        return this.currentStepIndex === STEPS.length - 1;
+        return this.isSinglePageMode || this.currentStepIndex === STEPS.length - 1;
+    }
+
+    get isSinglePageMode() {
+        return this.isTreatmentPlanTemplate;
+    }
+
+    get isTreatmentPlanTemplate() {
+        const name = this.templateName?.toLowerCase() || '';
+        const category = this.templateCategory?.toLowerCase() || '';
+        const variant = this.templateData?.variant?.toLowerCase() || '';
+        return name.includes('treatment plan') || category.includes('treatment plan') || variant.includes('treatment plan');
     }
 
     get showHousingBenefits() {
@@ -616,6 +640,27 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     get templateCategory() {
         return this.templateData ? this.templateData.category : '';
+    }
+
+    get visitDurationDisplay() {
+        const start = this.parseDateTime(this.interactionInput.startDateTime);
+        const end = this.parseDateTime(this.interactionInput.endDateTime);
+        if (!start || !end) return '';
+        const diffMs = end.getTime() - start.getTime();
+        if (diffMs <= 0) return '';
+        const totalMinutes = Math.round(diffMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        }
+        return `${minutes}m`;
+    }
+
+    parseDateTime(value) {
+        if (!value) return null;
+        const parsed = new Date(value);
+        return isNaN(parsed.getTime()) ? null : parsed;
     }
 
     /**
@@ -865,7 +910,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             interaction: { 
                 startDateTime: this.interactionInput.startDateTime ? this.formatDateTimeForDisplay(this.interactionInput.startDateTime) : '',
                 endDateTime: this.interactionInput.endDateTime ? this.formatDateTimeForDisplay(this.interactionInput.endDateTime) : '',
-                meetingNotes: this.interactionInput.meetingNotes,
                 location: this.interactionInput.location
             },
             sections: [],
@@ -1002,9 +1046,37 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     handleInteractionInput(event) {
         const field = event.target.dataset.field;
-        const value = event.target.value;
-        this.interactionInput = {
+        const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+        let updatedInput = {
             ...this.interactionInput,
+            [field]: value
+        };
+
+        if (field === 'interactionDate' && value) {
+            const [year, month, day] = value.split('-').map(Number);
+            const applyDate = (dateTimeString) => {
+                if (!dateTimeString) return null;
+                const dateTime = new Date(dateTimeString);
+                if (isNaN(dateTime.getTime())) return null;
+                dateTime.setFullYear(year, month - 1, day);
+                return this.formatDateTimeForInput(dateTime);
+            };
+
+            updatedInput = {
+                ...updatedInput,
+                startDateTime: applyDate(updatedInput.startDateTime),
+                endDateTime: applyDate(updatedInput.endDateTime)
+            };
+        }
+
+        this.interactionInput = updatedInput;
+    }
+
+    handleCarePlanDateChange(event) {
+        const field = event.target.dataset.field;
+        const value = event.target.value;
+        this.carePlanConsent = {
+            ...this.carePlanConsent,
             [field]: value
         };
     }
@@ -1028,13 +1100,25 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         console.log('Demographics Data:', this.demographicsData);
     }
 
-    handleConsentChange(event) {
-        // Capture consent checkbox values from goalAssignmentCreator
+    handleCarePlanChange(event) {
+        // Capture care plan values from goalAssignmentCreator
         this.carePlanConsent = {
+            ...this.carePlanConsent,
             consentParticipated: event.detail.consentParticipated,
-            consentOffered: event.detail.consentOffered
+            consentOffered: event.detail.consentOffered,
+            dischargeDate: event.detail.dischargeDate,
+            dischargePlan: event.detail.dischargePlan
         };
-        console.log('Care Plan Consent:', this.carePlanConsent);
+        console.log('Care Plan Details:', this.carePlanConsent);
+    }
+
+    handleCarePlanConsentInput(event) {
+        const field = event.target.dataset.field;
+        const value = event.target.checked;
+        this.carePlanConsent = {
+            ...this.carePlanConsent,
+            [field]: value
+        };
     }
 
     handleAnswerChange(event) {
@@ -1073,6 +1157,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             this.currentStepIndex -= 1;
             // Scroll to top when changing steps
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            this._logStepAccess('InterviewSessionStepPrevious');
         }
     }
 
@@ -1081,6 +1166,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             this.currentStepIndex += 1;
             // Scroll to top when changing steps
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            this._logStepAccess('InterviewSessionStepNext');
 
             if (this.isReviewStep) {
                 this.fetchGoalsForReview();
@@ -1310,10 +1396,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
                 
-                // Navigate to the interview record using Lightning one.app navigation
+                // Navigate back to the Case using Lightning one.app navigation
                 // This ensures we stay in Lightning Experience
-                const recordId = result.interviewId;
-                const navUrl = `/lightning/r/Interview__c/${recordId}/view`;
+                const recordId = this.effectiveCaseId;
+                const navUrl = recordId ? `/lightning/r/Case/${recordId}/view` : '/lightning/page/home';
                 console.log('Attempting navigation...');
                 console.log('recordId:', recordId);
                 console.log('navUrl:', navUrl);
@@ -1326,7 +1412,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                         action: 'navigate',
                         url: navUrl,
                         recordId: recordId,
-                        objectApiName: 'Interview__c'
+                        objectApiName: 'Case'
                     };
                     console.log('Sending navigation message via postMessage:', message);
                     window.parent.postMessage(message, '*');
@@ -1527,13 +1613,20 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             .filter(answer => answer.value || (answer.values && answer.values.length > 0));
 
         // Parse startDateTime and endDateTime to extract date and time components
-        let interactionDate = null;
+        let interactionDate = this.interactionInput.interactionDate || null;
         let startTime = null;
         let endTime = null;
 
-        if (this.interactionInput.startDateTime) {
+        if (!interactionDate && this.interactionInput.startDateTime) {
             const startDT = new Date(this.interactionInput.startDateTime);
             interactionDate = startDT.toISOString().split('T')[0];
+            const startHours = String(startDT.getHours()).padStart(2, '0');
+            const startMinutes = String(startDT.getMinutes()).padStart(2, '0');
+            startTime = `${startHours}:${startMinutes}`;
+        }
+
+        if (this.interactionInput.startDateTime) {
+            const startDT = new Date(this.interactionInput.startDateTime);
             const startHours = String(startDT.getHours()).padStart(2, '0');
             const startMinutes = String(startDT.getMinutes()).padStart(2, '0');
             startTime = `${startHours}:${startMinutes}`;
@@ -1569,7 +1662,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 startTime: startTime,
                 endTime: endTime,
                 meetingNotes: this.interactionInput.meetingNotes,
-                location: this.interactionInput.location
+                location: this.interactionInput.location,
+                interpreterUsed: this.interactionInput.interpreterUsed
             },
             answers: answerList,
             housingBenefitIds: this.housingBenefitIds,
@@ -1595,6 +1689,45 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 
+    formatDateForInput(date) {
+        if (!(date instanceof Date) || isNaN(date.getTime())) {
+            return '';
+        }
+        const pad = (n) => String(n).padStart(2, '0');
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        return `${year}-${month}-${day}`;
+    }
+
+    addMonthsToDate(date, monthsToAdd) {
+        const result = new Date(date.getTime());
+        result.setMonth(result.getMonth() + monthsToAdd);
+        return result;
+    }
+
+    applyTreatmentPlanDefaults() {
+        if (!this.isTreatmentPlanTemplate) {
+            return;
+        }
+
+        const today = new Date();
+        const defaultInteractionDate = this.formatDateForInput(today);
+        const defaultNextReviewDate = this.formatDateForInput(this.addMonthsToDate(today, 6));
+
+        this.interactionInput = {
+            ...this.interactionInput,
+            interactionDate: this.interactionInput.interactionDate || defaultInteractionDate,
+            meetingNotes: this.interactionInput.meetingNotes || 'Met with client to prepare treatment plan',
+            location: this.interactionInput.location || '11 - Office'
+        };
+
+        this.carePlanConsent = {
+            ...this.carePlanConsent,
+            nextReviewDate: this.carePlanConsent.nextReviewDate || defaultNextReviewDate
+        };
+    }
+
     formatDateTimeForDisplay(dateTimeString) {
         if (!dateTimeString) return '';
         const date = new Date(dateTimeString);
@@ -1618,6 +1751,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             console.log('Document generated! ContentDocument ID:', contentDocId);
             
             if (shouldDownload && contentDocId) {
+                this._logDocumentAccess(interactionSummaryId, 'InterviewSessionDownload');
                 // Trigger download in browser
                 const downloadUrl = `/sfc/servlet.shepherd/document/download/${contentDocId}`;
                 window.open(downloadUrl, '_blank');
@@ -1658,6 +1792,81 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 variant
             })
         );
+    }
+
+    _logDocumentAccess(interactionSummaryId, accessSource) {
+        if (!interactionSummaryId) {
+            return;
+        }
+        try {
+            logRecordAccessWithPii({
+                recordId: interactionSummaryId,
+                objectType: 'InteractionSummary',
+                accessSource,
+                piiFieldsAccessed: null
+            }).catch(err => {
+                console.warn('Failed to log interview document access:', err);
+            });
+
+            const accountId = this.accountData?.Id || this.accountData?.AccountId;
+            if (accountId) {
+                const piiCategories = [];
+                if (this.accountData?.Name) piiCategories.push('NAMES');
+                if (this.accountData?.PersonBirthdate || this.accountData?.Birthdate__c) {
+                    piiCategories.push('DATES');
+                }
+
+                logRecordAccessWithPii({
+                    recordId: accountId,
+                    objectType: 'PersonAccount',
+                    accessSource,
+                    piiFieldsAccessed: piiCategories.length ? JSON.stringify(piiCategories) : null
+                }).catch(err => {
+                    console.warn('Failed to log PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in _logDocumentAccess:', e);
+        }
+    }
+
+    _logStepAccess(accessSource) {
+        const caseId = this.effectiveCaseId;
+        if (!caseId) {
+            return;
+        }
+
+        try {
+            const stepLabel = this.currentStep ? this.currentStep : 'unknown';
+            logRecordAccessWithPii({
+                recordId: caseId,
+                objectType: 'Case',
+                accessSource: `${accessSource}:${stepLabel}`,
+                piiFieldsAccessed: null
+            }).catch(err => {
+                console.warn('Failed to log interview step access:', err);
+            });
+
+            const accountId = this.accountData?.Id || this.accountData?.AccountId;
+            if (accountId) {
+                const piiCategories = [];
+                if (this.accountData?.Name) piiCategories.push('NAMES');
+                if (this.accountData?.PersonBirthdate || this.accountData?.Birthdate__c) {
+                    piiCategories.push('DATES');
+                }
+
+                logRecordAccessWithPii({
+                    recordId: accountId,
+                    objectType: 'PersonAccount',
+                    accessSource: `${accessSource}:${stepLabel}`,
+                    piiFieldsAccessed: piiCategories.length ? JSON.stringify(piiCategories) : null
+                }).catch(err => {
+                    console.warn('Failed to log interview step PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in _logStepAccess:', e);
+        }
     }
 
     /**

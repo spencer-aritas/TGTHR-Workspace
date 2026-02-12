@@ -1,5 +1,5 @@
 <template>
-    <div class="note-shell">
+    <div class="note-shell" onwheel={handleShellWheel}>
         <template if:true={isLoading}>
             <div class="loading-overlay">
                 <lightning-spinner alternative-text="Loading case note" size="medium"></lightning-spinner>
@@ -347,6 +347,19 @@
                                         </p>
                                     </div>
                                 </template>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <!-- CPT Billing Codes Section -->
+                        <lightning-accordion-section name="cptCodes" label="CPT Billing Codes">
+                            <div data-section="cptCodes">
+                                <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
+                                    Select applicable CPT billing codes for this case management session.
+                                </p>
+                                <c-cpt-code-selector 
+                                    note-type="Case Management"
+                                    oncodeselection={handleCptCodeSelection}>
+                                </c-cpt-code-selector>
                             </div>
                         </lightning-accordion-section>
 

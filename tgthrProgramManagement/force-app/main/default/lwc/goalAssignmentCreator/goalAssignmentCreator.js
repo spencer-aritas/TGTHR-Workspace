@@ -9,6 +9,7 @@ import { refreshApex } from '@salesforce/apex';
 export default class GoalAssignmentCreator extends LightningElement {
     @api accountId;
     @api caseId;
+    @api hideConsentCheckboxes = false;
     
     @track goals = [];
     @track isLoading = false;
@@ -26,6 +27,24 @@ export default class GoalAssignmentCreator extends LightningElement {
         consentParticipated: false,
         consentOffered: false
     };
+
+    @api
+    get consentParticipated() {
+        return this.carePlan.consentParticipated;
+    }
+
+    set consentParticipated(value) {
+        this.carePlan.consentParticipated = Boolean(value);
+    }
+
+    @api
+    get consentOffered() {
+        return this.carePlan.consentOffered;
+    }
+
+    set consentOffered(value) {
+        this.carePlan.consentOffered = Boolean(value);
+    }
 
     wiredGoalsResult;
 
@@ -89,6 +108,8 @@ export default class GoalAssignmentCreator extends LightningElement {
     }
 
     handleEditGoal(event) {
+        event.preventDefault();
+        event.stopPropagation();
         const goalId = event.currentTarget.dataset.id;
         const goal = this.goals.find(g => g.id === goalId);
         if (goal) {
@@ -110,16 +131,16 @@ export default class GoalAssignmentCreator extends LightningElement {
         const field = event.target.dataset.field;
         const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
         this.carePlan[field] = value;
-        
-        // Dispatch event when consent checkboxes change so parent can track
-        if (field === 'consentParticipated' || field === 'consentOffered') {
-            this.dispatchEvent(new CustomEvent('consentchange', {
-                detail: {
-                    consentParticipated: this.carePlan.consentParticipated,
-                    consentOffered: this.carePlan.consentOffered
-                }
-            }));
-        }
+
+        // Dispatch event so parent can track Care Plan values (consent + discharge)
+        this.dispatchEvent(new CustomEvent('careplanchanged', {
+            detail: {
+                consentParticipated: this.carePlan.consentParticipated,
+                consentOffered: this.carePlan.consentOffered,
+                dischargeDate: this.carePlan.dischargeDate,
+                dischargePlan: this.carePlan.dischargePlan
+            }
+        }));
     }
 
     // Public method for parent to get current consent values
@@ -207,6 +228,8 @@ export default class GoalAssignmentCreator extends LightningElement {
     }
 
     async handleDeleteGoal(event) {
+        event.preventDefault();
+        event.stopPropagation();
         const goalId = event.currentTarget.dataset.id;
         if (!confirm('Are you sure you want to delete this goal?')) return;
 
@@ -224,8 +247,9 @@ export default class GoalAssignmentCreator extends LightningElement {
 
     // Drag and Drop Logic
     handleDragStart(event) {
-        event.dataTransfer.setData('text/plain', event.target.dataset.id);
-        event.target.classList.add('dragging');
+        const card = event.currentTarget;
+        event.dataTransfer.setData('text/plain', card.dataset.id);
+        card.classList.add('dragging');
     }
 
     handleDragOver(event) {
@@ -304,7 +328,7 @@ export default class GoalAssignmentCreator extends LightningElement {
                         accountId: this.accountId,
                         caseId: this.caseId
                     };
-                    return saveGoalAssignment({ goal: goalToSave });
+                    return saveGoalAssignment({ goalJson: JSON.stringify(goalToSave) });
                 });
                 
                 await Promise.all(promises);
@@ -320,5 +344,9 @@ export default class GoalAssignmentCreator extends LightningElement {
 
     showToast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+
+    handleActionMouseDown(event) {
+        event.stopPropagation();
     }
 }

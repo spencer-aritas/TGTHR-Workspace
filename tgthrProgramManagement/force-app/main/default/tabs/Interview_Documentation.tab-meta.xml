@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+  <description>Interview documentation viewer for completed records</description>
+  <label>Interview Documentation</label>
+  <lwcComponent>interviewDocumentViewer</lwcComponent>
+  <motif>Custom63: Chalkboard</motif>
+</CustomTab>
