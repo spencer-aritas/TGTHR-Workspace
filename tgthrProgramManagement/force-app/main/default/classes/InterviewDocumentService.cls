@@ -23,6 +23,20 @@ public with sharing class InterviewDocumentService {
     public static String generateDocument(Id interactionSummaryId) {
         return callDocGenService(interactionSummaryId, false);
     }
+
+    /**
+     * Regenerate interview document asynchronously (after DML).
+     */
+    @future(callout=true)
+    public static void generateDocumentAsync(Id interactionSummaryId) {
+        try {
+            String contentDocId = callDocGenService(interactionSummaryId, false);
+            System.debug('✅ Async interview doc regenerated: ' + contentDocId);
+        } catch (Exception e) {
+            System.debug('❌ Async interview doc regeneration failed: ' + e.getMessage());
+            System.debug('❌ Stack trace: ' + e.getStackTraceString());
+        }
+    }
     
     /**
      * Generate preview of interview document (does not save to Salesforce).
@@ -163,6 +177,17 @@ public with sharing class InterviewDocumentService {
         
         // Get InteractionSummary data for document
         SObject interactionSummary = interview.getSObject('Interaction_Summary__r');
+
+        // Determine if this is a Treatment Plan template (hide interaction detail fields)
+        String templateName = templateVersion != null ? (String)templateVersion.getSObject('InterviewTemplate__r').get('Name') : null;
+        String templateCategory = templateVersion != null ? (String)templateVersion.getSObject('InterviewTemplate__r').get('Category__c') : null;
+        Boolean isTreatmentPlan = false;
+        if (String.isNotBlank(templateName) && templateName.toLowerCase().contains('treatment plan')) {
+            isTreatmentPlan = true;
+        }
+        if (!isTreatmentPlan && String.isNotBlank(templateCategory) && templateCategory.toLowerCase().contains('treatment plan')) {
+            isTreatmentPlan = true;
+        }
         
         Map<String, Object> interviewData = new Map<String, Object>{
             'id' => (String)interview.get('Id'),
@@ -174,9 +199,9 @@ public with sharing class InterviewDocumentService {
             'location' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : '', // Place of Service
             'channel' => 'In Person', // TODO: Add channel field
             // InteractionSummary details
-            'meetingNotes' => interactionSummary != null ? (String)interactionSummary.get('MeetingNotes') : null,
-            'startTime' => interactionSummary != null ? String.valueOf(interactionSummary.get('Start_Time__c')) : null,
-            'endTime' => interactionSummary != null ? String.valueOf(interactionSummary.get('End_Time__c')) : null,
+            'meetingNotes' => isTreatmentPlan ? null : (interactionSummary != null ? (String)interactionSummary.get('MeetingNotes') : null),
+            'startTime' => isTreatmentPlan ? null : (interactionSummary != null ? String.valueOf(interactionSummary.get('Start_Time__c')) : null),
+            'endTime' => isTreatmentPlan ? null : (interactionSummary != null ? String.valueOf(interactionSummary.get('End_Time__c')) : null),
             'placeOfService' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : null,
             'dateOfInteraction' => interactionSummary != null ? String.valueOf(interactionSummary.get('Date_of_Interaction__c')) : null
         };
@@ -764,22 +789,24 @@ public with sharing class InterviewDocumentService {
                 return null;
             }
             
-            // Query CarePlan linked to Case (using CaseId, not Case__c)
-            String query = 'SELECT Id, Discharge_Plan__c, Expected_Discharge_Date__c, ' +
-                           'Last_Review_Date__c, Next_Review_Date__c, Review_Frequency_Days__c, ' +
-                           'Care_Plan_Reviewed__c, Documentation_Offered__c ' +
-                           'FROM CarePlan ' +
-                           'WHERE CaseId = :caseId ' +
-                           'LIMIT 1';
-            
-            List<SObject> carePlans = Database.query(query);
-            
-            if (carePlans.isEmpty()) {
+            Id accountId;
+            try {
+                Case c = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+                accountId = c.AccountId;
+            } catch (Exception e) {
+                System.debug('buildCarePlanConsent: Error resolving case account: ' + e.getMessage());
+            }
+
+            SObject carePlan = CarePlanService.fetchCarePlan(
+                caseId,
+                accountId,
+                new List<String>{ 'Id', 'Discharge_Plan__c', 'Expected_Discharge_Date__c', 'Last_Review_Date__c', 'Next_Review_Date__c', 'Review_Frequency_Days__c', 'Care_Plan_Reviewed__c', 'Documentation_Offered__c' }
+            );
+
+            if (carePlan == null) {
                 System.debug('buildCarePlanConsent: No CarePlan found for Case ' + caseId);
                 return null;
             }
-            
-            SObject carePlan = carePlans[0];
             String dischargePlan = (String)carePlan.get('Discharge_Plan__c');
             
             // Use the dedicated checkbox fields on CarePlan

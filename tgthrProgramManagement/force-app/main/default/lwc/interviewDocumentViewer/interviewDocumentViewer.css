@@ -63,6 +63,31 @@
     color: #04844b;
 }
 
+.completed-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    background-color: #6b7280;
+}
+
+.completed-badge--success {
+    background-color: #43A047;
+}
+
+.completed-badge--warning {
+    background-color: #F9A825;
+}
+
+.completed-badge--neutral {
+    background-color: #546E7A;
+}
+
 /* Scrollbar styling for document list */
 .document-list-panel::-webkit-scrollbar {
     width: 6px;

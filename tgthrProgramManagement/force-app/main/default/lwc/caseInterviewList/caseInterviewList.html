@@ -1,0 +1,86 @@
+<template>
+  <lightning-card title="Interviews" icon-name="standard:record">
+    <div class="slds-p-around_small">
+      <template if:true={hasClientHeader}>
+        <div class="slds-box slds-theme_default slds-m-bottom_medium" style="border-left: 4px solid #2e844a;">
+          <div class="slds-grid slds-wrap slds-gutters_small">
+            <div class="slds-col slds-size_1-of-1 slds-m-bottom_x-small">
+              <span class="slds-text-title_caps slds-text-color_weak">Participant</span>
+            </div>
+            <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+              <div class="slds-grid slds-grid_vertical-align-center">
+                <lightning-icon icon-name="standard:individual" size="small" class="slds-m-right_small"></lightning-icon>
+                <div>
+                  <p class="slds-text-heading_small slds-text-link" style="cursor: pointer;" onclick={handleViewClient}>{clientName}</p>
+                  <template if:true={clientPronouns}>
+                    <p class="slds-text-body_small slds-text-color_weak">({clientPronouns})</p>
+                  </template>
+                </div>
+              </div>
+            </div>
+            <template if:true={formattedDob}>
+              <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                <span class="slds-text-title_caps slds-text-color_weak">DOB</span>
+                <p class="slds-text-body_regular">{formattedDob}</p>
+              </div>
+            </template>
+            <template if:true={caseNumber}>
+              <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                <span class="slds-text-title_caps slds-text-color_weak">Case #</span>
+                <p class="slds-text-body_regular slds-text-link" style="cursor: pointer;" onclick={handleViewCase}>{caseNumber}</p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading interviews" size="small"></lightning-spinner>
+      </template>
+
+      <template if:false={isLoading}>
+        <template if:true={hasInterviews}>
+          <ul class="slds-has-dividers_bottom-space">
+            <template for:each={interviews} for:item="item">
+              <li key={item.id} class="slds-item slds-p-vertical_x-small">
+                <div class="slds-grid slds-grid_vertical-align-center slds-wrap">
+                  <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
+                    <div class="slds-text-heading_small slds-truncate">
+                      {item.interviewName}
+                    </div>
+                    <div class="slds-text-body_small slds-text-color_weak">
+                      {item.templateName} • {item.completedDateFormatted}
+                    </div>
+                    <div class="slds-text-body_small">
+                      Status: {item.status}
+                    </div>
+                  </div>
+                  <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right">
+                    <lightning-button
+                      label="Open Viewer"
+                      variant="brand"
+                      data-interview-id={item.interviewId}
+                      onclick={handleOpenViewer}>
+                    </lightning-button>
+                  </div>
+                </div>
+              </li>
+            </template>
+          </ul>
+        </template>
+
+        <template if:false={hasInterviews}>
+          <div class="slds-text-align_center slds-p-around_medium slds-text-color_weak">
+            No completed interviews found.
+          </div>
+        </template>
+
+        <template if:true={errorMessage}>
+          <div class="slds-text-color_error slds-m-top_small">
+            {errorMessage}
+          </div>
+        </template>
+      </template>
+    </div>
+  </lightning-card>
+</template>

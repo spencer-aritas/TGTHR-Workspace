@@ -1,0 +1,13 @@
+.text-muted {
+    color: #706e6b;
+}
+
+.ssrs-card {
+    background-color: rgba(249, 168, 37, 0.12);
+    border: 1px solid rgba(249, 168, 37, 0.4);
+    color: #6d4c41;
+}
+
+.care-plan-details .discharge-plan-box {
+    width: 100%;
+}

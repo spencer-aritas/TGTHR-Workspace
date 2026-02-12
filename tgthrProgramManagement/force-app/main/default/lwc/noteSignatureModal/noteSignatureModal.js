@@ -2,6 +2,7 @@ import { LightningElement, api, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import getNoteForApproval from '@salesforce/apex/PendingDocumentationController.getNoteForApproval';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 /**
  * Modal for reviewing and signing an InteractionSummary note.
@@ -15,6 +16,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
     
     recordId = null;
     recordType = null;
+    _lastLoggedRecordId;
 
     @api
     open(recordId, recordType = 'Interaction') {
@@ -40,6 +42,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
                 recordType: this.recordType 
             });
             this.noteData = data;
+            this.logAccess('PendingSignatureReview');
         } catch (error) {
             console.error('Error loading note:', error);
             this.showToast('Error', 'Failed to load note details: ' + this.reduceErrors(error), 'error');
@@ -82,6 +85,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
     // Navigation handlers
     handleViewClient() {
         if (this.noteData.clientId) {
+            this.logRelatedAccess('PendingSignatureViewClient');
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
                 attributes: {
@@ -95,6 +99,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
 
     handleViewCase() {
         if (this.noteData.caseId) {
+            this.logRelatedAccess('PendingSignatureViewCase');
             this[NavigationMixin.Navigate]({
                 type: 'standard__recordPage',
                 attributes: {
@@ -108,6 +113,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
 
     handleViewDocument() {
         if (this.noteData.documentId) {
+            this.logAccess('PendingSignatureOpenFiles');
             this[NavigationMixin.Navigate]({
                 type: 'standard__namedPage',
                 attributes: {
@@ -122,8 +128,79 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
 
     handleDownloadDocument() {
         if (this.noteData.documentId) {
+            this.logAccess('PendingSignatureDownload');
             const downloadUrl = `/sfc/servlet.shepherd/version/download/${this.noteData.documentId}`;
             window.open(downloadUrl, '_blank');
+        }
+    }
+
+    logAccess(accessSource) {
+        if (!this.recordId || this.recordId === this._lastLoggedRecordId && accessSource === 'PendingSignatureReview') {
+            return;
+        }
+        if (accessSource === 'PendingSignatureReview') {
+            this._lastLoggedRecordId = this.recordId;
+        }
+
+        const objectType = this.recordType === 'Interview' ? 'Interview' : 'InteractionSummary';
+        try {
+            logRecordAccessWithPii({
+                recordId: this.recordId,
+                objectType,
+                accessSource,
+                piiFieldsAccessed: null
+            }).catch(err => {
+                console.warn('Failed to log note access:', err);
+            });
+
+            const piiCategories = [];
+            if (this.noteData?.clientName) piiCategories.push('NAMES');
+            if (this.noteData?.clientDob) piiCategories.push('DATES');
+
+            if (this.noteData?.clientId && piiCategories.length > 0) {
+                logRecordAccessWithPii({
+                    recordId: this.noteData.clientId,
+                    objectType: 'PersonAccount',
+                    accessSource,
+                    piiFieldsAccessed: JSON.stringify(piiCategories)
+                }).catch(err => {
+                    console.warn('Failed to log PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in logAccess:', e);
+        }
+    }
+
+    logRelatedAccess(accessSource) {
+        try {
+            if (this.noteData?.clientId) {
+                const piiCategories = [];
+                if (this.noteData?.clientName) piiCategories.push('NAMES');
+                if (this.noteData?.clientDob) piiCategories.push('DATES');
+
+                logRecordAccessWithPii({
+                    recordId: this.noteData.clientId,
+                    objectType: 'PersonAccount',
+                    accessSource,
+                    piiFieldsAccessed: piiCategories.length ? JSON.stringify(piiCategories) : null
+                }).catch(err => {
+                    console.warn('Failed to log client access:', err);
+                });
+            }
+
+            if (this.noteData?.caseId) {
+                logRecordAccessWithPii({
+                    recordId: this.noteData.caseId,
+                    objectType: 'Case',
+                    accessSource,
+                    piiFieldsAccessed: null
+                }).catch(err => {
+                    console.warn('Failed to log case access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in logRelatedAccess:', e);
         }
     }
 

@@ -3,6 +3,7 @@ import { NavigationMixin } from 'lightning/navigation';
 import getActiveTemplates from '@salesforce/apex/InterviewTemplateController.getActiveTemplates';
 import { getRecord } from 'lightning/uiRecordApi';
 import CASE_ACCOUNT_FIELD from '@salesforce/schema/Case.AccountId';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 const FIELDS = [CASE_ACCOUNT_FIELD];
 
@@ -71,6 +72,7 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
 
     // Case Note handlers
     openCaseNote() {
+        this.logHubAccess('DocumentationHubOpenCaseNote');
         this.showCaseNoteModal = true;
     }
 
@@ -83,6 +85,7 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         if (this.isNoteDisabled) {
             return;
         }
+        this.logHubAccess('DocumentationHubOpenClinicalNote');
         this.showClinicalModal = true;
     }
 
@@ -104,6 +107,7 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         if (this.isNoteDisabled) {
             return;
         }
+        this.logHubAccess('DocumentationHubOpenPeerNote');
         this.showPeerNoteModal = true;
     }
 
@@ -126,6 +130,7 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
             return;
         }
 
+        this.logHubAccess('DocumentationHubOpenInterviewList');
         this.showInterviewModal = true;
 
         if (this.templatesLoaded) {
@@ -170,6 +175,8 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
             return;
         }
 
+        this.logHubAccess('DocumentationHubLaunchInterview');
+
         // Navigate to Visualforce page which hosts the interview session component
         this[NavigationMixin.Navigate]({
             type: 'standard__webPage',
@@ -179,5 +186,33 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         });
 
         this.closeInterviewModal();
+    }
+
+    logHubAccess(accessSource) {
+        try {
+            if (this.recordId) {
+                logRecordAccessWithPii({
+                    recordId: this.recordId,
+                    objectType: 'Case',
+                    accessSource,
+                    piiFieldsAccessed: null
+                }).catch(err => {
+                    console.warn('Failed to log case access:', err);
+                });
+            }
+
+            if (this.accountId) {
+                logRecordAccessWithPii({
+                    recordId: this.accountId,
+                    objectType: 'PersonAccount',
+                    accessSource,
+                    piiFieldsAccessed: JSON.stringify(['NAMES'])
+                }).catch(err => {
+                    console.warn('Failed to log client access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in logHubAccess:', e);
+        }
     }
 }

@@ -20,7 +20,7 @@
                                     <lightning-icon icon-name="utility:drag_and_drop" size="x-small" class="slds-m-right_small" style="cursor: grab;"></lightning-icon>
                                     {goal.name}
                                 </h3>
-                                <p class="slds-text-body_small slds-text-color_weak">Priority: {goal.priority} | Status: {goal.status}</p>
+                                <p class="slds-text-body_small slds-text-color_weak">Status: {goal.status}</p>
                                 <template if:true={goal.objective}>
                                     <p class="slds-m-top_x-small"><strong>Objective:</strong> {goal.objective}</p>
                                 </template>
@@ -29,8 +29,8 @@
                                 </template>
                             </div>
                             <div class="slds-col slds-no-flex">
-                                <lightning-button-icon icon-name="utility:edit" variant="border-filled" class="slds-m-right_x-small" data-id={goal.id} onclick={handleEditGoal}></lightning-button-icon>
-                                <lightning-button-icon icon-name="utility:delete" variant="border-filled" data-id={goal.id} onclick={handleDeleteGoal}></lightning-button-icon>
+                                <lightning-button-icon icon-name="utility:edit" variant="border-filled" class="slds-m-right_x-small" data-id={goal.id} onclick={handleEditGoal} onmousedown={handleActionMouseDown}></lightning-button-icon>
+                                <lightning-button-icon icon-name="utility:delete" variant="border-filled" data-id={goal.id} onclick={handleDeleteGoal} onmousedown={handleActionMouseDown}></lightning-button-icon>
                             </div>
                         </div>
                     </div>
@@ -59,10 +59,12 @@
                 </div>
                 <lightning-textarea label="Discharge Plan" value={carePlan.dischargePlan} data-field="dischargePlan" onchange={handleCarePlanChange} class="slds-m-top_small"></lightning-textarea>
                 
-                <div class="slds-m-top_medium">
-                    <lightning-input type="checkbox" label="I participated in the creation of the plan and agree with the above" checked={carePlan.consentParticipated} data-field="consentParticipated" onchange={handleCarePlanChange}></lightning-input>
-                    <lightning-input type="checkbox" label="I was offered a copy of the Treatment plan" checked={carePlan.consentOffered} data-field="consentOffered" onchange={handleCarePlanChange} class="slds-m-top_x-small"></lightning-input>
-                </div>
+                <template if:false={hideConsentCheckboxes}>
+                    <div class="slds-m-top_medium">
+                        <lightning-input type="checkbox" label="I participated in the creation of the plan and agree with the above" checked={carePlan.consentParticipated} data-field="consentParticipated" onchange={handleCarePlanChange}></lightning-input>
+                        <lightning-input type="checkbox" label="I was offered a copy of the Treatment plan" checked={carePlan.consentOffered} data-field="consentOffered" onchange={handleCarePlanChange} class="slds-m-top_x-small"></lightning-input>
+                    </div>
+                </template>
 
                 <div class="slds-m-top_medium slds-text-align_right">
                     <lightning-button label="Save Care Plan Details" variant="brand" onclick={handleSaveCarePlan} disabled={isSavingCarePlan}></lightning-button>
@@ -86,21 +88,12 @@
                         <lightning-textarea label="Service Description/Modality" value={currentGoal.description} data-field="description" onchange={handleInputChange} class="slds-m-top_small"></lightning-textarea>
                         <div class="slds-grid slds-gutters slds-m-top_small">
                             <div class="slds-col slds-size_1-of-2">
-                                <lightning-input type="date" label="Start Date" value={currentGoal.startDate} data-field="startDate" onchange={handleInputChange}></lightning-input>
-                            </div>
-                            <div class="slds-col slds-size_1-of-2">
-                                <lightning-input type="date" label="Target Completion Date" value={currentGoal.targetDate} data-field="targetDate" onchange={handleInputChange}></lightning-input>
-                            </div>
-                        </div>
-                        <div class="slds-grid slds-gutters slds-m-top_small">
-                            <div class="slds-col slds-size_1-of-2">
                                 <lightning-combobox label="Frequency" value={currentGoal.frequency} options={frequencyOptions} data-field="frequency" onchange={handleInputChange}></lightning-combobox>
                             </div>
                             <div class="slds-col slds-size_1-of-2">
-                                <lightning-combobox label="Priority" value={currentGoal.priority} options={priorityOptions} data-field="priority" onchange={handleInputChange}></lightning-combobox>
+                                <lightning-combobox label="Status" value={currentGoal.status} options={statusOptions} data-field="status" onchange={handleInputChange}></lightning-combobox>
                             </div>
                         </div>
-                        <lightning-combobox label="Status" value={currentGoal.status} options={statusOptions} data-field="status" onchange={handleInputChange} class="slds-m-top_small"></lightning-combobox>
                     </div>
                     <footer class="slds-modal__footer">
                         <button class="slds-button slds-button_neutral" onclick={handleCloseModal}>Cancel</button>

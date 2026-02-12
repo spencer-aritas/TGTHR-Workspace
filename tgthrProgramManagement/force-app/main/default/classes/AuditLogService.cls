@@ -9,7 +9,20 @@ public with sharing class AuditLogService {
         auditLogSObj.put('Object_Type__c', objectType);
         auditLogSObj.put('User__c', UserInfo.getUserId());
         auditLogSObj.put('Timestamp__c', System.now());
+        putIfFieldExists(auditLogSObj, 'Record_Id__c', entityId);
+        putIfFieldExists(auditLogSObj, 'Record_Type__c', objectType);
+        putIfFieldExists(auditLogSObj, 'Event_Type__c', actionType);
         insert auditLogSObj;
+    }
+
+    private static void putIfFieldExists(SObject logRecord, String fieldName, Object value) {
+        if (value == null) {
+            return;
+        }
+        Map<String, Schema.SObjectField> fieldMap = logRecord.getSObjectType().getDescribe().fields.getMap();
+        if (fieldMap.containsKey(fieldName)) {
+            logRecord.put(fieldName, value);
+        }
     }
 
     @AuraEnabled

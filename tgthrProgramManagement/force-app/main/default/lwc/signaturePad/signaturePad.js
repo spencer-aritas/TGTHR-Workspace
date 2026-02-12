@@ -14,6 +14,7 @@ export default class SignaturePad extends LightningElement {
 
     @track isEmpty = true;
     @track loadError;
+    @track isSaving = false;
 
     canvas;
     context;
@@ -231,6 +232,7 @@ export default class SignaturePad extends LightningElement {
         }
 
         try {
+            this.isSaving = true;
             const base64Data = this.canvas.toDataURL('image/png').split(',')[1];
             const filenameToUse = this.filename || `signature_${new Date().toISOString()}.png`;
             const result = await createContentVersion({
@@ -258,6 +260,8 @@ export default class SignaturePad extends LightningElement {
             }
             console.error('Error saving signature:', error);
             return { success: false, error: message };
+        } finally {
+            this.isSaving = false;
         }
     }
 
@@ -267,6 +271,10 @@ export default class SignaturePad extends LightningElement {
 
     async handleSave() {
         await this.saveSignature(this.recordId, false);
+    }
+
+    get isEmptyOrSaving() {
+        return this.isEmpty || this.isSaving;
     }
 
     _showToast(title, message, variant) {

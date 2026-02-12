@@ -33,6 +33,10 @@ export default class InteractionSummaryBoard extends LightningElement {
   // Simple getter/setter to control modal state
   // Direct property access instead of getter/setter
   _modalOpen = false;
+  
+  // Detail view modal state
+  @track showDetailModal = false;
+  @track detailRecordId = null;
 
   // Use explicit methods to control modal state rather than a setter
   showModal() {
@@ -70,6 +74,9 @@ export default class InteractionSummaryBoard extends LightningElement {
   @track incidentsTotalRecords = 0;
   @track incidentsDisplayedRecords = [];
   lastAccountId = null;
+  lastInteractionId = null;
+  _loggedInteractionAccess = new Set();
+  _loggedPersonAccess = new Set();
   cacheBuster = Date.now(); // Used to bust cache
 
   // Flow integration removed - use direct Apex creation instead
@@ -111,6 +118,12 @@ export default class InteractionSummaryBoard extends LightningElement {
       caseId: mostRecentCaseId || "",
       parentInteractionId: ""
     };
+
+    this._logPersonAccessBySource(
+      this.selected.AccountId,
+      "InteractionHistoryNewInteractionModal",
+      ["NAMES"]
+    );
 
     // Reset form fields and form modified state
     this.resetModalFields();
@@ -735,6 +748,7 @@ export default class InteractionSummaryBoard extends LightningElement {
     // Update the selected row and load the related data
     this.selected = row;
     this.selectedRowIds = [row.Id];
+    this._logInteractionAccess(row.Id);
     await this.loadRight(row.AccountId);
   }
 
@@ -1131,6 +1145,12 @@ export default class InteractionSummaryBoard extends LightningElement {
     // Store the accountId for reselection later
     this.lastAccountId = accountId;
 
+    this._logPersonAccessBySource(
+      accountId,
+      "InteractionHistoryFollowUpModal",
+      ["NAMES"]
+    );
+
     // Default program ID based on current program if not provided
     const defaultProgramId = this.currentProgramId;
 
@@ -1464,6 +1484,62 @@ export default class InteractionSummaryBoard extends LightningElement {
     if (recordId) {
       window.open(`/${recordId}`, "_blank");
     }
+  }
+
+  // Navigate to the Case in a new tab (fallback to the interaction record)
+  navigateToCase(event) {
+    event.stopPropagation(); // Prevent parent click events from firing
+    const caseId = event.currentTarget.dataset.caseid;
+    const recordId = event.currentTarget.dataset.recordid;
+
+    if (caseId) {
+      logRecordAccessWithPii({
+        recordId: caseId,
+        objectType: "Case",
+        accessSource: "InteractionHistoryOpenCase",
+        piiFieldsAccessed: null
+      }).catch((err) => {
+        console.warn("Failed to log case access:", err);
+      });
+
+      window.open(`/lightning/r/Case/${caseId}/view`, "_blank");
+      return;
+    }
+
+    if (recordId) {
+      window.open(`/${recordId}`, "_blank");
+    }
+  }
+  
+  // Open detail view modal
+  openDetailView(event) {
+    const recordId = event.currentTarget.dataset.recordid;
+    if (recordId) {
+      const note =
+        (this.convoDisplayedRecords || []).find((n) => n.Id === recordId) ||
+        (this.convo || []).find((n) => n.Id === recordId) ||
+        null;
+      const accountId = note?.AccountId || this.selected?.AccountId || null;
+
+      this._logInteractionAccessBySource(
+        recordId,
+        "InteractionHistoryDetailModal"
+      );
+      this._logPersonAccessBySource(
+        accountId,
+        "InteractionHistoryDetailModal",
+        ["NAMES"]
+      );
+
+      this.detailRecordId = recordId;
+      this.showDetailModal = true;
+    }
+  }
+  
+  // Close detail view modal
+  closeDetailView() {
+    this.showDetailModal = false;
+    this.detailRecordId = null;
   }
 
   // Insert rich text content into the note content containers
@@ -1963,6 +2039,68 @@ export default class InteractionSummaryBoard extends LightningElement {
       });
     } catch (e) {
       console.warn('Error in _logParticipantAccess:', e);
+    }
+  }
+
+  _logInteractionAccess(interactionId) {
+    if (!interactionId || interactionId === this.lastInteractionId) return;
+
+    this.lastInteractionId = interactionId;
+    try {
+      logRecordAccessWithPii({
+        recordId: interactionId,
+        objectType: 'InteractionSummary',
+        accessSource: 'InteractionHistoryRow',
+        piiFieldsAccessed: null
+      }).catch(err => {
+        console.warn('Failed to log interaction access:', err);
+      });
+    } catch (e) {
+      console.warn('Error in _logInteractionAccess:', e);
+    }
+  }
+
+  _logInteractionAccessBySource(interactionId, accessSource) {
+    if (!interactionId || !accessSource) return;
+
+    const key = `${accessSource}:${interactionId}`;
+    if (this._loggedInteractionAccess.has(key)) return;
+    this._loggedInteractionAccess.add(key);
+
+    try {
+      logRecordAccessWithPii({
+        recordId: interactionId,
+        objectType: 'InteractionSummary',
+        accessSource,
+        piiFieldsAccessed: null
+      }).catch(err => {
+        console.warn('Failed to log interaction access:', err);
+      });
+    } catch (e) {
+      console.warn('Error in _logInteractionAccessBySource:', e);
+    }
+  }
+
+  _logPersonAccessBySource(accountId, accessSource, piiCategories) {
+    if (!accountId || !accessSource) return;
+
+    const key = `${accessSource}:${accountId}`;
+    if (this._loggedPersonAccess.has(key)) return;
+    this._loggedPersonAccess.add(key);
+
+    try {
+      logRecordAccessWithPii({
+        recordId: accountId,
+        objectType: 'PersonAccount',
+        accessSource,
+        piiFieldsAccessed: piiCategories?.length
+          ? JSON.stringify(piiCategories)
+          : null
+      }).catch(err => {
+        console.warn('Failed to log participant access:', err);
+      });
+    } catch (e) {
+      console.warn('Error in _logPersonAccessBySource:', e);
     }
   }
 }

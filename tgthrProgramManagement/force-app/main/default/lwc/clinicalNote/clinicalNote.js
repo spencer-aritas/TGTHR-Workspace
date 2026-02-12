@@ -64,6 +64,9 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     @track benefitOptions = [];
     @track posOptions = [];
 
+    // CPT Code selection for billing
+    @track selectedCptCodes = [];
+
     // Rich goal data for card-based UI
     @track activeGoals = [];
     // Track work done on each goal: { [goalId]: { workedOn, narrative, progressBefore, progressAfter, timeSpentMinutes, expanded } }
@@ -88,6 +91,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     @track draftId = null;
     @track hasDraft = false;
     @track isSavingDraft = false;
+    _pendingDraftState = null;
     
     // Signature clearing for rejected notes
     _clearSignatureOnRender = false;
@@ -164,6 +168,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         { name: 'services', label: 'Services Provided' },
         { name: 'goals', label: 'Goals Addressed' },
         { name: 'codes', label: 'Diagnosis Codes' },
+        { name: 'cptCodes', label: 'CPT Billing Codes' },
         { name: 'signature', label: 'Signature' }
     ];
 
@@ -352,6 +357,20 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         this.isLoading = true;
         this.loadError = null;
         try {
+            if (this.incomingDraftId) {
+                try {
+                    const draftResult = await loadDraft({ draftId: this.incomingDraftId });
+                    if (draftResult && draftResult.found && draftResult.draftJson) {
+                        this._pendingDraftState = JSON.parse(draftResult.draftJson);
+                        this.draftId = draftResult.draftId;
+                        this.hasDraft = true;
+                        console.log('Loaded draft data for Clinical Note:', this.draftId);
+                    }
+                } catch (draftError) {
+                    console.warn('Failed to load draft data for Clinical Note:', draftError);
+                }
+            }
+
             console.log('Loading clinical note for case:', this.recordId, ' interactionId:', this.interactionId);
             const data = await initClinicalNote({ caseId: this.recordId, interactionId: this.interactionId });
             await this._initializeFromResponse(data);
@@ -607,6 +626,12 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             if (existingNote.benefitIds && Array.isArray(existingNote.benefitIds)) {
                 this.form.benefitIds = existingNote.benefitIds;
             }
+            
+            // Populate CPT codes
+            if (existingNote.selectedCptCodes && Array.isArray(existingNote.selectedCptCodes)) {
+                this.selectedCptCodes = existingNote.selectedCptCodes;
+                console.log('Loaded existing CPT codes:', this.selectedCptCodes);
+            }
         }
 
         this.codeOptions = (codeAssignments || []).map((item) => ({
@@ -643,6 +668,14 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         if (savedState.form) {
             this.form = { ...this.form, ...savedState.form };
         }
+
+        if (savedState.benefitIds && Array.isArray(savedState.benefitIds)) {
+            this.form = { ...this.form, benefitIds: savedState.benefitIds };
+        }
+
+        if (savedState.codeIds && Array.isArray(savedState.codeIds)) {
+            this.form = { ...this.form, codeIds: savedState.codeIds };
+        }
         
         // Restore goal work state
         if (savedState.goalWorkState) {
@@ -653,10 +686,21 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         if (savedState.ssrsAssessmentData) {
             this.ssrsAssessmentData = savedState.ssrsAssessmentData;
         }
+
+        if (savedState.ssrsAssessmentId) {
+            this.ssrsAssessmentId = savedState.ssrsAssessmentId;
+        } else if (savedState.ssrsAssessmentData) {
+            this.ssrsAssessmentId = savedState.ssrsAssessmentData.assessmentId || savedState.ssrsAssessmentData.id || null;
+        }
         
         // Restore selected diagnoses if any
         if (savedState.selectedDiagnoses && Array.isArray(savedState.selectedDiagnoses)) {
             this.selectedDiagnoses = savedState.selectedDiagnoses;
+        }
+
+        // Restore CPT codes if any
+        if (savedState.selectedCptCodes && Array.isArray(savedState.selectedCptCodes)) {
+            this.selectedCptCodes = savedState.selectedCptCodes;
         }
         
         // Restore active section
@@ -1017,6 +1061,15 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         this.pendingPrimaryChange = null;
     }
     
+    // ========================================
+    // CPT Code Selection Handler
+    // ========================================
+    
+    handleCptCodeSelection(event) {
+        const selected = event.detail.selectedCodes || [];
+        this.selectedCptCodes = selected.length > 0 ? [selected[0]] : [];
+        console.log('CPT Codes selected:', this.selectedCptCodes);
+    }
 
 
     // ========================================
@@ -1085,6 +1138,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         if (accordion) {
             accordion.activeSectionName = targetSection;
         }
+        this._logSectionAccess(targetSection, 'ClinicalNoteSidebar');
         this._scrollSectionIntoView(targetSection);
     }
 
@@ -1098,6 +1152,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         }
         if (latestSection && latestSection !== this.activeSection) {
             this.activeSection = latestSection;
+            this._logSectionAccess(latestSection, 'ClinicalNoteAccordion');
             this._scrollSectionIntoView(latestSection);
         }
     }
@@ -1147,10 +1202,14 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 accountId: this.accountId,
                 header: this.header,
                 form: this.form,
+                benefitIds: this.form.benefitIds,
+                codeIds: this.form.codeIds,
                 goalWorkState: this.goalWorkState,
                 activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
                 ssrsAssessmentData: this.ssrsAssessmentData,
+                ssrsAssessmentId: this.ssrsAssessmentId,
                 selectedDiagnoses: this.selectedDiagnoses, // Preserve ICD-10 selections
+                selectedCptCodes: this.selectedCptCodes,
                 activeSection: this.activeSection,
                 savedAt: new Date().toISOString()
             };
@@ -1321,7 +1380,8 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 benefitIds: this.form.benefitIds,
                 ssrsAssessmentId: ssrsAssessmentId,
                 noteType: this.noteType,
-                diagnoses: diagnosesArray  // ← Send new diagnoses to create
+                diagnoses: diagnosesArray,  // ← Send new diagnoses to create
+                selectedCptCodes: this.selectedCptCodes  // ← Send selected CPT codes for billing
             };
 
             console.log('=== COMPLETE REQUEST DEBUG ===');
@@ -1587,6 +1647,45 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             });
         } catch (e) {
             console.warn('Error in _logPhiAccess:', e);
+        }
+    }
+
+    _logSectionAccess(sectionName, accessSource) {
+        if (!sectionName) {
+            return;
+        }
+
+        try {
+            if (this.recordId) {
+                logRecordAccessWithPii({
+                    recordId: this.recordId,
+                    objectType: 'Case',
+                    accessSource: `${accessSource}:${sectionName}`,
+                    piiFieldsAccessed: null
+                }).catch(err => {
+                    console.warn('Failed to log case access:', err);
+                });
+            }
+
+            if (this.accountId) {
+                const piiCategories = [];
+                if (this.header?.personName) piiCategories.push('NAMES');
+                if (this.header?.birthdate) piiCategories.push('DATES');
+                if (this.header?.phone) piiCategories.push('PHONE');
+                if (this.header?.email) piiCategories.push('EMAIL');
+                if (this.header?.medicaidId) piiCategories.push('MEDICAL_RECORD');
+
+                logRecordAccessWithPii({
+                    recordId: this.accountId,
+                    objectType: 'PersonAccount',
+                    accessSource: `${accessSource}:${sectionName}`,
+                    piiFieldsAccessed: piiCategories.length ? JSON.stringify(piiCategories) : null
+                }).catch(err => {
+                    console.warn('Failed to log PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in _logSectionAccess:', e);
         }
     }
 }

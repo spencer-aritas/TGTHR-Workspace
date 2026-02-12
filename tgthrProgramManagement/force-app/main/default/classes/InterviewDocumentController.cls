@@ -219,7 +219,7 @@ public with sharing class InterviewDocumentController {
             
             // EXCLUDE Pending Approvals: If it requires approval and manager hasn't signed, don't show it here.
             // These should live in Pending Documentation.
-            if (fieldMap.containsKey('requires_manager_approval__c') && fieldMap.containsKey('manager_signed__c')) {
+            if (fieldMap.containsKey('Requires_Manager_Approval__c') && fieldMap.containsKey('Manager_Signed__c')) {
                 query += 'AND (Requires_Manager_Approval__c = false OR Manager_Signed__c = true) ';
             }
                 

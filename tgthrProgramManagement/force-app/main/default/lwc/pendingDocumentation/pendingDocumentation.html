@@ -1,345 +1,106 @@
 <template>
     <lightning-card title="Pending Documentation" icon-name="utility:clock">
-        <div class="slds-p-around_small">
-            <template if:true={isLoading}>
-                <div class="slds-is-relative" style="min-height: 100px;">
-                    <lightning-spinner alternative-text="Loading pending documents" size="small"></lightning-spinner>
+        <div class="slds-grid slds-gutters">
+            <!-- Left Panel: Pending List -->
+            <div class="slds-col slds-size_1-of-3 document-list-panel">
+                <div class="slds-p-around_small">
+                    <template if:true={isLoading}>
+                        <lightning-spinner alternative-text="Loading pending documents" size="small"></lightning-spinner>
+                    </template>
+
+                    <template if:false={isLoading}>
+                        <template if:true={hasPendingItems}>
+                            <div class="slds-text-body_small slds-m-bottom_small text-muted">
+                                {pendingCount} item{pluralSuffix} pending
+                            </div>
+                            <ul class="slds-has-dividers_bottom-space">
+                                <template for:each={pendingItems} for:item="item">
+                                    <li key={item.key} class="slds-item slds-p-vertical_x-small">
+                                        <div class={item.itemClass} data-key={item.key} onclick={handlePendingItemClick}>
+                                            <div class="slds-grid slds-grid_vertical-align-center">
+                                                <div class="slds-col slds-has-flexi-truncate">
+                                                    <div class="slds-text-heading_small slds-truncate">{item.title}</div>
+                                                    <div class="slds-text-body_small text-muted">{item.subtitle}</div>
+                                                    <div class="slds-text-body_small text-muted">Owner: {item.ownerDisplay}</div>
+                                                    <template if:true={item.pendingReason}>
+                                                        <div class="slds-text-body_small"><strong>Reason:</strong> {item.pendingReason}</div>
+                                                    </template>
+                                                </div>
+                                                <div class="slds-col slds-no-flex">
+                                                    <span class={item.badgeClass}>
+                                                        <template if:true={item.badgeIcon}>
+                                                            <lightning-icon icon-name={item.badgeIcon} size="x-small" class="pending-badge__icon"></lightning-icon>
+                                                        </template>
+                                                        {item.badgeLabel}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+
+                        <template if:false={hasPendingItems}>
+                            <div class="slds-text-align_center slds-p-around_medium">
+                                <lightning-icon icon-name="utility:check" size="large" class="slds-m-bottom_small success-icon"></lightning-icon>
+                                <p class="slds-text-body_regular text-muted">All caught up! No pending documentation.</p>
+                            </div>
+                        </template>
+                    </template>
                 </div>
-            </template>
-            
-            <template if:false={isLoading}>
-                <template if:true={hasPendingItems}>
-                    <div class="slds-text-body_small slds-m-bottom_small text-muted">
-                        {pendingCount} item{pluralSuffix} pending
-                    </div>
-                    
-                    <!-- Drafts Section -->
-                    <template if:true={hasDrafts}>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title slds-theme_shade">
-                                <span class="slds-truncate slds-p-horizontal_small" title="Drafts">
-                                    <lightning-icon icon-name="utility:edit" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                    Saved Drafts ({drafts.length})
-                                </span>
-                            </h3>
-                            <div class="slds-section__content">
-                                <ul class="slds-has-dividers_bottom-space">
-                                    <template for:each={drafts} for:item="draft">
-                                        <li key={draft.draftId} class="slds-item slds-p-vertical_x-small">
-                                            <div class="pending-item" 
-                                                 data-id={draft.draftId} 
-                                                 data-type={draft.documentType}
-                                                 data-template-version-id={draft.templateVersionId}
-                                                 onclick={handleDraftClick}>
-                                                <div class="slds-grid slds-grid_vertical-align-center">
-                                                    <div class="slds-col slds-has-flexi-truncate">
-                                                        <div class="slds-text-heading_small slds-truncate">
-                                                            {draft.displayTitle}
-                                                            <template if:true={draft.templateName}>
-                                                                <span class="slds-text-body_small text-muted slds-m-left_x-small">
-                                                                    ({draft.templateName})
-                                                                </span>
-                                                            </template>
-                                                        </div>
-                                                        <div class="slds-text-body_small text-muted">
-                                                            Last modified: {draft.lastModifiedDisplay}
-                                                        </div>
-                                                    </div>
-                                                    <div class="slds-col slds-no-flex">
-                                                        <lightning-badge label="Draft" class="slds-badge_lightest"></lightning-badge>
-                                                    </div>
-                                                    <div class="slds-col slds-no-flex slds-m-left_small">
-                                                        <lightning-button-icon
-                                                            icon-name="utility:chevronright"
-                                                            alternative-text="Resume draft"
-                                                            variant="bare">
-                                                        </lightning-button-icon>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
+            </div>
+
+            <!-- Right Panel: Pending Details -->
+            <div class="slds-col slds-size_2-of-3 preview-panel">
+                <template if:true={hasSelectedPendingItem}>
+                    <div class="slds-p-around_medium">
+                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap slds-m-bottom_medium">
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
+                                <h2 class="slds-text-heading_medium">{selectedPendingItem.title}</h2>
+                                <div class="slds-m-top_xx-small">
+                                    <span class={selectedPendingItem.statusBadgeClass} style="margin-right:0.375rem;">{selectedPendingItem.statusBadgeLabel}</span>
+                                    <template if:true={selectedPendingItem.actionBadgeLabel}>
+                                        <span class={selectedPendingItem.actionBadgeClass}>{selectedPendingItem.actionBadgeLabel}</span>
                                     </template>
-                                </ul>
+                                </div>
+                                <div class="slds-text-body_small text-muted slds-m-top_xx-small">
+                                    Owner: {selectedPendingItem.ownerDisplay} • Submitted By: {selectedPendingItem.ownerDisplay} • Submitted On: {selectedPendingItem.subtitle}
+                                </div>
+                            </div>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right slds-m-top_small slds-medium-m-top_none">
+                                <lightning-button
+                                    variant="brand"
+                                    label="Open"
+                                    onclick={handleOpenSelected}>
+                                </lightning-button>
                             </div>
                         </div>
-                    </template>
-                    
-                    <!-- My Action Items Section (items assigned to current user) -->
-                    <template if:true={hasActionItems}>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title slds-theme_warning">
-                                <span class="slds-truncate slds-p-horizontal_small" title="Action Required">
-                                    <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                    Action Required ({actionItems.length})
-                                </span>
-                            </h3>
-                            <div class="slds-section__content">
-                                <ul class="slds-has-dividers_bottom-space">
-                                    <template for:each={actionItems} for:item="item">
-                                        <li key={item.id} class="slds-item slds-p-vertical_x-small action-item-row">
-                                            <div class="pending-item" data-id={item.sourceRecordId} onclick={handleNoteClick}>
-                                                <div class="slds-grid slds-grid_vertical-align-center">
-                                                    <div class="slds-col slds-has-flexi-truncate">
-                                                        <div class="slds-text-heading_small slds-truncate">
-                                                            {item.name}
-                                                            <lightning-badge label="Action Required" class="slds-badge_warning slds-m-left_x-small"></lightning-badge>
-                                                        </div>
-                                                        <div class="slds-text-body_small text-muted">
-                                                            {item.dateDisplay} · {item.purpose}
-                                                        </div>
-                                                        <template if:true={item.actionNotes}>
-                                                            <div class="slds-text-body_small slds-m-top_xx-small">
-                                                                <strong>Notes:</strong> {item.actionNotes}
-                                                            </div>
-                                                        </template>
-                                                        <div class="slds-text-body_small text-muted">
-                                                            Flagged by: {item.actionEscalatedByName}
-                                                        </div>
-                                                    </div>
-                                                    <!-- Hide Clear Action button - users must fix and re-sign the note -->
-                                                    <!--
-                                                    <div class="slds-col slds-no-flex slds-m-left_small">
-                                                        <template if:true={item.canClearAction}>
-                                                            <lightning-button
-                                                                label="Clear Action"
-                                                                variant="success"
-                                                                size="small"
-                                                                onclick={handleClearAction}
-                                                                data-id={item.sourceRecordId}
-                                                                data-type={item.recordType}>
-                                                            </lightning-button>
-                                                        </template>
-                                                    </div>
-                                                    -->
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </template>
-                                </ul>
+
+                        <template if:true={isSelectedDraft}>
+                            <div class="slds-box slds-theme_default">
+                                <div class="slds-text-title_caps text-muted slds-m-bottom_x-small">Draft Details</div>
+                                <p class="slds-text-body_small">This draft has not been submitted.</p>
                             </div>
-                        </div>
-                    </template>
-                    
-                    <!-- Pending Manager Approvals Section (for managers) -->
-                    <template if:true={hasPendingApprovals}>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title slds-theme_info">
-                                <span class="slds-truncate slds-p-horizontal_small" title="Pending Your Approval">
-                                    <lightning-icon icon-name="utility:approval" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                    Pending Your Approval ({pendingApprovals.length})
-                                </span>
-                            </h3>
-                            <div class="slds-section__content">
-                                <ul class="slds-has-dividers_bottom-space">
-                                    <template for:each={pendingApprovals} for:item="item">
-                                        <li key={item.id} class="slds-item slds-p-vertical_x-small">
-                                            <div class="pending-item pending-approval-item" 
-                                                 data-id={item.sourceRecordId} 
-                                                 data-type={item.recordType}
-                                                 onclick={handlePendingApprovalClick}>
-                                                <div class="slds-grid slds-grid_vertical-align-center">
-                                                    <div class="slds-col slds-has-flexi-truncate">
-                                                        <div class="slds-text-heading_small slds-truncate">
-                                                            {item.name}
-                                                            <template if:true={item.isDelegatedApproval}>
-                                                                <lightning-badge label="Delegated" class="slds-badge_warning slds-m-left_x-small"></lightning-badge>
-                                                            </template>
-                                                            <lightning-badge label="Needs Your Approval" class="slds-badge_info slds-m-left_x-small"></lightning-badge>
-                                                        </div>
-                                                        <div class="slds-text-body_small text-muted">
-                                                            {item.dateDisplay} · {item.purpose}
-                                                        </div>
-                                                        <template if:true={item.isDelegatedApproval}>
-                                                            <div class="slds-text-body_small text-muted">
-                                                                <lightning-icon icon-name="utility:switch" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                                                                On behalf of: {item.managerApproverName}
-                                                            </div>
-                                                        </template>
-                                                        <div class="slds-text-body_small">
-                                                            {item.signatureStatus}
-                                                        </div>
-                                                    </div>
-                                                    <div class="slds-col slds-no-flex slds-m-left_small">
-                                                        <template if:true={item.canApproveAsManager}>
-                                                            <lightning-button
-                                                                label="Review"
-                                                                variant="brand"
-                                                                size="small"
-                                                                onclick={handleManagerApprove}
-                                                                data-id={item.sourceRecordId}
-                                                                data-type={item.recordType}>
-                                                            </lightning-button>
-                                                        </template>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
-                        </div>
-                    </template>
-                    
-                    <!-- Unsigned Notes Section -->
-                    <template if:true={hasUnsignedNotes}>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title slds-theme_shade">
-                                <span class="slds-truncate slds-p-horizontal_small" title="Awaiting Signatures">
-                                    <lightning-icon icon-name="utility:signature" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                    Awaiting Signatures ({unsignedNotes.length})
-                                </span>
-                            </h3>
-                            <div class="slds-section__content">
-                                <ul class="slds-has-dividers_bottom-space">
-                                    <template for:each={unsignedNotes} for:item="note">
-                                        <li key={note.id} class="slds-item slds-p-vertical_x-small">
-                                            <div class="pending-item" data-id={note.id} onclick={handleNoteClick}>
-                                                <div class="slds-grid slds-grid_vertical-align-center">
-                                                    <div class="slds-col slds-has-flexi-truncate">
-                                                        <div class="slds-text-heading_small slds-truncate">
-                                                            {note.name}
-                                                            <template if:true={note.actionRequired}>
-                                                                <lightning-badge label="Action Flagged" class="slds-badge_warning slds-m-left_x-small"></lightning-badge>
-                                                            </template>
-                                                            <template if:true={note.requiresManagerApproval}>
-                                                                <template if:false={note.managerSigned}>
-                                                                    <lightning-badge label="Needs Manager" class="slds-badge_info slds-m-left_x-small"></lightning-badge>
-                                                                </template>
-                                                            </template>
-                                                        </div>
-                                                        <div class="slds-text-body_small text-muted">
-                                                            {note.dateDisplay} · {note.purpose}
-                                                        </div>
-                                                        <div class="slds-text-body_small">
-                                                            <lightning-icon icon-name="utility:warning" size="xx-small" class="slds-m-right_xx-small warning-icon"></lightning-icon>
-                                                            <span class="text-warning">{note.signatureStatus}</span>
-                                                        </div>
-                                                        <template if:true={note.actionRequired}>
-                                                            <div class="slds-text-body_small text-muted">
-                                                                Assigned to: {note.actionAssignedToName}
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                    <div class="slds-col slds-no-flex slds-m-left_small">
-                                                        <div class="slds-button-group">
-                                                            <template if:true={note.canRecallAction}>
-                                                                <lightning-button
-                                                                    label="Recall"
-                                                                    variant="neutral"
-                                                                    size="small"
-                                                                    onclick={handleRecallAction}
-                                                                    data-id={note.sourceRecordId}
-                                                                    data-type={note.recordType}
-                                                                    class="slds-m-right_x-small">
-                                                                </lightning-button>
-                                                            </template>
-                                                            <lightning-button
-                                                                label="Complete"
-                                                                variant="brand"
-                                                                size="small"
-                                                                onclick={handleCompleteSignatures}
-                                                                data-id={note.id}>
-                                                            </lightning-button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
-                        </div>
-                    </template>
-                    
-                    <!-- Pending Interviews Section -->
-                    <template if:true={hasUnsignedInterviews}>
-                        <div class="slds-section slds-is-open">
-                            <h3 class="slds-section__title slds-theme_shade">
-                                <span class="slds-truncate slds-p-horizontal_small" title="Pending Interviews">
-                                    <lightning-icon icon-name="utility:file" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                    Pending Interviews ({unsignedInterviews.length})
-                                </span>
-                            </h3>
-                            <div class="slds-section__content">
-                                <ul class="slds-has-dividers_bottom-space">
-                                    <template for:each={unsignedInterviews} for:item="interview">
-                                        <li key={interview.id} class="slds-item slds-p-vertical_x-small">
-                                            <div class="pending-item">
-                                                <div class="slds-grid slds-grid_vertical-align-center">
-                                                    <div class="slds-col slds-has-flexi-truncate">
-                                                        <div class="slds-text-heading_small slds-truncate">
-                                                            {interview.name}
-                                                            <template if:true={interview.isEditLocked}>
-                                                                <lightning-badge label="Locked" class="slds-badge_inverse slds-m-left_x-small"></lightning-badge>
-                                                            </template>
-                                                        </div>
-                                                        <div class="slds-text-body_small text-muted">
-                                                            {interview.dateDisplay} · {interview.purpose}
-                                                            <template if:true={interview.ownerName}>
-                                                                · <lightning-icon icon-name="utility:user" size="xx-small" class="slds-m-horizontal_xx-small"></lightning-icon>{interview.ownerName}
-                                                            </template>
-                                                        </div>
-                                                        <div class="slds-text-body_small">
-                                                            <lightning-icon icon-name="utility:warning" size="xx-small" class="slds-m-right_xx-small warning-icon"></lightning-icon>
-                                                            <span class="text-warning">{interview.signatureStatus}</span>
-                                                        </div>
-                                                        <template if:true={interview.editLockReason}>
-                                                            <div class="slds-text-body_small text-muted slds-m-top_xx-small">
-                                                                <lightning-icon icon-name="utility:lock" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                                                                {interview.editLockReason}
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                    <div class="slds-col slds-no-flex slds-m-left_small">
-                                                        <div class="slds-button-group">
-                                                            <lightning-button
-                                                                label="Reassign"
-                                                                variant="neutral"
-                                                                size="small"
-                                                                onclick={handleReassignInterview}
-                                                                data-id={interview.sourceRecordId}
-                                                                data-name={interview.name}
-                                                                class="slds-m-right_x-small">
-                                                            </lightning-button>
-                                                            <template if:false={interview.isEditLocked}>
-                                                                <lightning-button
-                                                                    label="Complete"
-                                                                    variant="brand"
-                                                                    size="small"
-                                                                    onclick={handleCompleteInterview}
-                                                                    data-id={interview.sourceRecordId}
-                                                                    data-case-id={interview.caseId}
-                                                                    data-template-version-id={interview.templateVersionId}>
-                                                                </lightning-button>
-                                                            </template>
-                                                            <template if:true={interview.canAmend}>
-                                                                <lightning-button
-                                                                    label="Amend"
-                                                                    variant="neutral"
-                                                                    size="small"
-                                                                    onclick={handleAmendInterview}
-                                                                    data-id={interview.sourceRecordId}>
-                                                                </lightning-button>
-                                                            </template>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </li>
-                                    </template>
-                                </ul>
-                            </div>
-                        </div>
-                    </template>
-                </template>
-                
-                <template if:false={hasPendingItems}>
-                    <div class="slds-text-align_center slds-p-around_medium">
-                        <lightning-icon icon-name="utility:check" size="large" class="slds-m-bottom_small success-icon"></lightning-icon>
-                        <p class="slds-text-body_regular text-muted">All caught up! No pending documentation.</p>
+                        </template>
+
+                        <template if:true={isSelectedInteraction}>
+                            <c-note-detail-display record-id={selectedPendingItem.sourceRecordId} record-type="Interaction"></c-note-detail-display>
+                        </template>
+
+                        <template if:true={isSelectedInterview}>
+                            <c-note-detail-display record-id={selectedPendingItem.sourceRecordId} record-type="Interview"></c-note-detail-display>
+                        </template>
                     </div>
                 </template>
-            </template>
+
+                <template if:false={hasSelectedPendingItem}>
+                    <div class="slds-text-align_center slds-p-around_xx-large">
+                        <lightning-icon icon-name="utility:preview" size="large" class="slds-m-bottom_small text-muted"></lightning-icon>
+                        <p class="slds-text-heading_small text-muted">Select a pending item to view details</p>
+                    </div>
+                </template>
+            </div>
         </div>
     </lightning-card>
 

@@ -83,6 +83,12 @@
         <members>Interview_Session</members>
         <name>FlexiPage</name>
     </types>
+    <!-- Profiles -->
+    <types>
+        <members>System Administrator</members>
+        <members>TGTHR Base Profile</members>
+        <name>Profile</name>
+    </types>
     <!-- API Version (Salesforce v57.0 = Spring 2023) -->
     <version>57.0</version>
 </Package>

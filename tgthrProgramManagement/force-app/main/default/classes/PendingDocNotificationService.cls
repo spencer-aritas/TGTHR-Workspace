@@ -94,8 +94,17 @@ public with sharing class PendingDocNotificationService {
      * @param caseId The Case ID to link to (user will see Pending Documentation tab)
      * @param noteName The name of the note for the notification body
      */
-    @AuraEnabled
     public static void notifyApproverOfCoSignRequest(Id approverId, Id caseId, String noteName) {
+        notifyApproverOfCoSignRequest(approverId, caseId, noteName, null, null);
+    }
+
+    /**
+     * Send notification when a co-sign is requested with direct record targeting.
+     * If recordId is provided, notification opens that record (Interview/InteractionSummary).
+     * Otherwise falls back to Case.
+     */
+    @AuraEnabled
+    public static void notifyApproverOfCoSignRequest(Id approverId, Id caseId, String noteName, Id recordId, String recordType) {
         if (approverId == null || caseId == null) return;
         
         try {
@@ -110,15 +119,41 @@ public with sharing class PendingDocNotificationService {
             
             Messaging.CustomNotification notification = new Messaging.CustomNotification();
             notification.setTitle('Co-Signature Requested');
-            notification.setBody(currentUserName + ' has requested your co-signature on: ' + noteName);
+            String body = currentUserName + ' has requested your co-signature on: ' + noteName;
+            if (String.isNotBlank(recordType)) {
+                body += ' (' + recordType + ')';
+            }
+            notification.setBody(body);
             notification.setNotificationTypeId(notificationType.Id);
-            notification.setTargetId(caseId); // Target the Case, not the InteractionSummary
+            // Target Interview records directly; otherwise fall back to Case for notes
+            Id targetId;
+            targetId = caseId;
+            notification.setTargetId(targetId);
             
             notification.send(new Set<String>{ approverId });
+
+            createOpenRequest(approverId, caseId, recordId, recordType, 'approve');
             
         } catch (Exception e) {
             System.debug('Error sending co-sign notification: ' + e.getMessage());
             // Don't throw - notification failure shouldn't break the save
+        }
+    }
+
+    private static void createOpenRequest(Id userId, Id caseId, Id recordId, String recordType, String action) {
+        if (userId == null || caseId == null || recordId == null) {
+            return;
+        }
+        try {
+            PendingDocOpenRequest__c req = new PendingDocOpenRequest__c();
+            req.TargetUser__c = userId;
+            req.Case__c = caseId;
+            req.RecordId__c = String.valueOf(recordId);
+            req.RecordType__c = recordType;
+            req.Action__c = action;
+            insert req;
+        } catch (Exception e) {
+            System.debug('Error creating open request: ' + e.getMessage());
         }
     }
     
@@ -131,8 +166,15 @@ public with sharing class PendingDocNotificationService {
      * @param noteName The name of the note
      * @param actionNotes Optional notes about the action
      */
-    @AuraEnabled
     public static void notifyUserOfActionItem(Id assignedUserId, Id caseId, String noteName, String actionNotes) {
+        notifyUserOfActionItem(assignedUserId, caseId, noteName, actionNotes, null, null);
+    }
+
+    /**
+     * Send notification when an action is flagged with direct record targeting.
+     */
+    @AuraEnabled
+    public static void notifyUserOfActionItem(Id assignedUserId, Id caseId, String noteName, String actionNotes, Id recordId, String recordType) {
         if (assignedUserId == null || caseId == null) return;
         
         try {
@@ -156,6 +198,8 @@ public with sharing class PendingDocNotificationService {
             notification.setTargetId(caseId); // Target the Case, not the record
             
             notification.send(new Set<String>{ assignedUserId });
+
+            createOpenRequest(assignedUserId, caseId, recordId, recordType, 'action');
             
         } catch (Exception e) {
             System.debug('Error sending action item notification: ' + e.getMessage());

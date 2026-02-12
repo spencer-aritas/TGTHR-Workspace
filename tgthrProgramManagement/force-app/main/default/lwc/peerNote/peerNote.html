@@ -343,6 +343,17 @@
                             </div>
                         </lightning-accordion-section>
 
+                        <!-- CPT Billing Codes Section -->
+                        <lightning-accordion-section name="cptCodes" label="CPT Billing Codes">
+                            <div data-section="cptCodes">
+                                <c-cpt-code-selector
+                                    note-type="Peer"
+                                    selected-codes={selectedCptCodes}
+                                    oncodeselection={handleCptCodeSelection}>
+                                </c-cpt-code-selector>
+                            </div>
+                        </lightning-accordion-section>
+
                         <lightning-accordion-section name="signature" label="Signature">
                             <div data-section="signature">
                                 <p class="slds-text-body_small slds-m-bottom_small">

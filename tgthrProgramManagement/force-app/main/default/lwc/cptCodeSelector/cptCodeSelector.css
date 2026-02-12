@@ -1,0 +1,16 @@
+.cpt-code-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.cpt-code-item {
+    transition: background-color 0.2s ease;
+}
+
+.cpt-code-item:hover {
+    background-color: var(--lwc-colorBackgroundRowHover, #f3f3f3);
+}
+
+.cpt-checkbox {
+    margin-bottom: 0;
+}

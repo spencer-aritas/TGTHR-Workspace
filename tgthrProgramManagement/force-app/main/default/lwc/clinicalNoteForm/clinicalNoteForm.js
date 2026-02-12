@@ -9,9 +9,11 @@ import getCaseManagementBenefits from '@salesforce/apex/ClinicalNoteController.g
 import saveGoalAssignmentDetails from '@salesforce/apex/ClinicalNoteController.saveGoalAssignmentDetails';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
+import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
 import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
@@ -63,6 +65,9 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     // Track work done on each goal: { [goalId]: { workedOn, narrative, progressBefore, progressAfter, timeSpentMinutes, expanded } }
     @track goalWorkState = {};
 
+    // CPT Code selection for billing
+    @track selectedCptCodes = [];
+
     @track signatureContext = {
         signerName: '',
         signDate: ''
@@ -87,9 +92,17 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     @track ssrsAssessmentId = null;
 
     // Draft/Save for Later support
-    @track draftId = null;
+    _draftId = null;
+    @api
+    get draftId() {
+        return this._draftId;
+    }
+    set draftId(value) {
+        this._draftId = value;
+    }
     @track hasDraft = false;
     @track isSavingDraft = false;
+    _pendingDraftState = null;
 
     // Manager Approval support
     @track requestManagerCoSign = false;
@@ -156,6 +169,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
         { name: 'goals', label: 'Goals Addressed' },
+        { name: 'cptCodes', label: 'CPT Billing Codes' },
         { name: 'signature', label: 'Signature' }
     ];
 
@@ -333,6 +347,19 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         this.isLoading = true;
         this.loadError = null;
         try {
+            if (this.draftId) {
+                try {
+                    const draftResult = await loadDraft({ draftId: this.draftId });
+                    if (draftResult && draftResult.found && draftResult.draftJson) {
+                        this._pendingDraftState = JSON.parse(draftResult.draftJson);
+                        this.hasDraft = true;
+                        console.log('Loaded draft data for Case Note:', this.draftId);
+                    }
+                } catch (draftError) {
+                    console.warn('Failed to load draft data for Case Note:', draftError);
+                }
+            }
+
             console.log('Loading case note for case:', this.recordId, ' interactionId:', this.interactionId);
             const data = await initClinicalNote({ caseId: this.recordId, interactionId: this.interactionId });
             this._initializeFromResponse(data);
@@ -476,6 +503,12 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 this.selectedDiagnoses = existingNote.selectedDiagnoses;
             }
             
+            // Populate CPT codes
+            if (existingNote.selectedCptCodes && Array.isArray(existingNote.selectedCptCodes)) {
+                this.selectedCptCodes = existingNote.selectedCptCodes;
+                console.log('Loaded existing CPT codes:', this.selectedCptCodes);
+            }
+            
             // Save reference to existing note for save logic
             this.existingNote = existingNote;
             
@@ -507,6 +540,59 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         };
         this.originalFormState = JSON.parse(JSON.stringify(this.form));
         this.activeSection = 'visit';
+
+        if (this._pendingDraftState) {
+            this._applyDraftState(this._pendingDraftState);
+            this._pendingDraftState = null;
+        }
+    }
+
+    _applyDraftState(savedState) {
+        console.log('Applying draft state to case note form');
+
+        if (savedState.header) {
+            this.header = { ...this.header, ...savedState.header };
+        }
+
+        if (savedState.form) {
+            this.form = { ...this.form, ...savedState.form };
+        }
+
+        if (savedState.benefitIds && Array.isArray(savedState.benefitIds)) {
+            this.form = { ...this.form, benefitIds: savedState.benefitIds };
+        }
+
+        if (savedState.codeIds && Array.isArray(savedState.codeIds)) {
+            this.form = { ...this.form, codeIds: savedState.codeIds };
+        }
+
+        if (savedState.goalWorkState) {
+            this.goalWorkState = { ...this.goalWorkState, ...savedState.goalWorkState };
+        }
+
+        if (savedState.ssrsAssessmentData) {
+            this.ssrsAssessmentData = savedState.ssrsAssessmentData;
+        }
+
+        if (savedState.ssrsAssessmentId) {
+            this.ssrsAssessmentId = savedState.ssrsAssessmentId;
+        } else if (savedState.ssrsAssessmentData) {
+            this.ssrsAssessmentId = savedState.ssrsAssessmentData.assessmentId || savedState.ssrsAssessmentData.id || null;
+        }
+
+        if (savedState.selectedDiagnoses && Array.isArray(savedState.selectedDiagnoses)) {
+            this.selectedDiagnoses = savedState.selectedDiagnoses;
+        }
+
+        if (savedState.selectedCptCodes && Array.isArray(savedState.selectedCptCodes)) {
+            this.selectedCptCodes = savedState.selectedCptCodes;
+        }
+
+        if (savedState.activeSection) {
+            this.activeSection = savedState.activeSection;
+        }
+
+        this._showToast('Draft Restored', 'Your previous work has been restored.', 'info');
     }
     
     _getPriorityClass(priority) {
@@ -742,6 +828,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         if (accordion) {
             accordion.activeSectionName = targetSection;
         }
+        this._logSectionAccess(targetSection, 'CaseNoteSidebar');
         this._scrollSectionIntoView(targetSection);
     }
 
@@ -755,14 +842,81 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         }
         if (latestSection && latestSection !== this.activeSection) {
             this.activeSection = latestSection;
-            this._scrollSectionIntoView(latestSection);
+            this._logSectionAccess(latestSection, 'CaseNoteAccordion');
+        }
+    }
+
+    handleShellWheel(event) {
+        const scrollContainer = this.template.querySelector('.note-content');
+        const sidebar = this.template.querySelector('.note-sidebar');
+        if (!scrollContainer) {
+            return;
+        }
+
+        const eventPath = event.composedPath ? event.composedPath() : [];
+        if (eventPath.includes(scrollContainer) || (sidebar && eventPath.includes(sidebar))) {
+            return;
+        }
+
+        scrollContainer.scrollTop += event.deltaY;
+    }
+
+    _logSectionAccess(sectionName, accessSource) {
+        if (!sectionName) {
+            return;
+        }
+
+        try {
+            if (this.recordId) {
+                logRecordAccessWithPii({
+                    recordId: this.recordId,
+                    objectType: 'Case',
+                    accessSource: `${accessSource}:${sectionName}`,
+                    piiFieldsAccessed: null
+                }).catch(err => {
+                    console.warn('Failed to log case access:', err);
+                });
+            }
+
+            if (this.accountId) {
+                const piiCategories = [];
+                if (this.header?.personName) piiCategories.push('NAMES');
+                if (this.header?.birthdate) piiCategories.push('DATES');
+                if (this.header?.phone) piiCategories.push('PHONE');
+                if (this.header?.email) piiCategories.push('EMAIL');
+                if (this.header?.medicaidId) piiCategories.push('MEDICAL_RECORD');
+
+                logRecordAccessWithPii({
+                    recordId: this.accountId,
+                    objectType: 'PersonAccount',
+                    accessSource: `${accessSource}:${sectionName}`,
+                    piiFieldsAccessed: piiCategories.length ? JSON.stringify(piiCategories) : null
+                }).catch(err => {
+                    console.warn('Failed to log PHI access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in _logSectionAccess:', e);
         }
     }
 
     _scrollSectionIntoView(sectionName) {
-        window.requestAnimationFrame(() => {
+        Promise.resolve().then(() => {
             const sectionEl = this.template.querySelector(`[data-section="${sectionName}"]`);
-            if (sectionEl && typeof sectionEl.scrollIntoView === 'function') {
+            if (!sectionEl) {
+                return;
+            }
+
+            const scrollContainer = this.template.querySelector('.note-content');
+            if (scrollContainer && typeof scrollContainer.scrollTo === 'function') {
+                const containerTop = scrollContainer.getBoundingClientRect().top;
+                const sectionTop = sectionEl.getBoundingClientRect().top;
+                const targetTop = sectionTop - containerTop + scrollContainer.scrollTop;
+                scrollContainer.scrollTo({ top: targetTop, behavior: 'smooth' });
+                return;
+            }
+
+            if (typeof sectionEl.scrollIntoView === 'function') {
                 sectionEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         });
@@ -807,7 +961,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             // AUTO-BIND INTERACTION ID FROM SERVER
             // If the server auto-created a shell Interaction, adopt it immediately.
             if (this.ssrsAssessmentData.interactionSummaryId && !this.interactionId) {
-                this.interactionId = this.ssrsAssessmentData.interactionSummaryId;
+                this._interactionId = this.ssrsAssessmentData.interactionSummaryId;
                 console.log('Adopting Auto-Created Interaction ID:', this.interactionId);
                 this._showToast('Note Saved', 'A draft Case Note has been created.', 'info');
             }
@@ -852,10 +1006,14 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 accountId: this.accountId,
                 header: this.header,
                 form: this.form,
+                benefitIds: this.form.benefitIds,
+                codeIds: this.form.codeIds,
                 goalWorkState: this.goalWorkState,
                 activeGoals: this.activeGoals?.map(g => ({ id: g.id, name: g.name })),
                 ssrsAssessmentData: this.ssrsAssessmentData,
+                ssrsAssessmentId: this.ssrsAssessmentId,
                 selectedDiagnoses: this.selectedDiagnoses, // Preserve ICD-10 selections
+                selectedCptCodes: this.selectedCptCodes,
                 activeSection: this.activeSection,
                 savedAt: new Date().toISOString()
             };
@@ -869,7 +1027,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
             });
             
             if (result.success) {
-                this.draftId = result.draftId;
+                this._draftId = result.draftId;
                 this.hasDraft = true;
                 
                 console.log('Draft saved successfully:', result);
@@ -880,9 +1038,8 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                     this.dispatchEvent(new CustomEvent('close'));
                 }
                 return true;
-            } else {
-                throw new Error(result.errorMessage || 'Failed to save draft');
             }
+            throw new Error(result.errorMessage || 'Failed to save draft');
         } catch (error) {
             console.error('Error saving draft:', error);
             this._showToast('Error', 'Failed to save draft: ' + this._reduceErrors(error).join(', '), 'error');
@@ -904,6 +1061,15 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
      */
     async handleSaveAndClose() {
         await this._saveDraft(true);
+    }
+
+    /**
+     * Handle CPT code selection from cptCodeSelector component
+     */
+    handleCptCodeSelection(event) {
+        const selected = event.detail.selectedCodes || [];
+        this.selectedCptCodes = selected.length > 0 ? [selected[0]] : [];
+        console.log('CPT Codes selected:', this.selectedCptCodes);
     }
 
     async handleSave() {
@@ -987,7 +1153,8 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 codeAssignmentIds: this.form.codeIds,
                 benefitIds: this.form.benefitIds,
                 ssrsAssessmentId: ssrsAssessmentId,
-                noteType: this.noteType
+                noteType: this.noteType,
+                selectedCptCodes: this.selectedCptCodes
             };
 
             const result = await saveClinicalNoteRequest({
@@ -1000,7 +1167,7 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
                 throw new Error(errorMessage);
             }
 
-            this.interactionId = result.interactionSummaryId;
+            this._interactionId = result.interactionSummaryId;
 
             // Save signature
             if (signaturePad && typeof signaturePad.saveSignature === 'function') {

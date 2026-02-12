@@ -1,6 +1,6 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { NavigationMixin } from 'lightning/navigation';
+import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
 import Id from '@salesforce/user/Id';
 import getDraftsForCase from '@salesforce/apex/DocumentDraftService.getDraftsForCase';
@@ -8,11 +8,14 @@ import getUnsignedInteractions from '@salesforce/apex/PendingDocumentationContro
 import getUnsignedInterviews from '@salesforce/apex/PendingDocumentationController.getUnsignedInterviews';
 import getPendingManagerApprovals from '@salesforce/apex/PendingDocumentationController.getPendingManagerApprovals';
 import getMyActionItems from '@salesforce/apex/PendingDocumentationController.getMyActionItems';
+import getOpenRequest from '@salesforce/apex/PendingDocumentationController.getOpenRequest';
+import clearOpenRequest from '@salesforce/apex/PendingDocumentationController.clearOpenRequest';
 import clearAction from '@salesforce/apex/PendingDocumentationController.clearAction';
 import recallAction from '@salesforce/apex/PendingDocumentationController.recallAction';
 import managerApprove from '@salesforce/apex/PendingDocumentationController.managerApprove';
 import flagForAction from '@salesforce/apex/PendingDocumentationController.flagForAction';
 import reassignInterview from '@salesforce/apex/PsychoSocialRenewalService.reassignInterview';
+import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 export default class PendingDocumentation extends NavigationMixin(LightningElement) {
     _recordId;
@@ -25,10 +28,10 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     }
     set recordId(value) {
         this._recordId = value;
+        this.openRequestHandled = false;
+        this.openRequestInFlight = false;
         // Reload pending approvals when recordId changes
-        if (value) {
-            this.loadPendingApprovals();
-        }
+        this.loadPendingApprovals();
     }
     
     @track drafts = [];
@@ -37,6 +40,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     @track actionItems = [];
     @track pendingApprovals = [];
     @track isLoading = true;
+    @track selectedPendingKey = null;
     
     // Modal state
     @track showCaseNoteModal = false;
@@ -80,10 +84,12 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (result.data) {
             this.drafts = this.formatDrafts(result.data);
             this.checkLoadingComplete();
+            this.initializeSelection();
         } else if (result.error) {
             console.error('Error loading drafts:', result.error);
             this.drafts = [];
             this.checkLoadingComplete();
+            this.initializeSelection();
         }
     }
     
@@ -93,10 +99,12 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (result.data) {
             this.unsignedNotes = this.formatUnsignedNotes(result.data);
             this.checkLoadingComplete();
+            this.initializeSelection();
         } else if (result.error) {
             console.error('Error loading unsigned notes:', result.error);
             this.unsignedNotes = [];
             this.checkLoadingComplete();
+            this.initializeSelection();
         }
     }
     
@@ -114,10 +122,12 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             this.unsignedInterviews = this.formatUnsignedNotes(result.data);
             console.log('Formatted interviews:', JSON.stringify(this.unsignedInterviews));
             this.checkLoadingComplete();
+            this.initializeSelection();
         } else if (result.error) {
             console.error('Error loading unsigned interviews:', result.error);
             this.unsignedInterviews = [];
             this.checkLoadingComplete();
+            this.initializeSelection();
         }
     }
     
@@ -140,28 +150,42 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             console.log('Filtered action items:', JSON.stringify(items));
             this.actionItems = items;
             this.checkLoadingComplete();
+            this.initializeSelection();
         } else if (result.error) {
             console.error('Error loading action items:', result.error);
             this.actionItems = [];
             this.checkLoadingComplete();
+            this.initializeSelection();
         }
     }
     
     // Track if pending approvals have been loaded (for checkLoadingComplete)
     pendingApprovalsLoaded = false;
-    
-    // Also call on connectedCallback in case recordId is already set
-    connectedCallback() {
-        if (this._recordId) {
-            this.loadPendingApprovals();
+    autoOpenedPending = false;
+    openRequestHandled = false;
+    openRequestInFlight = false;
+    lastOpenRequestMarker;
+
+    @wire(CurrentPageReference)
+    handlePageReference(pageRef) {
+        const marker = pageRef?.state?.c__pendingDocOpen;
+        if (!marker || marker === this.lastOpenRequestMarker) {
+            return;
+        }
+        this.lastOpenRequestMarker = marker;
+        this.openRequestHandled = false;
+        this.openRequestInFlight = false;
+        if (!this.isLoading) {
+            this.loadOpenRequest();
         }
     }
     
+    // Also call on connectedCallback in case recordId is already set
+    connectedCallback() {
+        this.loadPendingApprovals();
+    }
+    
     async loadPendingApprovals() {
-        if (!this._recordId) {
-            console.log('loadPendingApprovals called but no recordId yet');
-            return;
-        }
         try {
             console.log('=== Loading pending approvals ===');
             console.log('Case ID:', this._recordId);
@@ -175,11 +199,13 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             console.log('Formatted pendingApprovals:', this.pendingApprovals.length);
             this.pendingApprovalsLoaded = true;
             this.checkLoadingComplete();
+            this.initializeSelection();
         } catch (error) {
             console.error('Error loading pending approvals:', error);
             this.pendingApprovals = [];
             this.pendingApprovalsLoaded = true;
             this.checkLoadingComplete();
+            this.initializeSelection();
         }
     }
     
@@ -189,36 +215,458 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             this.wiredUnsignedInterviewsResult && this.wiredActionItemsResult && 
             this.pendingApprovalsLoaded) {
             this.isLoading = false;
+            this.initializeSelection();
+            this.loadOpenRequest();
         }
+    }
+
+    initializeSelection() {
+        if (!this.pendingItems.length) {
+            this.selectedPendingKey = null;
+            return;
+        }
+        const hasSelection = this.selectedPendingKey && this.pendingItems.some(item => item.key === this.selectedPendingKey);
+        if (!hasSelection) {
+            this.selectedPendingKey = this.pendingItems[0].key;
+        }
+
+        this.autoOpenPendingItem();
+    }
+
+    async loadOpenRequest() {
+        if (this.openRequestInFlight || !this._recordId) {
+            return;
+        }
+        this.openRequestInFlight = true;
+        try {
+            const request = await getOpenRequest({ caseId: this._recordId });
+            if (!request || !request.recordId) {
+                this.openRequestHandled = true;
+                return;
+            }
+
+            const match = this.pendingItems.find(item =>
+                item.sourceRecordId === request.recordId || item.approvalRecordId === request.recordId || item.id === request.recordId || item.draftId === request.recordId
+            );
+
+            if (!match) {
+                return;
+            }
+
+            this.selectedPendingKey = match.key;
+            this.autoOpenedPending = true;
+
+            if (match.kind === 'Draft') {
+                this.openDraftByType(match.documentType, match.draftId);
+            } else if (match.kind === 'ActionItem') {
+                this.openNoteForCorrection(match);
+            } else {
+                this.openApprovalModalForItem(match);
+            }
+
+            await clearOpenRequest({ requestId: request.id });
+            this.openRequestHandled = true;
+        } catch (error) {
+            console.error('Error loading open request:', error);
+        } finally {
+            this.openRequestInFlight = false;
+        }
+    }
+
+    autoOpenPendingItem() {
+        if (this.autoOpenedPending || this.isLoading) {
+            return;
+        }
+
+        const actionable = this.pendingItems.filter(item => {
+            if (item.kind === 'PendingApproval') {
+                return item.canApproveAsManager;
+            }
+            if (item.kind === 'Draft') {
+                return true;
+            }
+            if (item.kind === 'ActionItem') {
+                return true;
+            }
+            return false;
+        });
+
+        if (actionable.length !== 1) {
+            return;
+        }
+
+        const item = actionable[0];
+        this.selectedPendingKey = item.key;
+        this.autoOpenedPending = true;
+
+        if (item.kind === 'Draft') {
+            this.openDraftByType(item.documentType, item.draftId);
+            return;
+        }
+
+        if (item.kind === 'ActionItem') {
+            this.openNoteForCorrection(item);
+            return;
+        }
+
+        this.openApprovalModalForItem(item);
+    }
+
+    get pendingItems() {
+        const items = [];
+
+        (this.actionItems || []).forEach(item => {
+            items.push(this.buildPendingItem('ActionItem', item));
+        });
+        (this.pendingApprovals || []).forEach(item => {
+            items.push(this.buildPendingItem('PendingApproval', item));
+        });
+        (this.unsignedNotes || []).forEach(item => {
+            items.push(this.buildPendingItem('UnsignedNote', item));
+        });
+        (this.unsignedInterviews || []).forEach(item => {
+            items.push(this.buildPendingItem('Interview', item));
+        });
+        (this.drafts || []).forEach(item => {
+            items.push(this.buildPendingItem('Draft', item));
+        });
+
+        return items.map(item => ({
+            ...item,
+            itemClass: `pending-item ${item.key === this.selectedPendingKey ? 'pending-item-selected' : ''}`
+        }));
+    }
+
+    buildPendingItem(kind, item) {
+        const key = `${kind}:${item.draftId || item.sourceRecordId || item.id}`;
+        const isDraft = kind === 'Draft';
+        const isInterview = kind === 'Interview';
+        const recordType = isDraft ? 'Draft' : (item.recordType || (isInterview ? 'Interview' : 'Interaction'));
+        const badge = this.getBadgeConfig(kind, item);
+        const statusBadge = this.getStatusBadgeConfig(item, kind);
+        const actionBadge = this.getActionBadgeConfig(item);
+
+        return {
+            key,
+            kind,
+            recordType,
+            title: item.displayTitle || item.name || 'Document',
+            subtitle: item.dateDisplay || item.lastModifiedDisplay || 'No date',
+            ownerDisplay: item.ownerDisplay || item.ownerName || 'Unknown',
+            pendingReason: item.pendingReason || this.getPendingReason(item),
+            badgeLabel: badge.label,
+            badgeIcon: badge.icon,
+            badgeClass: badge.className,
+            statusBadgeLabel: statusBadge.label,
+            statusBadgeClass: statusBadge.className,
+            actionBadgeLabel: actionBadge.label,
+            actionBadgeClass: actionBadge.className,
+            sourceRecordId: item.sourceRecordId,
+            approvalRecordId: item.approvalRecordId,
+            approvalRecordType: item.approvalRecordType,
+            draftId: item.draftId,
+            documentType: item.documentType,
+            notePurpose: item.purpose,
+            actionRequired: item.actionRequired,
+            actionNotes: item.actionNotes,
+            requiresManagerApproval: item.requiresManagerApproval,
+            managerSigned: item.managerSigned,
+            managerRejected: item.managerRejected,
+            managerRejectionReason: item.managerRejectionReason,
+            staffSigned: item.staffSigned,
+            clientSigned: item.clientSigned,
+            canRecallAction: item.canRecallAction,
+            canApproveAsManager: item.canApproveAsManager,
+            canAmend: item.canAmend,
+            isEditLocked: item.isEditLocked,
+            editLockReason: item.editLockReason,
+            templateVersionId: item.templateVersionId,
+            caseId: item.caseId,
+            id: item.id
+        };
+    }
+
+    getBadgeConfig(kind, item) {
+        if (item?.actionRequired) {
+            return {
+                label: 'Action Required',
+                icon: 'utility:undo',
+                className: 'pending-badge pending-badge--action'
+            };
+        }
+        if (item?.requiresManagerApproval && !item?.managerSigned) {
+            return {
+                label: 'Pending Approval',
+                icon: 'utility:clock',
+                className: 'pending-badge pending-badge--approval'
+            };
+        }
+        if (item?.staffSigned === false || item?.clientSigned === false) {
+            return {
+                label: 'Awaiting Signatures',
+                icon: 'utility:clock',
+                className: 'pending-badge pending-badge--approval'
+            };
+        }
+        switch (kind) {
+            case 'Draft':
+                return {
+                    label: 'Draft',
+                    icon: 'utility:edit',
+                    className: 'pending-badge pending-badge--draft'
+                };
+            case 'PendingApproval':
+                return {
+                    label: 'Pending Approval',
+                    icon: 'utility:clock',
+                    className: 'pending-badge pending-badge--approval'
+                };
+            case 'ActionItem':
+                return {
+                    label: 'Action Required',
+                    icon: 'utility:undo',
+                    className: 'pending-badge pending-badge--action'
+                };
+            case 'UnsignedNote':
+            case 'Interview':
+                return {
+                    label: 'Published',
+                    icon: 'utility:world',
+                    className: 'pending-badge pending-badge--published'
+                };
+            default:
+                return {
+                    label: kind || 'Pending',
+                    icon: null,
+                    className: 'pending-badge'
+                };
+        }
+    }
+
+    getStatusBadgeConfig(item, kind) {
+        if (kind === 'Draft') {
+            return { label: 'Draft', className: 'pending-badge pending-badge--draft' };
+        }
+        if (item.managerRejected) {
+            return { label: 'Draft', className: 'pending-badge pending-badge--draft' };
+        }
+        if (item.requiresManagerApproval && !item.managerSigned) {
+            return { label: 'Signed Draft', className: 'pending-badge pending-badge--draft' };
+        }
+        if (item.staffSigned === false || item.clientSigned === false) {
+            return { label: 'Unsigned Draft', className: 'pending-badge pending-badge--draft' };
+        }
+        return { label: 'Published', className: 'pending-badge pending-badge--published' };
+    }
+
+    getActionBadgeConfig(item) {
+        if (item.managerRejected) {
+            return { label: 'Changes Requested', className: 'pending-badge pending-badge--action' };
+        }
+        if (item.actionRequired) {
+            return { label: 'Action Required', className: 'pending-badge pending-badge--action' };
+        }
+        if (item.requiresManagerApproval && !item.managerSigned) {
+            return { label: 'Awaiting Manager Approval', className: 'pending-badge pending-badge--approval' };
+        }
+        if (item.staffSigned === false || item.clientSigned === false) {
+            return { label: 'Awaiting Signatures', className: 'pending-badge pending-badge--approval' };
+        }
+        return { label: '', className: '' };
+    }
+
+    get selectedPendingItem() {
+        return this.pendingItems.find(item => item.key === this.selectedPendingKey);
+    }
+
+    get hasSelectedPendingItem() {
+        return !!this.selectedPendingItem;
+    }
+
+    get isSelectedDraft() {
+        return this.selectedPendingItem?.kind === 'Draft';
+    }
+
+    get isSelectedInterview() {
+        return this.selectedPendingItem?.recordType === 'Interview';
+    }
+
+    get isSelectedInteraction() {
+        return this.selectedPendingItem?.recordType === 'Interaction';
+    }
+
+    handlePendingItemClick(event) {
+        const key = event.currentTarget.dataset.key;
+        if (key) {
+            this.selectedPendingKey = key;
+            const item = this.pendingItems.find(candidate => candidate.key === key);
+            if (item) {
+                this.openPendingItem(item);
+            }
+        }
+    }
+
+    handleOpenSelected() {
+        const item = this.selectedPendingItem;
+        this.openPendingItem(item);
+    }
+
+    openPendingItem(item) {
+        if (!item) {
+            return;
+        }
+        if (item.kind === 'Draft') {
+            this.openDraftByType(item.documentType, item.draftId);
+            return;
+        }
+
+        if (item.kind === 'ActionItem') {
+            if (item.recordType === 'Interview') {
+                this.openInterviewForCorrection(item);
+            } else {
+                this.openNoteForCorrection(item);
+            }
+            return;
+        }
+
+        this.openApprovalModalForItem(item);
+    }
+
+    openDraftByType(documentType, draftId) {
+        this.selectedDraftId = draftId;
+        this.logPendingAccess(draftId, 'Draft', 'PendingDocDraftOpen', this.recordId);
+        switch (documentType) {
+            case 'CaseNote':
+                this.showCaseNoteModal = true;
+                break;
+            case 'ClinicalNote':
+                this.showClinicalNoteModal = true;
+                break;
+            case 'PeerNote':
+                this.showPeerNoteModal = true;
+                break;
+            default:
+                this.showToast('Info', 'Draft type not supported for inline editing', 'info');
+        }
+    }
+
+    openApprovalModal(recordId, recordType) {
+        const modal = this.template.querySelector('c-note-approval-modal');
+        if (modal) {
+            modal.open(recordId, recordType || 'Interaction');
+        }
+    }
+
+    openApprovalModalForItem(item) {
+        if (!item) return;
+        const recordId = item.approvalRecordId || item.sourceRecordId;
+        const recordType = item.approvalRecordType || item.recordType;
+        this.openApprovalModal(recordId, recordType);
+    }
+
+    openNoteForCorrection(item) {
+        this.selectedInteractionId = item.sourceRecordId;
+        this.selectedDraftId = null;
+        const noteName = item.title || '';
+        if (noteName.includes('Clinical Note') || item.notePurpose === 'Clinical Note') {
+            this.showClinicalNoteModal = true;
+        } else if (noteName.includes('Case Note') || item.notePurpose === 'Case Note') {
+            this.showCaseNoteModal = true;
+        } else if (noteName.includes('Peer Note') || item.notePurpose === 'Peer Note') {
+            this.showPeerNoteModal = true;
+        } else {
+            this.showClinicalNoteModal = true;
+        }
+    }
+
+    openInterviewForCorrection(item) {
+        const interviewId = item.sourceRecordId;
+        const caseId = item.caseId;
+        const templateVersionId = item.templateVersionId;
+
+        if (!caseId || !templateVersionId) {
+            this.openInterviewRecord(interviewId);
+            return;
+        }
+
+        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}&startStep=review`;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: {
+                url: vfPageUrl
+            }
+        });
+    }
+
+    openInterviewRecord(interviewId) {
+        if (!interviewId) {
+            return;
+        }
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: interviewId,
+                objectApiName: 'Interview__c',
+                actionName: 'view'
+            }
+        });
     }
     
     formatDrafts(data) {
         return (data || []).map(draft => ({
             ...draft,
             displayTitle: this.docTypeLabels[draft.documentType] || draft.documentType || 'Document',
-            lastModifiedDisplay: draft.lastModifiedDate 
-                ? new Date(draft.lastModifiedDate).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })
-                : 'Unknown'
+            lastModifiedDisplay: this.formatDateTime(draft.lastModifiedDate) || 'Unknown',
+            ownerDisplay: draft.lastModifiedByName || draft.createdByName || 'Unknown',
+            pendingReason: 'Saved draft'
         }));
     }
     
     formatUnsignedNotes(data) {
         return (data || []).map(note => ({
             ...note,
-            dateDisplay: note.dateOfInteraction 
-                ? new Date(note.dateOfInteraction).toLocaleDateString('en-US', {
+            dateDisplay: this.formatDateOnly(note.dateOfInteraction) || 'No date',
+            signatureStatus: this.getSignatureStatus(note),
+            pendingReason: this.getPendingReason(note),
+            ownerDisplay: note.ownerName || 'Unknown'
+        }));
+    }
+
+    formatDateOnly(value) {
+        if (!value) return null;
+        if (typeof value === 'string') {
+            const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (match) {
+                const year = Number(match[1]);
+                const month = Number(match[2]) - 1;
+                const day = Number(match[3]);
+                return new Date(year, month, day).toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric'
-                })
-                : 'No date',
-            signatureStatus: this.getSignatureStatus(note)
-        }));
+                });
+            }
+        }
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return null;
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    }
+
+    formatDateTime(value) {
+        if (!value) return null;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return null;
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     }
     
     getSignatureStatus(note) {
@@ -229,6 +677,25 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         
         if (missing.length === 0) return 'Fully signed';
         return `Needs ${missing.join(' & ')} signature${missing.length > 1 ? 's' : ''}`;
+    }
+
+    getPendingReason(note) {
+        if (note.managerRejected) {
+            return note.managerRejectionReason || 'Changes requested';
+        }
+        if (note.requiresManagerApproval && !note.managerSigned) {
+            return 'Awaiting manager approval';
+        }
+        if (note.actionRequired) {
+            if (note.actionNotes) {
+                return note.actionNotes;
+            }
+            return 'See action details';
+        }
+        if (!note.staffSigned || !note.clientSigned) {
+            return 'Awaiting signatures';
+        }
+        return 'Pending';
     }
     
     // Computed properties
@@ -272,7 +739,8 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         const draftId = event.currentTarget.dataset.id;
         const docType = event.currentTarget.dataset.type;
         const templateVersionId = event.currentTarget.dataset.templateVersionId;
-        
+        this.logPendingAccess(draftId, 'Draft', 'PendingDocDraftOpen', this.recordId);
+
         this.selectedDraftId = draftId;
         
         // Open appropriate modal based on document type
@@ -317,6 +785,8 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (!note) return;
         
         const recordId = note.sourceRecordId;
+        const accessSource = actionItem ? 'PendingDocActionItemOpen' : 'PendingDocUnsignedReview';
+        this.logPendingAccess(recordId, 'InteractionSummary', accessSource, note.caseId);
         
         // If it's an action item (rejected note), open the editing modal to fix it
         if (actionItem) {
@@ -356,6 +826,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         // Find the note to get its sourceRecordId (InteractionSummary ID)
         const note = this.unsignedNotes.find(n => n.id === noteId);
         const recordId = note ? note.sourceRecordId : noteId;
+        this.logPendingAccess(recordId, 'InteractionSummary', 'PendingDocCompleteSignatures', note?.caseId);
         
         console.log('Found matching note:', JSON.stringify(note));
         console.log('Using InteractionSummary recordId:', recordId);
@@ -391,6 +862,8 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         const interviewId = button.dataset.id;
         const caseId = button.dataset.caseId;
         const templateVersionId = button.dataset.templateVersionId;
+
+        this.logPendingAccess(interviewId, 'Interview', 'PendingDocCompleteInterview', caseId);
         
         console.log('Complete Interview clicked:', { interviewId, caseId, templateVersionId });
         console.log('Button dataset:', JSON.stringify(button.dataset));
@@ -431,6 +904,8 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     handleAmendInterview(event) {
         event.stopPropagation();
         const interviewId = event.target.dataset.id;
+        const interview = this.unsignedInterviews?.find(n => n.id === interviewId);
+        this.logPendingAccess(interviewId, 'Interview', 'PendingDocAmendInterview', interview?.caseId);
         
         // Show confirmation dialog before starting amendment
         if (!confirm('This interview is locked after 72 hours. Creating an amendment will:\n\n' +
@@ -473,6 +948,35 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         this.showPeerNoteModal = false;
         this.selectedDraftId = null;
         this.refreshData();
+    }
+
+    logPendingAccess(recordId, objectType, accessSource, caseId) {
+        if (!recordId) {
+            return;
+        }
+        try {
+            logRecordAccessWithPii({
+                recordId,
+                objectType,
+                accessSource,
+                piiFieldsAccessed: null
+            }).catch(err => {
+                console.warn('Failed to log pending access:', err);
+            });
+
+            if (caseId) {
+                logRecordAccessWithPii({
+                    recordId: caseId,
+                    objectType: 'Case',
+                    accessSource,
+                    piiFieldsAccessed: null
+                }).catch(err => {
+                    console.warn('Failed to log case access:', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error in logPendingAccess:', e);
+        }
     }
     
     closeInterviewModal() {
