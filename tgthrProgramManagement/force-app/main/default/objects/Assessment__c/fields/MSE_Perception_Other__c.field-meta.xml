@@ -4,9 +4,16 @@
     <externalId>false</externalId>
     <inlineHelpText>Mental Status Exam - Perception: Other observations (derealization, depersonalization)</inlineHelpText>
     <label>MSE - Perception Other</label>
-    <length>4000</length>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
-    <type>LongTextArea</type>
-    <visibleLines>3</visibleLines>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>None</fullName><default>false</default><label>None</label></value>
+            <value><fullName>Derealization</fullName><default>false</default><label>Derealization</label></value>
+            <value><fullName>Depersonalization</fullName><default>false</default><label>Depersonalization</label></value>
+        </valueSetDefinition>
+    </valueSet>
 </CustomField>

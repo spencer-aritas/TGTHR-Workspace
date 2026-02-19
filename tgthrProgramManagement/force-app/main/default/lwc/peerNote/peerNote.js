@@ -148,10 +148,10 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
         { name: 'visit', label: 'Visit Details' },
+        { name: 'goals', label: 'Goals Addressed' },
         { name: 'narrative', label: 'Notes' },
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
-        { name: 'goals', label: 'Goals Addressed' },
         { name: 'cptCodes', label: 'CPT Billing Codes' },
         { name: 'signature', label: 'Signature' }
     ];
@@ -191,7 +191,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     }
 
     get saveButtonLabel() {
-        return 'Save Peer Note';
+        return 'Save & Submit';
     }
 
     // Manager Approval getters
@@ -729,6 +729,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             // AUTO-BIND INTERACTION ID FROM SERVER
             // If the server auto-created a shell Interaction, adopt it immediately.
             if (this.ssrsAssessmentData.interactionSummaryId && !this.interactionId) {
+                // eslint-disable-next-line @lwc/lwc/no-api-reassignments
                 this.interactionId = this.ssrsAssessmentData.interactionSummaryId;
                 console.log('Adopting Auto-Created Interaction ID:', this.interactionId);
                 this._showToast('Note Saved', 'A draft Peer Note has been created.', 'info');
@@ -774,6 +775,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     }
 
     _scrollSectionIntoView(sectionName) {
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         window.requestAnimationFrame(() => {
             const sectionEl = this.template.querySelector(`[data-section="${sectionName}"]`);
             if (sectionEl && typeof sectionEl.scrollIntoView === 'function') {
@@ -838,6 +840,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             });
             
             if (result.success) {
+                // eslint-disable-next-line @lwc/lwc/no-api-reassignments
                 this.draftId = result.draftId;
                 this.hasDraft = true;
                 
@@ -849,9 +852,8 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                     this.dispatchEvent(new CustomEvent('close'));
                 }
                 return true;
-            } else {
-                throw new Error(result.errorMessage || 'Failed to save draft');
             }
+            throw new Error(result.errorMessage || 'Failed to save draft');
         } catch (error) {
             console.error('Error saving draft:', error);
             this._showToast('Error', 'Failed to save draft: ' + this._reduceErrors(error).join(', '), 'error');
@@ -983,6 +985,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 throw new Error(errorMessage);
             }
 
+            // eslint-disable-next-line @lwc/lwc/no-api-reassignments
             this.interactionId = result.interactionSummaryId;
 
             // Save signature
@@ -1024,6 +1027,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 } catch (draftErr) {
                     console.warn('Failed to delete draft (non-fatal):', draftErr);
                 }
+                // eslint-disable-next-line @lwc/lwc/no-api-reassignments
                 this.draftId = null;
                 this.hasDraft = false;
             }

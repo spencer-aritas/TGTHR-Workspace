@@ -22,6 +22,8 @@ public with sharing class InterviewDocumentController {
         @AuraEnabled public Id templateId;
         @AuraEnabled public String templateName;
         @AuraEnabled public String templateCategory;
+        @AuraEnabled public String clientSignaturePolicy;
+        @AuraEnabled public String staffSignaturePolicy;
         @AuraEnabled public String documentStatus;
         @AuraEnabled public String renderingMode;
         @AuraEnabled public String contentDocumentId;
@@ -112,8 +114,11 @@ public with sharing class InterviewDocumentController {
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
             'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
+            'Interview__r.Manager_Signed__c, Interview__r.Manager_Signed_Date__c, ' +
+            'Interview__r.Manager_Approver__c, Interview__r.Manager_Approver__r.Name, ' +
             'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
+            'InterviewTemplate__r.Client_Signature_Policy__c, InterviewTemplate__r.Staff_Signature_Policy__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
@@ -134,8 +139,11 @@ public with sharing class InterviewDocumentController {
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
             'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
+            'Interview__r.Manager_Signed__c, Interview__r.Manager_Signed_Date__c, ' +
+            'Interview__r.Manager_Approver__c, Interview__r.Manager_Approver__r.Name, ' +
             'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
+            'InterviewTemplate__r.Client_Signature_Policy__c, InterviewTemplate__r.Staff_Signature_Policy__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
@@ -413,8 +421,11 @@ public with sharing class InterviewDocumentController {
             'Interview__r.Client_Signed__c, Interview__r.Staff_Signed__c, ' +
             'Interview__r.Date_Client_Signed__c, Interview__r.Date_Staff_Signed__c, ' +
             'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
+            'Interview__r.Manager_Signed__c, Interview__r.Manager_Signed_Date__c, ' +
+            'Interview__r.Manager_Approver__c, Interview__r.Manager_Approver__r.Name, ' +
             'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
+            'InterviewTemplate__r.Client_Signature_Policy__c, InterviewTemplate__r.Staff_Signature_Policy__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
@@ -445,6 +456,7 @@ public with sharing class InterviewDocumentController {
             'Interview__r.Staff_Signed_By__c, Interview__r.Staff_Signed_By__r.Name, Interview__r.Staff_Signed_By__r.Title, ' +
             'Interview__r.Client__c, Interview__r.Client__r.Name, ' +
             'InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c, ' +
+            'InterviewTemplate__r.Client_Signature_Policy__c, InterviewTemplate__r.Staff_Signature_Policy__c, ' +
             'Document_Status__c, Rendering_Mode__c, ContentDocumentId__c, ' +
             'Case__c, Interaction_Summary__c, CreatedDate ' +
             'FROM InterviewDocument__c ' +
@@ -512,6 +524,23 @@ public with sharing class InterviewDocumentController {
                     info.staffSignerName = (String) staffSigner.get('Name');
                     info.staffSignerTitle = (String) staffSigner.get('Title');
                 }
+
+                // Manager co-signer info
+                Object managerSignedObj = interview.get('Manager_Signed__c');
+                info.managerSigned = managerSignedObj != null && (Boolean)managerSignedObj == true;
+                if (info.managerSigned) {
+                    SObject managerApprover = interview.getSObject('Manager_Approver__r');
+                    if (managerApprover != null) {
+                        info.managerSignerName = (String) managerApprover.get('Name');
+                    }
+                    Object managerSignedDateObj = interview.get('Manager_Signed_Date__c');
+                    if (managerSignedDateObj instanceof DateTime) {
+                        info.managerSignedDate = (DateTime) managerSignedDateObj;
+                    } else if (managerSignedDateObj instanceof Date) {
+                        Date managerSignedDate = (Date) managerSignedDateObj;
+                        info.managerSignedDate = DateTime.newInstance(managerSignedDate, Time.newInstance(12, 0, 0, 0));
+                    }
+                }
                 
                 // Determine who signed and when (legacy fields for backward compatibility)
                 if (info.clientSignedDate != null && info.staffSignedDate != null) {
@@ -532,6 +561,8 @@ public with sharing class InterviewDocumentController {
                 info.templateId = (Id) template.get('Id');
                 info.templateName = (String) template.get('Name');
                 info.templateCategory = (String) template.get('Category__c');
+                info.clientSignaturePolicy = (String) template.get('Client_Signature_Policy__c');
+                info.staffSignaturePolicy = (String) template.get('Staff_Signature_Policy__c');
                 // Template policy fields don't exist yet - default to true for now
                 info.displayInCaseChart = true;
                 info.displayInParticipantChart = true;

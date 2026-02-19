@@ -77,9 +77,28 @@ public with sharing class InteractionSummaryService {
       }
 
       // Get interactions (they represent engagements)
+      // NOTE: Language server false positive - .fields.getMap() is valid Salesforce Schema API
+      Map<String, Schema.SObjectField> interactionFields = Schema.getGlobalDescribe()
+        .get('InteractionSummary')
+        .getDescribe()
+        .fields
+        .getMap();
+      List<String> selectFields = new List<String>{
+        'Id',
+        'Name',
+        'Date_of_Interaction__c',
+        'InteractionPurpose',
+        'AccountId',
+        'Account.Name',
+        'CreatedBy.Name',
+        'CreatedDate'
+      };
+      if (interactionFields.containsKey('servicedate')) {
+        selectFields.add('ServiceDate');
+      }
+
       String interactionQuery =
-        'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, AccountId, Account.Name, ' +
-        'CreatedBy.Name, CreatedDate, ServiceDate ' +
+        'SELECT ' + String.join(selectFields, ', ') + ' ' +
         'FROM InteractionSummary ' +
         'WHERE Program__c = :programId ' +
         'AND Date_of_Interaction__c >= :startDateObj ' +
@@ -273,11 +292,12 @@ public with sharing class InteractionSummaryService {
         try {
           Id candidateId = Id.valueOf(relatedRecordId);
           Schema.SObjectType candidateType = candidateId.getSObjectType();
-          if (candidateType == Case.SObjectType) {
+          String typeName = candidateType.getDescribe().getName();
+          if (typeName == 'Case') {
             if (caseIdToUse == null) {
               caseIdToUse = candidateId;
             }
-          } else if (candidateType == InteractionSummary.SObjectType) {
+          } else if (typeName == 'InteractionSummary') {
             parentInteractionId = candidateId;
           }
         } catch (Exception ex) {
@@ -619,7 +639,7 @@ public with sharing class InteractionSummaryService {
       return Database.query(query);
     } catch (Exception e) {
       System.debug('Error in recentDisbursementsByProgramId: ' + e.getMessage());
-      throw new AuraHandledException('Error retrieving recent disbursements: ' + e.getMessage());
+      throw new System.StringException('Error retrieving recent disbursements: ' + e.getMessage());
     }
   }
 

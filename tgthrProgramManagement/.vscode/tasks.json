@@ -1,0 +1,106 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "SF: test (apex)",
+			"type": "shell",
+			"command": "sf",
+			"args": [
+				"apex",
+				"run",
+				"test",
+				"--code-coverage",
+				"--result-format",
+				"human"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "SF: test (apex)",
+			"type": "shell",
+			"command": "sf",
+			"args": [
+				"apex",
+				"run",
+				"test",
+				"--code-coverage",
+				"--result-format",
+				"human"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "SF: test (apex)",
+			"type": "shell",
+			"command": "sf",
+			"args": [
+				"apex",
+				"run",
+				"test",
+				"--code-coverage",
+				"--result-format",
+				"human"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "SF: test (apex)",
+			"type": "shell",
+			"command": "sf",
+			"args": [
+				"apex",
+				"run",
+				"test",
+				"--code-coverage",
+				"--result-format",
+				"human",
+				"--synchronous"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "SF: test (apex)",
+			"type": "shell",
+			"command": "sf",
+			"args": [
+				"apex",
+				"run",
+				"test",
+				"--code-coverage",
+				"--result-format",
+				"human",
+				"--synchronous"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "SF: test (apex) targeted",
+			"type": "shell",
+			"command": "sf",
+			"args": [
+				"apex",
+				"run",
+				"test",
+				"--code-coverage",
+				"--result-format",
+				"human",
+				"--tests",
+				"ProgramCensusControllerTest,InteractionSummaryServiceTest",
+				"--synchronous"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

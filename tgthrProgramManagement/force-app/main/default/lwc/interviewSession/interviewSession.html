@@ -45,15 +45,6 @@
                                 <div class="slds-page-header__controls">
                                     <div class="slds-page-header__control">
                                         <lightning-button-group>
-                                            <template if:true={showSsrsOption}>
-                                                <lightning-button
-                                                    label="Risk Assessment"
-                                                    icon-name="utility:warning"
-                                                    onclick={handleLaunchSsrs}
-                                                    variant="neutral"
-                                                    title="Launch SSRS Risk Assessment">
-                                                </lightning-button>
-                                            </template>
                                             <lightning-button
                                                 label="Save & Continue"
                                                 icon-name="utility:save"
@@ -63,7 +54,7 @@
                                                 title="Save progress and continue editing">
                                             </lightning-button>
                                             <lightning-button
-                                                label="Save and Close"
+                                                label="Save & Close"
                                                 icon-name="utility:back"
                                                 onclick={handleSaveAndClose}
                                                 variant="neutral"
@@ -294,6 +285,166 @@
                             </lightning-card>
                         </template>
 
+                        <!-- Case Manager Signature Section -->
+                        <template if:true={showCaseManagerSignature}>
+                            <lightning-card title="Case Manager Signature" icon-name="utility:user" class="slds-m-top_medium">
+                                <div class="slds-p-around_medium">
+                                    <!-- User Selection Lookup -->
+                                    <template if:false={signForCaseManagement}>
+                                        <c-user-lookup
+                                            label="Select Case Manager"
+                                            placeholder="Search for Case Manager..."
+                                            permission-set-filter="Python_API_Access"
+                                            onuserselected={handleCaseManagerUserSelected}
+                                            class="slds-m-bottom_small">
+                                        </c-user-lookup>
+                                    </template>
+
+                                    <!-- Sign Now Checkbox (only if user selected and not override) -->
+                                    <template if:true={caseManagerSignedBy}>
+                                        <template if:false={signForCaseManagement}>
+                                            <div class="slds-m-bottom_small">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    label="Case Manager is present - sign now"
+                                                    checked={caseManagerSignNow}
+                                                    onchange={handleCaseManagerSignNowChange}>
+                                                </lightning-input>
+                                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                                    If unchecked, {caseManagerSignedBy.name} will be notified to sign later from Pending Documentation
+                                                </p>
+                                            </div>
+                                        </template>
+                                    </template>
+
+                                    <!-- Signature Pad (only if signing now) -->
+                                    <template if:true={caseManagerSignNow}>
+                                        <template if:false={signForCaseManagement}>
+                                            <c-signature-pad
+                                                title="Case Manager Signature"
+                                                data-role="casemanager"
+                                                filename={caseManagerSignatureFilename}
+                                                onsignaturesaved={handleCaseManagerSignatureSaved}>
+                                            </c-signature-pad>
+                                        </template>
+                                    </template>
+
+                                    <!-- Status Display -->
+                                    <template if:true={caseManagerSignatureStatus}>
+                                        <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
+                                            <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                                            Signed by {caseManagerSignatureStatus.signedBy}
+                                            <template if:true={caseManagerSignatureStatus.title}>
+                                                ({caseManagerSignatureStatus.title})
+                                            </template>
+                                            on {caseManagerSignatureStatus.signedAt}
+                                        </div>
+                                    </template>
+
+                                    <!-- Required Indicator -->
+                                    <template if:true={requireCaseManagerSignature}>
+                                        <template if:false={caseManagerSignatureStatus}>
+                                            <p class="slds-text-color_error slds-m-top_small">* Required</p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </lightning-card>
+                        </template>
+
+                        <!-- Peer Support Signature Section -->
+                        <template if:true={showPeerSupportSignature}>
+                            <lightning-card title="Peer Support Signature" icon-name="utility:user" class="slds-m-top_medium">
+                                <div class="slds-p-around_medium">
+                                    <!-- User Selection Lookup -->
+                                    <template if:false={signForPeer}>
+                                        <c-user-lookup
+                                            label="Select Peer Support"
+                                            placeholder="Search for Peer Support..."
+                                            permission-set-filter="Python_API_Access"
+                                            onuserselected={handlePeerSupportUserSelected}
+                                            class="slds-m-bottom_small">
+                                        </c-user-lookup>
+                                    </template>
+
+                                    <!-- Sign Now Checkbox (only if user selected and not override) -->
+                                    <template if:true={peerSupportSignedBy}>
+                                        <template if:false={signForPeer}>
+                                            <div class="slds-m-bottom_small">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    label="Peer Support is present - sign now"
+                                                    checked={peerSupportSignNow}
+                                                    onchange={handlePeerSupportSignNowChange}>
+                                                </lightning-input>
+                                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                                    If unchecked, {peerSupportSignedBy.name} will be notified to sign later from Pending Documentation
+                                                </p>
+                                            </div>
+                                        </template>
+                                    </template>
+
+                                    <!-- Signature Pad (only if signing now) -->
+                                    <template if:true={peerSupportSignNow}>
+                                        <template if:false={signForPeer}>
+                                            <c-signature-pad
+                                                title="Peer Support Signature"
+                                                data-role="peersupport"
+                                                filename={peerSupportSignatureFilename}
+                                                onsignaturesaved={handlePeerSupportSignatureSaved}>
+                                            </c-signature-pad>
+                                        </template>
+                                    </template>
+
+                                    <!-- Status Display -->
+                                    <template if:true={peerSupportSignatureStatus}>
+                                        <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
+                                            <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                                            Signed by {peerSupportSignatureStatus.signedBy}
+                                            <template if:true={peerSupportSignatureStatus.title}>
+                                                ({peerSupportSignatureStatus.title})
+                                            </template>
+                                            on {peerSupportSignatureStatus.signedAt}
+                                        </div>
+                                    </template>
+
+                                    <!-- Required Indicator -->
+                                    <template if:true={requirePeerSupportSignature}>
+                                        <template if:false={peerSupportSignatureStatus}>
+                                            <p class="slds-text-color_error slds-m-top_small">* Required</p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </lightning-card>
+                        </template>
+
+                        <!-- Signature Override Options -->
+                        <template if:true={showSignatureOverrides}>
+                            <lightning-card title="Signature Options" icon-name="utility:settings" class="slds-m-top_medium">
+                                <div class="slds-p-around_medium">
+                                    <p class="slds-text-body_small slds-m-bottom_small">
+                                        Check the boxes below if you are signing in multiple roles:
+                                    </p>
+                                    <template if:true={hasCaseManagementGoals}>
+                                        <lightning-input
+                                            type="checkbox"
+                                            label="I am also the Case Manager for this client"
+                                            checked={signForCaseManagement}
+                                            onchange={handleSignForCaseManagementChange}
+                                            class="slds-m-bottom_x-small">
+                                        </lightning-input>
+                                    </template>
+                                    <template if:true={hasPeerGoals}>
+                                        <lightning-input
+                                            type="checkbox"
+                                            label="I am also the Peer Support for this client"
+                                            checked={signForPeer}
+                                            onchange={handleSignForPeerChange}>
+                                        </lightning-input>
+                                    </template>
+                                </div>
+                            </lightning-card>
+                        </template>
+
                         <div class="slds-box slds-box_x-small slds-theme_shade slds-m-top_medium">
                             <div class="slds-grid slds-grid_vertical-align-center">
                                 <div class="slds-col slds-grow">
@@ -465,41 +616,117 @@
                                 <template for:each={sections} for:item="section">
                                     <lightning-accordion-section key={section.name} name={section.name} label={section.label}>
                                         <!-- Use grid layout for better space utilization -->
-                                        <div class="slds-grid slds-wrap slds-gutters_small">
-                                            <template for:each={section.questions} for:item="item">
-                                                <!-- Field Set Group Card -->
-                                                <template if:true={item.isFieldSetGroup}>
-                                                    <div key={item.groupName} class="slds-col slds-size_1-of-1">
-                                                        <lightning-card title={item.groupName} icon-name="utility:list" class="slds-m-bottom_small">
-                                                            <div class="slds-p-around_small">
-                                                                <div class="slds-grid slds-wrap slds-gutters_x-small">
-                                                                    <template for:each={item.questions} for:item="question">
-                                                                        <div key={question.questionId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
-                                                                            <c-interview-question-field
-                                                                                question={question}
-                                                                                onanswerchange={handleAnswerChange}>
-                                                                            </c-interview-question-field>
+                                        <template if:true={section.isDiagnosesSection}>
+                                            <div class="slds-m-bottom_small">
+                                                <c-diagnosis-selector
+                                                    case-id={effectiveCaseId}
+                                                    account-id={accountData.Id}
+                                                    selected-diagnoses={selectedDiagnoses}
+                                                    ondiagnosischange={handleDiagnosisChange}>
+                                                </c-diagnosis-selector>
+                                            </div>
+                                        </template>
+                                        <template if:false={section.isDiagnosesSection}>
+                                            <template if:true={section.isMseSection}>
+                                            <lightning-card key={section.name} title="Mental Status Exam" icon-name="utility:summary" class="slds-m-bottom_small">
+                                                <div class="slds-p-around_small">
+                                                    <div class="slds-grid slds-wrap slds-gutters_small">
+                                                        <template for:each={section.questions} for:item="item">
+                                                            <!-- Field Set Group Card -->
+                                                            <template if:true={item.isFieldSetGroup}>
+                                                                <div key={item.groupName} class="slds-col slds-size_1-of-1">
+                                                                    <lightning-card title={item.groupName} icon-name="utility:list" class="slds-m-bottom_small">
+                                                                        <div class="slds-p-around_small">
+                                                                            <div class="slds-grid slds-wrap slds-gutters_x-small">
+                                                                                <template for:each={item.questions} for:item="question">
+                                                                                    <div key={question.questionId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                                                                                        <c-interview-question-field
+                                                                                            question={question}
+                                                                                            onanswerchange={handleAnswerChange}>
+                                                                                        </c-interview-question-field>
+                                                                                    </div>
+                                                                                </template>
+                                                                            </div>
                                                                         </div>
-                                                                    </template>
+                                                                    </lightning-card>
                                                                 </div>
-                                                            </div>
-                                                        </lightning-card>
+                                                            </template>
+                                                            
+                                                            <!-- Regular Question (not in a field set group) -->
+                                                            <template if:false={item.isFieldSetGroup}>
+                                                                <div key={item.questionId} 
+                                                                     class={item.columnClass}>
+                                                                    <c-interview-question-field
+                                                                        question={item}
+                                                                        onanswerchange={handleAnswerChange}>
+                                                                    </c-interview-question-field>
+                                                                </div>
+                                                            </template>
+                                                        </template>
                                                     </div>
-                                                </template>
-                                                
-                                                <!-- Regular Question (not in a field set group) -->
-                                                <template if:false={item.isFieldSetGroup}>
-                                                    <div key={item.questionId} 
-                                                         class={item.columnClass}>
-                                                        <c-interview-question-field
-                                                            question={item}
-                                                            onanswerchange={handleAnswerChange}>
-                                                        </c-interview-question-field>
-                                                    </div>
-                                                </template>
+                                                </div>
+                                            </lightning-card>
                                             </template>
-                                        </div>
+                                            <template if:false={section.isMseSection}>
+                                                <div key={section.name} class="slds-grid slds-wrap slds-gutters_small">
+                                                    <template for:each={section.questions} for:item="item">
+                                                    <!-- Field Set Group Card -->
+                                                    <template if:true={item.isFieldSetGroup}>
+                                                        <div key={item.groupName} class="slds-col slds-size_1-of-1">
+                                                            <lightning-card title={item.groupName} icon-name="utility:list" class="slds-m-bottom_small">
+                                                                <div class="slds-p-around_small">
+                                                                    <div class="slds-grid slds-wrap slds-gutters_x-small">
+                                                                        <template for:each={item.questions} for:item="question">
+                                                                            <div key={question.questionId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
+                                                                                <c-interview-question-field
+                                                                                    question={question}
+                                                                                    onanswerchange={handleAnswerChange}>
+                                                                                </c-interview-question-field>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+                                                            </lightning-card>
+                                                        </div>
+                                                    </template>
+                                                    
+                                                    <!-- Regular Question (not in a field set group) -->
+                                                    <template if:false={item.isFieldSetGroup}>
+                                                        <div key={item.questionId} 
+                                                             class={item.columnClass}>
+                                                            <c-interview-question-field
+                                                                question={item}
+                                                                onanswerchange={handleAnswerChange}>
+                                                            </c-interview-question-field>
+                                                        </div>
+                                                    </template>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </template>
                                     </lightning-accordion-section>
+                                    <template if:true={section.showRiskAssessmentAfter}>
+                                        <lightning-card key={section.riskKey} title="Risk Assessment" icon-name="utility:warning" class="slds-m-vertical_medium">
+                                            <div class="slds-p-around_medium">
+                                                <p class="slds-text-body_regular slds-m-bottom_small">
+                                                    Launch the SSRS Risk Assessment to evaluate and document suicide risk.
+                                                    The assessment data will be saved with this interview.
+                                                </p>
+                                                <lightning-button
+                                                    variant="neutral"
+                                                    label={ssrsButtonLabel}
+                                                    icon-name="utility:assessment"
+                                                    onclick={handleLaunchSsrs}
+                                                    disabled={ssrsDisabled}>
+                                                </lightning-button>
+                                                <template if:false={canLaunchSsrs}>
+                                                    <p class="slds-text-color_error slds-m-top_small">
+                                                        Risk Assessment requires a linked Person Account.
+                                                    </p>
+                                                </template>
+                                            </div>
+                                        </lightning-card>
+                                    </template>
                                 </template>
                             </lightning-accordion>
 
@@ -598,6 +825,33 @@
                                                                 <div class="slds-col slds-text-align_right">
                                                                     <span class="slds-badge">{goal.status}</span>
                                                                     <span class="slds-badge slds-theme_info">{goal.priority}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </lightning-accordion-section>
+                                        </template>
+
+                                        <!-- Diagnoses Review Section -->
+                                        <template if:true={reviewData.diagnoses.hasData}>
+                                            <lightning-accordion-section name="diagnoses" label="Diagnoses">
+                                                <div class="slds-m-bottom_medium">
+                                                    <template for:each={reviewData.diagnoses.items} for:item="diagnosis">
+                                                        <div key={diagnosis.label} class="slds-box slds-box_x-small slds-m-bottom_x-small">
+                                                            <div class="slds-grid slds-grid_align-spread">
+                                                                <div class="slds-col">
+                                                                    <strong>{diagnosis.label}</strong>
+                                                                    <template if:true={diagnosis.details}>
+                                                                        <div class="slds-text-body_small slds-text-color_weak">
+                                                                            {diagnosis.details}
+                                                                        </div>
+                                                                    </template>
+                                                                </div>
+                                                                <div class="slds-col slds-text-align_right">
+                                                                    <template if:true={diagnosis.isPrimary}>
+                                                                        <span class="slds-badge slds-theme_info">Primary</span>
+                                                                    </template>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -725,6 +979,166 @@
                                 </lightning-card>
                             </template>
 
+                            <!-- Case Manager Signature Section -->
+                            <template if:true={showCaseManagerSignature}>
+                                <lightning-card title="Case Manager Signature" icon-name="utility:user" class="slds-m-top_medium">
+                                    <div class="slds-p-around_medium">
+                                        <!-- User Selection Lookup -->
+                                        <template if:false={signForCaseManagement}>
+                                            <c-user-lookup
+                                                label="Select Case Manager"
+                                                placeholder="Search for Case Manager..."
+                                                permission-set-filter="Python_API_Access"
+                                                onuserselected={handleCaseManagerUserSelected}
+                                                class="slds-m-bottom_small">
+                                            </c-user-lookup>
+                                        </template>
+
+                                        <!-- Sign Now Checkbox (only if user selected and not override) -->
+                                        <template if:true={caseManagerSignedBy}>
+                                            <template if:false={signForCaseManagement}>
+                                                <div class="slds-m-bottom_small">
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        label="Case Manager is present - sign now"
+                                                        checked={caseManagerSignNow}
+                                                        onchange={handleCaseManagerSignNowChange}>
+                                                    </lightning-input>
+                                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                                        If unchecked, {caseManagerSignedBy.name} will be notified to sign later from Pending Documentation
+                                                    </p>
+                                                </div>
+                                            </template>
+                                        </template>
+
+                                        <!-- Signature Pad (only if signing now) -->
+                                        <template if:true={caseManagerSignNow}>
+                                            <template if:false={signForCaseManagement}>
+                                                <c-signature-pad
+                                                    title="Case Manager Signature"
+                                                    data-role="casemanager"
+                                                    filename={caseManagerSignatureFilename}
+                                                    onsignaturesaved={handleCaseManagerSignatureSaved}>
+                                                </c-signature-pad>
+                                            </template>
+                                        </template>
+
+                                        <!-- Status Display -->
+                                        <template if:true={caseManagerSignatureStatus}>
+                                            <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
+                                                <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                                                Signed by {caseManagerSignatureStatus.signedBy}
+                                                <template if:true={caseManagerSignatureStatus.title}>
+                                                    ({caseManagerSignatureStatus.title})
+                                                </template>
+                                                on {caseManagerSignatureStatus.signedAt}
+                                            </div>
+                                        </template>
+
+                                        <!-- Required Indicator -->
+                                        <template if:true={requireCaseManagerSignature}>
+                                            <template if:false={caseManagerSignatureStatus}>
+                                                <p class="slds-text-color_error slds-m-top_small">* Required</p>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </lightning-card>
+                            </template>
+
+                            <!-- Peer Support Signature Section -->
+                            <template if:true={showPeerSupportSignature}>
+                                <lightning-card title="Peer Support Signature" icon-name="utility:user" class="slds-m-top_medium">
+                                    <div class="slds-p-around_medium">
+                                        <!-- User Selection Lookup -->
+                                        <template if:false={signForPeer}>
+                                            <c-user-lookup
+                                                label="Select Peer Support"
+                                                placeholder="Search for Peer Support..."
+                                                permission-set-filter="Python_API_Access"
+                                                onuserselected={handlePeerSupportUserSelected}
+                                                class="slds-m-bottom_small">
+                                            </c-user-lookup>
+                                        </template>
+
+                                        <!-- Sign Now Checkbox (only if user selected and not override) -->
+                                        <template if:true={peerSupportSignedBy}>
+                                            <template if:false={signForPeer}>
+                                                <div class="slds-m-bottom_small">
+                                                    <lightning-input
+                                                        type="checkbox"
+                                                        label="Peer Support is present - sign now"
+                                                        checked={peerSupportSignNow}
+                                                        onchange={handlePeerSupportSignNowChange}>
+                                                    </lightning-input>
+                                                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                                        If unchecked, {peerSupportSignedBy.name} will be notified to sign later from Pending Documentation
+                                                    </p>
+                                                </div>
+                                            </template>
+                                        </template>
+
+                                        <!-- Signature Pad (only if signing now) -->
+                                        <template if:true={peerSupportSignNow}>
+                                            <template if:false={signForPeer}>
+                                                <c-signature-pad
+                                                    title="Peer Support Signature"
+                                                    data-role="peersupport"
+                                                    filename={peerSupportSignatureFilename}
+                                                    onsignaturesaved={handlePeerSupportSignatureSaved}>
+                                                </c-signature-pad>
+                                            </template>
+                                        </template>
+
+                                        <!-- Status Display -->
+                                        <template if:true={peerSupportSignatureStatus}>
+                                            <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
+                                                <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                                                Signed by {peerSupportSignatureStatus.signedBy}
+                                                <template if:true={peerSupportSignatureStatus.title}>
+                                                    ({peerSupportSignatureStatus.title})
+                                                </template>
+                                                on {peerSupportSignatureStatus.signedAt}
+                                            </div>
+                                        </template>
+
+                                        <!-- Required Indicator -->
+                                        <template if:true={requirePeerSupportSignature}>
+                                            <template if:false={peerSupportSignatureStatus}>
+                                                <p class="slds-text-color_error slds-m-top_small">* Required</p>
+                                            </template>
+                                        </template>
+                                    </div>
+                                </lightning-card>
+                            </template>
+
+                            <!-- Signature Override Options -->
+                            <template if:true={showSignatureOverrides}>
+                                <lightning-card title="Signature Options" icon-name="utility:settings" class="slds-m-top_medium">
+                                    <div class="slds-p-around_medium">
+                                        <p class="slds-text-body_small slds-m-bottom_small">
+                                            Check the boxes below if you are signing in multiple roles:
+                                        </p>
+                                        <template if:true={hasCaseManagementGoals}>
+                                            <lightning-input
+                                                type="checkbox"
+                                                label="I am also the Case Manager for this client"
+                                                checked={signForCaseManagement}
+                                                onchange={handleSignForCaseManagementChange}
+                                                class="slds-m-bottom_x-small">
+                                            </lightning-input>
+                                        </template>
+                                        <template if:true={hasPeerGoals}>
+                                            <lightning-input
+                                                type="checkbox"
+                                                label="I am also the Peer Support for this client"
+                                                checked={signForPeer}
+                                                onchange={handleSignForPeerChange}>
+                                            </lightning-input>
+                                        </template>
+                                    </div>
+                                </lightning-card>
+                            </template>
+
                             <!-- Manager Co-Signature Request -->
                             <div class="slds-box slds-box_x-small slds-theme_shade slds-m-top_medium">
                                 <div class="slds-grid slds-grid_vertical-align-center">
@@ -793,21 +1207,23 @@
                             </template>
                             <template if:true={isLastStep}>
                                 <lightning-button
-                                    label="Save Interview"
-                                    onclick={handleSave}
+                                    label="Save & Continue"
+                                    onclick={handleSaveAndContinue}
                                     variant="neutral"
-                                    disabled={isSaving}
+                                    disabled={isSavingDraft}
                                     class="slds-m-right_small">
                                 </lightning-button>
-                                <lightning-button
-                                    label="Save & Complete"
-                                    onclick={handleSaveAndDownload}
-                                    variant="brand"
-                                    disabled={isSaving}>
-                                </lightning-button>
-                                <template if:true={isSaving}>
-                                    <lightning-spinner alternative-text="Saving interview" size="small"></lightning-spinner>
-                                </template>
+                                <span class="slds-align-middle">
+                                    <lightning-button
+                                        label="Save & Submit"
+                                        onclick={handleSaveAndDownload}
+                                        variant="brand"
+                                        disabled={isSaving}>
+                                    </lightning-button>
+                                    <template if:true={isSaving}>
+                                        <lightning-spinner alternative-text="Saving interview" size="small" class="slds-m-left_x-small"></lightning-spinner>
+                                    </template>
+                                </span>
                             </template>
                         </div>
                     </div>
@@ -827,6 +1243,8 @@
                                 <c-ssrs-assessment
                                     record-id={accountData.Id}
                                     case-id={effectiveCaseId}
+                                    assessment-id={ssrsAssessmentId}
+                                    interaction-id={ssrsInteractionSummaryId}
                                     oncomplete={handleSsrsComplete}
                                     oncancel={closeSsrsModal}>
                                 </c-ssrs-assessment>

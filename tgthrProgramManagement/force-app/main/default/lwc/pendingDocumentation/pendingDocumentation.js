@@ -12,7 +12,6 @@ import getOpenRequest from '@salesforce/apex/PendingDocumentationController.getO
 import clearOpenRequest from '@salesforce/apex/PendingDocumentationController.clearOpenRequest';
 import clearAction from '@salesforce/apex/PendingDocumentationController.clearAction';
 import recallAction from '@salesforce/apex/PendingDocumentationController.recallAction';
-import managerApprove from '@salesforce/apex/PendingDocumentationController.managerApprove';
 import flagForAction from '@salesforce/apex/PendingDocumentationController.flagForAction';
 import reassignInterview from '@salesforce/apex/PsychoSocialRenewalService.reassignInterview';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
@@ -344,7 +343,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         const recordType = isDraft ? 'Draft' : (item.recordType || (isInterview ? 'Interview' : 'Interaction'));
         const badge = this.getBadgeConfig(kind, item);
         const statusBadge = this.getStatusBadgeConfig(item, kind);
-        const actionBadge = this.getActionBadgeConfig(item);
+        const actionBadge = this.getActionBadgeConfig(item, kind);
 
         return {
             key,
@@ -375,6 +374,12 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             managerRejectionReason: item.managerRejectionReason,
             staffSigned: item.staffSigned,
             clientSigned: item.clientSigned,
+            caseManagerSigned: item.caseManagerSigned,
+            caseManagerAssignedToId: item.caseManagerAssignedToId,
+            caseManagerAssignedToName: item.caseManagerAssignedToName,
+            peerSupportSigned: item.peerSupportSigned,
+            peerSupportAssignedToId: item.peerSupportAssignedToId,
+            peerSupportAssignedToName: item.peerSupportAssignedToName,
             canRecallAction: item.canRecallAction,
             canApproveAsManager: item.canApproveAsManager,
             canAmend: item.canAmend,
@@ -401,7 +406,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
                 className: 'pending-badge pending-badge--approval'
             };
         }
-        if (item?.staffSigned === false || item?.clientSigned === false) {
+        if (kind !== 'Interview' && (item?.staffSigned === false || item?.clientSigned === false)) {
             return {
                 label: 'Awaiting Signatures',
                 icon: 'utility:clock',
@@ -453,13 +458,13 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (item.requiresManagerApproval && !item.managerSigned) {
             return { label: 'Signed Draft', className: 'pending-badge pending-badge--draft' };
         }
-        if (item.staffSigned === false || item.clientSigned === false) {
+        if (kind !== 'Interview' && (item.staffSigned === false || item.clientSigned === false)) {
             return { label: 'Unsigned Draft', className: 'pending-badge pending-badge--draft' };
         }
         return { label: 'Published', className: 'pending-badge pending-badge--published' };
     }
 
-    getActionBadgeConfig(item) {
+    getActionBadgeConfig(item, kind) {
         if (item.managerRejected) {
             return { label: 'Changes Requested', className: 'pending-badge pending-badge--action' };
         }
@@ -469,7 +474,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (item.requiresManagerApproval && !item.managerSigned) {
             return { label: 'Awaiting Manager Approval', className: 'pending-badge pending-badge--approval' };
         }
-        if (item.staffSigned === false || item.clientSigned === false) {
+        if (kind !== 'Interview' && (item.staffSigned === false || item.clientSigned === false)) {
             return { label: 'Awaiting Signatures', className: 'pending-badge pending-badge--approval' };
         }
         return { label: '', className: '' };
@@ -670,9 +675,15 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     }
     
     getSignatureStatus(note) {
+        const isInterview = note.recordType === 'Interview'
+            || note.approvalRecordType === 'Interview'
+            || note.kind === 'Interview'
+            || note.documentType === 'Interview';
         const missing = [];
-        if (!note.staffSigned) missing.push('Staff');
-        if (!note.clientSigned) missing.push('Client');
+        if (!isInterview) {
+            if (!note.staffSigned) missing.push('Staff');
+            if (!note.clientSigned) missing.push('Client');
+        }
         if (note.requiresManagerApproval && !note.managerSigned) missing.push('Manager');
         
         if (missing.length === 0) return 'Fully signed';
@@ -680,6 +691,10 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     }
 
     getPendingReason(note) {
+        const isInterview = note.recordType === 'Interview'
+            || note.approvalRecordType === 'Interview'
+            || note.kind === 'Interview'
+            || note.documentType === 'Interview';
         if (note.managerRejected) {
             return note.managerRejectionReason || 'Changes requested';
         }
@@ -692,7 +707,20 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             }
             return 'See action details';
         }
-        if (!note.staffSigned || !note.clientSigned) {
+        
+        // Check for multi-signature assignments (Case Manager, Peer Support)
+        const waitingOn = [];
+        if (note.caseManagerAssignedToId && !note.caseManagerSigned) {
+            waitingOn.push(`Case Manager (${note.caseManagerAssignedToName || 'Assigned'})`);
+        }
+        if (note.peerSupportAssignedToId && !note.peerSupportSigned) {
+            waitingOn.push(`Peer Support (${note.peerSupportAssignedToName || 'Assigned'})`);
+        }
+        if (waitingOn.length > 0) {
+            return `Waiting on: ${waitingOn.join(', ')}`;
+        }
+        
+        if (!isInterview && (!note.staffSigned || !note.clientSigned)) {
             return 'Awaiting signatures';
         }
         return 'Pending';
@@ -908,6 +936,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         this.logPendingAccess(interviewId, 'Interview', 'PendingDocAmendInterview', interview?.caseId);
         
         // Show confirmation dialog before starting amendment
+        // eslint-disable-next-line no-restricted-globals, no-alert
         if (!confirm('This interview is locked after 72 hours. Creating an amendment will:\n\n' +
             '• Create a new amendment record linked to the original\n' +
             '• Allow you to document changes with a reason\n' +
@@ -1068,6 +1097,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     // Called when approval or rejection is complete
     async handleApprovalComplete() {
         // Small delay to ensure database commits before refresh
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         await new Promise(resolve => setTimeout(resolve, 500));
         await this.refreshData();
     }

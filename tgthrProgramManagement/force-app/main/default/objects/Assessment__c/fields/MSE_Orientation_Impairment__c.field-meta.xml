@@ -4,9 +4,18 @@
     <externalId>false</externalId>
     <inlineHelpText>Mental Status Exam - Cognition: Orientation impairment areas</inlineHelpText>
     <label>MSE - Orientation Impairment</label>
-    <length>4000</length>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
-    <type>LongTextArea</type>
-    <visibleLines>3</visibleLines>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>None</fullName><default>false</default><label>None</label></value>
+            <value><fullName>Place</fullName><default>false</default><label>Place</label></value>
+            <value><fullName>Object</fullName><default>false</default><label>Object</label></value>
+            <value><fullName>Person</fullName><default>false</default><label>Person</label></value>
+            <value><fullName>Time</fullName><default>false</default><label>Time</label></value>
+        </valueSetDefinition>
+    </valueSet>
 </CustomField>

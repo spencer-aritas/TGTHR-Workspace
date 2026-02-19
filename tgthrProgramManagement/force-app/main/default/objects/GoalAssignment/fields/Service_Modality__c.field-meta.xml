@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Service_Modality__c</fullName>
+    <externalId>false</externalId>
+    <label>Service Modality</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Clinical</fullName>
+                <default>true</default>
+                <label>Clinical</label>
+            </value>
+            <value>
+                <fullName>Case Management</fullName>
+                <default>false</default>
+                <label>Case Management</label>
+            </value>
+            <value>
+                <fullName>Peer</fullName>
+                <default>false</default>
+                <label>Peer</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

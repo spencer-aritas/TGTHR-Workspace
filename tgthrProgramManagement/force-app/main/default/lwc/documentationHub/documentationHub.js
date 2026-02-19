@@ -1,11 +1,18 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getActiveTemplates from '@salesforce/apex/InterviewTemplateController.getActiveTemplates';
 import { getRecord } from 'lightning/uiRecordApi';
 import CASE_ACCOUNT_FIELD from '@salesforce/schema/Case.AccountId';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 const FIELDS = [CASE_ACCOUNT_FIELD];
+const INTERVIEW_BUTTONS = [
+    { key: 'treatment-plan', label: 'Treatment Plan', tokens: ['treatment plan'] },
+    { key: 'comp-intake', label: 'Comprehensive Intake Assessment', tokens: ['comprehensive', 'intake'] },
+    { key: '1440-pine', label: '1440 Pine Psycho-Social Intake', tokens: ['1440', 'psycho'] },
+    { key: 'drop-in', label: 'Drop-In and Outreach', tokens: ['drop-in', 'outreach'] }
+];
 
 export default class DocumentationHub extends NavigationMixin(LightningElement) {
     @api recordId;
@@ -14,7 +21,7 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
     @track showCaseNoteModal = false;
     @track showClinicalModal = false;
     @track showPeerNoteModal = false;
-    @track showInterviewModal = false;
+    
     
     // Interview templates
     @track interviewTemplates = [];
@@ -35,6 +42,10 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
             this.accountId = null;
             this.caseLoadError = 'Unable to load linked participant from Case.';
         }
+    }
+
+    connectedCallback() {
+        this.loadInterviewTemplates();
     }
 
     // Disabled state getters
@@ -68,6 +79,17 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
 
     get hasInterviewTemplates() {
         return Array.isArray(this.interviewTemplates) && this.interviewTemplates.length > 0;
+    }
+
+    get interviewButtons() {
+        return INTERVIEW_BUTTONS.map(def => {
+            const template = this.findTemplateByTokens(def.tokens);
+            return {
+                ...def,
+                templateVersionId: template?.templateVersionId || null,
+                disabled: this.isInterviewDisabled || !template?.templateVersionId
+            };
+        });
     }
 
     // Case Note handlers
@@ -124,15 +146,7 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         }
     }
 
-    // Interview/Other Documentation handlers
-    async openInterviewModal() {
-        if (this.isInterviewDisabled) {
-            return;
-        }
-
-        this.logHubAccess('DocumentationHubOpenInterviewList');
-        this.showInterviewModal = true;
-
+    async loadInterviewTemplates() {
         if (this.templatesLoaded) {
             return;
         }
@@ -165,27 +179,46 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         }
     }
 
-    closeInterviewModal() {
-        this.showInterviewModal = false;
+    findTemplateByTokens(tokens) {
+        if (!this.hasInterviewTemplates) {
+            return null;
+        }
+        const normalizedTokens = (tokens || []).map(t => t.toLowerCase());
+        return this.interviewTemplates.find(template => {
+            const name = (template.templateName || '').toLowerCase();
+            return normalizedTokens.every(token => name.includes(token));
+        }) || null;
     }
 
-    launchInterview(event) {
+    handleInterviewButtonClick(event) {
         const versionId = event.currentTarget.dataset.versionId;
         if (!versionId) {
+            this.showToast('Interview Unavailable', 'This interview template is not active.', 'error');
             return;
         }
 
         this.logHubAccess('DocumentationHubLaunchInterview');
+        this.launchInterviewByVersionId(versionId);
+    }
 
-        // Navigate to Visualforce page which hosts the interview session component
+    launchInterviewByVersionId(versionId) {
+        if (!versionId) {
+            return;
+        }
         this[NavigationMixin.Navigate]({
             type: 'standard__webPage',
             attributes: {
                 url: `/apex/InterviewSession?caseId=${this.recordId}&templateVersionId=${versionId}`
             }
         });
+    }
 
-        this.closeInterviewModal();
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({
+            title,
+            message,
+            variant
+        }));
     }
 
     logHubAccess(accessSource) {

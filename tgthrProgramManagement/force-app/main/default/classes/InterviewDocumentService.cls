@@ -66,6 +66,10 @@ public with sharing class InterviewDocumentService {
             'Date_Client_Signed__c, Date_Staff_Signed__c, ' +
             'Client_Signature_File_Id__c, Staff_Signature_File_Id__c, ' +
             'Staff_Signed_By__c, Staff_Signed_By__r.Name, Staff_Signed_By__r.Title, ' +
+            'CaseManager_Signed__c, CaseManager_Signature_File_Id__c, Date_CaseManager_Signed__c, ' +
+            'CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, CaseManager_Signed_By__r.Title, ' +
+            'PeerSupport_Signed__c, PeerSupport_Signature_File_Id__c, Date_PeerSupport_Signed__c, ' +
+            'PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name, PeerSupport_Signed_By__r.Title, ' +
             'Client__r.Name, Client__r.FirstName, Client__r.LastName, ' +
             'Client__r.PersonBirthdate, Client__r.PersonPronouns, ' +
             'Client__r.PersonMobilePhone, Client__r.PersonEmail, ' +
@@ -574,6 +578,82 @@ public with sharing class InterviewDocumentService {
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,
                 'sourceField' => 'Staff_Signature_File_Id__c'
+            });
+        }
+        
+        // Case Manager signature (for Treatment Plans with multi-signature support)
+        Boolean hasCaseManagerSigned = interview.get('CaseManager_Signed__c') != null && (Boolean)interview.get('CaseManager_Signed__c');
+        Boolean hasCaseManagerAssignment = interview.get('CaseManager_Signed_By__c') != null;
+        
+        if (hasCaseManagerSigned || hasCaseManagerAssignment) {
+            String contentDocId = (String)interview.get('CaseManager_Signature_File_Id__c');
+            System.debug('Case Manager ContentDocument ID: ' + contentDocId);
+            String signatureBase64 = getSignatureImageBase64(contentDocId);
+            System.debug('Case Manager signature base64 length: ' + (signatureBase64 != null ? signatureBase64.length() : 0));
+            
+            String cmName = '';
+            String cmTitle = '';
+            SObject cmSigner = interview.getSObject('CaseManager_Signed_By__r');
+            if (cmSigner != null) {
+                cmName = (String)cmSigner.get('Name');
+                cmTitle = (String)cmSigner.get('Title');
+            }
+            
+            String displayName = cmName;
+            if (String.isNotBlank(cmTitle)) {
+                displayName = cmName + ', ' + cmTitle;
+            }
+            
+            signatures.add(new Map<String, Object>{
+                'id' => 'CASE_MANAGER',
+                'role' => 'Case Manager',
+                'policy' => 'Required', // If present, it was required by the template
+                'signed' => hasCaseManagerSigned,
+                'displayName' => displayName,
+                'signerName' => cmName,
+                'signerTitle' => cmTitle,
+                'dateSigned' => String.valueOf(interview.get('Date_CaseManager_Signed__c')),
+                'contentDocumentId' => contentDocId,
+                'imageBase64' => signatureBase64,
+                'sourceField' => 'CaseManager_Signature_File_Id__c'
+            });
+        }
+        
+        // Peer Support signature (for Treatment Plans with multi-signature support)
+        Boolean hasPeerSupportSigned = interview.get('PeerSupport_Signed__c') != null && (Boolean)interview.get('PeerSupport_Signed__c');
+        Boolean hasPeerSupportAssignment = interview.get('PeerSupport_Signed_By__c') != null;
+        
+        if (hasPeerSupportSigned || hasPeerSupportAssignment) {
+            String contentDocId = (String)interview.get('PeerSupport_Signature_File_Id__c');
+            System.debug('Peer Support ContentDocument ID: ' + contentDocId);
+            String signatureBase64 = getSignatureImageBase64(contentDocId);
+            System.debug('Peer Support signature base64 length: ' + (signatureBase64 != null ? signatureBase64.length() : 0));
+            
+            String psName = '';
+            String psTitle = '';
+            SObject psSigner = interview.getSObject('PeerSupport_Signed_By__r');
+            if (psSigner != null) {
+                psName = (String)psSigner.get('Name');
+                psTitle = (String)psSigner.get('Title');
+            }
+            
+            String displayName = psName;
+            if (String.isNotBlank(psTitle)) {
+                displayName = psName + ', ' + psTitle;
+            }
+            
+            signatures.add(new Map<String, Object>{
+                'id' => 'PEER_SUPPORT',
+                'role' => 'Peer Support',
+                'policy' => 'Required', // If present, it was required by the template
+                'signed' => hasPeerSupportSigned,
+                'displayName' => displayName,
+                'signerName' => psName,
+                'signerTitle' => psTitle,
+                'dateSigned' => String.valueOf(interview.get('Date_PeerSupport_Signed__c')),
+                'contentDocumentId' => contentDocId,
+                'imageBase64' => signatureBase64,
+                'sourceField' => 'PeerSupport_Signature_File_Id__c'
             });
         }
         

@@ -248,6 +248,7 @@ export default class Icd10CodeSelector extends LightningElement {
             clearTimeout(this.searchTimeout);
         }
         
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         this.searchTimeout = setTimeout(() => {
             this.performSearch();
         }, SEARCH_DELAY);

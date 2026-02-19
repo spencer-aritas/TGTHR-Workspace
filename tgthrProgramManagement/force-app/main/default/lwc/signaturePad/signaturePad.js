@@ -161,7 +161,7 @@ export default class SignaturePad extends LightningElement {
         if (this.canvas?.releasePointerCapture) {
             try {
                 this.canvas.releasePointerCapture(event.pointerId);
-            } catch (error) {
+            } catch {
                 // ignore (pointer may already be released)
             }
         }

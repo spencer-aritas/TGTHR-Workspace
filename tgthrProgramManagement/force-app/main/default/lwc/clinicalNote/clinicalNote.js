@@ -4,7 +4,6 @@ import { NavigationMixin } from 'lightning/navigation';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
-import saveClinicalNoteWithDiagnoses from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteWithDiagnoses';
 import saveClinicalNoteRequest from '@salesforce/apex/ClinicalNoteController.saveClinicalNoteRequest';
 import getClinicalBenefits from '@salesforce/apex/ClinicalNoteController.getClinicalBenefits';
 import getDiagnosesForCase from '@salesforce/apex/DiagnosisSummaryController.getDiagnosesForCase';
@@ -163,10 +162,10 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
         { name: 'visit', label: 'Visit Details' },
+        { name: 'goals', label: 'Goals Addressed' },
         { name: 'narrative', label: 'Notes' },
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
-        { name: 'goals', label: 'Goals Addressed' },
         { name: 'codes', label: 'Diagnosis Codes' },
         { name: 'cptCodes', label: 'CPT Billing Codes' },
         { name: 'signature', label: 'Signature' }
@@ -212,7 +211,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     }
 
     get saveButtonLabel() {
-        return 'Save Clinical Note';
+        return 'Save & Submit';
     }
 
     // Manager Approval getters
@@ -1113,6 +1112,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             // AUTO-BIND INTERACTION ID FROM SERVER
             // If the server auto-created a shell Interaction, adopt it immediately.
             if (this.ssrsAssessmentData.interactionSummaryId && !this.interactionId) {
+                // eslint-disable-next-line @lwc/lwc/no-api-reassignments
                 this.interactionId = this.ssrsAssessmentData.interactionSummaryId;
                 console.log('Adopting Auto-Created Interaction ID:', this.interactionId);
                 this._showToast('Note Saved', 'A draft Clinical Note has been created.', 'info');
@@ -1158,6 +1158,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     }
 
     _scrollSectionIntoView(sectionName) {
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         window.requestAnimationFrame(() => {
             const sectionEl = this.template.querySelector(`[data-section="${sectionName}"]`);
             if (sectionEl && typeof sectionEl.scrollIntoView === 'function') {
@@ -1234,9 +1235,8 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                     this.dispatchEvent(new CustomEvent('close'));
                 }
                 return true;
-            } else {
-                throw new Error(result.errorMessage || 'Failed to save draft');
             }
+            throw new Error(result.errorMessage || 'Failed to save draft');
         } catch (error) {
             console.error('Error saving draft:', error);
             this._showToast('Error', 'Failed to save draft: ' + this._reduceErrors(error).join(', '), 'error');
@@ -1406,6 +1406,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 throw new Error(errorMessage);
             }
 
+            // eslint-disable-next-line @lwc/lwc/no-api-reassignments
             this.interactionId = result.interactionSummaryId;
 
             // Save signature with user alias in filename

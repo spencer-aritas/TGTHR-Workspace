@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>PeerSupport_Signed_By__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>User who signed as Peer Support for this interview/treatment plan</description>
+    <externalId>false</externalId>
+    <label>Peer Support Signed By</label>
+    <referenceTo>User</referenceTo>
+    <relationshipName>PeerSupport_Interviews</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Lookup</type>
+</CustomField>

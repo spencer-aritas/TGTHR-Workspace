@@ -4,9 +4,17 @@
     <externalId>false</externalId>
     <inlineHelpText>Mental Status Exam - Perception: Hallucinations observed</inlineHelpText>
     <label>MSE - Hallucinations</label>
-    <length>4000</length>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
-    <type>LongTextArea</type>
-    <visibleLines>3</visibleLines>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>None</fullName><default>false</default><label>None</label></value>
+            <value><fullName>Auditory</fullName><default>false</default><label>Auditory</label></value>
+            <value><fullName>Visual</fullName><default>false</default><label>Visual</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
 </CustomField>

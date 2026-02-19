@@ -139,6 +139,111 @@
                             </div>
                         </lightning-accordion-section>
 
+                        <lightning-accordion-section name="goals" label="Goals Addressed">
+                            <div data-section="goals">
+                                <div class="slds-m-bottom_small">
+                                    <p class="slds-text-body_small slds-text-color_weak">
+                                        <template if:true={hasActiveGoals}>
+                                            {goalsWorkedOnCount} of {activeGoals.length} goals selected
+                                        </template>
+                                        <template if:false={hasActiveGoals}>
+                                            No active goals found. Goals are created in the Treatment Plan.
+                                        </template>
+                                    </p>
+                                </div>
+                                
+                                <template if:true={hasActiveGoals}>
+                                    <div class="goal-cards-container">
+                                        <template for:each={goalsWithWorkState} for:item="goal">
+                                            <div key={goal.id} class={goal.cardClass}>
+                                                <div class="goal-card-header" data-goal-id={goal.id} onclick={handleGoalCardClick}>
+                                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                                        <div class="slds-col slds-grow-none slds-m-right_small">
+                                                            <lightning-input
+                                                                type="checkbox"
+                                                                data-goal-id={goal.id}
+                                                                checked={goal.workedOn}
+                                                                onchange={handleGoalWorkedOnChange}
+                                                                onclick={stopPropagation}
+                                                                label=""
+                                                                variant="label-hidden">
+                                                            </lightning-input>
+                                                        </div>
+                                                        <div class="slds-col slds-grow">
+                                                            <p class="goal-name">{goal.name}</p>
+                                                            <template if:true={goal.hasCategory}>
+                                                                <p class="goal-category">{goal.category}</p>
+                                                            </template>
+                                                        </div>
+                                                        <div class="slds-col slds-grow-none slds-text-align_right">
+                                                            <template if:true={goal.priority}>
+                                                                <span class={goal.priorityClass}>{goal.priority}</span>
+                                                            </template>
+                                                            <p class="goal-progress-badge">{goal.progressDisplay}</p>
+                                                        </div>
+                                                        <div class="slds-col slds-grow-none slds-m-left_small">
+                                                            <lightning-icon 
+                                                                icon-name={goal.expandIcon}
+                                                                size="x-small"
+                                                                alternative-text="Toggle details">
+                                                            </lightning-icon>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <template if:true={goal.expanded}>
+                                                    <div class="goal-card-body">
+                                                        <div class="goal-context slds-m-bottom_small">
+                                                            <template if:true={goal.hasObjective}>
+                                                                <p class="slds-text-body_small"><strong>Objective:</strong> {goal.objective}</p>
+                                                            </template>
+                                                            <template if:true={goal.hasModality}>
+                                                                <p class="slds-text-body_small"><strong>Service/Modality:</strong> {goal.modality}</p>
+                                                            </template>
+                                                            <template if:true={goal.hasFrequency}>
+                                                                <p class="slds-text-body_small"><strong>Frequency:</strong> {goal.frequency}</p>
+                                                            </template>
+                                                            <template if:true={goal.hasCategoryDescription}>
+                                                                <p class="slds-text-body_small slds-text-color_weak"><em>{goal.categoryDescription}</em></p>
+                                                            </template>
+                                                            <p class="slds-text-body_small slds-m-top_xx-small">
+                                                                <span class="slds-m-right_medium">Status: {goal.status}</span>
+                                                                <template if:true={goal.hasLastWorked}>
+                                                                    <span>Last worked: {goal.lastWorkedOn} ({goal.sessionsDisplay} sessions)</span>
+                                                                </template>
+                                                            </p>
+                                                        </div>
+                                                        
+                                                        <template if:true={goal.workedOn}>
+                                                            <div class="goal-work-inputs">
+                                                                <div class="slds-form-element slds-m-bottom_small">
+                                                                    <label class="slds-form-element__label">
+                                                                        Progress: {goal.progressAfter}%
+                                                                    </label>
+                                                                    <div class="slds-form-element__control">
+                                                                        <input 
+                                                                            type="range" 
+                                                                            min="0" 
+                                                                            max="100" 
+                                                                            step="5"
+                                                                            value={goal.progressAfter}
+                                                                            data-goal-id={goal.id}
+                                                                            onchange={handleGoalProgressChange}
+                                                                            class="progress-slider" />
+                                                                    </div>
+                                                                </div>
+
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </lightning-accordion-section>
+
                         <lightning-accordion-section name="narrative" label="Notes">
                             <div data-section="narrative">
                                 <div class="rich-text-field">
@@ -232,127 +337,16 @@
                             </div>
                         </lightning-accordion-section>
 
-                        <lightning-accordion-section name="goals" label="Goals Addressed">
-                            <div data-section="goals">
-                                <div class="slds-m-bottom_small">
-                                    <p class="slds-text-body_small slds-text-color_weak">
-                                        <template if:true={hasActiveGoals}>
-                                            {goalsWorkedOnCount} of {activeGoals.length} goals selected
-                                        </template>
-                                        <template if:false={hasActiveGoals}>
-                                            No active goals found. Goals are created in the Treatment Plan.
-                                        </template>
-                                    </p>
-                                </div>
-                                
-                                <template if:true={hasActiveGoals}>
-                                    <div class="goal-cards-container">
-                                        <template for:each={goalsWithWorkState} for:item="goal">
-                                            <div key={goal.id} class={goal.cardClass}>
-                                                <div class="goal-card-header" data-goal-id={goal.id} onclick={handleGoalCardClick}>
-                                                    <div class="slds-grid slds-grid_vertical-align-center">
-                                                        <div class="slds-col slds-grow-none slds-m-right_small">
-                                                            <lightning-input
-                                                                type="checkbox"
-                                                                data-goal-id={goal.id}
-                                                                checked={goal.workedOn}
-                                                                onchange={handleGoalWorkedOnChange}
-                                                                onclick={stopPropagation}
-                                                                label=""
-                                                                variant="label-hidden">
-                                                            </lightning-input>
-                                                        </div>
-                                                        <div class="slds-col slds-grow">
-                                                            <p class="goal-name">{goal.name}</p>
-                                                            <template if:true={goal.hasCategory}>
-                                                                <p class="goal-category">{goal.category}</p>
-                                                            </template>
-                                                        </div>
-                                                        <div class="slds-col slds-grow-none slds-text-align_right">
-                                                            <template if:true={goal.priority}>
-                                                                <span class={goal.priorityClass}>{goal.priority}</span>
-                                                            </template>
-                                                            <p class="goal-progress-badge">{goal.progressDisplay}</p>
-                                                        </div>
-                                                        <div class="slds-col slds-grow-none slds-m-left_small">
-                                                            <lightning-icon 
-                                                                icon-name={goal.expandIcon}
-                                                                size="x-small"
-                                                                alternative-text="Toggle details">
-                                                            </lightning-icon>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <template if:true={goal.expanded}>
-                                                    <div class="goal-card-body">
-                                                        <div class="goal-context slds-m-bottom_small">
-                                                            <template if:true={goal.hasObjective}>
-                                                                <p class="slds-text-body_small"><strong>Objective:</strong> {goal.objective}</p>
-                                                            </template>
-                                                            <template if:true={goal.hasModality}>
-                                                                <p class="slds-text-body_small"><strong>Service/Modality:</strong> {goal.modality}</p>
-                                                            </template>
-                                                            <template if:true={goal.hasFrequency}>
-                                                                <p class="slds-text-body_small"><strong>Frequency:</strong> {goal.frequency}</p>
-                                                            </template>
-                                                            <template if:true={goal.hasCategoryDescription}>
-                                                                <p class="slds-text-body_small slds-text-color_weak"><em>{goal.categoryDescription}</em></p>
-                                                            </template>
-                                                            <p class="slds-text-body_small slds-m-top_xx-small">
-                                                                <span class="slds-m-right_medium">Status: {goal.status}</span>
-                                                                <template if:true={goal.hasLastWorked}>
-                                                                    <span>Last worked: {goal.lastWorkedOn} ({goal.sessionsDisplay} sessions)</span>
-                                                                </template>
-                                                            </p>
-                                                        </div>
-                                                        
-                                                        <template if:true={goal.workedOn}>
-                                                            <div class="goal-work-inputs">
-                                                                <div class="slds-form-element slds-m-bottom_small">
-                                                                    <label class="slds-form-element__label">
-                                                                        Progress: {goal.progressAfter}%
-                                                                    </label>
-                                                                    <div class="slds-form-element__control">
-                                                                        <input 
-                                                                            type="range" 
-                                                                            min="0" 
-                                                                            max="100" 
-                                                                            step="5"
-                                                                            value={goal.progressAfter}
-                                                                            data-goal-id={goal.id}
-                                                                            onchange={handleGoalProgressChange}
-                                                                            class="progress-slider">
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-                                
-                                <template if:false={hasActiveGoals}>
-                                    <div class="slds-illustration slds-illustration_small">
-                                        <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
-                                            No active goals found. Goals are created and managed in the Treatment Plan.
-                                        </p>
-                                    </div>
-                                </template>
-                            </div>
-                        </lightning-accordion-section>
-
                         <lightning-accordion-section name="codes" label="Diagnosis Codes">
                             <div data-section="codes">
-                                <!-- Diagnosis Selector Component -->
-                                <c-diagnosis-selector
-                                    account-id={accountId}
-                                    case-id={recordId}
-                                    selected-diagnoses={selectedDiagnoses}
-                                    ondiagnosischange={handleDiagnosisChange}>
-                                </c-diagnosis-selector>
+                                <div class="slds-m-bottom_small">
+                                    <c-diagnosis-selector
+                                        case-id={recordId}
+                                        account-id={accountId}
+                                        selected-diagnoses={selectedDiagnoses}
+                                        ondiagnosischange={handleDiagnosisChange}>
+                                    </c-diagnosis-selector>
+                                </div>
 
                                 <!-- Selected Diagnoses Cards (Edit/Resolve) -->
                                 <template if:true={selectedDiagnoses}>
@@ -542,7 +536,7 @@
                         </lightning-button>
                         <lightning-button
                             variant="neutral"
-                            label="Save and Close"
+                            label="Save & Close"
                             icon-name="utility:close"
                             onclick={handleSaveAndClose}
                             disabled={isSavingDraft}>

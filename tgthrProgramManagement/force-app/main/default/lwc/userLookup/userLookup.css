@@ -1,0 +1,9 @@
+.selected-user {
+    padding: 0.25rem 0.5rem;
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+.slds-combobox__input:focus {
+    outline: none;
+}

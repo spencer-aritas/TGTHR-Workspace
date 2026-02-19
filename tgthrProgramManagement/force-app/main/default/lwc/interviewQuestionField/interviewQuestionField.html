@@ -77,16 +77,31 @@
 
         <!-- Boolean -->
         <template if:true={isBoolean}>
-            <lightning-input
-                type="checkbox"
-                label={question.label}
-                checked={question.answer}
-                data-question-id={question.questionId}
-                data-response-type={question.responseType}
-                disabled={question.isReadOnly}
-                onchange={handleChange}
-                field-level-help={question.helpText}>
-            </lightning-input>
+            <template if:true={isBooleanYesNo}>
+                <lightning-radio-group
+                    label={question.label}
+                    options={yesNoOptions}
+                    value={booleanValue}
+                    data-question-id={question.questionId}
+                    data-response-type={question.responseType}
+                    onchange={handleChange}
+                    required={question.required}
+                    disabled={question.isReadOnly}
+                    field-level-help={question.helpText}>
+                </lightning-radio-group>
+            </template>
+            <template if:false={isBooleanYesNo}>
+                <lightning-input
+                    type="checkbox"
+                    label={question.label}
+                    checked={question.answer}
+                    data-question-id={question.questionId}
+                    data-response-type={question.responseType}
+                    disabled={question.isReadOnly}
+                    onchange={handleChange}
+                    field-level-help={question.helpText}>
+                </lightning-input>
+            </template>
         </template>
 
         <!-- Picklist -->

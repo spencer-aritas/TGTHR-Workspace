@@ -15,7 +15,6 @@
             <value><fullName>Good</fullName><default>false</default><label>Good</label></value>
             <value><fullName>Fair</fullName><default>false</default><label>Fair</label></value>
             <value><fullName>Poor</fullName><default>false</default><label>Poor</label></value>
-            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>
