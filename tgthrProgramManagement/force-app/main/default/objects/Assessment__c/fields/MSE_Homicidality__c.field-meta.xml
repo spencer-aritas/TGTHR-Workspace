@@ -4,9 +4,17 @@
     <externalId>false</externalId>
     <inlineHelpText>Mental Status Exam - Thoughts: Homicidality assessment</inlineHelpText>
     <label>MSE - Homicidality</label>
-    <length>4000</length>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
-    <type>LongTextArea</type>
-    <visibleLines>3</visibleLines>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>None</fullName><default>false</default><label>None</label></value>
+            <value><fullName>Aggressive</fullName><default>false</default><label>Aggressive</label></value>
+            <value><fullName>Intent</fullName><default>false</default><label>Intent</label></value>
+            <value><fullName>Plan</fullName><default>false</default><label>Plan</label></value>
+        </valueSetDefinition>
+    </valueSet>
 </CustomField>

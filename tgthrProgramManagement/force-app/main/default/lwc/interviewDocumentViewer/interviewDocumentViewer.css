@@ -88,6 +88,10 @@
     background-color: #546E7A;
 }
 
+.completed-badge + .completed-badge {
+    margin-left: 0.5rem;
+}
+
 /* Scrollbar styling for document list */
 .document-list-panel::-webkit-scrollbar {
     width: 6px;

@@ -76,6 +76,21 @@ public with sharing class InterviewSessionController {
         }
     }
 
+    /**
+     * DTO for diagnosis input from the ICD-10 selector.
+     */
+    public class DiagnosisInput {
+        @AuraEnabled public String id;            // Existing Diagnosis ID (optional)
+        @AuraEnabled public String code;          // ICD-10 code (e.g., F32.1)
+        @AuraEnabled public String description;   // Description of the diagnosis
+        @AuraEnabled public String status;        // Active, Historical
+        @AuraEnabled public String diagnosisType; // Chronic, Acute
+        @AuraEnabled public String onsetDate;     // Date of onset (string)
+        @AuraEnabled public Boolean isPrimary;    // Primary diagnosis flag
+        @AuraEnabled public String notes;         // Clinical notes for this diagnosis
+        @AuraEnabled public String category;      // Category (e.g., Mental Health)
+    }
+
     public class SaveRequest {
         @AuraEnabled public Id caseId;
         @AuraEnabled public Id accountId;
@@ -91,6 +106,7 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public String incomeBenefitsJson;
         @AuraEnabled public CarePlanConsentDTO carePlanConsent;
         @AuraEnabled public Id ssrsAssessmentId; // Link to SSRS Assessment if completed during this interview
+        @AuraEnabled public List<DiagnosisInput> diagnoses; // Diagnoses selected in the interview
         
         public SaveRequest() {
             // No-arg constructor for proper deserialization
@@ -120,14 +136,10 @@ public with sharing class InterviewSessionController {
     @AuraEnabled(cacheable=true)
     public static SessionInitResponse initializeSession(Id caseId, Id templateVersionId) {
         if (caseId == null) {
-            AuraHandledException e = new AuraHandledException('Case Id is required.');
-            e.setMessage('Case Id is required.');
-            throw e;
+            throw new System.StringException('Case Id is required.');
         }
         if (templateVersionId == null) {
-            AuraHandledException e = new AuraHandledException('Template Version Id is required.');
-            e.setMessage('Template Version Id is required.');
-            throw e;
+            throw new System.StringException('Template Version Id is required.');
         }
 
         SessionInitResponse response = new SessionInitResponse();
@@ -210,9 +222,7 @@ public with sharing class InterviewSessionController {
                 Long endMillis = ((Long)endTime.hour() * 3600000) + ((Long)endTime.minute() * 60000) + ((Long)endTime.second() * 1000) + (Long)endTime.millisecond();
                 
                 if (endMillis <= startMillis) {
-                    AuraHandledException e = new AuraHandledException('End Time must be after Start Time.');
-                    e.setMessage('End Time must be after Start Time.');
-                    throw e;
+                    throw new System.StringException('End Time must be after Start Time.');
                 }
             }
 
@@ -309,6 +319,10 @@ public with sharing class InterviewSessionController {
                 mapAnswersToAccount(accountId, request.answers, templateVersion);
             }
 
+            if (request.diagnoses != null && !request.diagnoses.isEmpty()) {
+                createDiagnoses(accountId, request.diagnoses, (Id)summary.get('Id'));
+            }
+
             // Create benefit disbursements if benefits were selected
             if (request.housingBenefitIds != null && !request.housingBenefitIds.isEmpty()) {
                 System.debug('Creating housing benefit disbursements for ' + request.housingBenefitIds.size() + ' benefits');
@@ -353,27 +367,31 @@ public with sharing class InterviewSessionController {
     }
 
     @AuraEnabled
-    public static Boolean updateInterviewSignatures(Id interviewId, String clientSignatureId, String staffSignatureId) {
+    public static Boolean updateInterviewSignatures(
+        Id interviewId, 
+        String clientSignatureId, 
+        String staffSignatureId,
+        String caseManagerSignatureId,
+        Id caseManagerSignedBy,
+        String peerSupportSignatureId,
+        Id peerSupportSignedBy
+    ) {
         try {
             if (interviewId == null) {
                 return false;
             }
 
-            // Query Interview with Account lookup for Client_Signed_By__c
+            // Query Interview with all signature fields to check current state
             SObject interview = Database.query(
-                'SELECT Id, Case__r.AccountId FROM Interview__c WHERE Id = :interviewId LIMIT 1'
+                'SELECT Id, Client__c, ' +
+                'CaseManager_Signed_By__c, CaseManager_Signed__c, ' +
+                'PeerSupport_Signed_By__c, PeerSupport_Signed__c ' +
+                'FROM Interview__c WHERE Id = :interviewId LIMIT 1'
             )[0];
             
             // Get Account ID for client signature (Client_Signed_By__c is an Account lookup)
-            Id accountId = null;
-            try {
-                SObject caseRecord = (SObject)interview.getSObject('Case__r');
-                if (caseRecord != null) {
-                    accountId = (Id)caseRecord.get('AccountId');
-                }
-            } catch (Exception e) {
-                System.debug('Could not get AccountId from Case: ' + e.getMessage());
-            }
+            // Interview__c has a direct Client__c field that stores the Account ID
+            Id accountId = (Id)interview.get('Client__c');
 
             Boolean updated = false;
 
@@ -404,8 +422,82 @@ public with sharing class InterviewSessionController {
                 }
             }
 
+            // Case Manager Signature
+            // Always set assigned user if provided (for "assign for later" workflow)
+            if (caseManagerSignedBy != null) {
+                putIfFieldExists(interview, 'CaseManager_Signed_By__c', caseManagerSignedBy);
+                updated = true;
+            }
+            if (!String.isBlank(caseManagerSignatureId)) {
+                String contentDocId = getContentDocumentId(caseManagerSignatureId);
+                if (!String.isBlank(contentDocId)) {
+                    putIfFieldExists(interview, 'CaseManager_Signature_File_Id__c', contentDocId);
+                    putIfFieldExists(interview, 'CaseManager_Signed__c', true);
+                    putIfFieldExists(interview, 'Date_CaseManager_Signed__c', Datetime.now());
+                    updated = true;
+                }
+            }
+
+            // Peer Support Signature
+            // Always set assigned user if provided (for "assign for later" workflow)
+            if (peerSupportSignedBy != null) {
+                putIfFieldExists(interview, 'PeerSupport_Signed_By__c', peerSupportSignedBy);
+                updated = true;
+            }
+            if (!String.isBlank(peerSupportSignatureId)) {
+                String contentDocId = getContentDocumentId(peerSupportSignatureId);
+                if (!String.isBlank(contentDocId)) {
+                    putIfFieldExists(interview, 'PeerSupport_Signature_File_Id__c', contentDocId);
+                    putIfFieldExists(interview, 'PeerSupport_Signed__c', true);
+                    putIfFieldExists(interview, 'Date_PeerSupport_Signed__c', Datetime.now());
+                    updated = true;
+                }
+            }
+
             if (updated) {
+                // Determine if interview should be In Progress or Submitted
+                // Status should be 'In Progress' if there are assigned but unsigned multi-signatures
+                
+                // Get current state from queried record (will be null if not set)
+                Id existingCMSignedBy = (Id)interview.get('CaseManager_Signed_By__c');
+                Boolean existingCMSigned = interview.get('CaseManager_Signed__c') != null && (Boolean)interview.get('CaseManager_Signed__c');
+                Id existingPSSignedBy = (Id)interview.get('PeerSupport_Signed_By__c');
+                Boolean existingPSSigned = interview.get('PeerSupport_Signed__c') != null && (Boolean)interview.get('PeerSupport_Signed__c');
+                
+                System.debug('=== SIGNATURE STATUS CHECK ===');
+                System.debug('Existing CM SignedBy: ' + existingCMSignedBy + ' | Signed: ' + existingCMSigned);
+                System.debug('Existing PS SignedBy: ' + existingPSSignedBy + ' | Signed: ' + existingPSSigned);
+                System.debug('New CM SignedBy param: ' + caseManagerSignedBy + ' | Signature param: ' + caseManagerSignatureId);
+                System.debug('New PS SignedBy param: ' + peerSupportSignedBy + ' | Signature param: ' + peerSupportSignatureId);
+                
+                // Determine final state after this update
+                Id finalCMSignedBy = caseManagerSignedBy != null ? caseManagerSignedBy : existingCMSignedBy;
+                Boolean finalCMSigned = !String.isBlank(caseManagerSignatureId) ? true : existingCMSigned;
+                Id finalPSSignedBy = peerSupportSignedBy != null ? peerSupportSignedBy : existingPSSignedBy;
+                Boolean finalPSSigned = !String.isBlank(peerSupportSignatureId) ? true : existingPSSigned;
+                
+                System.debug('Final CM SignedBy: ' + finalCMSignedBy + ' | Signed: ' + finalCMSigned);
+                System.debug('Final PS SignedBy: ' + finalPSSignedBy + ' | Signed: ' + finalPSSigned);
+                
+                // Check if there will be pending signatures after this update
+                Boolean hasPendingCaseManager = finalCMSignedBy != null && !finalCMSigned;
+                Boolean hasPendingPeerSupport = finalPSSignedBy != null && !finalPSSigned;
+                Boolean hasPendingMultiSignatures = hasPendingCaseManager || hasPendingPeerSupport;
+                
+                System.debug('Pending CM: ' + hasPendingCaseManager + ' | Pending PS: ' + hasPendingPeerSupport);
+                System.debug('Has pending multi-signatures: ' + hasPendingMultiSignatures);
+                
+                if (hasPendingMultiSignatures) {
+                    putIfFieldExists(interview, 'Status__c', 'In Progress');
+                    System.debug('✅ Interview marked In Progress - pending multi-signatures');
+                } else {
+                    // All required signatures are collected or no multi-signatures needed
+                    putIfFieldExists(interview, 'Status__c', 'Submitted');
+                    System.debug('✅ Interview marked Submitted - all signatures collected');
+                }
+                
                 update interview;
+                System.debug('Interview updated. Final Status: ' + interview.get('Status__c'));
             }
 
             return true;
@@ -448,6 +540,8 @@ public with sharing class InterviewSessionController {
         }
 
         try {
+            // NOTE: ContentDocumentLink and ContentVersion are standard Salesforce objects
+            // Language server false positives - code compiles successfully
             List<ContentDocumentLink> linksToInsert = new List<ContentDocumentLink>();
             
             for (String contentDocId : contentDocumentIds) {
@@ -480,6 +574,7 @@ public with sharing class InterviewSessionController {
 
     /**
      * Convert ContentVersion ID to ContentDocument ID
+     * NOTE: ContentVersion is a standard Salesforce object - language server false positive
      */
     private static String getContentDocumentId(String contentVersionId) {
         if (String.isBlank(contentVersionId)) {
@@ -504,6 +599,8 @@ public with sharing class InterviewSessionController {
         return null;
     }
 
+    // NOTE: InterviewTemplateVersion__c is a custom object - language server false positive
+    // This code compiles and deploys successfully in Salesforce
     private static TemplateDTO loadTemplate(Id templateVersionId) {
         InterviewTemplateVersion__c versionRecord = [
             SELECT Id, Name, Version__c, Status__c, Variant__c, Effective_From__c, Effective_To__c,
@@ -586,6 +683,9 @@ public with sharing class InterviewSessionController {
         return template;
     }
 
+    /**
+     * Comparator to sort sections by order
+     */
     private class SectionComparator implements Comparator<TemplateSectionDTO> {
         public Integer compare(TemplateSectionDTO left, TemplateSectionDTO right) {
             Integer leftOrder = left != null && left.order != null ? left.order : 0;
@@ -594,6 +694,9 @@ public with sharing class InterviewSessionController {
         }
     }
 
+    /**
+     * Comparator to sort questions by order
+     */
     private class QuestionComparator implements Comparator<TemplateQuestionDTO> {
         public Integer compare(TemplateQuestionDTO left, TemplateQuestionDTO right) {
             Integer leftOrder = left != null && left.order != null ? left.order : 0;
@@ -1020,9 +1123,7 @@ public with sharing class InterviewSessionController {
             LIMIT 1
         ];
         if (caseRecord.AccountId == null) {
-            AuraHandledException e = new AuraHandledException('Case must be linked to a participant.');
-            e.setMessage('Case must be linked to a participant.');
-            throw e;
+            throw new System.StringException('Case must be linked to a participant.');
         }
         return caseRecord.AccountId;
     }
@@ -1731,7 +1832,7 @@ public with sharing class InterviewSessionController {
             // Race/Ethnicity - LWC now sends Race_and_Ethnicity__pc directly
             if (demographics.containsKey('Race_and_Ethnicity__pc') && demographics.get('Race_and_Ethnicity__pc') != null) {
                 // Handle multi-select picklist (List<String> -> semicolon-separated)
-                Object raceValue = demographics.get('Race_Ethnicity__c');
+                Object raceValue = demographics.get('Race_and_Ethnicity__pc');
                 Set<String> selectedRaces = new Set<String>();
                 
                 if (raceValue instanceof List<Object>) {
@@ -1746,7 +1847,7 @@ public with sharing class InterviewSessionController {
                 } else if (String.valueOf(raceValue) != '') {
                     String raceStr = String.valueOf(raceValue);
                     selectedRaces.addAll(raceStr.split(';'));
-                    putIfFieldExists(acc, 'Race_and_Ethnicity__pc', raceValue);
+                    putIfFieldExists(acc, 'Race_and_Ethnicity__pc', raceStr);
                 }
                 
                 // NOTE: Individual race boolean fields (Race_American_Indian_or_Alaska_Native__pc, etc.)
@@ -1916,6 +2017,409 @@ public with sharing class InterviewSessionController {
     }
 
     /**
+     * Creates Diagnosis__c records from the selected diagnoses in an Interview.
+     * Links them to the Client (Account) and optionally to the InteractionSummary.
+     */
+    private static void createDiagnoses(Id accountId, List<DiagnosisInput> diagnoses, Id interactionSummaryId) {
+        if (diagnoses == null || diagnoses.isEmpty() || accountId == null) {
+            return;
+        }
+
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        if (!gd.containsKey('Diagnosis__c')) {
+            System.debug('Diagnosis__c object not available in this org');
+            return;
+        }
+
+        Schema.SObjectType diagType = gd.get('Diagnosis__c');
+        Map<String, Schema.SObjectField> fieldMap = diagType.getDescribe().fields.getMap();
+
+        Set<String> codesToLookup = new Set<String>();
+        Map<String, String> codeToDesc = new Map<String, String>();
+        for (DiagnosisInput diag : diagnoses) {
+            if (String.isNotBlank(diag.code)) {
+                codesToLookup.add(diag.code);
+                if (String.isNotBlank(diag.description)) {
+                    codeToDesc.put(diag.code, diag.description);
+                }
+            }
+        }
+
+        Set<String> existingCodes = new Set<String>();
+        if (!codesToLookup.isEmpty()) {
+            try {
+                String existingQuery = 'SELECT Id, Code__c FROM Diagnosis__c WHERE Client__c = :accountId AND Status__c = \'Active\'';
+                for (SObject existing : Database.query(existingQuery)) {
+                    String existingCode = (String)existing.get('Code__c');
+                    if (String.isNotBlank(existingCode)) {
+                        existingCodes.add(existingCode.toUpperCase());
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('Could not check for existing diagnoses: ' + e.getMessage());
+            }
+        }
+
+        SystemLevelHelper helper = new SystemLevelHelper();
+        Map<String, Id> codeNumberToId = helper.findOrCreateCodes(codesToLookup, codeToDesc);
+        Map<String, String> resolvedDescriptions = helper.getCodeDescriptions(codesToLookup);
+
+        Map<String, String> resolvedDescriptionsUpper = new Map<String, String>();
+        for (String key : resolvedDescriptions.keySet()) {
+            if (key != null) {
+                resolvedDescriptionsUpper.put(key.toUpperCase(), resolvedDescriptions.get(key));
+            }
+        }
+
+        List<SObject> diagnosesToInsert = new List<SObject>();
+        List<SObject> diagnosesToUpdate = new List<SObject>();
+
+        for (DiagnosisInput diag : diagnoses) {
+            if (String.isNotBlank(diag.id)) {
+                SObject diagUpdate = diagType.newSObject(diag.id);
+                putFieldIfExists(diagUpdate, fieldMap, 'Status__c', String.isNotBlank(diag.status) ? diag.status : 'Active');
+                putFieldIfExists(diagUpdate, fieldMap, 'Notes__c', diag.notes);
+                putFieldIfExists(diagUpdate, fieldMap, 'Primary__c', diag.isPrimary);
+                diagnosesToUpdate.add(diagUpdate);
+                continue;
+            }
+
+            if (String.isNotBlank(diag.code) && existingCodes.contains(diag.code.toUpperCase())) {
+                continue;
+            }
+
+            SObject diagRec = diagType.newSObject();
+            diagRec.put('Client__c', accountId);
+
+            String resolvedDescription = diag.description;
+            if (String.isBlank(resolvedDescription) && String.isNotBlank(diag.code)) {
+                if (resolvedDescriptions.containsKey(diag.code)) {
+                    resolvedDescription = resolvedDescriptions.get(diag.code);
+                } else if (resolvedDescriptionsUpper.containsKey(diag.code.toUpperCase())) {
+                    resolvedDescription = resolvedDescriptionsUpper.get(diag.code.toUpperCase());
+                }
+            }
+
+            String diagName = '';
+            if (String.isNotBlank(diag.code) && String.isNotBlank(resolvedDescription)) {
+                diagName = diag.code + ' - ' + resolvedDescription;
+            } else if (String.isNotBlank(resolvedDescription)) {
+                diagName = resolvedDescription;
+            } else if (String.isNotBlank(diag.code)) {
+                diagName = diag.code;
+            }
+            if (String.isNotBlank(diagName) && diagName.length() > 80) {
+                diagName = diagName.substring(0, 80);
+            }
+            diagRec.put('Name', diagName);
+
+            if (String.isNotBlank(diag.code)) {
+                Id codeId = null;
+                if (codeNumberToId.containsKey(diag.code)) {
+                    codeId = codeNumberToId.get(diag.code);
+                } else if (codeNumberToId.containsKey(diag.code.toUpperCase())) {
+                    codeId = codeNumberToId.get(diag.code.toUpperCase());
+                }
+
+                if (codeId != null) {
+                    try {
+                        diagRec.put('Code_Name__c', codeId);
+                    } catch (Exception e) {
+                        putFieldIfExists(diagRec, fieldMap, 'Code_Name__c', codeId);
+                    }
+                }
+            }
+
+            if (String.isNotBlank(diag.code)) {
+                try {
+                    diagRec.put('ICD10Code__c', diag.code);
+                } catch (Exception e) {
+                    putFieldIfExists(diagRec, fieldMap, 'ICD10Code__c', diag.code);
+                }
+            }
+
+            if (String.isNotBlank(resolvedDescription)) {
+                try {
+                    diagRec.put('Description__c', resolvedDescription);
+                } catch (Exception e) {
+                    putFieldIfExists(diagRec, fieldMap, 'Description__c', resolvedDescription);
+                }
+            }
+
+            putFieldIfExists(diagRec, fieldMap, 'Status__c', String.isNotBlank(diag.status) ? diag.status : 'Active');
+            putFieldIfExists(diagRec, fieldMap, 'Type__c', diag.diagnosisType);
+
+            if (String.isNotBlank(diag.onsetDate)) {
+                try {
+                    Date onset = Date.valueOf(diag.onsetDate);
+                    putFieldIfExists(diagRec, fieldMap, 'Onset_Date__c', onset);
+                } catch (Exception e) {
+                    System.debug('Could not parse onset date: ' + diag.onsetDate);
+                }
+            }
+
+            putFieldIfExists(diagRec, fieldMap, 'Primary__c', diag.isPrimary);
+            putFieldIfExists(diagRec, fieldMap, 'Notes__c', diag.notes);
+
+            diagnosesToInsert.add(diagRec);
+        }
+
+        Integer primaryCount = 0;
+        for (SObject diag : diagnosesToInsert) {
+            if (diag.get('Primary__c') == true) {
+                primaryCount++;
+            }
+        }
+        for (SObject diag : diagnosesToUpdate) {
+            if (diag.get('Primary__c') == true) {
+                primaryCount++;
+            }
+        }
+
+        if (primaryCount > 1) {
+            throw new AuraHandledException('Only one diagnosis can be marked as Primary per client. Please uncheck one of the Primary diagnoses before saving.');
+        }
+
+        SystemLevelHelper sysHelper = new SystemLevelHelper();
+        sysHelper.upsertDiagnoses(diagnosesToInsert, diagnosesToUpdate);
+
+        if (interactionSummaryId != null) {
+            createDiagnosisNoteLinks(diagnosesToInsert, diagnosesToUpdate, diagnoses, interactionSummaryId);
+        }
+    }
+
+    /**
+     * Create Diagnosis_Note_Link__c junction records to link diagnoses to this interview.
+     */
+    private static void createDiagnosisNoteLinks(List<SObject> newDiagnoses, List<SObject> updatedDiagnoses, List<DiagnosisInput> inputs, Id noteId) {
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        if (!gd.containsKey('Diagnosis_Note_Link__c')) {
+            System.debug('Diagnosis_Note_Link__c object not available - skipping junction creation');
+            return;
+        }
+
+        Schema.SObjectType linkType = gd.get('Diagnosis_Note_Link__c');
+        List<SObject> linksToInsert = new List<SObject>();
+        Set<Id> linkedDiagnosisIds = new Set<Id>();
+
+        for (SObject diag : newDiagnoses) {
+            if (diag.Id != null) {
+                SObject link = linkType.newSObject();
+                link.put('Diagnosis__c', diag.Id);
+                link.put('InteractionSummary__c', noteId);
+                linksToInsert.add(link);
+                linkedDiagnosisIds.add(diag.Id);
+            }
+        }
+
+        for (SObject diag : updatedDiagnoses) {
+            if (diag.Id != null && !linkedDiagnosisIds.contains(diag.Id)) {
+                linkedDiagnosisIds.add(diag.Id);
+            }
+        }
+
+        if (!linkedDiagnosisIds.isEmpty()) {
+            try {
+                String linkQuery = 'SELECT Diagnosis__c FROM Diagnosis_Note_Link__c WHERE InteractionSummary__c = :noteId AND Diagnosis__c IN :linkedDiagnosisIds';
+                List<SObject> existingLinks = Database.query(linkQuery);
+                Set<Id> alreadyLinked = new Set<Id>();
+                for (SObject existing : existingLinks) {
+                    alreadyLinked.add((Id)existing.get('Diagnosis__c'));
+                }
+
+                for (SObject diag : updatedDiagnoses) {
+                    if (diag.Id != null && !alreadyLinked.contains(diag.Id)) {
+                        SObject link = linkType.newSObject();
+                        link.put('Diagnosis__c', diag.Id);
+                        link.put('InteractionSummary__c', noteId);
+                        linksToInsert.add(link);
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('Could not check existing links: ' + e.getMessage());
+            }
+        }
+
+        if (!linksToInsert.isEmpty()) {
+            try {
+                insert linksToInsert;
+            } catch (Exception e) {
+                System.debug('Could not insert diagnosis links: ' + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Helper class to manage system-level operations like code creation.
+     */
+    private without sharing class SystemLevelHelper {
+        public Map<String, Id> findOrCreateCodes(Set<String> codesToLookup, Map<String, String> codeToDescFallback) {
+            Map<String, Id> codeNumberToId = new Map<String, Id>();
+            Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+
+            if (!gd.containsKey('Code__c')) return codeNumberToId;
+
+            Schema.SObjectType codeType = gd.get('Code__c');
+            // NOTE: .fields.getMap() is valid Salesforce Schema API - language server false positive
+            Map<String, Schema.SObjectField> codeFields = codeType.getDescribe().fields.getMap();
+
+            Boolean hasCodeField = false;
+            String codeFieldApi = 'Code__c';
+            if (codeFields.containsKey('code__c')) {
+                hasCodeField = true;
+                codeFieldApi = 'Code__c';
+            } else {
+                for (String key : codeFields.keySet()) {
+                    if (key.endsWith('__code__c')) {
+                        hasCodeField = true;
+                        codeFieldApi = key;
+                        break;
+                    }
+                }
+            }
+
+            String codeQuery = 'SELECT Id, Name' + (hasCodeField ? ', ' + codeFieldApi : '') + ' FROM Code__c WHERE Name IN :codesToLookup';
+            if (hasCodeField) {
+                codeQuery += ' OR ' + codeFieldApi + ' IN :codesToLookup';
+            }
+
+            for (SObject codeRec : Database.query(codeQuery)) {
+                String codeNum = (String) codeRec.get('Name');
+                codeNumberToId.put(codeNum, codeRec.Id);
+                if (String.isNotBlank(codeNum)) {
+                    codeNumberToId.put(codeNum.toUpperCase(), codeRec.Id);
+                }
+                if (hasCodeField) {
+                    String realCode = (String) codeRec.get(codeFieldApi);
+                    if (String.isNotBlank(realCode)) {
+                        codeNumberToId.put(realCode, codeRec.Id);
+                        codeNumberToId.put(realCode.toUpperCase(), codeRec.Id);
+                    }
+                }
+            }
+
+            Set<String> missingCodes = new Set<String>(codesToLookup);
+            missingCodes.removeAll(codeNumberToId.keySet());
+
+            if (!missingCodes.isEmpty()) {
+                List<SObject> codesToCreate = new List<SObject>();
+
+                // NOTE: ICD10_Code__mdt is a custom metadata type - language server false positive
+                // This code compiles and deploys successfully
+                Map<String, ICD10_Code__mdt> mdtMap = new Map<String, ICD10_Code__mdt>();
+                try {
+                    for (ICD10_Code__mdt mdt : [SELECT Code__c, Description__c, Category__c, Is_Billable__c FROM ICD10_Code__mdt WHERE Code__c IN :missingCodes]) {
+                        mdtMap.put(mdt.Code__c, mdt);
+                    }
+                } catch (Exception mdtEx) {
+                    System.debug('Error querying MDT: ' + mdtEx.getMessage());
+                }
+
+                for (String code : missingCodes) {
+                    SObject newCode = codeType.newSObject();
+                    newCode.put('Name', code);
+                    putFieldIfExists(newCode, codeFields, 'Code__c', code);
+                    putFieldIfExists(newCode, codeFields, 'ICD10Code__c', code);
+
+                    if (mdtMap.containsKey(code)) {
+                        ICD10_Code__mdt mdt = mdtMap.get(code);
+                        putFieldIfExists(newCode, codeFields, 'Description__c', mdt.Description__c);
+                        putFieldIfExists(newCode, codeFields, 'Category__c', mdt.Category__c);
+                        putFieldIfExists(newCode, codeFields, 'Is_Billable__c', mdt.Is_Billable__c);
+                        putFieldIfExists(newCode, codeFields, 'Code__c', mdt.Code__c);
+                    } else if (codeToDescFallback != null && codeToDescFallback.containsKey(code)) {
+                        putFieldIfExists(newCode, codeFields, 'Description__c', codeToDescFallback.get(code));
+                    }
+
+                    codesToCreate.add(newCode);
+                }
+
+                try {
+                    insert codesToCreate;
+
+                    for (SObject newCode : codesToCreate) {
+                        String codeName = (String) newCode.get('Name');
+                        codeNumberToId.put(codeName, newCode.Id);
+                        if (hasCodeField) {
+                            String val = (String) newCode.get(codeFieldApi);
+                            if (String.isNotBlank(val)) {
+                                codeNumberToId.put(val, newCode.Id);
+                            }
+                        }
+                    }
+
+                } catch (Exception insertEx) {
+                    System.debug('Could not create Code__c records in system helper: ' + insertEx.getMessage());
+                }
+            }
+
+            return codeNumberToId;
+        }
+
+        public void upsertDiagnoses(List<SObject> inserts, List<SObject> updates) {
+            for (SObject rec : inserts) {
+                forceSetField(rec, 'ICD10Code__c', rec.get('ICD10Code__c'));
+                forceSetField(rec, 'Description__c', rec.get('Description__c'));
+                forceSetField(rec, 'Code_Name__c', rec.get('Code_Name__c'));
+                forceSetField(rec, 'Primary__c', rec.get('Primary__c'));
+                forceSetField(rec, 'Status__c', rec.get('Status__c'));
+                forceSetField(rec, 'Type__c', rec.get('Type__c'));
+                forceSetField(rec, 'Onset_Date__c', rec.get('Onset_Date__c'));
+                forceSetField(rec, 'Notes__c', rec.get('Notes__c'));
+            }
+            for (SObject rec : updates) {
+                forceSetField(rec, 'ICD10Code__c', rec.get('ICD10Code__c'));
+                forceSetField(rec, 'Description__c', rec.get('Description__c'));
+                forceSetField(rec, 'Primary__c', rec.get('Primary__c'));
+                forceSetField(rec, 'Status__c', rec.get('Status__c'));
+                forceSetField(rec, 'Notes__c', rec.get('Notes__c'));
+            }
+
+            if (inserts != null && !inserts.isEmpty()) {
+                try {
+                    insert inserts;
+                } catch (Exception e) {
+                    System.debug('System: Error creating Diagnosis records: ' + e.getMessage());
+                    throw e;
+                }
+            }
+            if (updates != null && !updates.isEmpty()) {
+                try {
+                    update updates;
+                } catch (Exception e) {
+                    System.debug('System: Error updating Diagnosis records: ' + e.getMessage());
+                    throw e;
+                }
+            }
+        }
+
+        private void forceSetField(SObject rec, String fieldName, Object value) {
+            if (value == null) return;
+            try {
+                rec.put(fieldName, value);
+            } catch (Exception e) {
+                System.debug('System: Could not force-set ' + fieldName + ': ' + e.getMessage());
+            }
+        }
+
+        public Map<String, String> getCodeDescriptions(Set<String> codes) {
+            Map<String, String> codeToDesc = new Map<String, String>();
+            if (codes == null || codes.isEmpty()) return codeToDesc;
+
+            try {
+                for (ICD10_Code__mdt mdt : [SELECT Code__c, Description__c FROM ICD10_Code__mdt WHERE Code__c IN :codes]) {
+                    if (mdt.Description__c != null) {
+                        codeToDesc.put(mdt.Code__c, mdt.Description__c);
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('Error retrieving MDT descriptions: ' + e.getMessage());
+            }
+            return codeToDesc;
+        }
+    }
+
+    /**
      * Creates Interaction Service Line records for CPT billing codes.
      * Auto-creates appropriate service codes based on note type.
      * Users only need to edit billing details (units, billing status, etc.) from the modal.
@@ -1945,6 +2449,25 @@ public with sharing class InterviewSessionController {
         
         Schema.SObjectType serviceLineType = gd.get('Interaction_Service_Line__c');
         Map<String, Schema.SObjectField> fieldMap = serviceLineType.getDescribe().fields.getMap();
+
+        Date serviceDate;
+        Datetime startDateTime;
+        Datetime endDateTime;
+        try {
+            SObject interaction = [
+                SELECT Date_of_Interaction__c, Start_Time__c, End_Time__c
+                FROM InteractionSummary
+                WHERE Id = :interactionSummaryId
+                LIMIT 1
+            ];
+            if (interaction != null) {
+                serviceDate = (Date)interaction.get('Date_of_Interaction__c');
+                startDateTime = (Datetime)interaction.get('Start_Time__c');
+                endDateTime = (Datetime)interaction.get('End_Time__c');
+            }
+        } catch (Exception e) {
+            System.debug('Could not load InteractionSummary timing for service lines: ' + e.getMessage());
+        }
         
         // Get the CPT codes for this note type
         List<ServiceLineConfig> configs = getCptCodesForNoteType(noteType);
@@ -1987,6 +2510,17 @@ public with sharing class InterviewSessionController {
             putFieldIfExists(serviceLine, fieldMap, 'Modifier_1__c', config.modifier1);
             putFieldIfExists(serviceLine, fieldMap, 'Modifier_2__c', config.modifier2);
             putFieldIfExists(serviceLine, fieldMap, 'Billing_Status__c', 'Pending');
+
+            if (serviceDate != null) {
+                putFieldIfExists(serviceLine, fieldMap, 'Service_Date__c', serviceDate);
+            }
+            if (startDateTime != null && endDateTime != null) {
+                Long durationMs = endDateTime.getTime() - startDateTime.getTime();
+                Decimal durationMinutes = Decimal.valueOf(durationMs) / 60000;
+                putFieldIfExists(serviceLine, fieldMap, 'Duration_Minutes__c', durationMinutes);
+                Decimal units = (durationMinutes / 15).setScale(2);
+                putFieldIfExists(serviceLine, fieldMap, 'Units__c', units);
+            }
             
             serviceLinesToInsert.add(serviceLine);
         }

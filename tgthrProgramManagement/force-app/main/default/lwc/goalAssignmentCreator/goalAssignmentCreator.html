@@ -24,8 +24,8 @@
                                 <template if:true={goal.objective}>
                                     <p class="slds-m-top_x-small"><strong>Objective:</strong> {goal.objective}</p>
                                 </template>
-                                <template if:true={goal.description}>
-                                    <p class="slds-m-top_x-small"><strong>Service:</strong> {goal.description}</p>
+                                <template if:true={goal.serviceModality}>
+                                    <p class="slds-m-top_x-small"><strong>Service Modality:</strong> {goal.serviceModality}</p>
                                 </template>
                             </div>
                             <div class="slds-col slds-no-flex">
@@ -85,7 +85,7 @@
                     <div class="slds-modal__content slds-p-around_medium">
                         <lightning-input label="Goal Name" value={currentGoal.name} data-field="name" onchange={handleInputChange} required></lightning-input>
                         <lightning-textarea label="Objective" value={currentGoal.objective} data-field="objective" onchange={handleInputChange} class="slds-m-top_small"></lightning-textarea>
-                        <lightning-textarea label="Service Description/Modality" value={currentGoal.description} data-field="description" onchange={handleInputChange} class="slds-m-top_small"></lightning-textarea>
+                        <lightning-combobox label="Service Modality" value={currentGoal.serviceModality} options={serviceModalityOptions} data-field="serviceModality" onchange={handleInputChange} class="slds-m-top_small" required></lightning-combobox>
                         <div class="slds-grid slds-gutters slds-m-top_small">
                             <div class="slds-col slds-size_1-of-2">
                                 <lightning-combobox label="Frequency" value={currentGoal.frequency} options={frequencyOptions} data-field="frequency" onchange={handleInputChange}></lightning-combobox>

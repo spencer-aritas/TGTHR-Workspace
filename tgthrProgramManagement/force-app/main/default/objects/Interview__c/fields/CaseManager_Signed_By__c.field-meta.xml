@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CaseManager_Signed_By__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>User who signed as Case Manager for this interview/treatment plan</description>
+    <externalId>false</externalId>
+    <label>Case Manager Signed By</label>
+    <referenceTo>User</referenceTo>
+    <relationshipName>CaseManager_Interviews</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Lookup</type>
+</CustomField>

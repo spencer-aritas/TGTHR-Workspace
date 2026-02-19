@@ -2,6 +2,11 @@ import { LightningElement, api } from 'lwc';
 
 export default class InterviewQuestionField extends LightningElement {
     @api question;
+    yesNoRadioApiNames = new Set([
+        'Advanced_Directives__c',
+        'Military_Service__c',
+        'Mental_Health_History__c'
+    ]);
 
     get normalizedResponseType() {
         return this.question && this.question.responseType 
@@ -36,6 +41,10 @@ export default class InterviewQuestionField extends LightningElement {
                this.normalizedResponseType === 'checkbox';
     }
 
+    get isBooleanYesNo() {
+        return this.isBoolean && this.question && this.yesNoRadioApiNames.has(this.question.apiName);
+    }
+
     get isPicklist() {
         return this.normalizedResponseType === 'picklist';
     }
@@ -50,6 +59,26 @@ export default class InterviewQuestionField extends LightningElement {
 
     get isDatetime() {
         return this.normalizedResponseType === 'datetime';
+    }
+
+    get yesNoOptions() {
+        return [
+            { label: 'Yes', value: 'true' },
+            { label: 'No', value: 'false' }
+        ];
+    }
+
+    get booleanValue() {
+        if (!this.question) {
+            return '';
+        }
+        if (this.question.answer === true) {
+            return 'true';
+        }
+        if (this.question.answer === false) {
+            return 'false';
+        }
+        return this.question.answer;
     }
 
     get showDefault() {

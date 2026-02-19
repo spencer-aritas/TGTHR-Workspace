@@ -49,6 +49,7 @@ describe('c-diagnosis-selector', () => {
         // Wait for async operations
         await Promise.resolve();
         await Promise.resolve();
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(getExistingDiagnoses).toHaveBeenCalledWith({
@@ -100,6 +101,7 @@ describe('c-diagnosis-selector', () => {
 
         await Promise.resolve();
         await Promise.resolve();
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         const checkbox = element.shadowRoot.querySelector('lightning-input[type="checkbox"]');
@@ -111,14 +113,19 @@ describe('c-diagnosis-selector', () => {
 
             await Promise.resolve();
 
+            // eslint-disable-next-line jest/no-conditional-expect
             expect(handler).toHaveBeenCalled();
             const eventDetail = handler.mock.calls[0][0].detail;
+            // eslint-disable-next-line jest/no-conditional-expect
             expect(eventDetail.selectedExisting.length).toBe(1);
+            // eslint-disable-next-line jest/no-conditional-expect
             expect(eventDetail.selectedExisting[0].Id).toBe('diag1');
         } else {
             // If checkbox not rendered, test the public API instead
             const result = element.getSelectedDiagnoses();
+            // eslint-disable-next-line jest/no-conditional-expect
             expect(result).toHaveProperty('selectedExisting');
+            // eslint-disable-next-line jest/no-conditional-expect
             expect(result).toHaveProperty('newDiagnoses');
         }
     });

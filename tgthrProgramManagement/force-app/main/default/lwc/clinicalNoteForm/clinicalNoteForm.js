@@ -165,10 +165,11 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
     richTextFormats = DEFAULT_RICH_TEXT_FORMATS;
     sectionOrder = [
         { name: 'visit', label: 'Visit Details' },
+        { name: 'goals', label: 'Goals Addressed' },
         { name: 'narrative', label: 'Notes' },
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
-        { name: 'goals', label: 'Goals Addressed' },
+        { name: 'codes', label: 'Diagnosis Codes' },
         { name: 'cptCodes', label: 'CPT Billing Codes' },
         { name: 'signature', label: 'Signature' }
     ];

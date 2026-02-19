@@ -3,7 +3,8 @@ public with sharing class GoalAssignmentController {
     public class GoalAssignmentDTO {
         @AuraEnabled public String id;
         @AuraEnabled public String name; // CustomGoalName
-        @AuraEnabled public String description; // Service Description/Modality
+        @AuraEnabled public String description; // Service Description/Modality (legacy)
+        @AuraEnabled public String serviceModality; // Service_Modality__c (new picklist)
         @AuraEnabled public String objective; // Goal_Notes__c
         @AuraEnabled public Date startDate;
         @AuraEnabled public Date targetDate; // TargetCompletionDate
@@ -18,7 +19,7 @@ public with sharing class GoalAssignmentController {
     public static List<GoalAssignmentDTO> getGoalAssignments(Id caseId, Id accountId) {
         List<GoalAssignmentDTO> results = new List<GoalAssignmentDTO>();
         
-        String query = 'SELECT Id, CustomGoalName, Description, Goal_Notes__c, StartDate, TargetCompletionDate, Frequency__c, Priority, Status, GoalAssigneeId, Case__c FROM GoalAssignment WHERE ';
+        String query = 'SELECT Id, CustomGoalName, Description, Service_Modality__c, Goal_Notes__c, StartDate, TargetCompletionDate, Frequency__c, Priority, Status, GoalAssigneeId, Case__c FROM GoalAssignment WHERE ';
         List<String> conditions = new List<String>();
         
         if (caseId != null) {
@@ -42,6 +43,7 @@ public with sharing class GoalAssignmentController {
             dto.id = (String)goal.get('Id');
             dto.name = (String)goal.get('CustomGoalName');
             dto.description = (String)goal.get('Description');
+            dto.serviceModality = (String)goal.get('Service_Modality__c');
             dto.objective = (String)goal.get('Goal_Notes__c');
             dto.startDate = (Date)goal.get('StartDate');
             dto.targetDate = (Date)goal.get('TargetCompletionDate');
@@ -78,6 +80,7 @@ public with sharing class GoalAssignmentController {
             // CustomGoalName requires FLS bypass via without sharing inner class
             if (String.isNotBlank(goal.name)) goalRecord.put('Goal_Name__c', goal.name);
             if (String.isNotBlank(goal.description)) goalRecord.put('Description', goal.description);
+            if (String.isNotBlank(goal.serviceModality)) goalRecord.put('Service_Modality__c', goal.serviceModality);
             if (String.isNotBlank(goal.objective)) goalRecord.put('Goal_Notes__c', goal.objective);
             if (goal.startDate != null) goalRecord.put('StartDate', goal.startDate);
             if (goal.targetDate != null) goalRecord.put('TargetCompletionDate', goal.targetDate);

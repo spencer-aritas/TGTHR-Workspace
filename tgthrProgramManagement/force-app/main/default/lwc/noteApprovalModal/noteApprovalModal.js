@@ -135,7 +135,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
         this.rejectionReason = event.target.value;
     }
 
-    handleSignatureSaved(event) {
+    handleSignatureSaved() {
         this.hasSignature = true;
         // Signature is already saved to the record by the signature pad component
     }

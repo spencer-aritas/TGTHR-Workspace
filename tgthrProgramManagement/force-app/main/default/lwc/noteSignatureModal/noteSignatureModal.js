@@ -205,7 +205,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
     }
 
     // Signature handler - the signature pad will emit this event
-    handleSignatureSaved(event) {
+    handleSignatureSaved() {
         this.showToast('Success', 'Signature saved successfully', 'success');
         this.dispatchEvent(new CustomEvent('signed', { 
             detail: { recordId: this.recordId, recordType: this.recordType }

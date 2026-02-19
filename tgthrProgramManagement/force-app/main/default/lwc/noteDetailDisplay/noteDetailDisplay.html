@@ -12,7 +12,7 @@
     <template if:false={isLoading}>
         <template if:false={error}>
             <!-- Care Plan Details (Interview/Treatment Plan) -->
-            <template if:true={isInterview}>
+            <template if:true={showCarePlanDetails}>
                 <div class="slds-box slds-theme_default slds-m-bottom_medium care-plan-details">
                     <h3 class="slds-text-heading_small slds-m-bottom_x-small">
                         <lightning-icon icon-name="utility:summary" size="x-small" class="slds-m-right_x-small"></lightning-icon>
@@ -44,6 +44,40 @@
 
             <!-- Note Content Sections -->
             <div class="note-content-sections">
+                <!-- Interview Responses -->
+                <template if:true={isInterview}>
+                    <template if:true={hasInterviewSections}>
+                        <div class="slds-m-bottom_medium">
+                            <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                <lightning-icon icon-name="utility:survey" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                Interview Responses
+                            </h3>
+                            <lightning-accordion allow-multiple-sections-open>
+                                <template for:each={noteData.interviewSections} for:item="section">
+                                    <lightning-accordion-section key={section.name} name={section.name} label={section.name}>
+                                        <div class="slds-grid slds-wrap slds-gutters_small">
+                                            <template for:each={section.questions} for:item="question">
+                                                <div key={question.label} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                                    <div class="slds-form-element slds-form-element_stacked slds-m-bottom_small">
+                                                        <span class="slds-form-element__label slds-text-title_bold">
+                                                            {question.label}
+                                                        </span>
+                                                        <div class="slds-form-element__control">
+                                                            <div class="slds-form-element__static">
+                                                                {question.value}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </lightning-accordion-section>
+                                </template>
+                            </lightning-accordion>
+                        </div>
+                    </template>
+                </template>
+
                 <!-- Reason for Visit -->
                 <template if:false={isInterview}>
                     <template if:true={noteData.meetingNotes}>
@@ -167,7 +201,7 @@
                 </template>
                 
                 <!-- Goals Worked On -->
-                <template if:true={hasGoals}>
+                <template if:true={showInterviewGoals}>
                     <div class="slds-m-bottom_medium">
                         <div class="slds-box slds-box_x-small">
                             <div class="slds-text-title_caps slds-m-bottom_x-small">

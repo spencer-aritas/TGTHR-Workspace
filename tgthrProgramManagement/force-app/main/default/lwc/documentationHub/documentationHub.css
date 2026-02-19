@@ -1,8 +1,24 @@
 .button-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--lwc-spacingSmall, 0.75rem);
+    align-content: flex-start;
+    justify-content: flex-start;
+    column-gap: var(--lwc-spacingSmall, 0.75rem);
+    row-gap: var(--lwc-spacingSmall, 0.75rem);
     padding: var(--lwc-spacingSmall, 0.75rem) var(--lwc-spacingMedium, 1rem);
+}
+
+
+
+@media (max-width: 48rem) {
+    .button-row {
+        align-items: stretch;
+    }
+
+    .doc-button {
+        width: 100%;
+    }
 }
 
 .documentation-modal .slds-modal__container {
@@ -35,39 +51,3 @@
     height: 100%;
 }
 
-.template-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--lwc-spacingSmall, 0.75rem);
-    padding: var(--lwc-spacingMedium, 1rem);
-    overflow-y: auto;
-    max-height: calc(92vh - 10rem);
-}
-
-.interview-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--lwc-spacingSmall, 0.75rem) var(--lwc-spacingMedium, 1rem);
-    background-color: var(--lwc-colorBackgroundAlt, #f5f5f5);
-    border: 1px solid var(--lwc-colorBorder, #d8dde6);
-    border-radius: 0.5rem;
-}
-
-.interview-card__details {
-    flex: 1;
-    margin-right: var(--lwc-spacingSmall, 0.75rem);
-}
-
-.interview-card__title {
-    font-weight: var(--lwc-fontWeightBold, 700);
-    margin-bottom: var(--lwc-spacingXxSmall, 0.25rem);
-}
-
-.interview-card__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--lwc-spacingSmall, 0.75rem);
-    color: var(--lwc-colorTextWeak, #54698d);
-    font-size: 0.875rem;
-}

@@ -4,9 +4,18 @@
     <externalId>false</externalId>
     <inlineHelpText>Mental Status Exam - Thoughts: Delusions observed</inlineHelpText>
     <label>MSE - Delusions</label>
-    <length>4000</length>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
-    <type>LongTextArea</type>
-    <visibleLines>3</visibleLines>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>None</fullName><default>false</default><label>None</label></value>
+            <value><fullName>Grandiose</fullName><default>false</default><label>Grandiose</label></value>
+            <value><fullName>Paranoid</fullName><default>false</default><label>Paranoid</label></value>
+            <value><fullName>Religious</fullName><default>false</default><label>Religious</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
 </CustomField>

@@ -64,6 +64,7 @@ export default class GoalAssignmentCreator extends LightningElement {
             name: '',
             objective: '',
             description: '',
+            serviceModality: 'Clinical', // Default to Clinical
             startDate: new Date().toISOString().split('T')[0],
             targetDate: null,
             frequency: '',
@@ -99,6 +100,14 @@ export default class GoalAssignmentCreator extends LightningElement {
             { label: 'Active', value: 'Active' },
             { label: 'Completed', value: 'Completed' },
             { label: 'Cancelled', value: 'Cancelled' }
+        ];
+    }
+
+    get serviceModalityOptions() {
+        return [
+            { label: 'Clinical', value: 'Clinical' },
+            { label: 'Case Management', value: 'Case Management' },
+            { label: 'Peer', value: 'Peer' }
         ];
     }
 
@@ -231,6 +240,7 @@ export default class GoalAssignmentCreator extends LightningElement {
         event.preventDefault();
         event.stopPropagation();
         const goalId = event.currentTarget.dataset.id;
+        // eslint-disable-next-line no-restricted-globals, no-alert
         if (!confirm('Are you sure you want to delete this goal?')) return;
 
         this.isLoading = true;
@@ -280,9 +290,8 @@ export default class GoalAssignmentCreator extends LightningElement {
             const offset = y - box.top - box.height / 2;
             if (offset < 0 && offset > closest.offset) {
                 return { offset: offset, element: child };
-            } else {
-                return closest;
             }
+            return closest;
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 

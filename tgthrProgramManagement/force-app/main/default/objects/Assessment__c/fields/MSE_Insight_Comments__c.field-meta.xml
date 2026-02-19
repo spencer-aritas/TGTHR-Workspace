@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MSE_Insight_Comments__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>Mental Status Exam - Insight comments</inlineHelpText>
+    <label>MSE - Insight Comments</label>
+    <length>4000</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>4</visibleLines>
+</CustomField>

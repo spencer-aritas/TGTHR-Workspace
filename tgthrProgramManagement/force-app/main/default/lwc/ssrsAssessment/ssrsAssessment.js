@@ -648,7 +648,7 @@ export default class SsrsAssessment extends LightningElement {
                 
                 Object.keys(response.existingData).forEach(key => {
                     const val = response.existingData[key];
-                    if (this.form.hasOwnProperty(key)) {
+                    if (Object.prototype.hasOwnProperty.call(this.form, key)) {
                         this.form[key] = val;
                          // Force boolean casting if needed? No, Apex returns boolean as boolean.
                     }
@@ -889,6 +889,7 @@ export default class SsrsAssessment extends LightningElement {
     }
 
     _scrollSectionIntoView(sectionName) {
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         window.requestAnimationFrame(() => {
             const sectionEl = this.template.querySelector(`[data-section="${sectionName}"]`);
             if (sectionEl && typeof sectionEl.scrollIntoView === 'function') {

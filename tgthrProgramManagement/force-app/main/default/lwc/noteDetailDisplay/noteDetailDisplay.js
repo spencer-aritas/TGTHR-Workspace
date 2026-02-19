@@ -138,6 +138,10 @@ export default class NoteDetailDisplay extends LightningElement {
         return this.noteData.cptCodes && this.noteData.cptCodes.length > 0;
     }
 
+    get hasInterviewSections() {
+        return this.noteData.interviewSections && this.noteData.interviewSections.length > 0;
+    }
+
     get isInterview() {
         return this.recordType === 'Interview';
     }
@@ -151,6 +155,23 @@ export default class NoteDetailDisplay extends LightningElement {
 
     get showCarePlanConsent() {
         return this.isInterview && this.noteData.showCarePlanConsent === true;
+    }
+
+    get showCarePlanDetails() {
+        if (!this.isInterview) {
+            return false;
+        }
+        return !!(
+            this.noteData.carePlanDischargeDate ||
+            this.noteData.carePlanNextReviewDate ||
+            this.noteData.carePlanDischargePlan ||
+            this.noteData.carePlanConsentParticipated !== null && this.noteData.carePlanConsentParticipated !== undefined ||
+            this.noteData.carePlanConsentOffered !== null && this.noteData.carePlanConsentOffered !== undefined
+        );
+    }
+
+    get showInterviewGoals() {
+        return this.hasGoals;
     }
 
     get carePlanDischargeDateDisplay() {

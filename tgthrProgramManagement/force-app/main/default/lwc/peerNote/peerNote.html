@@ -138,99 +138,6 @@
                             </div>
                         </lightning-accordion-section>
 
-                        <lightning-accordion-section name="narrative" label="Notes">
-                            <div data-section="narrative">
-                                <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Reason for Visit</label>
-                                    <lightning-input-rich-text
-                                        value={form.reason}
-                                        formats={richTextFormats}
-                                        onchange={handleReasonChange}>
-                                    </lightning-input-rich-text>
-                                </div>
-
-                                <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Intervention</label>
-                                    <lightning-input-rich-text
-                                        value={form.services}
-                                        formats={richTextFormats}
-                                        onchange={handleServicesChange}>
-                                    </lightning-input-rich-text>
-                                </div>
-
-                                <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Client Response</label>
-                                    <lightning-input-rich-text
-                                        value={form.response}
-                                        formats={richTextFormats}
-                                        onchange={handleResponseChange}>
-                                    </lightning-input-rich-text>
-                                </div>
-
-                                <div class="rich-text-field">
-                                    <label class="slds-form-element__label slds-m-bottom_x-small">Plan</label>
-                                    <lightning-input-rich-text
-                                        value={form.plan}
-                                        formats={richTextFormats}
-                                        onchange={handlePlanChange}>
-                                    </lightning-input-rich-text>
-                                </div>
-                            </div>
-                        </lightning-accordion-section>
-
-                        <!-- Risk Assessment Section -->
-                        <lightning-accordion-section name="assessment" label="Risk Assessment">
-                            <div data-section="assessment">
-                                <div class="assessment-section">
-                                    <p class="slds-text-body_regular slds-m-bottom_medium">
-                                        If you have concerns about risk, launch the SSRS Risk Assessment to evaluate and document suicide risk. 
-                                        The assessment data will be saved with this peer note.
-                                    </p>
-                                    <template if:true={hasSsrsData}>
-                                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
-                                            <p class="slds-text-body_small">
-                                                <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                                Risk Assessment data has been captured. Click "Edit Risk Assessment" to modify.
-                                            </p>
-                                        </div>
-                                    </template>
-                                    <lightning-button
-                                        variant="neutral"
-                                        label={ssrsButtonLabel}
-                                        icon-name="utility:assessment"
-                                        onclick={handleLaunchSsrs}
-                                        disabled={ssrsDisabled}>
-                                    </lightning-button>
-                                    <template if:false={canLaunchSsrs}>
-                                        <p class="slds-text-color_error slds-m-top_small">
-                                            Risk Assessment requires a linked Person Account.
-                                        </p>
-                                    </template>
-                                </div>
-                            </div>
-                        </lightning-accordion-section>
-
-                        <lightning-accordion-section name="services" label="Services Provided">
-                            <div data-section="services">
-                                <template if:false={hasBenefits}>
-                                    <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small">
-                                        <span class="slds-assistive-text">Warning</span>
-                                        <p>No peer support benefits available. Ensure Benefits are configured for this Case's Program.</p>
-                                    </div>
-                                </template>
-                                <lightning-dual-listbox
-                                    name="benefits"
-                                    label="Select Services"
-                                    source-label="Available Services"
-                                    selected-label="Services Provided"
-                                    field-level-help="Select the peer support services provided during this interaction."
-                                    value={form.benefitIds}
-                                    options={benefitOptions}
-                                    onchange={handleBenefitsChange}>
-                                </lightning-dual-listbox>
-                            </div>
-                        </lightning-accordion-section>
-
                         <lightning-accordion-section name="goals" label="Goals Addressed">
                             <div data-section="goals">
                                 <div class="slds-m-bottom_small">
@@ -321,9 +228,10 @@
                                                                             value={goal.progressAfter}
                                                                             data-goal-id={goal.id}
                                                                             onchange={handleGoalProgressChange}
-                                                                            class="progress-slider">
+                                                                            class="progress-slider" />
                                                                     </div>
                                                                 </div>
+
                                                             </div>
                                                         </template>
                                                     </div>
@@ -332,18 +240,102 @@
                                         </template>
                                     </div>
                                 </template>
-                                
-                                <template if:false={hasActiveGoals}>
-                                    <div class="slds-illustration slds-illustration_small">
-                                        <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
-                                            No active goals found. Goals are created and managed in the Treatment Plan.
-                                        </p>
-                                    </div>
-                                </template>
                             </div>
                         </lightning-accordion-section>
 
-                        <!-- CPT Billing Codes Section -->
+                        <lightning-accordion-section name="narrative" label="Notes">
+                            <div data-section="narrative">
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Reason for Visit</label>
+                                    <lightning-input-rich-text
+                                        value={form.reason}
+                                        formats={richTextFormats}
+                                        onchange={handleReasonChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Intervention</label>
+                                    <lightning-input-rich-text
+                                        value={form.services}
+                                        formats={richTextFormats}
+                                        onchange={handleServicesChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Client Response</label>
+                                    <lightning-input-rich-text
+                                        value={form.response}
+                                        formats={richTextFormats}
+                                        onchange={handleResponseChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+
+                                <div class="rich-text-field">
+                                    <label class="slds-form-element__label slds-m-bottom_x-small">Plan</label>
+                                    <lightning-input-rich-text
+                                        value={form.plan}
+                                        formats={richTextFormats}
+                                        onchange={handlePlanChange}>
+                                    </lightning-input-rich-text>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <!-- Risk Assessment Section -->
+                        <lightning-accordion-section name="assessment" label="Risk Assessment">
+                            <div data-section="assessment">
+                                <div class="assessment-section">
+                                    <p class="slds-text-body_regular slds-m-bottom_medium">
+                                        If you have concerns about risk, launch the SSRS Risk Assessment to evaluate and document suicide risk. 
+                                        The assessment data will be saved with this peer note.
+                                    </p>
+                                    <template if:true={hasSsrsData}>
+                                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                                            <p class="slds-text-body_small">
+                                                <lightning-icon icon-name="utility:check" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                                Risk Assessment data has been captured. Click "Edit Risk Assessment" to modify.
+                                            </p>
+                                        </div>
+                                    </template>
+                                    <lightning-button
+                                        variant="neutral"
+                                        label={ssrsButtonLabel}
+                                        icon-name="utility:assessment"
+                                        onclick={handleLaunchSsrs}
+                                        disabled={ssrsDisabled}>
+                                    </lightning-button>
+                                    <template if:false={canLaunchSsrs}>
+                                        <p class="slds-text-color_error slds-m-top_small">
+                                            Risk Assessment requires a linked Person Account.
+                                        </p>
+                                    </template>
+                                </div>
+                            </div>
+                        </lightning-accordion-section>
+
+                        <lightning-accordion-section name="services" label="Services Provided">
+                            <div data-section="services">
+                                <template if:false={hasBenefits}>
+                                    <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small">
+                                        <span class="slds-assistive-text">Warning</span>
+                                        <p>No peer benefits available. Ensure Benefits have "Available for Peer" checked for this Case's Program.</p>
+                                    </div>
+                                </template>
+                                <lightning-dual-listbox
+                                    name="benefits"
+                                    label="Select Services"
+                                    source-label="Available Services"
+                                    selected-label="Services Provided"
+                                    field-level-help="Select the peer services/benefits provided during this interaction. Benefit assignments and disbursements will be automatically created."
+                                    value={form.benefitIds}
+                                    options={benefitOptions}
+                                    onchange={handleBenefitsChange}>
+                                </lightning-dual-listbox>
+                            </div>
+                        </lightning-accordion-section>
+
                         <lightning-accordion-section name="cptCodes" label="CPT Billing Codes">
                             <div data-section="cptCodes">
                                 <c-cpt-code-selector
@@ -436,7 +428,7 @@
                         </lightning-button>
                         <lightning-button
                             variant="neutral"
-                            label="Save and Close"
+                            label="Save & Close"
                             icon-name="utility:close"
                             onclick={handleSaveAndClose}
                             disabled={isSavingDraft}>

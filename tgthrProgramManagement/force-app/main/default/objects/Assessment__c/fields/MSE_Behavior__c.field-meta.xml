@@ -4,9 +4,23 @@
     <externalId>false</externalId>
     <inlineHelpText>Mental Status Exam - Behavior observation</inlineHelpText>
     <label>MSE - Behavior</label>
-    <length>4000</length>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
-    <type>LongTextArea</type>
-    <visibleLines>3</visibleLines>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Cooperative</fullName><default>false</default><label>Cooperative</label></value>
+            <value><fullName>Guarded</fullName><default>false</default><label>Guarded</label></value>
+            <value><fullName>Hyperactive</fullName><default>false</default><label>Hyperactive</label></value>
+            <value><fullName>Agitated</fullName><default>false</default><label>Agitated</label></value>
+            <value><fullName>Paranoid</fullName><default>false</default><label>Paranoid</label></value>
+            <value><fullName>Stereotyped</fullName><default>false</default><label>Stereotyped</label></value>
+            <value><fullName>Aggressive</fullName><default>false</default><label>Aggressive</label></value>
+            <value><fullName>Bizarre</fullName><default>false</default><label>Bizarre</label></value>
+            <value><fullName>Withdrawn</fullName><default>false</default><label>Withdrawn</label></value>
+            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+        </valueSetDefinition>
+    </valueSet>
 </CustomField>

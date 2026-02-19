@@ -1,5 +1,5 @@
 public with sharing class ProgramCensusController {
-  public class Row {
+  public class Row implements Comparable {
     @AuraEnabled
     public Id accountId;
     @AuraEnabled
@@ -18,6 +18,22 @@ public with sharing class ProgramCensusController {
     public String referralSource; // placeholder until lookup exists
     @AuraEnabled
     public Id programEnrollmentId; // for navigation if needed
+
+    public Integer compareTo(Object other) {
+      if (other == null || !(other instanceof Row)) {
+        return 0;
+      }
+      Row otherRow = (Row) other;
+      String thisUnit = unit != null ? unit : '';
+      String otherUnit = otherRow.unit != null ? otherRow.unit : '';
+      Integer unitCompare = thisUnit.toLowerCase().compareTo(otherUnit.toLowerCase());
+      if (unitCompare != 0) {
+        return unitCompare;
+      }
+      String thisName = residentName != null ? residentName : '';
+      String otherName = otherRow.residentName != null ? otherRow.residentName : '';
+      return thisName.toLowerCase().compareTo(otherName.toLowerCase());
+    }
   }
 
   /**

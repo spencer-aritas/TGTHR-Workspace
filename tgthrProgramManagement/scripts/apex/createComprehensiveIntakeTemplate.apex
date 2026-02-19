@@ -537,7 +537,7 @@ questionData.add(new Map<String, Object>{
     'label' => 'Do you have any Advanced Directives in place?',
     'apiName' => 'Advanced_Directives__c',
     'responseType' => 'Boolean',
-    'required' => false
+    'required' => true
 });
 
 // ========== SECTION: PERSONAL/SOCIAL DEVELOPMENT ==========
@@ -733,7 +733,7 @@ questionData.add(new Map<String, Object>{
     'label' => 'Have you ever served in the Military?',
     'apiName' => 'Military_Service__c',
     'responseType' => 'Boolean',
-    'required' => false
+    'required' => true
 });
 
 // ========== SECTION: PLAN ==========

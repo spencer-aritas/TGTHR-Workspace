@@ -187,6 +187,18 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         if (doc.documentType === 'Note') {
             return doc.staffSigned ? 'Completed' : 'Pending Signature';
         }
+        const requiresClientSignature = this.requiresClientSignature(doc);
+        const requiresStaffSignature = this.requiresStaffSignature(doc);
+
+        if (!requiresClientSignature && requiresStaffSignature) {
+            return doc.staffSigned ? 'Completed' : 'Pending Signature';
+        }
+        if (!requiresStaffSignature && requiresClientSignature) {
+            return doc.clientSigned ? 'Completed' : 'Pending Signature';
+        }
+        if (!requiresClientSignature && !requiresStaffSignature) {
+            return 'Completed';
+        }
         if (doc.clientSigned && doc.staffSigned) {
             return 'Completed';
         }
@@ -224,6 +236,19 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         if (doc.documentType === 'Note') {
             return doc.staffSigned ? 'Signed' : 'Unsigned';
         }
+        const requiresClientSignature = this.requiresClientSignature(doc);
+        const requiresStaffSignature = this.requiresStaffSignature(doc);
+
+        if (!requiresClientSignature && requiresStaffSignature) {
+            return doc.staffSigned ? 'Signed by Staff' : 'Unsigned';
+        }
+        if (!requiresStaffSignature && requiresClientSignature) {
+            return doc.clientSigned ? 'Signed by Client' : 'Unsigned';
+        }
+        if (!requiresClientSignature && !requiresStaffSignature) {
+            return 'Signed';
+        }
+
         // Interviews require both signatures
         if (doc.clientSigned && doc.staffSigned) {
             return 'Signed by Client & Staff';
@@ -235,6 +260,20 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             return 'Signed by Staff';
         }
         return 'Unsigned';
+    }
+
+    requiresClientSignature(doc) {
+        if (!doc || !doc.clientSignaturePolicy) {
+            return false;
+        }
+        return doc.clientSignaturePolicy === 'Required';
+    }
+
+    requiresStaffSignature(doc) {
+        if (!doc || !doc.staffSignaturePolicy) {
+            return false;
+        }
+        return doc.staffSignaturePolicy === 'Required';
     }
     
     /**
@@ -538,7 +577,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     
     /**
      * Computed status based on signatures - document is complete when all required signatures are present
-     * Notes only require staff signature, Interviews require both client and staff signatures
+     * Respects template signature policies to determine which signatures are actually required
      */
     get computedStatus() {
         if (!this.selectedDocument) return 'Unknown';
@@ -548,13 +587,24 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             return this.selectedDocument.staffSigned ? 'Completed' : 'Pending Signature';
         }
         
-        // Interviews need both signatures
-        const clientSigned = this.selectedDocument.clientSigned;
-        const staffSigned = this.selectedDocument.staffSigned;
-        
-        if (clientSigned && staffSigned) {
+        // Interviews: check signature policies to determine requirements
+        const requiresClientSignature = this.requiresClientSignature(this.selectedDocument);
+        const requiresStaffSignature = this.requiresStaffSignature(this.selectedDocument);
+
+        if (!requiresClientSignature && requiresStaffSignature) {
+            return this.selectedDocument.staffSigned ? 'Completed' : 'Pending Signature';
+        }
+        if (!requiresStaffSignature && requiresClientSignature) {
+            return this.selectedDocument.clientSigned ? 'Completed' : 'Pending Signature';
+        }
+        if (!requiresClientSignature && !requiresStaffSignature) {
             return 'Completed';
-        } else if (clientSigned || staffSigned) {
+        }
+        
+        // Both signatures required
+        if (this.selectedDocument.clientSigned && this.selectedDocument.staffSigned) {
+            return 'Completed';
+        } else if (this.selectedDocument.clientSigned || this.selectedDocument.staffSigned) {
             return 'Awaiting Signatures';
         }
         return 'Pending Signatures';

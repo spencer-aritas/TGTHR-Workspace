@@ -1,0 +1,85 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for="user-search">
+            {label}
+        </label>
+        <div class="slds-form-element__control">
+            <div class="slds-combobox_container">
+                <div class={comboboxClass} aria-expanded={dropdownOpen} aria-haspopup="listbox" role="combobox">
+                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                        <input
+                            type="text"
+                            class="slds-input slds-combobox__input"
+                            id="user-search"
+                            aria-autocomplete="list"
+                            aria-controls="user-listbox"
+                            placeholder={placeholder}
+                            value={searchTerm}
+                            oninput={handleSearchInput}
+                            onfocus={handleFocus}
+                            onblur={handleBlur}
+                        />
+                        <template if:true={selectedUser}>
+                            <button
+                                class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                title="Clear Selection"
+                                onclick={handleClear}>
+                                <lightning-icon icon-name="utility:close" alternative-text="Clear" size="x-small"></lightning-icon>
+                            </button>
+                        </template>
+                    </div>
+                    <template if:true={showDropdown}>
+                        <div id="user-listbox" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+                            <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                <template if:true={hasResults}>
+                                    <template for:each={users} for:item="user">
+                                        <li key={user.Id} role="presentation" class="slds-listbox__item">
+                                            <div
+                                                class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                                                role="option"
+                                                data-user-id={user.Id}
+                                                onclick={handleSelectUser}>
+                                                <span class="slds-media__body">
+                                                    <span class="slds-listbox__option-text slds-listbox__option-text_entity">
+                                                        {user.Name}
+                                                    </span>
+                                                    <template if:true={user.Title}>
+                                                        <span class="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                                                            {user.Title}
+                                                        </span>
+                                                    </template>
+                                                    <template if:true={user.Email}>
+                                                        <span class="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                                                            {user.Email}
+                                                        </span>
+                                                    </template>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </template>
+                                <template if:false={hasResults}>
+                                    <li role="presentation" class="slds-listbox__item">
+                                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="option">
+                                            <span class="slds-media__body">
+                                                <span class="slds-listbox__option-text">No users found</span>
+                                            </span>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            <template if:true={selectedUser}>
+                <div class="selected-user slds-m-top_x-small">
+                    <span class="slds-text-body_small">
+                        Selected: <strong>{selectedUser.Name}</strong>
+                        <template if:true={selectedUser.Title}> - {selectedUser.Title}</template>
+                    </span>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

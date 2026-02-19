@@ -3,7 +3,8 @@ public class InteractionSummaryServiceTest {
   @isTest
   static void testGetRecentEngagements() {
     // Arrange: Create test program and multiple interactions
-    Id programId = TestDataFactory.ensureProgram('Test Program');
+    String programName = 'Test Program';
+    Id programId = createTestProgram(programName);
     Account testAccount1 = new Account(Name = 'Test Participant 1');
     Account testAccount2 = new Account(Name = 'Test Participant 2');
     insert new List<Account>{ testAccount1, testAccount2 };
@@ -12,6 +13,7 @@ public class InteractionSummaryServiceTest {
     SObject interaction1 = Schema.getGlobalDescribe()
       .get('InteractionSummary')
       .newSObject();
+    interaction1.put('Name', 'Test Interaction 1');
     interaction1.put('AccountId', testAccount1.Id);
     interaction1.put('Program__c', programId);
     interaction1.put('Date_of_Interaction__c', Date.today().addDays(-1));
@@ -20,6 +22,7 @@ public class InteractionSummaryServiceTest {
     SObject interaction2 = Schema.getGlobalDescribe()
       .get('InteractionSummary')
       .newSObject();
+    interaction2.put('Name', 'Test Interaction 2');
     interaction2.put('AccountId', testAccount2.Id);
     interaction2.put('Program__c', programId);
     interaction2.put('Date_of_Interaction__c', Date.today());
@@ -30,7 +33,7 @@ public class InteractionSummaryServiceTest {
     // Act: Call the method
     Test.startTest();
     List<Map<String, Object>> engagements = InteractionSummaryService.getRecentEngagements(
-      'Test Program',
+      programName,
       null,
       null,
       10
@@ -46,6 +49,8 @@ public class InteractionSummaryServiceTest {
 
     Map<String, Object> engagement1 = engagements[0];
     Map<String, Object> engagement2 = engagements[1];
+    String engagement1Name = extractAccountName(engagement1);
+    String engagement2Name = extractAccountName(engagement2);
 
     System.assertEquals(
       testAccount2.Id,
@@ -54,7 +59,7 @@ public class InteractionSummaryServiceTest {
     );
     System.assertEquals(
       'Test Participant 2',
-      engagement1.get('AccountName'),
+      engagement1Name,
       'Account name of first engagement should match'
     );
 
@@ -65,15 +70,51 @@ public class InteractionSummaryServiceTest {
     );
     System.assertEquals(
       'Test Participant 1',
-      engagement2.get('AccountName'),
+      engagement2Name,
       'Account name of second engagement should match'
     );
+  }
+
+  private static String extractAccountName(Map<String, Object> engagement) {
+    if (engagement == null) return null;
+    if (engagement.containsKey('AccountName')) {
+      return (String) engagement.get('AccountName');
+    }
+    if (engagement.containsKey('Account')) {
+      Object accountObj = engagement.get('Account');
+      if (accountObj instanceof SObject) {
+        return (String) ((SObject) accountObj).get('Name');
+      }
+    }
+    return null;
+  }
+
+  private static Id createTestProgram(String name) {
+    SObject prog = (SObject) Type.forName('Program').newInstance();
+    prog.put('Name', name);
+    // NOTE: Language server false positive - .fields.getMap() is valid Salesforce Schema API
+    Map<String, Schema.SObjectField> fieldMap = prog.getSObjectType().getDescribe().fields.getMap();
+    if (fieldMap.containsKey('status')) {
+      List<String> allowed = new List<String>();
+      for (Schema.PicklistEntry pe : fieldMap.get('status').getDescribe().getPicklistValues()) {
+        if (pe.isActive()) {
+          allowed.add(pe.getValue());
+        }
+      }
+      if (allowed.contains('Active')) {
+        prog.put('Status', 'Active');
+      } else if (!allowed.isEmpty()) {
+        prog.put('Status', allowed[0]);
+      }
+    }
+    insert prog;
+    return prog.Id;
   }
 
   @isTest
   static void testCreateInteractionDirectly() {
     // Arrange: Create test account and program
-    Id programId = TestDataFactory.ensureProgram('Test Program');
+    Id programId = createTestProgram('Test Program');
     Account testAccount = new Account(Name = 'Test Participant');
     insert testAccount;
 

@@ -25,6 +25,17 @@ public with sharing class PendingDocumentationController {
         @AuraEnabled public String staffSignedBy;
         @AuraEnabled public Date staffSignedDate;
         @AuraEnabled public Date clientSignedDate;
+        // Multi-signature fields (Treatment Plans)
+        @AuraEnabled public Boolean caseManagerSigned;
+        @AuraEnabled public Id caseManagerAssignedToId;
+        @AuraEnabled public String caseManagerAssignedToName;
+        @AuraEnabled public Date caseManagerSignedDate;
+        @AuraEnabled public Boolean canSignAsCaseManager; // True if current user is the assigned Case Manager
+        @AuraEnabled public Boolean peerSupportSigned;
+        @AuraEnabled public Id peerSupportAssignedToId;
+        @AuraEnabled public String peerSupportAssignedToName;
+        @AuraEnabled public Date peerSupportSignedDate;
+        @AuraEnabled public Boolean canSignAsPeerSupport; // True if current user is the assigned Peer Support
         // Manager Approval fields
         @AuraEnabled public Boolean requiresManagerApproval;
         @AuraEnabled public Id managerApproverId;
@@ -207,6 +218,10 @@ public with sharing class PendingDocumentationController {
             String query = 'SELECT Id, Interview__c, Interview__r.Name, Interview__r.Started_On__c, ' +
                           'Interview__r.Status__c, Interview__r.Staff_Signed__c, Interview__r.Client_Signed__c, ' +
                           'Interview__r.Date_Staff_Signed__c, Interview__r.Date_Client_Signed__c, ' +
+                          'Interview__r.CaseManager_Signed__c, Interview__r.CaseManager_Signed_By__c, ' +
+                          'Interview__r.CaseManager_Signed_By__r.Name, Interview__r.Date_CaseManager_Signed__c, ' +
+                          'Interview__r.PeerSupport_Signed__c, Interview__r.PeerSupport_Signed_By__c, ' +
+                          'Interview__r.PeerSupport_Signed_By__r.Name, Interview__r.Date_PeerSupport_Signed__c, ' +
                           'Interview__r.Requires_Manager_Approval__c, Interview__r.Manager_Approver__c, ' +
                           'Interview__r.Manager_Approver__r.Name, Interview__r.Manager_Signed__c, ' +
                           'Interview__r.Manager_Signed_Date__c, Interview__r.Action_Required__c, ' +
@@ -222,6 +237,10 @@ public with sharing class PendingDocumentationController {
                           'AND Interview__r.Status__c != \'Voided\' ' +
                           'AND ((' +
                           'Interview__r.Staff_Signed__c = false OR Interview__r.Client_Signed__c = false' +
+                          ') OR (' +
+                          'Interview__r.CaseManager_Signed_By__c != null AND (Interview__r.CaseManager_Signed__c = false OR Interview__r.CaseManager_Signed__c = null)' +
+                          ') OR (' +
+                          'Interview__r.PeerSupport_Signed_By__c != null AND (Interview__r.PeerSupport_Signed__c = false OR Interview__r.PeerSupport_Signed__c = null)' +
                           ') OR (' +
                           'Interview__r.Requires_Manager_Approval__c = true AND ' +
                           '(Interview__r.Manager_Signed__c = false OR Interview__r.Manager_Signed__c = null)' +
@@ -242,6 +261,8 @@ public with sharing class PendingDocumentationController {
             // Fallback: include pending interviews even if InterviewDocument__c is missing
             String interviewOnlyQuery = 'SELECT Id, Name, Started_On__c, Completed_On__c, Status__c, ' +
                           'Staff_Signed__c, Client_Signed__c, Date_Staff_Signed__c, Date_Client_Signed__c, ' +
+                          'CaseManager_Signed__c, CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, Date_CaseManager_Signed__c, ' +
+                          'PeerSupport_Signed__c, PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name, Date_PeerSupport_Signed__c, ' +
                           'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, ' +
                           'Manager_Signed__c, Manager_Signed_Date__c, Action_Required__c, ' +
                           'Action_Assigned_To__c, Action_Assigned_To__r.Name, Action_Escalated_By__c, ' +
@@ -253,6 +274,10 @@ public with sharing class PendingDocumentationController {
                           'AND Status__c != \'Voided\' ' +
                           'AND ((' +
                           'Staff_Signed__c = false OR Client_Signed__c = false' +
+                          ') OR (' +
+                          'CaseManager_Signed_By__c != null AND (CaseManager_Signed__c = false OR CaseManager_Signed__c = null)' +
+                          ') OR (' +
+                          'PeerSupport_Signed_By__c != null AND (PeerSupport_Signed__c = false OR PeerSupport_Signed__c = null)' +
                           ') OR (' +
                           'Requires_Manager_Approval__c = true AND ' +
                           '(Manager_Signed__c = false OR Manager_Signed__c = null)' +
@@ -307,6 +332,22 @@ public with sharing class PendingDocumentationController {
         Object clientSigned = interview.get('Client_Signed__c');
         dto.clientSigned = clientSigned != null && (Boolean)clientSigned == true;
         dto.clientSignedDate = (Date)interview.get('Date_Client_Signed__c');
+        
+        // Multi-signature fields (Case Manager)
+        Object caseManagerSigned = interview.get('CaseManager_Signed__c');
+        dto.caseManagerSigned = caseManagerSigned != null && (Boolean)caseManagerSigned == true;
+        dto.caseManagerAssignedToId = (Id)interview.get('CaseManager_Signed_By__c');
+        dto.caseManagerAssignedToName = (String)interview.getSObject('CaseManager_Signed_By__r')?.get('Name');
+        dto.caseManagerSignedDate = (Date)interview.get('Date_CaseManager_Signed__c');
+        dto.canSignAsCaseManager = dto.caseManagerAssignedToId != null && dto.caseManagerAssignedToId == currentUserId && !dto.caseManagerSigned;
+        
+        // Multi-signature fields (Peer Support)
+        Object peerSupportSigned = interview.get('PeerSupport_Signed__c');
+        dto.peerSupportSigned = peerSupportSigned != null && (Boolean)peerSupportSigned == true;
+        dto.peerSupportAssignedToId = (Id)interview.get('PeerSupport_Signed_By__c');
+        dto.peerSupportAssignedToName = (String)interview.getSObject('PeerSupport_Signed_By__r')?.get('Name');
+        dto.peerSupportSignedDate = (Date)interview.get('Date_PeerSupport_Signed__c');
+        dto.canSignAsPeerSupport = dto.peerSupportAssignedToId != null && dto.peerSupportAssignedToId == currentUserId && !dto.peerSupportSigned;
         
         // Manager Approval fields from Interview__c
         Object requiresManagerApproval = interview.get('Requires_Manager_Approval__c');
@@ -381,6 +422,22 @@ public with sharing class PendingDocumentationController {
         dto.staffSigned = staffSigned != null && (Boolean)staffSigned == true;
         Object clientSigned = interview.get('Client_Signed__c');
         dto.clientSigned = clientSigned != null && (Boolean)clientSigned == true;
+
+        // Multi-signature fields (Case Manager)
+        Object caseManagerSigned = interview.get('CaseManager_Signed__c');
+        dto.caseManagerSigned = caseManagerSigned != null && (Boolean)caseManagerSigned == true;
+        dto.caseManagerAssignedToId = (Id)interview.get('CaseManager_Signed_By__c');
+        dto.caseManagerAssignedToName = (String)interview.getSObject('CaseManager_Signed_By__r')?.get('Name');
+        dto.caseManagerSignedDate = (Date)interview.get('Date_CaseManager_Signed__c');
+        dto.canSignAsCaseManager = dto.caseManagerAssignedToId != null && dto.caseManagerAssignedToId == currentUserId && !dto.caseManagerSigned;
+        
+        // Multi-signature fields (Peer Support)
+        Object peerSupportSigned = interview.get('PeerSupport_Signed__c');
+        dto.peerSupportSigned = peerSupportSigned != null && (Boolean)peerSupportSigned == true;
+        dto.peerSupportAssignedToId = (Id)interview.get('PeerSupport_Signed_By__c');
+        dto.peerSupportAssignedToName = (String)interview.getSObject('PeerSupport_Signed_By__r')?.get('Name');
+        dto.peerSupportSignedDate = (Date)interview.get('Date_PeerSupport_Signed__c');
+        dto.canSignAsPeerSupport = dto.peerSupportAssignedToId != null && dto.peerSupportAssignedToId == currentUserId && !dto.peerSupportSigned;
 
         Object requiresManagerApproval = interview.get('Requires_Manager_Approval__c');
         dto.requiresManagerApproval = requiresManagerApproval != null && (Boolean)requiresManagerApproval == true;
@@ -986,6 +1043,9 @@ public with sharing class PendingDocumentationController {
         // CPT/Billing Codes
         @AuraEnabled public List<Map<String, Object>> cptCodes;
 
+        // Interview responses
+        @AuraEnabled public List<Map<String, Object>> interviewSections;
+
         // Care Plan fields (Treatment Plan / Interview)
         @AuraEnabled public Date carePlanDischargeDate;
         @AuraEnabled public String carePlanDischargePlan;
@@ -1019,7 +1079,8 @@ public with sharing class PendingDocumentationController {
     @AuraEnabled
     public static NoteApprovalDTO getNoteForApproval(Id recordId, String recordType) {
         NoteApprovalDTO dto = new NoteApprovalDTO();
-        
+        Id interactionSummaryIdForRelated = recordId;
+
         try {
             if (recordType == 'Interaction') {
                 List<SObject> records = Database.query(
@@ -1032,50 +1093,50 @@ public with sharing class PendingDocumentationController {
                     'AccountId, Account.Name, Account.PersonBirthdate, Account.PersonPronouns ' +
                     'FROM InteractionSummary WHERE Id = :recordId LIMIT 1'
                 );
-                
+
                 if (records.isEmpty()) {
                     throw new AuraHandledException('Note not found');
                 }
-                
+
                 SObject record = records[0];
                 dto.id = (Id)record.get('Id');
                 dto.name = (String)record.get('Name');
                 dto.dateOfInteraction = (Date)record.get('Date_of_Interaction__c');
                 dto.purpose = (String)record.get('InteractionPurpose');
-                
+
                 // Helper to safely unescape HTML content
                 String descServices = (String)record.get('Description_of_Services__c');
                 dto.descriptionOfServices = String.isNotBlank(descServices) ? descServices.unescapeHtml4() : descServices;
-                
+
                 String respProgress = (String)record.get('Response_and_Progress__c');
                 dto.responseAndProgress = String.isNotBlank(respProgress) ? respProgress.unescapeHtml4() : respProgress;
-                
+
                 String plan = (String)record.get('Plan__c');
                 dto.plan = String.isNotBlank(plan) ? plan.unescapeHtml4() : plan;
-                
+
                 String chartNote = (String)record.get('Chart_Note__c');
                 dto.chartNote = String.isNotBlank(chartNote) ? chartNote.unescapeHtml4() : chartNote;
-                
+
                 String meetingNotes = (String)record.get('MeetingNotes');
                 dto.meetingNotes = String.isNotBlank(meetingNotes) ? meetingNotes.unescapeHtml4() : meetingNotes;
-                
+
                 // Format times if present
                 Datetime startDt = (Datetime)record.get('Start_Time__c');
                 Datetime endDt = (Datetime)record.get('End_Time__c');
-                
+
                 if (startDt != null) {
                     dto.startTime = formatTime(startDt.time());
                 }
                 if (endDt != null) {
                     dto.endTime = formatTime(endDt.time());
                 }
-                
+
                 dto.createdById = (Id)record.get('CreatedById');
                 dto.createdByName = (String)record.getSObject('CreatedBy')?.get('Name');
                 dto.createdByTitle = (String)record.getSObject('CreatedBy')?.get('Title');
                 dto.createdDate = (Datetime)record.get('CreatedDate');
                 dto.recordType = 'Interaction';
-                
+
                 // Current user info for signature
                 User currentUser = [SELECT Id, Alias, Name FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
                 dto.currentUser = new Map<String, Object>{
@@ -1083,7 +1144,7 @@ public with sharing class PendingDocumentationController {
                     'Alias' => currentUser.Alias,
                     'Name' => currentUser.Name
                 };
-                
+
                 // Case/Client info
                 dto.caseId = (Id)record.get('RelatedRecordId');
                 dto.caseNumber = (String)record.getSObject('RelatedRecord')?.get('CaseNumber');
@@ -1091,7 +1152,7 @@ public with sharing class PendingDocumentationController {
                 dto.clientName = (String)record.getSObject('Account')?.get('Name');
                 dto.clientDob = (Date)record.getSObject('Account')?.get('PersonBirthdate');
                 dto.clientPronouns = (String)record.getSObject('Account')?.get('PersonPronouns');
-                
+
                 // Signature tracking
                 dto.authorSigned = true; // Author always signs by submitting
                 dto.authorSignedBy = dto.createdByName;
@@ -1105,7 +1166,7 @@ public with sharing class PendingDocumentationController {
                 if (!dto.requiresManagerApproval && (dto.managerSigned || dto.managerSignedDate != null || String.isNotBlank(dto.managerSignedBy))) {
                     dto.requiresManagerApproval = true;
                 }
-                
+
                 // Try to get the attached document
                 try {
                     List<ContentDocumentLink> docLinks = [
@@ -1125,7 +1186,7 @@ public with sharing class PendingDocumentationController {
                     // Document query failed, continue without it
                     System.debug('Could not fetch document: ' + e.getMessage());
                 }
-                
+
             } else if (recordType == 'Interview') {
                 // For interviews, we need to get content differently
                 List<SObject> records = Database.query(
@@ -1137,12 +1198,16 @@ public with sharing class PendingDocumentationController {
                     'InterviewTemplateVersion__r.InterviewTemplate__r.Name ' +
                     'FROM Interview__c WHERE Id = :recordId LIMIT 1'
                 );
-                
+
                 if (records.isEmpty()) {
                     throw new AuraHandledException('Interview not found');
                 }
-                
+
                 SObject record = records[0];
+                Id interviewInteractionSummaryId = (Id)record.get('Interaction_Summary__c');
+                if (interviewInteractionSummaryId != null) {
+                    interactionSummaryIdForRelated = interviewInteractionSummaryId;
+                }
                 dto.id = (Id)record.get('Id');
                 dto.name = (String)record.get('Name');
                 dto.dateOfInteraction = ((Datetime)record.get('Started_On__c'))?.date();
@@ -1159,7 +1224,7 @@ public with sharing class PendingDocumentationController {
                     ?.get('Name');
                 dto.showCarePlanConsent = String.isNotBlank(interviewTemplateName)
                     && interviewTemplateName.toLowerCase().contains('treatment plan');
-                
+
                 // Case/Client info via Case relationship
                 dto.caseId = (Id)record.get('Case__c');
                 SObject caseRecord = record.getSObject('Case__r');
@@ -1176,12 +1241,11 @@ public with sharing class PendingDocumentationController {
 
                 // Pull InteractionSummary details for interview (meeting notes, actual date, times)
                 try {
-                    Id interactionSummaryId = (Id)record.get('Interaction_Summary__c');
-                    if (interactionSummaryId != null) {
+                    if (interviewInteractionSummaryId != null) {
                         SObject interaction = [
                             SELECT Id, Date_of_Interaction__c, MeetingNotes, Start_Time__c, End_Time__c
                             FROM InteractionSummary
-                            WHERE Id = :interactionSummaryId
+                            WHERE Id = :interviewInteractionSummaryId
                             LIMIT 1
                         ];
                         if (interaction != null) {
@@ -1203,59 +1267,70 @@ public with sharing class PendingDocumentationController {
                     System.debug('Could not fetch InteractionSummary details for interview: ' + e.getMessage());
                 }
 
-                // Fetch Care Plan fields for Treatment Plan display
+                // Fetch interview responses grouped by section
                 try {
-                    if (dto.caseId != null || dto.clientId != null) {
-                        Map<String, Schema.SObjectField> carePlanFields = Schema.getGlobalDescribe().get('CarePlan').getDescribe().fields.getMap();
-                        List<String> selectFields = new List<String>{ 'Id' };
-                        if (carePlanFields.containsKey('Expected_Discharge_Date__c')) {
-                            selectFields.add('Expected_Discharge_Date__c');
-                        }
-                        if (carePlanFields.containsKey('Discharge_Plan__c')) {
-                            selectFields.add('Discharge_Plan__c');
-                        }
-                        if (carePlanFields.containsKey('Next_Review_Date__c')) {
-                            selectFields.add('Next_Review_Date__c');
-                        }
-                        if (carePlanFields.containsKey('Care_Plan_Reviewed__c')) {
-                            selectFields.add('Care_Plan_Reviewed__c');
-                        }
-                        if (carePlanFields.containsKey('Documentation_Offered__c')) {
-                            selectFields.add('Documentation_Offered__c');
-                        }
+                    dto.interviewSections = fetchInterviewSections((Id)record.get('Id'));
+                } catch (Exception e) {
+                    System.debug('Could not fetch Interview responses: ' + e.getMessage());
+                }
 
-                        if (selectFields.size() > 1) {
-                            SObject plan = CarePlanService.fetchCarePlan(dto.caseId, dto.clientId, selectFields);
-                            if (plan != null) {
-                                if (carePlanFields.containsKey('Expected_Discharge_Date__c')) {
-                                    dto.carePlanDischargeDate = (Date)plan.get('Expected_Discharge_Date__c');
-                                }
-                                if (carePlanFields.containsKey('Discharge_Plan__c')) {
-                                    dto.carePlanDischargePlan = (String)plan.get('Discharge_Plan__c');
-                                }
-                                if (carePlanFields.containsKey('Next_Review_Date__c')) {
-                                    dto.carePlanNextReviewDate = (Date)plan.get('Next_Review_Date__c');
-                                }
-                                if (carePlanFields.containsKey('Care_Plan_Reviewed__c')) {
-                                    dto.carePlanConsentParticipated = (Boolean)plan.get('Care_Plan_Reviewed__c');
-                                }
-                                if (carePlanFields.containsKey('Documentation_Offered__c')) {
-                                    dto.carePlanConsentOffered = (Boolean)plan.get('Documentation_Offered__c');
+                // Fetch Care Plan fields for Treatment Plan display
+                if (dto.showCarePlanConsent) {
+                    try {
+                        if (dto.caseId != null || dto.clientId != null) {
+                            Map<String, Schema.SObjectField> carePlanFields = Schema.getGlobalDescribe().get('CarePlan').getDescribe().fields.getMap();
+                            List<String> selectFields = new List<String>{ 'Id' };
+                            if (carePlanFields.containsKey('Expected_Discharge_Date__c')) {
+                                selectFields.add('Expected_Discharge_Date__c');
+                            }
+                            if (carePlanFields.containsKey('Discharge_Plan__c')) {
+                                selectFields.add('Discharge_Plan__c');
+                            }
+                            if (carePlanFields.containsKey('Next_Review_Date__c')) {
+                                selectFields.add('Next_Review_Date__c');
+                            }
+                            if (carePlanFields.containsKey('Care_Plan_Reviewed__c')) {
+                                selectFields.add('Care_Plan_Reviewed__c');
+                            }
+                            if (carePlanFields.containsKey('Documentation_Offered__c')) {
+                                selectFields.add('Documentation_Offered__c');
+                            }
+
+                            if (selectFields.size() > 1) {
+                                SObject plan = CarePlanService.fetchCarePlan(dto.caseId, dto.clientId, selectFields);
+                                if (plan != null) {
+                                    if (carePlanFields.containsKey('Expected_Discharge_Date__c')) {
+                                        dto.carePlanDischargeDate = (Date)plan.get('Expected_Discharge_Date__c');
+                                    }
+                                    if (carePlanFields.containsKey('Discharge_Plan__c')) {
+                                        dto.carePlanDischargePlan = (String)plan.get('Discharge_Plan__c');
+                                    }
+                                    if (carePlanFields.containsKey('Next_Review_Date__c')) {
+                                        dto.carePlanNextReviewDate = (Date)plan.get('Next_Review_Date__c');
+                                    }
+                                    if (carePlanFields.containsKey('Care_Plan_Reviewed__c')) {
+                                        dto.carePlanConsentParticipated = (Boolean)plan.get('Care_Plan_Reviewed__c');
+                                    }
+                                    if (carePlanFields.containsKey('Documentation_Offered__c')) {
+                                        dto.carePlanConsentOffered = (Boolean)plan.get('Documentation_Offered__c');
+                                    }
                                 }
                             }
                         }
+                    } catch (Exception e) {
+                        System.debug('Could not fetch CarePlan details: ' + e.getMessage());
                     }
-                } catch (Exception e) {
-                    System.debug('Could not fetch CarePlan details: ' + e.getMessage());
                 }
 
                 // Fetch Treatment Plan goals (GoalAssignments) for interview display
-                try {
-                    dto.goals = fetchTreatmentPlanGoals(dto.caseId, dto.clientId);
-                } catch (Exception e) {
-                    System.debug('Could not fetch Treatment Plan goals: ' + e.getMessage());
+                if (dto.showCarePlanConsent) {
+                    try {
+                        dto.goals = fetchTreatmentPlanGoals(dto.caseId, dto.clientId);
+                    } catch (Exception e) {
+                        System.debug('Could not fetch Treatment Plan goals: ' + e.getMessage());
+                    }
                 }
-                
+
                 // Signature tracking
                 dto.authorSigned = true; // Author always signs by submitting
                 dto.authorSignedBy = dto.createdByName;
@@ -1267,7 +1342,7 @@ public with sharing class PendingDocumentationController {
                 if (!dto.requiresManagerApproval && (dto.managerSigned || dto.managerSignedDate != null || String.isNotBlank(dto.managerSignedBy))) {
                     dto.requiresManagerApproval = true;
                 }
-                
+
                 // Try to get the attached document for Interview
                 try {
                     List<ContentDocumentLink> docLinks = [
@@ -1287,54 +1362,242 @@ public with sharing class PendingDocumentationController {
                     System.debug('Could not fetch document: ' + e.getMessage());
                 }
             }
-            
+
             // Fetch SSRS Assessment if linked to this note/interview
             try {
-                dto.ssrsAssessment = fetchSsrsAssessment(recordId);
+                Id ssrsTargetId = interactionSummaryIdForRelated != null ? interactionSummaryIdForRelated : recordId;
+                dto.ssrsAssessment = fetchSsrsAssessment(ssrsTargetId);
             } catch (Exception e) {
                 System.debug('Could not fetch SSRS Assessment: ' + e.getMessage());
             }
-            
+
             // Fetch Goals worked on (Interaction only). Interview goals handled above.
             if (recordType == 'Interaction') {
                 try {
-                    dto.goals = fetchGoalsWorkedOn(recordId, recordType);
+                    dto.goals = fetchGoalsWorkedOn(interactionSummaryIdForRelated, recordType);
                 } catch (Exception e) {
                     System.debug('Could not fetch Goals: ' + e.getMessage());
                 }
             }
-            
+
             // Fetch Benefits/Services provided
             try {
-                dto.benefits = fetchBenefitsProvided(recordId, recordType);
+                if (interactionSummaryIdForRelated != null) {
+                    dto.benefits = fetchBenefitsProvided(interactionSummaryIdForRelated, recordType);
+                }
             } catch (Exception e) {
                 System.debug('Could not fetch Benefits: ' + e.getMessage());
             }
-            
-            // Fetch Diagnoses (only for Interaction records)
-            if (recordType == 'Interaction') {
-                try {
-                    dto.diagnoses = fetchDiagnoses(dto.clientId, dto.caseId);
-                } catch (Exception e) {
-                    System.debug('Could not fetch Diagnoses: ' + e.getMessage());
-                }
+
+            // Fetch Diagnoses
+            try {
+                dto.diagnoses = fetchDiagnoses(dto.clientId, dto.caseId);
+            } catch (Exception e) {
+                System.debug('Could not fetch Diagnoses: ' + e.getMessage());
             }
-            
-            // Fetch CPT Codes (only for Interaction records - Interviews don't have CPT codes)
-            if (recordType == 'Interaction') {
+
+            // Fetch CPT Codes (InteractionSummary linked)
+            if (interactionSummaryIdForRelated != null) {
                 try {
-                    dto.cptCodes = fetchCptCodes(recordId);
+                    dto.cptCodes = fetchCptCodes(interactionSummaryIdForRelated);
                 } catch (Exception e) {
                     System.debug('Could not fetch CPT codes: ' + e.getMessage());
                 }
             }
-            
+
             return dto;
         } catch (AuraHandledException e) {
             throw e;
         } catch (Exception e) {
             throw new AuraHandledException('Error loading note: ' + e.getMessage());
         }
+    }
+
+    private static List<Map<String, Object>> fetchInterviewSections(Id interviewId) {
+        List<Map<String, Object>> sections = new List<Map<String, Object>>();
+        if (interviewId == null) {
+            return sections;
+        }
+
+        Map<String, Schema.SObjectField> fieldMap = Schema.getGlobalDescribe()
+            .get('InterviewAnswer__c')
+            .getDescribe()
+            .fields
+            .getMap();
+
+        List<String> selectFields = new List<String>{
+            'Id',
+            'InterviewQuestion__r.Label__c',
+            'InterviewQuestion__r.Section__c',
+            'InterviewQuestion__r.Order__c',
+            'InterviewQuestion__r.Response_Type__c'
+        };
+
+        List<String> valueFields = new List<String>{
+            'Response_Value__c',
+            'Response_Text__c',
+            'Response_JSON__c',
+            'Value__c',
+            'Answer_Value__c',
+            'Response_Date__c',
+            'Date_Value__c',
+            'Response_Datetime__c',
+            'Datetime_Value__c',
+            'Response_Boolean__c',
+            'Boolean_Value__c',
+            'Response_Number__c',
+            'Number_Value__c'
+        };
+
+        for (String fieldName : valueFields) {
+            if (fieldMap.containsKey(fieldName.toLowerCase())) {
+                selectFields.add(fieldName);
+            }
+        }
+
+        String query = 'SELECT ' + String.join(selectFields, ', ') +
+            ' FROM InterviewAnswer__c ' +
+            ' WHERE Interview__c = :interviewId ' +
+            ' ORDER BY InterviewQuestion__r.Section__c, InterviewQuestion__r.Order__c, CreatedDate';
+
+        List<SObject> answers = Database.query(query);
+        if (answers.isEmpty()) {
+            return sections;
+        }
+
+        Map<String, List<Map<String, Object>>> bySection = new Map<String, List<Map<String, Object>>>();
+        List<String> sectionOrder = new List<String>();
+
+        for (SObject answer : answers) {
+            SObject question = answer.getSObject('InterviewQuestion__r');
+            String sectionName = question != null ? (String)question.get('Section__c') : null;
+            String label = question != null ? (String)question.get('Label__c') : null;
+            String responseType = question != null ? (String)question.get('Response_Type__c') : null;
+
+            String value = resolveInterviewAnswerValue(answer, valueFields, responseType);
+            if (String.isBlank(label) && String.isBlank(value)) {
+                continue;
+            }
+
+            String key = String.isNotBlank(sectionName) ? sectionName : 'Other';
+            if (!bySection.containsKey(key)) {
+                bySection.put(key, new List<Map<String, Object>>());
+                sectionOrder.add(key);
+            }
+
+            bySection.get(key).add(new Map<String, Object>{
+                'label' => label,
+                'value' => String.isNotBlank(value) ? value : '(No response)'
+            });
+        }
+
+        for (String sectionName : sectionOrder) {
+            sections.add(new Map<String, Object>{
+                'name' => sectionName,
+                'questions' => bySection.get(sectionName)
+            });
+        }
+
+        return sections;
+    }
+
+    private static String resolveInterviewAnswerValue(SObject answer, List<String> valueFields, String responseType) {
+        String value;
+
+        for (String fieldName : valueFields) {
+            try {
+                Object fieldValue = answer.get(fieldName);
+                if (fieldValue != null) {
+                    if (fieldValue instanceof Date) {
+                        value = ((Date)fieldValue).format();
+                    } else if (fieldValue instanceof Datetime) {
+                        value = ((Datetime)fieldValue).format();
+                    } else {
+                        value = String.valueOf(fieldValue);
+                    }
+                    break;
+                }
+            } catch (Exception e) {
+                // Ignore missing field
+            }
+        }
+
+        if (String.isBlank(value)) {
+            return value;
+        }
+
+        String normalizedType = responseType != null ? responseType.toLowerCase() : '';
+        if (normalizedType == 'boolean' || normalizedType == 'checkbox' || value == 'true' || value == 'false') {
+            if (value == 'true') {
+                return 'Yes';
+            }
+            if (value == 'false') {
+                return 'No';
+            }
+        }
+
+        String jsonDisplay = parseInterviewJsonValue(value);
+        if (String.isNotBlank(jsonDisplay)) {
+            return jsonDisplay;
+        }
+
+        if (value.contains(';')) {
+            return String.join(value.split(';'), ', ');
+        }
+
+        return value;
+    }
+
+    private static String parseInterviewJsonValue(String rawValue) {
+        if (String.isBlank(rawValue)) {
+            return null;
+        }
+
+        String trimmed = rawValue.trim();
+        if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+            return null;
+        }
+
+        try {
+            Object parsed = JSON.deserializeUntyped(trimmed);
+            if (parsed instanceof List<Object>) {
+                List<String> parts = new List<String>();
+                for (Object item : (List<Object>)parsed) {
+                    if (item instanceof Map<String, Object>) {
+                        Map<String, Object> itemMap = (Map<String, Object>)item;
+                        String label = extractDisplayValue(itemMap);
+                        if (String.isNotBlank(label)) {
+                            parts.add(label);
+                        }
+                    } else if (item != null) {
+                        parts.add(String.valueOf(item));
+                    }
+                }
+                return parts.isEmpty() ? null : String.join(parts, ', ');
+            }
+
+            if (parsed instanceof Map<String, Object>) {
+                String label = extractDisplayValue((Map<String, Object>)parsed);
+                return String.isNotBlank(label) ? label : JSON.serialize(parsed);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static String extractDisplayValue(Map<String, Object> valueMap) {
+        if (valueMap == null || valueMap.isEmpty()) {
+            return null;
+        }
+        List<String> keys = new List<String>{ 'label', 'value', 'name', 'text' };
+        for (String key : keys) {
+            if (valueMap.containsKey(key) && valueMap.get(key) != null) {
+                return String.valueOf(valueMap.get(key));
+            }
+        }
+        return null;
     }
     
     /**

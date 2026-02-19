@@ -1,4 +1,4 @@
-import { LightningElement, api, wire } from 'lwc';
+import { LightningElement, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getExistingDiagnoses from '@salesforce/apex/ClinicalNoteController.getExistingDiagnoses';
 
