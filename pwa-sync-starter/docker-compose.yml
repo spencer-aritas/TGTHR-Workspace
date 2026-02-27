@@ -62,6 +62,7 @@ services:
       - PYTHONPATH=/app
       - DUCKDB_PATH=/app/data/tgthr_program_data.duckdb
       - SF_ENV=sandbox
+      - GOTENBERG_URL=http://gotenberg:3000
     ports:
       - "8002:8000"
     volumes:
@@ -69,7 +70,20 @@ services:
       - ../tgthr-docgen/data:/app/data
     restart: unless-stopped
     command: uvicorn serve:app --host 0.0.0.0 --port 8000
+    networks:
+      - default
+      - internal
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    networks:
+      - internal
 
 volumes:
   caddy_data:
   caddy_config:
+
+networks:
+  default:
+  internal:
