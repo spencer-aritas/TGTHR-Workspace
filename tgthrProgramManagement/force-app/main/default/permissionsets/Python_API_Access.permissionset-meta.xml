@@ -2032,11 +2032,6 @@
     <!-- ═══ Diagnosis_Note_Link__c — all fields ═══ -->
     <fieldPermissions>
         <editable>true</editable>
-        <field>Diagnosis_Note_Link__c.Diagnosis__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>Diagnosis_Note_Link__c.InteractionSummary__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -2093,11 +2088,6 @@
         <readable>true</readable>
     </fieldPermissions>
     <!-- ═══ Income_Benefit__c — all fields ═══ -->
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Income_Benefit__c.Assessment__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>Income_Benefit__c.Documentation_Notes__c</field>
@@ -2222,12 +2212,6 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>InteractionSummary.Requires_Manager_Approval__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <!-- ═══ InterviewDocument__c — missing fields ═══ -->
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>InterviewDocument__c.Interview__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <!-- ═══ InterviewTemplateDocument__c — missing fields ═══ -->
