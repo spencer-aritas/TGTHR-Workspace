@@ -70,6 +70,10 @@ public with sharing class InterviewDocumentService {
             'CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, CaseManager_Signed_By__r.Title, ' +
             'PeerSupport_Signed__c, PeerSupport_Signature_File_Id__c, Date_PeerSupport_Signed__c, ' +
             'PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name, PeerSupport_Signed_By__r.Title, ' +
+            'Requires_Manager_Approval__c, Manager_Signed__c, Manager_Signed_Date__c, ' +
+            'Manager_Signature_File_Id__c, ' +
+            'Manager_Approver__c, Manager_Approver__r.Name, Manager_Approver__r.Title, ' +
+            'Manager_Signed_By__c, Manager_Signed_By__r.Name, Manager_Signed_By__r.Title, ' +
             'Client__r.Name, Client__r.FirstName, Client__r.LastName, ' +
             'Client__r.PersonBirthdate, Client__r.PersonPronouns, ' +
             'Client__r.PersonMobilePhone, Client__r.PersonEmail, ' +
@@ -95,7 +99,10 @@ public with sharing class InterviewDocumentService {
             'InterviewTemplateVersion__r.InterviewTemplate__r.Income_Benefits_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Goals_Policy__c, ' +
             'CreatedBy.Name, CreatedById, CreatedDate, ' +
-            'LastModifiedBy.Name, LastModifiedById, LastModifiedDate ' +
+            'LastModifiedBy.Name, LastModifiedById, LastModifiedDate, ' +
+            'Consent_Participated__c, Documentation_Offered__c, ' +
+            'Next_Review_Date__c, Last_Review_Date__c, ' +
+            'Expected_Discharge_Date__c, Discharge_Plan__c ' +
             'FROM Interview__c ' +
             'WHERE Interaction_Summary__c = :interactionSummaryId ' +
             'LIMIT 1';
@@ -227,6 +234,19 @@ public with sharing class InterviewDocumentService {
         // Step 4: Build sections[] (Question groups + Summary)
         List<Object> sections = buildSections(interview, participant, interviewData);
         
+        // Step 4.5: Add SSRS Risk Assessment immediately after question sections
+        // (appears in document after MSE, before services/income/goals — mirrors form order)
+        Map<String, Object> ssrsAssessment = buildSsrsAssessment(interview);
+        if (ssrsAssessment != null) {
+            sections.add(new Map<String, Object>{
+                'id' => 'SSRS_ASSESSMENT',
+                'label' => 'Risk Assessment (SSRS)',
+                'kind' => 'risk_assessment',
+                'layout' => 'structured',
+                'items' => new List<Object>{ ssrsAssessment }
+            });
+        }
+        
         // Step 5: Build signatures[] based on policies
         List<Object> signatures = buildSignatures(interview, client, features);
         
@@ -301,18 +321,6 @@ public with sharing class InterviewDocumentService {
             }
         } else {
             System.debug('=== SKIPPING Goals section (goalsPolicy=Hidden) ===');
-        }
-        
-        // Step 5.8: Build SSRS Risk Assessment section if linked
-        Map<String, Object> ssrsAssessment = buildSsrsAssessment(interview);
-        if (ssrsAssessment != null) {
-            sections.add(new Map<String, Object>{
-                'id' => 'SSRS_ASSESSMENT',
-                'label' => 'Risk Assessment (SSRS)',
-                'kind' => 'risk_assessment',
-                'layout' => 'structured',
-                'items' => new List<Object>{ ssrsAssessment }
-            });
         }
         
         // Add signature_block section if signatures exist
@@ -437,13 +445,16 @@ public with sharing class InterviewDocumentService {
         List<SObject> answers = Database.query(answerQuery);
         System.debug('Answers found: ' + answers.size());
         
-        // Group answers by section
+        // Group answers by section, tracking display order via min question Order__c
         Map<String, List<Object>> sectionGroups = new Map<String, List<Object>>();
+        Map<String, Integer> sectionMinOrder = new Map<String, Integer>();
         
         for (SObject answer : answers) {
             SObject question = answer.getSObject('InterviewQuestion__r');
             String sectionName = (String)question.get('Section__c');
             String responseType = (String)question.get('Response_Type__c');
+            Integer questionOrder = question.get('Order__c') != null
+                ? Integer.valueOf((Decimal)question.get('Order__c')) : 999;
             
             if (String.isBlank(sectionName)) {
                 sectionName = 'General';
@@ -451,6 +462,9 @@ public with sharing class InterviewDocumentService {
             
             if (!sectionGroups.containsKey(sectionName)) {
                 sectionGroups.put(sectionName, new List<Object>());
+                sectionMinOrder.put(sectionName, questionOrder);
+            } else if (questionOrder < sectionMinOrder.get(sectionName)) {
+                sectionMinOrder.put(sectionName, questionOrder);
             }
             
             // Determine answer text from response fields
@@ -483,13 +497,18 @@ public with sharing class InterviewDocumentService {
             });
         }
         
-        // Convert section groups to section objects
+        // Convert section groups to section objects sorted by min question Order__c
+        List<SectionOrderEntry> sortableEntries = new List<SectionOrderEntry>();
         for (String sectionName : sectionGroups.keySet()) {
+            sortableEntries.add(new SectionOrderEntry(sectionName, sectionMinOrder.get(sectionName)));
+        }
+        sortableEntries.sort();
+        for (SectionOrderEntry entry : sortableEntries) {
             sections.add(new Map<String, Object>{
-                'id' => 'SECTION_' + sectionName.toUpperCase().replace(' ', '_'),
-                'label' => sectionName,
+                'id' => 'SECTION_' + entry.sectionName.toUpperCase().replace(' ', '_'),
+                'label' => entry.sectionName,
                 'kind' => 'question_group',
-                'items' => sectionGroups.get(sectionName)
+                'items' => sectionGroups.get(entry.sectionName)
             });
         }
         
@@ -654,6 +673,52 @@ public with sharing class InterviewDocumentService {
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,
                 'sourceField' => 'PeerSupport_Signature_File_Id__c'
+            });
+        }
+        
+        // Manager co-sign (for Treatment Plans requiring manager approval)
+        Boolean requiresManagerApproval = interview.get('Requires_Manager_Approval__c') != null && (Boolean)interview.get('Requires_Manager_Approval__c');
+        Boolean hasManagerSigned = interview.get('Manager_Signed__c') != null && (Boolean)interview.get('Manager_Signed__c');
+        Boolean hasManagerAssigned = interview.get('Manager_Approver__c') != null;
+        
+        if (requiresManagerApproval || hasManagerSigned || hasManagerAssigned) {
+            String contentDocId = (String)interview.get('Manager_Signature_File_Id__c');
+            System.debug('Manager ContentDocument ID: ' + contentDocId);
+            String signatureBase64 = getSignatureImageBase64(contentDocId);
+            System.debug('Manager signature base64 length: ' + (signatureBase64 != null ? signatureBase64.length() : 0));
+            
+            // Prefer the signed-by user (who actually signed) over the approver (who was assigned)
+            String managerName = '';
+            String managerTitle = '';
+            SObject managerSignedBy = interview.getSObject('Manager_Signed_By__r');
+            if (managerSignedBy != null) {
+                managerName = (String)managerSignedBy.get('Name');
+                managerTitle = (String)managerSignedBy.get('Title');
+            } else {
+                SObject managerApprover = interview.getSObject('Manager_Approver__r');
+                if (managerApprover != null) {
+                    managerName = (String)managerApprover.get('Name');
+                    managerTitle = (String)managerApprover.get('Title');
+                }
+            }
+            
+            String displayName = managerName;
+            if (String.isNotBlank(managerTitle)) {
+                displayName = managerName + ', ' + managerTitle;
+            }
+            
+            signatures.add(new Map<String, Object>{
+                'id' => 'MANAGER',
+                'role' => 'Manager',
+                'policy' => 'Required',
+                'signed' => hasManagerSigned,
+                'displayName' => displayName,
+                'signerName' => managerName,
+                'signerTitle' => managerTitle,
+                'dateSigned' => String.valueOf(interview.get('Manager_Signed_Date__c')),
+                'contentDocumentId' => contentDocId,
+                'imageBase64' => signatureBase64,
+                'sourceField' => 'Manager_Signature_File_Id__c'
             });
         }
         
@@ -863,44 +928,32 @@ public with sharing class InterviewDocumentService {
      */
     private static Map<String, Object> buildCarePlanConsent(SObject interview) {
         try {
-            Id caseId = (Id)interview.get('Case__c');
-            
-            if (caseId == null) {
-                return null;
-            }
-            
-            Id accountId;
-            try {
-                Case c = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
-                accountId = c.AccountId;
-            } catch (Exception e) {
-                System.debug('buildCarePlanConsent: Error resolving case account: ' + e.getMessage());
-            }
+            // All plan-specific content fields now live directly on Interview__c —
+            // one version per plan, fully isolated. CarePlan is a structural record only.
+            Map<String, Schema.SObjectField> ivFields =
+                Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
 
-            SObject carePlan = CarePlanService.fetchCarePlan(
-                caseId,
-                accountId,
-                new List<String>{ 'Id', 'Discharge_Plan__c', 'Expected_Discharge_Date__c', 'Last_Review_Date__c', 'Next_Review_Date__c', 'Review_Frequency_Days__c', 'Care_Plan_Reviewed__c', 'Documentation_Offered__c' }
-            );
+            Boolean consentParticipated = ivFields.containsKey('consent_participated__c')
+                && interview.get('Consent_Participated__c') == true;
+            Boolean consentOffered = ivFields.containsKey('documentation_offered__c')
+                && interview.get('Documentation_Offered__c') == true;
+            String dischargePlan = ivFields.containsKey('discharge_plan__c')
+                ? (String) interview.get('Discharge_Plan__c') : null;
+            Object expectedDischargeDate = ivFields.containsKey('expected_discharge_date__c')
+                ? interview.get('Expected_Discharge_Date__c') : null;
+            Object lastReviewDate = ivFields.containsKey('last_review_date__c')
+                ? interview.get('Last_Review_Date__c') : null;
+            Object nextReviewDate = ivFields.containsKey('next_review_date__c')
+                ? interview.get('Next_Review_Date__c') : null;
 
-            if (carePlan == null) {
-                System.debug('buildCarePlanConsent: No CarePlan found for Case ' + caseId);
-                return null;
-            }
-            String dischargePlan = (String)carePlan.get('Discharge_Plan__c');
-            
-            // Use the dedicated checkbox fields on CarePlan
-            Boolean consentParticipated = carePlan.get('Care_Plan_Reviewed__c') == true;
-            Boolean consentOffered = carePlan.get('Documentation_Offered__c') == true;
-            
             return new Map<String, Object>{
                 'consentParticipated' => consentParticipated,
                 'consentOffered' => consentOffered,
                 'dischargePlan' => dischargePlan,
-                'expectedDischargeDate' => String.valueOf(carePlan.get('Expected_Discharge_Date__c')),
-                'lastReviewDate' => String.valueOf(carePlan.get('Last_Review_Date__c')),
-                'nextReviewDate' => String.valueOf(carePlan.get('Next_Review_Date__c')),
-                'reviewFrequencyDays' => carePlan.get('Review_Frequency_Days__c')
+                'expectedDischargeDate' => String.valueOf(expectedDischargeDate),
+                'lastReviewDate' => String.valueOf(lastReviewDate),
+                'nextReviewDate' => String.valueOf(nextReviewDate),
+                'reviewFrequencyDays' => null
             };
         } catch (Exception e) {
             System.debug('Error building CarePlan consent: ' + e.getMessage());
@@ -1070,14 +1123,28 @@ public with sharing class InterviewDocumentService {
         System.debug('getSignatureImageBase64: Looking up ContentDocument: ' + contentDocumentId);
         
         try {
-            // Query the latest ContentVersion for this ContentDocument
-            List<ContentVersion> cvList = [
-                SELECT VersionData
-                FROM ContentVersion
-                WHERE ContentDocumentId = :contentDocumentId
-                AND IsLatest = true
-                LIMIT 1
-            ];
+            List<ContentVersion> cvList;
+            
+            // ContentVersion IDs start with '068'; ContentDocument IDs start with '069'.
+            // Support both in case legacy records stored a ContentVersion ID.
+            if (contentDocumentId.startsWith('068')) {
+                System.debug('getSignatureImageBase64: Detected ContentVersion ID — querying by Id directly');
+                cvList = [
+                    SELECT VersionData
+                    FROM ContentVersion
+                    WHERE Id = :contentDocumentId
+                    LIMIT 1
+                ];
+            } else {
+                // Query the latest ContentVersion for this ContentDocument
+                cvList = [
+                    SELECT VersionData
+                    FROM ContentVersion
+                    WHERE ContentDocumentId = :contentDocumentId
+                    AND IsLatest = true
+                    LIMIT 1
+                ];
+            }
             
             System.debug('getSignatureImageBase64: Found ' + cvList.size() + ' ContentVersion records');
             
@@ -1503,6 +1570,26 @@ public with sharing class InterviewDocumentService {
         } catch (Exception e) {
             System.debug('Validation failed: ' + e.getMessage());
             throw e;
+        }
+    }
+
+    /**
+     * Comparable wrapper used to sort interview sections by the minimum
+     * question Order__c value within each section, matching the Primary
+     * Assessment tab display order.
+     */
+    private class SectionOrderEntry implements Comparable {
+        public String sectionName;
+        public Integer minOrder;
+        
+        public SectionOrderEntry(String sectionName, Integer minOrder) {
+            this.sectionName = sectionName;
+            this.minOrder = minOrder != null ? minOrder : 999;
+        }
+        
+        public Integer compareTo(Object other) {
+            SectionOrderEntry o = (SectionOrderEntry) other;
+            return this.minOrder - o.minOrder;
         }
     }
 }

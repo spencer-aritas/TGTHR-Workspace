@@ -238,3 +238,23 @@
         max-width: 1200px;
     }
 }
+
+/* MSE Subsection headers */
+.mse-subsection {
+    border-top: 1px solid #dddbda;
+    padding-top: 0.75rem;
+}
+
+.mse-subsection:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.mse-subsection-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.0625rem;
+    color: #3e3e3c;
+    margin-bottom: 0.5rem;
+}
