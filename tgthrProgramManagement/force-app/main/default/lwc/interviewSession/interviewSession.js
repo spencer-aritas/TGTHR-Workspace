@@ -18,6 +18,7 @@ import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationCont
 import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
+import logSignatureEvent from '@salesforce/apex/RecordAccessService.logSignatureEvent';
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
 
@@ -64,8 +65,14 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track peerSupportSignatureStatus = null;
     @track caseManagerSignedBy = null; // { id, name, title, email }
     @track peerSupportSignedBy = null; // { id, name, title, email }
+    @track clinicianIsOther = false;   // Running user is NOT the clinician — assign someone else
+    @track clinicianSignedBy = null;   // { id, name, title, email } — set when clinicianIsOther
     @track signForCaseManagement = false; // Staff signing as Case Manager (override)
     @track signForPeer = false; // Staff signing as Peer Support (override)
+    // Signature suppression flags (Treatment Plan — "Not Requested")
+    @track caseManagementNotRequested = false;
+    @track peerSupportNotRequested = false;
+    @track clinicianNotRequested = false;
     @track caseManagerSignNow = false; // Sign during interview vs assign for later
     @track peerSupportSignNow = false; // Sign during interview vs assign for later
     @track housingBenefitOptions = [];
@@ -93,6 +100,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     // Draft/Save for Later support
     @track draftId = null;
     @track hasDraft = false;
+    @track draftWasRestored = false; // Track if draft was actually restored (not just found)
     @track isSavingDraft = false;
     @track startedAt = null; // When the interview was first started (for audit trail)
     
@@ -145,10 +153,24 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     getStateParameters(currentPageReference) {
         if (currentPageReference && currentPageReference.state) {
             // Get parameters from URL state (with c__ prefix from standard__component navigation)
-            this.urlCaseId = currentPageReference.state.c__caseId || currentPageReference.state.caseId;
-            this.urlTemplateVersionId = currentPageReference.state.c__templateVersionId || currentPageReference.state.templateVersionId;
+            const newCaseId = currentPageReference.state.c__caseId || currentPageReference.state.caseId;
+            const newTemplateVersionId = currentPageReference.state.c__templateVersionId || currentPageReference.state.templateVersionId;
+            
+            // CRITICAL: Detect parameter changes and reset parametersLoaded flag
+            // This allows fresh loadSession when navigating to new Treatment Plan
+            const paramsChanged = (newCaseId && newCaseId !== this.urlCaseId) || 
+                                  (newTemplateVersionId && newTemplateVersionId !== this.urlTemplateVersionId);
+            
+            this.urlCaseId = newCaseId;
+            this.urlTemplateVersionId = newTemplateVersionId;
+            
             // Optional: startStep parameter to jump to a specific step (e.g., 'review')
             this.urlStartStep = currentPageReference.state.c__startStep || currentPageReference.state.startStep;
+            
+            // Reset parametersLoaded if navigating to different session
+            if (paramsChanged) {
+                this.parametersLoaded = false;
+            }
             
             if (this.effectiveCaseId && this.effectiveTemplateVersionId && !this.parametersLoaded) {
                 this.parametersLoaded = true;
@@ -202,6 +224,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     async loadSession() {
         this.isLoading = true;
+        
+        // CRITICAL: Reset ALL state when loading session
+        // Component may be reused without remounting, causing state to persist
+        this.resetSessionState();
+        
         try {
             const response = await initializeSession({
                 caseId: this.effectiveCaseId,
@@ -229,7 +256,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             // Initialize accordion sections - open all by default for easier navigation
             if (this.templateData && this.templateData.sections) {
                 this.activeSections = this.templateData.sections.map(s => s.label);
-                const reviewSections = [...this.activeSections, 'incomeBenefits'];
+                const reviewSections = [...this.activeSections, 'incomeBenefits', 'ssrs'];
                 if (this.showDiagnoses) {
                     reviewSections.push('diagnoses');
                 }
@@ -262,6 +289,50 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
     
     /**
+     * Reset all session state to default values
+     * Called at start of loadSession to prevent state persistence when component is reused
+     */
+    resetSessionState() {
+        // Reset answers
+        this.answers = new Map();
+        
+        // Reset care plan consent to defaults
+        this.carePlanConsent = {
+            consentParticipated: false,
+            consentOffered: false,
+            nextReviewDate: null,
+            dischargeDate: null,
+            dischargePlan: ''
+        };
+        
+        // Reset other tracked state
+        this.selectedDiagnoses = [];
+        this.newDiagnosesToCreate = [];
+        this.goals = [];
+        this.housingBenefitIds = [];
+        this.clinicalBenefitIds = [];
+        this.demographicsData = {};
+        this.incomeBenefitsData = []; // Array, not object
+        this.ssrsAssessmentData = null;
+        this.draftWasRestored = false;
+        this.hasDraft = false;
+        this.draftId = null;
+        this.currentStepIndex = 0;
+        
+        // Reset interaction input (preserve times set in connectedCallback)
+        const startDateTime = this.interactionInput.startDateTime;
+        const endDateTime = this.interactionInput.endDateTime;
+        this.interactionInput = {
+            interactionDate: null,
+            startDateTime: startDateTime,
+            endDateTime: endDateTime,
+            meetingNotes: '',
+            location: '',
+            interpreterUsed: false
+        };
+    }
+    
+    /**
      * Check if there's an existing draft for this specific interview template and offer to restore it
      * Uses template-specific matching to avoid cross-template draft conflicts
      */
@@ -288,6 +359,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 
                 if (confirmRestore) {
                     await this.restoreDraft(draftCheck.draftId);
+                    this.draftWasRestored = true; // Mark that draft was restored
                 } else {
                     // User declined - ask if they want to delete the old draft
                     // eslint-disable-next-line no-restricted-globals, no-alert
@@ -299,6 +371,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                         this.hasDraft = false;
                         this.draftId = null;
                     }
+                    this.draftWasRestored = false; // User declined restoration
                 }
             }
         } catch (error) {
@@ -437,6 +510,14 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             } else {
                 console.warn('Invalid startStep requested:', requestedStep, 'Valid steps:', STEPS);
             }
+            return;
+        }
+
+        // For Comprehensive Clinical Intake: always start at the Primary Assessment (interview) step
+        // Interaction Details are shown inline on that step; demographics tab is not used
+        if (this.isComprehensiveIntakeTemplate) {
+            this.currentStepIndex = STEPS.indexOf('interview');
+            return;
         }
         
         // Step 1: Demographics (if shown) - check if any demographics data exists
@@ -552,7 +633,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get isFirstStep() {
-        return this.isSinglePageMode || this.currentStepIndex === 0;
+        if (this.isSinglePageMode) return true;
+        if (this.isComprehensiveIntakeTemplate) {
+            return this.currentStepIndex <= STEPS.indexOf('interview');
+        }
+        return this.currentStepIndex === 0;
     }
 
     get isLastStep() {
@@ -620,6 +705,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get showIncomeBenefits() {
+        if (this.isComprehensiveIntakeTemplate) return false;
         return this.templateData?.incomeBenefitsPolicy && this.templateData.incomeBenefitsPolicy !== 'Hidden';
     }
 
@@ -643,10 +729,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         if (this.isComprehensiveIntakeTemplate) {
             return false;
         }
-        return this.templateData?.clientSignaturePolicy === 'Required' || this.showGoals;
+        return this.templateData?.clientSignaturePolicy === 'Required';
     }
 
     get requireStaffSignature() {
+        if (this.clinicianNotRequested) return false;
         return this.templateData?.staffSignaturePolicy === 'Required' || this.showGoals;
     }
 
@@ -683,25 +770,25 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     get showCaseManagerSignature() {
         return this.isTreatmentPlanTemplate && 
-               (this.hasCaseManagementGoals || this.signForCaseManagement);
+               this.hasCaseManagementGoals && !this.caseManagementNotRequested;
     }
 
     get showPeerSupportSignature() {
         return this.isTreatmentPlanTemplate && 
-               (this.hasPeerGoals || this.signForPeer);
+               this.hasPeerGoals && !this.peerSupportNotRequested;
     }
 
     get requireCaseManagerSignature() {
-        return this.hasCaseManagementGoals && !this.signForCaseManagement;
+        return this.hasCaseManagementGoals && !this.caseManagementNotRequested;
     }
 
     get requirePeerSupportSignature() {
-        return this.hasPeerGoals && !this.signForPeer;
+        return this.hasPeerGoals && !this.peerSupportNotRequested;
     }
 
     get showSignatureOverrides() {
-        return this.isTreatmentPlanTemplate && 
-               (this.hasCaseManagementGoals || this.hasPeerGoals);
+        // Always show Signature Options on Treatment Plans so staff can mark roles Not Requested
+        return this.isTreatmentPlanTemplate;
     }
 
     // Manager Approval getters
@@ -757,7 +844,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     get isComprehensiveIntakeTemplate() {
         const name = this.templateName?.toLowerCase() || '';
-        return name.includes('comprehensive intake');
+        return name.includes('comprehensive') && name.includes('intake');
+    }
+
+    get interviewStepLabel() {
+        return this.isComprehensiveIntakeTemplate ? 'Primary Assessment' : 'Interview Questions';
     }
 
     get visitDurationDisplay() {
@@ -808,7 +899,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const ssrsTemplateNames = ['psychosocial', 'comprehensive intake', '1440 pine'];
         const hasSsrsTemplateName = ssrsTemplateNames.some(n => templateName.includes(n));
         
-        return hasSsrsCategory || hasSsrsTemplateName;
+        return hasSsrsCategory || hasSsrsTemplateName || this.isComprehensiveIntakeTemplate;
     }
 
     get canLaunchSsrs() {
@@ -846,7 +937,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             return minOrderA - minOrderB;
         });
 
-        if (this.showDiagnoses) {
+        if (this.showDiagnoses && !this.isComprehensiveIntakeTemplate) {
+            // Standard behavior: add a standalone Diagnoses accordion section before the Plan section
             const diagnosesSection = {
                 name: 'diagnoses',
                 label: 'Diagnoses',
@@ -865,13 +957,28 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
         return sortedSections.map(section => {
             console.log('Section:', section.label);
-            console.log('Questions in section:', section.questions.length);
+
+            // For Comprehensive Clinical Intake: inject diagnoses into Plan section
+            // and filter out the legacy DSM free-text fields (replaced by the selector)
+            const isPlanSectionWithDiagnoses = this.showDiagnoses &&
+                this.isComprehensiveIntakeTemplate &&
+                section.label?.toLowerCase().includes('plan') &&
+                !section.isDiagnosesSection;
+
+            // Use filtered question list for plan-with-diagnoses; otherwise use all questions
+            const questionsToProcess = isPlanSectionWithDiagnoses
+                ? section.questions.filter(q =>
+                    q.apiName !== 'DSM_Diagnosis_Primary__c' &&
+                    q.apiName !== 'DSM_Diagnosis_Secondary__c')
+                : section.questions;
+
+            console.log('Questions in section:', questionsToProcess.length);
             
             // Group questions by Field_Set_Group__c for checkbox questions
             const fieldSetGroups = new Map();
             const regularQuestions = [];
             
-            section.questions.forEach((question, index, array) => {
+            questionsToProcess.forEach((question, index, array) => {
                 const processedQuestion = this.processQuestion(question, index, array, section.label);
                 
                 // If checkbox with field set group, add to group
@@ -908,13 +1015,44 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 return orderA - orderB;
             });
             
+            const isMseSection = !!(section.label && section.label.toLowerCase() === 'mental status exam');
+
+            // Build MSE subsections for organised clinical layout
+            let mseSubsections = null;
+            if (isMseSection) {
+                const MSE_SUBSECTION_DEFS = [
+                    { label: 'Observations', apiNames: ['MSE_Appearance__c', 'MSE_Speech__c', 'MSE_Eye_Contact__c', 'MSE_Motor_Activity__c', 'MSE_Affect__c'] },
+                    { label: 'Mood', apiNames: ['MSE_Mood__c'] },
+                    { label: 'Cognition', apiNames: ['MSE_Orientation_Impairment__c', 'MSE_Memory_Impairment__c', 'MSE_Attention__c'] },
+                    { label: 'Perception', apiNames: ['MSE_Hallucinations__c', 'MSE_Perception_Other__c'] },
+                    { label: 'Thoughts', apiNames: ['MSE_Suicidality__c', 'MSE_Homicidality__c', 'MSE_Delusions__c'] },
+                    { label: 'Behavior', apiNames: ['MSE_Behavior__c'] },
+                    { label: 'Insight', apiNames: ['MSE_Insight__c'] },
+                    { label: 'Judgment', apiNames: ['MSE_Judgment__c'] }
+                ];
+                const byApiName = new Map(allItems.filter(q => q.apiName).map(q => [q.apiName, q]));
+                mseSubsections = MSE_SUBSECTION_DEFS
+                    .map(def => ({
+                        label: def.label,
+                        key: 'mse-sub-' + def.label.toLowerCase().replace(/\s+/g, '-'),
+                        questions: def.apiNames.map(n => byApiName.get(n)).filter(Boolean)
+                    }))
+                    .filter(sub => sub.questions.length > 0);
+                const commentsQ = byApiName.get('MSE_Comments__c');
+                if (commentsQ) {
+                    mseSubsections.push({ label: 'MSE Comments', key: 'mse-sub-comments', questions: [commentsQ] });
+                }
+            }
+
             return {
                 ...section,
                 questions: allItems,
-                showRiskAssessmentAfter: this.showSsrsOption &&
-                    section.label && section.label.toLowerCase() === 'mental status exam',
-                isMseSection: section.label && section.label.toLowerCase() === 'mental status exam',
+                isPlanSectionWithDiagnoses,
+                mseSubsections,
+                showRiskAssessmentAfter: this.showSsrsOption && isMseSection,
+                isMseSection,
                 isDiagnosesSection: section.isDiagnosesSection === true,
+                isRegularSection: !section.isDiagnosesSection && !isPlanSectionWithDiagnoses,
                 riskKey: section.name ? `${section.name}-risk` : undefined
             };
         });
@@ -1082,21 +1220,30 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             return data;
         }
 
-        data.sections = this.templateData.sections.map(section => ({
-            name: section.label,
-            questions: section.questions.map((question) => {
-                const answer = this.answers.get(question.questionId);
-                const value = this.formatAnswerForReview(question, answer);
-                // Get column class for review layout
-                const columnClass = this.getReviewColumnClass(question, value);
-                return {
-                    label: question.label,
-                    value: value,
-                    columnClass: columnClass,
-                    isLongText: this.isLongTextValue(question, value)
-                };
+        data.sections = [...this.templateData.sections]
+            .sort((a, b) => {
+                const minA = Math.min(...a.questions.map(q => q.order || 999));
+                const minB = Math.min(...b.questions.map(q => q.order || 999));
+                return minA - minB;
             })
-        }));
+            .map(section => ({
+                name: section.label,
+                questions: [...section.questions]
+                    .sort((a, b) => (a.order || 999) - (b.order || 999))
+                    .map((question) => {
+                        const answer = this.answers.get(question.questionId);
+                        const value = this.formatAnswerForReview(question, answer);
+                        const columnClass = this.getReviewColumnClass(question, value);
+                        return {
+                            label: question.label,
+                            value: value,
+                            columnClass: columnClass,
+                            isLongText: this.isLongTextValue(question, value)
+                        };
+                    })
+            }));
+
+        data.ssrsAssessment = this.ssrsAssessmentData || null;
 
         return data;
     }
@@ -1333,7 +1480,13 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             dischargeDate: event.detail.dischargeDate,
             dischargePlan: event.detail.dischargePlan
         };
-        console.log('Care Plan Details:', this.carePlanConsent);
+        // If the event carries a fresh goals list (after save/delete), use it directly
+        // to avoid a cacheable Apex re-call that could return stale data.
+        if (event.detail.goals) {
+            this.goals = event.detail.goals;
+        } else {
+            this.fetchGoalsForReview();
+        }
     }
 
     handleCarePlanConsentInput(event) {
@@ -1436,13 +1589,20 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const peerSupportPad = this.template.querySelector('[data-role="peersupport"]');
 
         if (this.requireClientSignature && clientPad && !clientPad.hasSignature()) {
-            this.showToast('Client Signature Required', 'Please provide a client signature before saving.', 'error');
+            this.showToast('Client Signature Required', 'Please draw a client signature before saving.', 'error');
             return false;
         }
 
-        if (this.requireStaffSignature && staffPad && !staffPad.hasSignature()) {
-            this.showToast('Staff Signature Required', 'Please provide a staff signature before saving.', 'error');
-            return false;
+        if (this.requireStaffSignature) {
+            if (this.clinicianIsOther) {
+                if (!this.clinicianSignedBy) {
+                    this.showToast('Clinician Required', 'Please select a Clinician for this Treatment Plan.', 'error');
+                    return false;
+                }
+            } else if (staffPad && !staffPad.hasSignature()) {
+                this.showToast('Clinician Signature Required', 'Please draw a Clinician signature before saving.', 'error');
+                return false;
+            }
         }
 
         // Validate Case Manager signature
@@ -1452,14 +1612,13 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 this.showToast('Case Manager Required', 'Please select a Case Manager for this Treatment Plan.', 'error');
                 return false;
             }
-            // If signing now, must have signature (unless override)
+            // If signing now, must have drawn signature
             if (this.caseManagerSignNow && !this.signForCaseManagement) {
                 if (caseManagerPad && !caseManagerPad.hasSignature()) {
                     this.showToast('Case Manager Signature Required', 'Please draw Case Manager signature or uncheck "sign now" to assign for later.', 'error');
                     return false;
                 }
             }
-            // If NOT signing now, that's OK - they'll sign later from Pending Documentation
         }
 
         // Validate Peer Support signature
@@ -1469,14 +1628,13 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 this.showToast('Peer Support Required', 'Please select a Peer Support person for this Treatment Plan.', 'error');
                 return false;
             }
-            // If signing now, must have signature (unless override)
+            // If signing now, must have drawn signature
             if (this.peerSupportSignNow && !this.signForPeer) {
                 if (peerSupportPad && !peerSupportPad.hasSignature()) {
                     this.showToast('Peer Support Signature Required', 'Please draw Peer Support signature or uncheck "sign now" to assign for later.', 'error');
                     return false;
                 }
             }
-            // If NOT signing now, that's OK - they'll sign later from Pending Documentation
         }
 
         return true;
@@ -1592,6 +1750,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     interviewId: interviewId,
                     clientSignatureId: clientSigId,
                     staffSignatureId: staffSigId,
+                    staffSignedBy: this.clinicianIsOther ? this.clinicianSignedBy?.id : null,
                     caseManagerSignatureId: caseManagerSigId,
                     caseManagerSignedBy: this.caseManagerSignedBy?.id,
                     peerSupportSignatureId: peerSupportSigId,
@@ -1738,6 +1897,113 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         }
     }
 
+    // --- Signature suppression handlers (Treatment Plan "Not Requested") ---
+
+    handleCaseManagementNotRequestedChange(event) {
+        this.caseManagementNotRequested = event.target.checked;
+        // If suppressing, clear any existing case manager signature data
+        if (this.caseManagementNotRequested) {
+            this.caseManagerSignatureId = null;
+            this.caseManagerSignatureStatus = null;
+        }
+    }
+
+    handlePeerSupportNotRequestedChange(event) {
+        this.peerSupportNotRequested = event.target.checked;
+        // If suppressing, clear any existing peer support signature data
+        if (this.peerSupportNotRequested) {
+            this.peerSupportSignatureId = null;
+            this.peerSupportSignatureStatus = null;
+        }
+    }
+
+    handleClinicianNotRequestedChange(event) {
+        this.clinicianNotRequested = event.target.checked;
+        // If suppressing the clinician, clear any existing staff signature data
+        if (this.clinicianNotRequested) {
+            this.staffSignatureId = null;
+            this.staffSignatureStatus = null;
+        }
+    }
+
+    /**
+     * Fire all signature/suppression audit log events after a successful save.
+     * Each individual audit call is non-blocking — failures are logged but don't throw.
+     * Supports: SIGN, SIGN_SUPPRESSED, COSIGN_REQUESTED actions on Audit_Log__c.
+     */
+    async logAllSignatureAuditEvents(interviewId) {
+        if (!interviewId) return;
+        const auditCalls = [];
+
+        // Staff (clinician) signature
+        if (this.staffSignatureId) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'SIGN',
+                    description: 'Clinician signed Treatment Plan / Interview' })
+                .catch(e => console.warn('Audit SIGN (staff) failed:', e))
+            );
+        }
+        if (this.clinicianNotRequested) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'SIGN_SUPPRESSED',
+                    description: 'Clinician Not Requested — clinician signature suppressed for this Treatment Plan' })
+                .catch(e => console.warn('Audit SIGN_SUPPRESSED (clinician) failed:', e))
+            );
+        }
+
+        // Client signature
+        if (this.clientSignatureId) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'SIGN',
+                    description: 'Client signed Treatment Plan / Interview' })
+                .catch(e => console.warn('Audit SIGN (client) failed:', e))
+            );
+        }
+
+        // Case manager signature
+        if (this.caseManagerSignatureId) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'SIGN',
+                    description: 'Case Manager signed Treatment Plan' })
+                .catch(e => console.warn('Audit SIGN (case manager) failed:', e))
+            );
+        }
+        if (this.caseManagementNotRequested) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'SIGN_SUPPRESSED',
+                    description: 'Case Management Not Requested — case manager signature suppressed for this Treatment Plan' })
+                .catch(e => console.warn('Audit SIGN_SUPPRESSED (case management) failed:', e))
+            );
+        }
+
+        // Peer support signature
+        if (this.peerSupportSignatureId) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'SIGN',
+                    description: 'Peer Support signed Treatment Plan' })
+                .catch(e => console.warn('Audit SIGN (peer support) failed:', e))
+            );
+        }
+        if (this.peerSupportNotRequested) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'SIGN_SUPPRESSED',
+                    description: 'Peer Support Not Requested — peer support signature suppressed for this Treatment Plan' })
+                .catch(e => console.warn('Audit SIGN_SUPPRESSED (peer support) failed:', e))
+            );
+        }
+
+        // Manager co-sign requested
+        if (this.requestManagerCoSign && this.hasManager) {
+            auditCalls.push(
+                logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'COSIGN_REQUESTED',
+                    description: 'Manager co-signature requested for Treatment Plan' })
+                .catch(e => console.warn('Audit COSIGN_REQUESTED failed:', e))
+            );
+        }
+
+        await Promise.all(auditCalls);
+    }
+
     handleCaseManagerSignNowChange(event) {
         this.caseManagerSignNow = event.target.checked;
         // If unchecking, clear any signature that was drawn
@@ -1753,6 +2019,31 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         if (!this.peerSupportSignNow) {
             this.peerSupportSignatureId = null;
             this.peerSupportSignatureStatus = null;
+        }
+    }
+
+    handleClinicianIsOtherChange(event) {
+        this.clinicianIsOther = event.target.checked;
+        if (this.clinicianIsOther) {
+            // Assigning to someone else — discard any drawn staff signature
+            this.staffSignatureId = null;
+            this.staffSignatureStatus = null;
+        } else {
+            // Revert to current user as clinician — clear the selected other user
+            this.clinicianSignedBy = null;
+        }
+    }
+
+    handleClinicianUserSelected(event) {
+        if (event.detail && event.detail.userId) {
+            this.clinicianSignedBy = {
+                id: event.detail.userId,
+                name: event.detail.userName,
+                title: event.detail.userTitle,
+                email: event.detail.userEmail
+            };
+        } else {
+            this.clinicianSignedBy = null;
         }
     }
 
@@ -1786,7 +2077,14 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 
                 // Save signatures after Interview is created
                 await this.saveSignaturesToInterview(result.interviewId);
-                
+
+                // Audit log: all signature and suppression events (non-fatal)
+                try {
+                    await this.logAllSignatureAuditEvents(result.interviewId);
+                } catch (auditErr) {
+                    console.warn('Signature audit logging failed (non-fatal):', auditErr);
+                }
+
                 // Request manager approval if toggled
                 if (this.requestManagerCoSign && this.hasManager) {
                     try {
@@ -1833,9 +2131,26 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     }
                 }
                 
-                const successMsg = this.requestManagerCoSign && this.hasManager 
-                    ? `Interview saved. Manager approval requested from ${this.managerName}.`
-                    : 'Interview has been saved successfully.';
+                // Build a meaningful success message based on what's actually pending.
+                // requestManagerApproval sets Requires_Manager_Approval__c immediately, but the
+                // manager board item and notification only appear once ALL co-signers have signed.
+                // Showing "Manager approval requested" while CM/PS are still outstanding is misleading.
+                const hasDeferredCM = this.showCaseManagerSignature && !this.signForCaseManagement && this.caseManagerSignedBy;
+                const hasDeferredPS = this.showPeerSupportSignature && !this.signForPeer && this.peerSupportSignedBy;
+                const hasDeferredCoSigners = hasDeferredCM || hasDeferredPS;
+
+                let successMsg;
+                if (this.requestManagerCoSign && this.hasManager && hasDeferredCoSigners) {
+                    const coSignerNames = [
+                        hasDeferredCM ? this.caseManagerSignedBy?.name : null,
+                        hasDeferredPS ? this.peerSupportSignedBy?.name : null
+                    ].filter(Boolean).join(' and ');
+                    successMsg = `Interview saved. Signature requests sent to ${coSignerNames}. Manager co-sign (${this.managerName}) will be requested once they sign.`;
+                } else if (this.requestManagerCoSign && this.hasManager) {
+                    successMsg = `Interview saved. Manager approval requested from ${this.managerName}.`;
+                } else {
+                    successMsg = 'Interview has been saved successfully.';
+                }
                 this.showToast('Interview Saved', successMsg, 'success');
                 
                 // Wait a moment before navigation if document was generated
@@ -1879,8 +2194,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             } else {
                 console.log('SAVE FAILED:', result.errorMessage);
                 console.error('Save validation error:', result.errorMessage);
-                // eslint-disable-next-line no-alert
-                alert('Error: ' + (result.errorMessage || 'Unknown error occurred.'));
                 this.showToast('Error Saving Interview', result.errorMessage || 'Unknown error occurred.', 'error');
             }
         } catch (error) {
@@ -2143,7 +2456,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             incomeBenefitsJson: JSON.stringify(cleanIncomeBenefits),
             carePlanConsent: this.carePlanConsent,
             ssrsAssessmentId: ssrsAssessmentId,
-            diagnoses: diagnoses
+            diagnoses: diagnoses,
+            // Signature suppression flags (Treatment Plan only)
+            caseManagementNotRequested: this.caseManagementNotRequested,
+            peerSupportNotRequested: this.peerSupportNotRequested,
+            clinicianNotRequested: this.clinicianNotRequested
             // Note: Signatures are saved after Interview creation, not in initial request
         };
     }
@@ -2194,10 +2511,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             location: this.interactionInput.location || '11 - Office'
         };
 
-        this.carePlanConsent = {
-            ...this.carePlanConsent,
-            nextReviewDate: this.carePlanConsent.nextReviewDate || defaultNextReviewDate
-        };
+        // Set default nextReviewDate if not already set (from draft or user input)
+        if (!this.carePlanConsent.nextReviewDate) {
+            this.carePlanConsent.nextReviewDate = defaultNextReviewDate;
+        }
     }
 
     formatDateTimeForDisplay(dateTimeString) {

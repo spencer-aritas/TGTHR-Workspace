@@ -72,11 +72,13 @@
                     <template if:false={isSinglePageMode}>
                         <div class="progress-bar-container">
                             <lightning-progress-indicator current-step={currentStep} type="path" variant="base">
-                                <lightning-progress-step label="Interaction Details" value="interaction"></lightning-progress-step>
-                                <template if:true={showDemographics}>
-                                    <lightning-progress-step label="Demographics" value="demographics"></lightning-progress-step>
+                                <template if:false={isComprehensiveIntakeTemplate}>
+                                    <lightning-progress-step label="Interaction Details" value="interaction"></lightning-progress-step>
+                                    <template if:true={showDemographics}>
+                                        <lightning-progress-step label="Demographics" value="demographics"></lightning-progress-step>
+                                    </template>
                                 </template>
-                                <lightning-progress-step label="Interview Questions" value="interview"></lightning-progress-step>
+                                <lightning-progress-step label={interviewStepLabel} value="interview"></lightning-progress-step>
                                 <lightning-progress-step label="Review & Submit" value="review"></lightning-progress-step>
                             </lightning-progress-indicator>
                         </div>
@@ -258,29 +260,66 @@
                         </template>
 
                         <template if:true={showStaffSignature}>
-                            <lightning-card title="Staff Signature" icon-name="utility:edit" class="slds-m-top_medium">
+                            <lightning-card title="Clinician Signature" icon-name="utility:edit" class="slds-m-top_medium">
                                 <div class="slds-p-around_medium">
-                                    <c-signature-pad
-                                        title="Staff Signature"
-                                        data-role="staff"
-                                        filename={staffSignatureFilename}
-                                        onsignaturesaved={handleStaffSignatureSaved}>
-                                    </c-signature-pad>
-                                    <template if:true={staffSignatureStatus}>
-                                        <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
-                                            <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
-                                            Signed by {staffSignatureStatus.signedBy}
-                                            <template if:true={staffSignatureStatus.title}>
-                                                ({staffSignatureStatus.title})
-                                            </template>
-                                            on {staffSignatureStatus.signedAt}
+
+                                    <!-- Treatment Plan only: option to assign a different clinician -->
+                                    <template if:true={isTreatmentPlanTemplate}>
+                                        <div class="slds-m-bottom_small">
+                                            <lightning-input
+                                                type="checkbox"
+                                                label="Assign a Different Clinical User"
+                                                checked={clinicianIsOther}
+                                                onchange={handleClinicianIsOtherChange}>
+                                            </lightning-input>
                                         </div>
-                                    </template>
-                                    <template if:true={requireStaffSignature}>
-                                        <template if:false={staffSignatureStatus}>
-                                            <p class="slds-text-color_error slds-m-top_small">* Required</p>
+
+                                        <!-- Assign-to-other: user lookup + status messages -->
+                                        <template if:true={clinicianIsOther}>
+                                            <c-user-lookup
+                                                label="Select Clinician"
+                                                placeholder="Search for Clinician..."
+                                                onuserselected={handleClinicianUserSelected}
+                                                class="slds-m-bottom_small">
+                                            </c-user-lookup>
+                                            <template if:true={clinicianSignedBy}>
+                                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                                                    {clinicianSignedBy.name} will be notified to sign later from Pending Documentation
+                                                </p>
+                                            </template>
+                                            <template if:true={requireStaffSignature}>
+                                                <template if:false={clinicianSignedBy}>
+                                                    <p class="slds-text-color_error slds-m-top_small">* Clinician selection is required</p>
+                                                </template>
+                                            </template>
                                         </template>
                                     </template>
+
+                                    <!-- Signature pad: shown when current user is the clinician (default) -->
+                                    <template if:false={clinicianIsOther}>
+                                        <c-signature-pad
+                                            title="Clinician Signature"
+                                            data-role="staff"
+                                            filename={staffSignatureFilename}
+                                            onsignaturesaved={handleStaffSignatureSaved}>
+                                        </c-signature-pad>
+                                        <template if:true={staffSignatureStatus}>
+                                            <div class="slds-text-body_small slds-text-color_success slds-m-top_small">
+                                                <lightning-icon icon-name="utility:success" size="xx-small" class="slds-m-right_x-small"></lightning-icon>
+                                                Signed by {staffSignatureStatus.signedBy}
+                                                <template if:true={staffSignatureStatus.title}>
+                                                    ({staffSignatureStatus.title})
+                                                </template>
+                                                on {staffSignatureStatus.signedAt}
+                                            </div>
+                                        </template>
+                                        <template if:true={requireStaffSignature}>
+                                            <template if:false={staffSignatureStatus}>
+                                                <p class="slds-text-color_error slds-m-top_small">* Required</p>
+                                            </template>
+                                        </template>
+                                    </template>
+
                                 </div>
                             </lightning-card>
                         </template>
@@ -294,7 +333,6 @@
                                         <c-user-lookup
                                             label="Select Case Manager"
                                             placeholder="Search for Case Manager..."
-                                            permission-set-filter="Python_API_Access"
                                             onuserselected={handleCaseManagerUserSelected}
                                             class="slds-m-bottom_small">
                                         </c-user-lookup>
@@ -360,7 +398,6 @@
                                         <c-user-lookup
                                             label="Select Peer Support"
                                             placeholder="Search for Peer Support..."
-                                            permission-set-filter="Python_API_Access"
                                             onuserselected={handlePeerSupportUserSelected}
                                             class="slds-m-bottom_small">
                                         </c-user-lookup>
@@ -422,25 +459,28 @@
                             <lightning-card title="Signature Options" icon-name="utility:settings" class="slds-m-top_medium">
                                 <div class="slds-p-around_medium">
                                     <p class="slds-text-body_small slds-m-bottom_small">
-                                        Check the boxes below if you are signing in multiple roles:
+                                        Check the boxes below for any roles that are not applicable to this Treatment Plan:
                                     </p>
-                                    <template if:true={hasCaseManagementGoals}>
-                                        <lightning-input
-                                            type="checkbox"
-                                            label="I am also the Case Manager for this client"
-                                            checked={signForCaseManagement}
-                                            onchange={handleSignForCaseManagementChange}
-                                            class="slds-m-bottom_x-small">
-                                        </lightning-input>
-                                    </template>
-                                    <template if:true={hasPeerGoals}>
-                                        <lightning-input
-                                            type="checkbox"
-                                            label="I am also the Peer Support for this client"
-                                            checked={signForPeer}
-                                            onchange={handleSignForPeerChange}>
-                                        </lightning-input>
-                                    </template>
+                                    <lightning-input
+                                        type="checkbox"
+                                        label="Case Management Not Requested"
+                                        checked={caseManagementNotRequested}
+                                        onchange={handleCaseManagementNotRequestedChange}
+                                        class="slds-m-bottom_x-small">
+                                    </lightning-input>
+                                    <lightning-input
+                                        type="checkbox"
+                                        label="Peer Support Not Requested"
+                                        checked={peerSupportNotRequested}
+                                        onchange={handlePeerSupportNotRequestedChange}
+                                        class="slds-m-bottom_x-small">
+                                    </lightning-input>
+                                    <lightning-input
+                                        type="checkbox"
+                                        label="Clinician Not Requested"
+                                        checked={clinicianNotRequested}
+                                        onchange={handleClinicianNotRequestedChange}>
+                                    </lightning-input>
                                 </div>
                             </lightning-card>
                         </template>
@@ -553,9 +593,67 @@
                         </div>
                     </template>
 
-                    <!-- Step 3: Interview Questions -->
+                    <!-- Step 3: Interview Questions / Primary Assessment -->
                     <template if:true={isInterviewStep}>
                         <div class="slds-m-around_medium">
+
+                            <!-- Inline Interaction Details for Comprehensive Clinical Intake -->
+                            <template if:true={isComprehensiveIntakeTemplate}>
+                                <lightning-card title="Interaction Details" icon-name="utility:date_time" class="slds-m-bottom_medium">
+                                    <div class="slds-p-around_medium">
+                                        <div class="slds-grid slds-wrap slds-gutters">
+                                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                                <lightning-input
+                                                    type="datetime-local"
+                                                    label="Start Date & Time"
+                                                    value={interactionInput.startDateTime}
+                                                    data-field="startDateTime"
+                                                    onchange={handleInteractionInput}
+                                                    required>
+                                                </lightning-input>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                                <lightning-input
+                                                    type="datetime-local"
+                                                    label="End Date & Time"
+                                                    value={interactionInput.endDateTime}
+                                                    data-field="endDateTime"
+                                                    onchange={handleInteractionInput}>
+                                                </lightning-input>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-1">
+                                                <lightning-combobox
+                                                    label="Location (POS)"
+                                                    value={interactionInput.location}
+                                                    options={posOptions}
+                                                    data-field="location"
+                                                    onchange={handleInteractionInput}
+                                                    placeholder="Select place of service">
+                                                </lightning-combobox>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    label="Interpreter Used"
+                                                    checked={interactionInput.interpreterUsed}
+                                                    data-field="interpreterUsed"
+                                                    onchange={handleInteractionInput}>
+                                                </lightning-input>
+                                            </div>
+                                            <div class="slds-col slds-size_1-of-1">
+                                                <lightning-textarea
+                                                    label="Meeting Notes"
+                                                    value={interactionInput.meetingNotes}
+                                                    data-field="meetingNotes"
+                                                    onchange={handleInteractionInput}
+                                                    placeholder="Enter any initial notes or context for this interview...">
+                                                </lightning-textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </lightning-card>
+                            </template>
+
                             <!-- Goals Section -->
                             <template if:true={showGoals}>
                                 <lightning-card title="Goals" icon-name="utility:list" class="slds-m-bottom_medium">
@@ -615,7 +713,30 @@
                             <lightning-accordion active-section-name={activeSections} allow-multiple-sections-open>
                                 <template for:each={sections} for:item="section">
                                     <lightning-accordion-section key={section.name} name={section.name} label={section.label}>
-                                        <!-- Use grid layout for better space utilization -->
+                                        <!-- Plan section with embedded diagnoses picker (Comprehensive Clinical Intake) -->
+                                        <template if:true={section.isPlanSectionWithDiagnoses}>
+                                            <div class="slds-m-bottom_medium">
+                                                <c-diagnosis-selector
+                                                    case-id={effectiveCaseId}
+                                                    account-id={accountData.Id}
+                                                    selected-diagnoses={selectedDiagnoses}
+                                                    ondiagnosischange={handleDiagnosisChange}>
+                                                </c-diagnosis-selector>
+                                            </div>
+                                            <div class="slds-grid slds-wrap slds-gutters_small">
+                                                <template for:each={section.questions} for:item="item">
+                                                    <template if:false={item.isFieldSetGroup}>
+                                                        <div key={item.questionId} class={item.columnClass}>
+                                                            <c-interview-question-field
+                                                                question={item}
+                                                                onanswerchange={handleAnswerChange}>
+                                                            </c-interview-question-field>
+                                                        </div>
+                                                    </template>
+                                                </template>
+                                            </div>
+                                        </template>
+                                        <!-- Standalone diagnoses section (standard templates) -->
                                         <template if:true={section.isDiagnosesSection}>
                                             <div class="slds-m-bottom_small">
                                                 <c-diagnosis-selector
@@ -626,47 +747,29 @@
                                                 </c-diagnosis-selector>
                                             </div>
                                         </template>
-                                        <template if:false={section.isDiagnosesSection}>
+                                        <!-- Regular section (MSE or standard questions) -->
+                                        <template if:true={section.isRegularSection}>
                                             <template if:true={section.isMseSection}>
                                             <lightning-card key={section.name} title="Mental Status Exam" icon-name="utility:summary" class="slds-m-bottom_small">
                                                 <div class="slds-p-around_small">
-                                                    <div class="slds-grid slds-wrap slds-gutters_small">
-                                                        <template for:each={section.questions} for:item="item">
-                                                            <!-- Field Set Group Card -->
-                                                            <template if:true={item.isFieldSetGroup}>
-                                                                <div key={item.groupName} class="slds-col slds-size_1-of-1">
-                                                                    <lightning-card title={item.groupName} icon-name="utility:list" class="slds-m-bottom_small">
-                                                                        <div class="slds-p-around_small">
-                                                                            <div class="slds-grid slds-wrap slds-gutters_x-small">
-                                                                                <template for:each={item.questions} for:item="question">
-                                                                                    <div key={question.questionId} class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-3">
-                                                                                        <c-interview-question-field
-                                                                                            question={question}
-                                                                                            onanswerchange={handleAnswerChange}>
-                                                                                        </c-interview-question-field>
-                                                                                    </div>
-                                                                                </template>
-                                                                            </div>
-                                                                        </div>
-                                                                    </lightning-card>
-                                                                </div>
-                                                            </template>
-                                                            
-                                                            <!-- Regular Question (not in a field set group) -->
-                                                            <template if:false={item.isFieldSetGroup}>
-                                                                <div key={item.questionId} 
-                                                                     class={item.columnClass}>
-                                                                    <c-interview-question-field
-                                                                        question={item}
-                                                                        onanswerchange={handleAnswerChange}>
-                                                                    </c-interview-question-field>
-                                                                </div>
-                                                            </template>
-                                                        </template>
-                                                    </div>
+                                                    <template for:each={section.mseSubsections} for:item="sub">
+                                                        <div key={sub.key} class="mse-subsection slds-m-bottom_medium">
+                                                            <h3 class="mse-subsection-title">{sub.label}</h3>
+                                                            <div class="slds-grid slds-wrap slds-gutters_small">
+                                                                <template for:each={sub.questions} for:item="q">
+                                                                    <div key={q.questionId} class={q.columnClass}>
+                                                                        <c-interview-question-field
+                                                                            question={q}
+                                                                            onanswerchange={handleAnswerChange}>
+                                                                        </c-interview-question-field>
+                                                                    </div>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </lightning-card>
-                                            </template>
+                                        </template>
                                             <template if:false={section.isMseSection}>
                                                 <div key={section.name} class="slds-grid slds-wrap slds-gutters_small">
                                                     <template for:each={section.questions} for:item="item">
@@ -807,6 +910,40 @@
                                                             </div>
                                                         </div>
                                                     </template>
+                                                </div>
+                                            </lightning-accordion-section>
+                                        </template>
+
+                                        <!-- SSRS Risk Assessment Review Section -->
+                                        <template if:true={reviewData.ssrsAssessment}>
+                                            <lightning-accordion-section name="ssrs" label="Risk Assessment (SSRS)">
+                                                <div class="slds-m-bottom_medium">
+                                                    <div class="slds-box slds-box_x-small">
+                                                        <div class="slds-grid slds-wrap slds-gutters_small">
+                                                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                                                <div class="slds-form-element slds-form-element_stacked">
+                                                                    <span class="slds-form-element__label slds-text-title_bold">Risk Level</span>
+                                                                    <div class="slds-form-element__static">{reviewData.ssrsAssessment.riskLevel}</div>
+                                                                </div>
+                                                            </div>
+                                                            <template if:true={reviewData.ssrsAssessment.assessmentDate}>
+                                                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                                                    <div class="slds-form-element slds-form-element_stacked">
+                                                                        <span class="slds-form-element__label slds-text-title_bold">Assessment Date</span>
+                                                                        <div class="slds-form-element__static">{reviewData.ssrsAssessment.assessmentDate}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                            <template if:true={reviewData.ssrsAssessment.assessedBy}>
+                                                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+                                                                    <div class="slds-form-element slds-form-element_stacked">
+                                                                        <span class="slds-form-element__label slds-text-title_bold">Assessed By</span>
+                                                                        <div class="slds-form-element__static">{reviewData.ssrsAssessment.assessedBy}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </lightning-accordion-section>
                                         </template>
@@ -988,7 +1125,6 @@
                                             <c-user-lookup
                                                 label="Select Case Manager"
                                                 placeholder="Search for Case Manager..."
-                                                permission-set-filter="Python_API_Access"
                                                 onuserselected={handleCaseManagerUserSelected}
                                                 class="slds-m-bottom_small">
                                             </c-user-lookup>
@@ -1054,7 +1190,6 @@
                                             <c-user-lookup
                                                 label="Select Peer Support"
                                                 placeholder="Search for Peer Support..."
-                                                permission-set-filter="Python_API_Access"
                                                 onuserselected={handlePeerSupportUserSelected}
                                                 class="slds-m-bottom_small">
                                             </c-user-lookup>
@@ -1116,25 +1251,28 @@
                                 <lightning-card title="Signature Options" icon-name="utility:settings" class="slds-m-top_medium">
                                     <div class="slds-p-around_medium">
                                         <p class="slds-text-body_small slds-m-bottom_small">
-                                            Check the boxes below if you are signing in multiple roles:
+                                            Check the boxes below for any roles that are not applicable to this Treatment Plan:
                                         </p>
-                                        <template if:true={hasCaseManagementGoals}>
-                                            <lightning-input
-                                                type="checkbox"
-                                                label="I am also the Case Manager for this client"
-                                                checked={signForCaseManagement}
-                                                onchange={handleSignForCaseManagementChange}
-                                                class="slds-m-bottom_x-small">
-                                            </lightning-input>
-                                        </template>
-                                        <template if:true={hasPeerGoals}>
-                                            <lightning-input
-                                                type="checkbox"
-                                                label="I am also the Peer Support for this client"
-                                                checked={signForPeer}
-                                                onchange={handleSignForPeerChange}>
-                                            </lightning-input>
-                                        </template>
+                                        <lightning-input
+                                            type="checkbox"
+                                            label="Case Management Not Requested"
+                                            checked={caseManagementNotRequested}
+                                            onchange={handleCaseManagementNotRequestedChange}
+                                            class="slds-m-bottom_x-small">
+                                        </lightning-input>
+                                        <lightning-input
+                                            type="checkbox"
+                                            label="Peer Support Not Requested"
+                                            checked={peerSupportNotRequested}
+                                            onchange={handlePeerSupportNotRequestedChange}
+                                            class="slds-m-bottom_x-small">
+                                        </lightning-input>
+                                        <lightning-input
+                                            type="checkbox"
+                                            label="Clinician Not Requested"
+                                            checked={clinicianNotRequested}
+                                            onchange={handleClinicianNotRequestedChange}>
+                                        </lightning-input>
                                     </div>
                                 </lightning-card>
                             </template>
