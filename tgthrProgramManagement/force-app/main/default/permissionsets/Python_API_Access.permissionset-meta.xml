@@ -2298,11 +2298,6 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>InterviewTemplateDocument__c.Template_Format__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>InterviewTemplateDocument__c.Theme__c</field>
         <readable>true</readable>
     </fieldPermissions>
