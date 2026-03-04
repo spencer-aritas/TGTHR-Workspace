@@ -1988,21 +1988,6 @@
         <readable>true</readable>
     </fieldPermissions>
     <!-- ═══ CaseFormDocument__c — missing fields ═══ -->
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>CaseFormDocument__c.Case__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>CaseFormDocument__c.Document_Date__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>CaseFormDocument__c.Form_Type__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
     <!-- ═══ Diagnosis__c — missing fields ═══ -->
     <fieldPermissions>
         <editable>true</editable>
@@ -2131,11 +2116,6 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Income_Benefit__c.Income_Source_Type__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Income_Benefit__c.Income_Type__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -2314,16 +2294,6 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>PendingDocOpenRequest__c.Case__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>PendingDocOpenRequest__c.RecordId__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>PendingDocOpenRequest__c.RecordType__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -2365,22 +2335,12 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>TemplateApproval__c.InterviewTemplate__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>TemplateApproval__c.Linter_Report__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>TemplateApproval__c.Mobile_Manifest__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>TemplateApproval__c.Program__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -2395,17 +2355,7 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>TemplateApproval__c.Status__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>TemplateApproval__c.Submitted_By__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>TemplateApproval__c.Submitted_Date__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
