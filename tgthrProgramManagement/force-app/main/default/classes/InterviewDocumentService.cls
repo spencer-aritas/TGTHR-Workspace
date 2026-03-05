@@ -1262,6 +1262,28 @@ public with sharing class InterviewDocumentService {
                     }
                     
                     System.debug('✅ Document generated! ContentDocument ID: ' + contentDocId);
+                    
+                    // Update InterviewDocument__c.ContentDocumentId__c so the
+                    // "Completed Documentation" tab can find the generated file.
+                    // DML after callout is legal here because callDocGenService is
+                    // always invoked outside a @future context.
+                    try {
+                        List<SObject> interviewDocs = Database.query(
+                            'SELECT Id FROM InterviewDocument__c ' +
+                            'WHERE Interview__r.Interaction_Summary__c = :interactionSummaryId ' +
+                            'ORDER BY CreatedDate DESC LIMIT 1'
+                        );
+                        if (!interviewDocs.isEmpty()) {
+                            interviewDocs[0].put('ContentDocumentId__c', contentDocId);
+                            update interviewDocs[0];
+                            System.debug('✅ InterviewDocument__c.ContentDocumentId__c updated: ' + contentDocId);
+                        } else {
+                            System.debug('⚠️ No InterviewDocument__c found for InteractionSummary: ' + interactionSummaryId);
+                        }
+                    } catch (Exception updateEx) {
+                        System.debug('⚠️ Non-fatal: could not update InterviewDocument ContentDocumentId__c: ' + updateEx.getMessage());
+                    }
+                    
                     return contentDocId;
                 }
             } else {

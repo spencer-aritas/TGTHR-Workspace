@@ -354,7 +354,11 @@ public with sharing class CaseManagerHomeController {
         // ── 3. ProgramEnrollment (NPC) ─────────────────────────────────────
         Id enrollmentId = null;
         try {
-            SObject enrollment = (SObject)Type.forName('ProgramEnrollment').newInstance();
+            Schema.SObjectType peType = Schema.getGlobalDescribe().get('ProgramEnrollment');
+            if (peType == null) {
+                throw new AuraHandledException('ProgramEnrollment object not found. Ensure Nonprofit Cloud (NPC) is installed.');
+            }
+            SObject enrollment = peType.newSObject();
             enrollment.put('AccountId', account.Id);
             enrollment.put('ProgramId', programId);
             enrollment.put('Status', 'Pending');

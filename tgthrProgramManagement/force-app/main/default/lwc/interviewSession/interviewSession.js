@@ -29,6 +29,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @api caseId;
     @api templateVersionId;
     @api startStep; // Optional: jump directly to a step like 'review'
+    @api isIntakeMode = false; // When true: demographics is "Client Info" first step, shown on Review
     
     // Internal properties to hold URL state parameters
     urlCaseId;
@@ -635,6 +636,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     get isFirstStep() {
         if (this.isSinglePageMode) return true;
         if (this.isComprehensiveIntakeTemplate) {
+            // In intake mode, demographics (Client Info) is the first real step
+            if (this.isIntakeMode) {
+                return this.currentStepIndex <= STEPS.indexOf('demographics');
+            }
+            // In non-intake CompIntake, prevent going back past interview start
             return this.currentStepIndex <= STEPS.indexOf('interview');
         }
         return this.currentStepIndex === 0;
@@ -719,6 +725,49 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     get showDemographics() {
         return this.templateData?.demographicsPolicy && this.templateData.demographicsPolicy !== 'Hidden';
+    }
+
+    // True when CompIntake in intake mode — shows "Client Info" step label in progress indicator
+    get showDemographicsAsClientInfo() {
+        return this.isComprehensiveIntakeTemplate && this.isIntakeMode && this.showDemographics;
+    }
+
+    // Fields to show in Review step's "Client Info" section (intake mode only)
+    get reviewClientInfoFields() {
+        if (!this.isComprehensiveIntakeTemplate || !this.isIntakeMode) return [];
+        const d = this.demographicsData || {};
+        const a = this.accountData || {};
+        const val = (key) => {
+            const v = (d[key] !== undefined && d[key] !== '' && d[key] !== null) ? d[key] : a[key];
+            return v ?? null;
+        };
+        const rawFields = [
+            { label: 'First Name',            key: 'FirstName' },
+            { label: 'Middle Name',           key: 'MiddleName' },
+            { label: 'Last Name',             key: 'LastName' },
+            { label: 'Preferred Name',        key: 'Preferred_Name__pc' },
+            { label: 'Date of Birth',         key: 'PersonBirthdate' },
+            { label: 'Pronouns',              key: 'PersonPronouns' },
+            { label: 'Mobile Phone',          key: 'PersonMobilePhone' },
+            { label: 'Email',                 key: 'PersonEmail' },
+            { label: 'Gender Identity',       key: 'Gender_Identity__pc' },
+            { label: 'Race / Ethnicity',      key: 'Race_and_Ethnicity__pc' },
+            { label: 'Sexual Orientation',    key: 'Sexual_Orientation__pc' },
+            { label: 'Translator Needed',     key: 'Translator_Needed__pc' },
+            { label: 'Medicaid #',            key: 'MEDICAID_Number__pc' },
+            { label: 'Social Security #',     key: 'Social_Security_Number__pc' },
+            { label: 'Referral Source',       key: 'Referral_Source__c' },
+            { label: 'Veteran Service',       key: 'Veteran_Service__pc' },
+            { label: 'Emergency Contact',     key: 'Emergency_Contact_Name__c' },
+            { label: 'Emergency Relationship',key: 'Emergency_Contact_Relationship__c' },
+            { label: 'Place of Birth',        key: 'Place_of_Birth_City_County__pc' },
+            { label: 'Known Allergies',       key: 'Known_Allergies__c' },
+        ];
+        return rawFields.map(({ label, key }) => {
+            let value = val(key);
+            if (Array.isArray(value)) value = value.filter(Boolean).join(', ');
+            return { label, value: value ? String(value) : null };
+        }).filter(f => f.value);
     }
 
     get requireDemographics() {
@@ -1534,7 +1583,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     handlePrev() {
-        if (this.currentStepIndex > 0) {
+        const minStep = (this.isComprehensiveIntakeTemplate && this.isIntakeMode)
+            ? STEPS.indexOf('demographics')
+            : 0;
+        if (this.currentStepIndex > minStep) {
             this.currentStepIndex -= 1;
             // Scroll to top when changing steps
             window.scrollTo({ top: 0, behavior: 'smooth' });
