@@ -241,6 +241,7 @@
                                         title="Client Signature"
                                         data-role="client"
                                         filename={clientSignatureFilename}
+                                        hide-controls
                                         onsignaturesaved={handleClientSignatureSaved}>
                                     </c-signature-pad>
                                     <template if:true={clientSignatureStatus}>
@@ -304,6 +305,7 @@
                                             title="Clinician Signature"
                                             data-role="staff"
                                             filename={staffSignatureFilename}
+                                            hide-controls
                                             onsignaturesaved={handleStaffSignatureSaved}>
                                         </c-signature-pad>
                                         <template if:true={staffSignatureStatus}>
@@ -365,6 +367,7 @@
                                                 title="Case Manager Signature"
                                                 data-role="casemanager"
                                                 filename={caseManagerSignatureFilename}
+                                                hide-controls
                                                 onsignaturesaved={handleCaseManagerSignatureSaved}>
                                             </c-signature-pad>
                                         </template>
@@ -430,6 +433,7 @@
                                                 title="Peer Support Signature"
                                                 data-role="peersupport"
                                                 filename={peerSupportSignatureFilename}
+                                                hide-controls
                                                 onsignaturesaved={handlePeerSupportSignatureSaved}>
                                             </c-signature-pad>
                                         </template>
@@ -1087,6 +1091,7 @@
                                             title="Client Signature"
                                             data-role="client"
                                             filename={clientSignatureFilename}
+                                            hide-controls
                                             onsignaturesaved={handleClientSignatureSaved}>
                                         </c-signature-pad>
                                         <template if:true={clientSignatureStatus}>
@@ -1115,6 +1120,7 @@
                                             title="Staff Signature"
                                             data-role="staff"
                                             filename={staffSignatureFilename}
+                                            hide-controls
                                             onsignaturesaved={handleStaffSignatureSaved}>
                                         </c-signature-pad>
                                         <template if:true={staffSignatureStatus}>
@@ -1174,6 +1180,7 @@
                                                     title="Case Manager Signature"
                                                     data-role="casemanager"
                                                     filename={caseManagerSignatureFilename}
+                                                    hide-controls
                                                     onsignaturesaved={handleCaseManagerSignatureSaved}>
                                                 </c-signature-pad>
                                             </template>
@@ -1239,6 +1246,7 @@
                                                     title="Peer Support Signature"
                                                     data-role="peersupport"
                                                     filename={peerSupportSignatureFilename}
+                                                    hide-controls
                                                     onsignaturesaved={handlePeerSupportSignatureSaved}>
                                                 </c-signature-pad>
                                             </template>
