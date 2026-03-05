@@ -1,0 +1,510 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Case Manager Home — Layout
+═══════════════════════════════════════════════════════════════════════════ */
+
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    background: #f3f2f2;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.cmh-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1.25rem;
+    background: #00857d;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    flex-shrink: 0;
+    gap: 0.75rem;
+}
+
+.cmh-toolbar__left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cmh-toolbar__logo {
+    --lwc-colorBackground: #fff;
+}
+
+.cmh-toolbar__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.cmh-toolbar__count {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.cmh-toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.cmh-search {
+    width: 220px;
+}
+
+
+/* ── Body: sidebar + detail ──────────────────────────────────────────────── */
+.cmh-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────────── */
+.cmh-sidebar {
+    width: 300px;
+    min-width: 240px;
+    max-width: 340px;
+    background: #fff;
+    border-right: 1px solid #dddbda;
+    overflow-y: auto;
+    flex-shrink: 0;
+    padding: 0.5rem 0;
+}
+
+/* ── Client cards ────────────────────────────────────────────────────────── */
+.cmh-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f2f2;
+    transition: background 0.12s;
+}
+
+.cmh-card:hover {
+    background: #f0fdfc;
+}
+
+.cmh-card--active {
+    background: #e8f8f7;
+    border-left: 3px solid #00857d;
+}
+
+.cmh-card__avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #e0f3f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cmh-card__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cmh-card__avatar-icon {
+    --lwc-colorBrand: #00857d;
+}
+
+.cmh-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cmh-card__name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #080707;
+}
+
+.cmh-card__meta {
+    margin: 2px 0 4px;
+}
+
+.cmh-card__fields {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1px 6px;
+    font-size: 0.72rem;
+}
+
+.cmh-card__field-label {
+    color: #706e6b;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cmh-card__field-val {
+    color: #3e3e3c;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.cmh-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 99px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.cmh-badge--program {
+    background: #d4f0ef;
+    color: #005452;
+}
+
+.cmh-badge--primary {
+    background: #fce4c4;
+    color: #7d3a00;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.cmh-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    color: #706e6b;
+    gap: 0.75rem;
+}
+
+.cmh-empty__icon {
+    --lwc-colorBrand: #b0aeae;
+}
+
+.cmh-empty__text {
+    font-size: 0.875rem;
+}
+
+.cmh-empty-inline {
+    color: #706e6b;
+    font-size: 0.85rem;
+    padding: 0.5rem 0;
+    margin: 0;
+}
+
+/* ── Detail panel ────────────────────────────────────────────────────────── */
+.cmh-detail {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    background: #f3f2f2;
+    padding: 1rem 1.25rem;
+}
+
+.cmh-detail__loading {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+}
+
+/* Header */
+.cmh-detail__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.cmh-detail__header-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.cmh-detail__photo-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #e0f3f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid #b3e8e6;
+}
+
+.cmh-detail__photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cmh-detail__photo-icon {
+    --lwc-colorBrand: #00857d;
+}
+
+.cmh-detail__name-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cmh-detail__name {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #080707;
+    margin: 0;
+}
+
+.cmh-detail__demo-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: #444;
+    margin-top: 2px;
+}
+
+/* Sections */
+.cmh-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.cmh-section--tabs {
+    padding: 0.5rem 0.75rem;
+}
+
+.cmh-section__title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #00857d;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* ── Goals ───────────────────────────────────────────────────────────────── */
+.cmh-goals {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.75rem;
+}
+
+.cmh-goal-card {
+    background: #f9f8f8;
+    border: 1px solid #e0dfe0;
+    border-radius: 6px;
+    padding: 0.65rem 0.75rem;
+}
+
+.cmh-goal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 2px;
+}
+
+.cmh-goal__name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1c1c1c;
+    flex: 1;
+    line-height: 1.3;
+}
+
+.cmh-goal__category {
+    font-size: 0.72rem;
+    color: #706e6b;
+    margin-bottom: 6px;
+}
+
+.cmh-goal__status {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.cmh-goal__status--active   { background: #d4edda; color: #155724; }
+.cmh-goal__status--progress { background: #cce5ff; color: #004085; }
+.cmh-goal__status--pending  { background: #fff3cd; color: #856404; }
+.cmh-goal__status--done     { background: #e2eaf5; color: #333; }
+
+.cmh-goal__progress-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0;
+}
+
+.cmh-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: #e0dfe0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.cmh-progress-bar__fill {
+    height: 100%;
+    background: #00857d;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+.cmh-goal__pct {
+    font-size: 0.7rem;
+    color: #706e6b;
+    width: 30px;
+    text-align: right;
+}
+
+.cmh-goal__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.68rem;
+    color: #706e6b;
+    margin-top: 4px;
+}
+
+/* ── Diagnoses ───────────────────────────────────────────────────────────── */
+.cmh-diagnoses {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cmh-dx-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 4px 0;
+    border-bottom: 1px solid #f3f2f2;
+    font-size: 0.82rem;
+}
+
+.cmh-dx__code {
+    font-weight: 700;
+    color: #080707;
+    min-width: 64px;
+    font-family: monospace;
+    font-size: 0.78rem;
+}
+
+.cmh-dx__desc {
+    flex: 1;
+    color: #3e3e3c;
+}
+
+/* ── Activity rows ────────────────────────────────────────────────────────── */
+.cmh-activity-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f3f2f2;
+    font-size: 0.82rem;
+}
+
+.cmh-activity-row--incident {
+    border-left: 3px solid #f9a825;
+    padding-left: 0.5rem;
+}
+
+.cmh-activity__date {
+    min-width: 72px;
+    color: #706e6b;
+    font-size: 0.75rem;
+    padding-top: 1px;
+}
+
+.cmh-activity__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.cmh-activity__title {
+    font-weight: 600;
+    color: #1c1c1c;
+}
+
+.cmh-activity__meta {
+    font-size: 0.72rem;
+    color: #706e6b;
+    margin-top: 1px;
+}
+
+.cmh-activity__notes {
+    font-size: 0.75rem;
+    color: #444;
+    margin-top: 3px;
+    line-height: 1.4;
+}
+
+.cmh-activity__status {
+    flex-shrink: 0;
+}
+
+.cmh-activity__status--incident {
+    --lwc-colorBrand: #f9a825;
+}
+
+/* ── Detail splash ───────────────────────────────────────────────────────── */
+.cmh-detail__splash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60%;
+    color: #b0aeae;
+    gap: 1rem;
+    font-size: 0.9rem;
+}
+
+.cmh-detail__splash-icon {
+    --lwc-colorBrand: #c8c6c4;
+}
+
+/* ── Error text ──────────────────────────────────────────────────────────── */
+.cmh-error {
+    color: #c23934;
+    font-size: 0.82rem;
+    margin: 0;
+}
+
+/* ── Intake modal overrides ──────────────────────────────────────────────── */
+.slds-modal__container--intake {
+    width: 90vw;
+    max-width: 1100px;
+}
+
+.cmh-intake-session {
+    min-height: 60vh;
+}
