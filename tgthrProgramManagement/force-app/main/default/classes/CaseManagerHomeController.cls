@@ -400,7 +400,7 @@ public with sharing class CaseManagerHomeController {
         try {
             List<SObject> versions = Database.query(
                 'SELECT Id FROM InterviewTemplateVersion__c ' +
-                'WHERE InterviewTemplate__r.Name LIKE \'%Comprehensive%Intake%\' ' +
+                'WHERE InterviewTemplate__r.Name LIKE \'%1440%Pine%Intake%\' ' +
                 'ORDER BY Version__c DESC NULLS LAST, LastModifiedDate DESC LIMIT 1'
             );
             return versions.isEmpty() ? null : (String)versions[0].get('Id');
