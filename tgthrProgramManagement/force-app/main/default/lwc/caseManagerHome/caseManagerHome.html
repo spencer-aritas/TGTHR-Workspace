@@ -1,0 +1,401 @@
+<template>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       CASE MANAGER HOME — Toolbar
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="cmh-toolbar">
+    <div class="cmh-toolbar__left">
+      <lightning-icon icon-name="standard:home" size="small" class="cmh-toolbar__logo"></lightning-icon>
+      <span class="cmh-toolbar__title">My Clients</span>
+      <span class="cmh-toolbar__count">{clientCountLabel}</span>
+    </div>
+    <div class="cmh-toolbar__right">
+      <lightning-input
+        type="search"
+        placeholder="Search clients…"
+        variant="label-hidden"
+        class="cmh-search"
+        value={searchTerm}
+        onchange={handleSearch}
+      ></lightning-input>
+      <lightning-button
+        label="New Intake"
+        icon-name="utility:add"
+        variant="brand"
+        onclick={openIntakeStep1}
+      ></lightning-button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MAIN LAYOUT: sidebar + detail panel
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="cmh-body">
+
+    <!-- ── Left sidebar: client card list ───────────────────────────── -->
+    <div class="cmh-sidebar">
+      <template if:false={isLoadingCases}>
+        <template if:true={filteredCases.length}>
+          <template for:each={filteredCases} for:item="client">
+            <div
+              key={client.caseId}
+              class={client.cardClass}
+              onclick={handleClientSelect}
+              data-caseid={client.caseId}
+              data-accountid={client.accountId}
+            >
+              <div class="cmh-card__avatar">
+                <template if:true={client.photoUrl}>
+                  <img src={client.photoUrl} alt={client.name} class="cmh-card__photo" />
+                </template>
+                <template if:false={client.photoUrl}>
+                  <lightning-icon icon-name="standard:person_account" size="medium" class="cmh-card__avatar-icon"></lightning-icon>
+                </template>
+              </div>
+              <div class="cmh-card__info">
+                <div class="cmh-card__name">{client.name}</div>
+                <div class="cmh-card__meta">
+                  <template if:true={client.programName}>
+                    <span class="cmh-badge cmh-badge--program">{client.programName}</span>
+                  </template>
+                </div>
+                <div class="cmh-card__fields">
+                  <template if:true={client.hmisNum}>
+                    <span class="cmh-card__field-label">HMIS</span>
+                    <span class="cmh-card__field-val">{client.hmisNum}</span>
+                  </template>
+                  <template if:true={client.medicaidNum}>
+                    <span class="cmh-card__field-label">Medicaid</span>
+                    <span class="cmh-card__field-val">{client.medicaidNum}</span>
+                  </template>
+                  <template if:true={client.formattedBirthdate}>
+                    <span class="cmh-card__field-label">DOB</span>
+                    <span class="cmh-card__field-val">{client.formattedBirthdate}</span>
+                  </template>
+                  <template if:true={client.formattedStartDate}>
+                    <span class="cmh-card__field-label">Start</span>
+                    <span class="cmh-card__field-val">{client.formattedStartDate}</span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </template>
+        </template>
+        <template if:false={filteredCases.length}>
+          <div class="cmh-empty">
+            <lightning-icon icon-name="utility:people" size="large" class="cmh-empty__icon"></lightning-icon>
+            <p class="cmh-empty__text">No active clients found.</p>
+          </div>
+        </template>
+      </template>
+      <template if:true={isLoadingCases}>
+        <lightning-spinner alternative-text="Loading clients…" size="medium"></lightning-spinner>
+      </template>
+    </div>
+
+    <!-- ── Right detail panel ────────────────────────────────────────── -->
+    <div class="cmh-detail">
+      <template if:true={selectedClient}>
+        <!-- Header row: name + Open Case button -->
+        <div class="cmh-detail__header">
+          <div class="cmh-detail__header-left">
+            <div class="cmh-detail__photo-wrap">
+              <template if:true={selectedClient.photoUrl}>
+                <img src={selectedClient.photoUrl} alt={selectedClient.name} class="cmh-detail__photo" />
+              </template>
+              <template if:false={selectedClient.photoUrl}>
+                <lightning-icon icon-name="standard:person_account" size="large" class="cmh-detail__photo-icon"></lightning-icon>
+              </template>
+            </div>
+            <div class="cmh-detail__name-block">
+              <h2 class="cmh-detail__name">{selectedClient.name}</h2>
+              <template if:true={selectedClient.programName}>
+                <span class="cmh-badge cmh-badge--program">{selectedClient.programName}</span>
+              </template>
+              <div class="cmh-detail__demo-row">
+                <template if:true={selectedClient.formattedBirthdate}>
+                  <span>DOB: <strong>{selectedClient.formattedBirthdate}</strong></span>
+                </template>
+                <template if:true={selectedClient.hmisNum}>
+                  <span>HMIS: <strong>{selectedClient.hmisNum}</strong></span>
+                </template>
+                <template if:true={selectedClient.medicaidNum}>
+                  <span>Medicaid: <strong>{selectedClient.medicaidNum}</strong></span>
+                </template>
+              </div>
+            </div>
+          </div>
+          <div class="cmh-detail__header-right">
+            <lightning-button
+              label="Open Case"
+              icon-name="utility:open"
+              onclick={handleOpenCase}
+              variant="neutral"
+            ></lightning-button>
+          </div>
+        </div>
+
+        <!-- Loading state for detail data -->
+        <template if:true={isLoadingDetail}>
+          <div class="cmh-detail__loading">
+            <lightning-spinner alternative-text="Loading client details…" size="small"></lightning-spinner>
+          </div>
+        </template>
+
+        <template if:false={isLoadingDetail}>
+          <!-- Goals section -->
+          <section class="cmh-section">
+            <h3 class="cmh-section__title">
+              <lightning-icon icon-name="standard:goals" size="x-small"></lightning-icon>
+              Active Goals
+            </h3>
+            <template if:true={goals.length}>
+              <div class="cmh-goals">
+                <template for:each={goals} for:item="goal">
+                  <div key={goal.id} class="cmh-goal-card">
+                    <div class="cmh-goal__header">
+                      <span class="cmh-goal__name">{goal.name}</span>
+                      <span class={goal.statusClass}>{goal.status}</span>
+                    </div>
+                    <template if:true={goal.category}>
+                      <div class="cmh-goal__category">{goal.category}</div>
+                    </template>
+                    <div class="cmh-goal__progress-row">
+                      <div class="cmh-progress-bar">
+                        <div class="cmh-progress-bar__fill" style={goal.progressStyle}></div>
+                      </div>
+                      <span class="cmh-goal__pct">{goal.progress}%</span>
+                    </div>
+                    <div class="cmh-goal__meta">
+                      <template if:true={goal.targetDate}>
+                        <span>Target: {goal.formattedTargetDate}</span>
+                      </template>
+                      <template if:true={goal.priority}>
+                        <span>Priority: {goal.priority}</span>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template if:false={goals.length}>
+              <p class="cmh-empty-inline">No active goals.</p>
+            </template>
+          </section>
+
+          <!-- Diagnoses section -->
+          <section class="cmh-section">
+            <h3 class="cmh-section__title">
+              <lightning-icon icon-name="standard:health_check" size="x-small"></lightning-icon>
+              Active Diagnoses
+            </h3>
+            <template if:true={diagnoses.length}>
+              <div class="cmh-diagnoses">
+                <template for:each={diagnoses} for:item="dx">
+                  <div key={dx.id} class="cmh-dx-row">
+                    <span class="cmh-dx__code">{dx.code}</span>
+                    <span class="cmh-dx__desc">{dx.description}</span>
+                    <template if:true={dx.isPrimary}>
+                      <span class="cmh-badge cmh-badge--primary">Primary</span>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template if:false={diagnoses.length}>
+              <p class="cmh-empty-inline">No active diagnoses.</p>
+            </template>
+          </section>
+
+          <!-- Recent Activity tabs -->
+          <div class="cmh-section cmh-section--tabs">
+            <lightning-tabset>
+              <!-- Recent Interactions tab -->
+              <lightning-tab label="Interactions" value="interactions" onactive={loadInteractions}>
+                <template if:true={isLoadingInteractions}>
+                  <lightning-spinner alternative-text="Loading…" size="small"></lightning-spinner>
+                </template>
+                <template if:false={isLoadingInteractions}>
+                  <template if:true={interactions.length}>
+                    <template for:each={interactions} for:item="ix">
+                      <div key={ix.id} class="cmh-activity-row">
+                        <div class="cmh-activity__date">{ix.formattedDate}</div>
+                        <div class="cmh-activity__body">
+                          <div class="cmh-activity__title">{ix.purpose}</div>
+                          <div class="cmh-activity__meta">by {ix.createdBy}</div>
+                          <template if:true={ix.notes}>
+                            <div class="cmh-activity__notes">{ix.notesTruncated}</div>
+                          </template>
+                        </div>
+                        <lightning-badge label={ix.status} class="cmh-activity__status"></lightning-badge>
+                      </div>
+                    </template>
+                  </template>
+                  <template if:false={interactions.length}>
+                    <p class="cmh-empty-inline">No recent interactions.</p>
+                  </template>
+                </template>
+              </lightning-tab>
+
+              <!-- Recent Documentation tab -->
+              <lightning-tab label="Documentation" value="documentation" onactive={loadDocumentation}>
+                <template if:true={isLoadingDocs}>
+                  <lightning-spinner alternative-text="Loading…" size="small"></lightning-spinner>
+                </template>
+                <template if:false={isLoadingDocs}>
+                  <template if:true={documentation.length}>
+                    <template for:each={documentation} for:item="doc">
+                      <div key={doc.id} class="cmh-activity-row">
+                        <div class="cmh-activity__date">{doc.formattedDate}</div>
+                        <div class="cmh-activity__body">
+                          <div class="cmh-activity__title">{doc.templateName}</div>
+                          <div class="cmh-activity__meta">{doc.name}</div>
+                        </div>
+                        <lightning-badge label={doc.status} class="cmh-activity__status"></lightning-badge>
+                      </div>
+                    </template>
+                  </template>
+                  <template if:false={documentation.length}>
+                    <p class="cmh-empty-inline">No recent documentation.</p>
+                  </template>
+                </template>
+              </lightning-tab>
+
+              <!-- Recent Incidents tab -->
+              <lightning-tab label="Incidents" value="incidents" onactive={loadIncidents}>
+                <template if:true={isLoadingIncidents}>
+                  <lightning-spinner alternative-text="Loading…" size="small"></lightning-spinner>
+                </template>
+                <template if:false={isLoadingIncidents}>
+                  <template if:true={incidents.length}>
+                    <template for:each={incidents} for:item="inc">
+                      <div key={inc.id} class="cmh-activity-row cmh-activity-row--incident">
+                        <div class="cmh-activity__date">{inc.formattedDate}</div>
+                        <div class="cmh-activity__body">
+                          <div class="cmh-activity__title">{inc.subject}</div>
+                          <div class="cmh-activity__meta">{inc.type}</div>
+                        </div>
+                        <lightning-badge label={inc.status} class="cmh-activity__status cmh-activity__status--incident"></lightning-badge>
+                      </div>
+                    </template>
+                  </template>
+                  <template if:false={incidents.length}>
+                    <p class="cmh-empty-inline">No recent incidents.</p>
+                  </template>
+                </template>
+              </lightning-tab>
+            </lightning-tabset>
+          </div>
+        </template>
+      </template>
+
+      <!-- No client selected splash -->
+      <template if:false={selectedClient}>
+        <div class="cmh-detail__splash">
+          <lightning-icon icon-name="standard:person_account" size="xx-large" class="cmh-detail__splash-icon"></lightning-icon>
+          <p>Select a client from the list to view their profile.</p>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       INTAKE MODAL — Step 1: Pre-Intake Form
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <template if:true={showIntakeStep1}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open" aria-label="New Client Intake">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeIntakeModal}>
+            <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">New Client Intake</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <div class="slds-grid slds-gutters">
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-input
+                label="First Name"
+                required
+                value={intakeFirstName}
+                onchange={handleIntakeChange}
+                data-field="intakeFirstName"
+              ></lightning-input>
+            </div>
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-input
+                label="Last Name"
+                required
+                value={intakeLastName}
+                onchange={handleIntakeChange}
+                data-field="intakeLastName"
+              ></lightning-input>
+            </div>
+          </div>
+          <div class="slds-grid slds-gutters slds-m-top_small">
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-input
+                type="date"
+                label="Date of Birth"
+                value={intakeBirthdate}
+                onchange={handleIntakeChange}
+                data-field="intakeBirthdate"
+              ></lightning-input>
+            </div>
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-combobox
+                label="Program"
+                placeholder="Select a program…"
+                required
+                options={programOptions}
+                value={intakeProgramId}
+                onchange={handleIntakeChange}
+                data-field="intakeProgramId"
+              ></lightning-combobox>
+            </div>
+          </div>
+          <template if:true={intakeError}>
+            <div class="slds-m-top_small">
+              <p class="cmh-error">{intakeError}</p>
+            </div>
+          </template>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button label="Cancel" onclick={closeIntakeModal}></lightning-button>
+          <lightning-button
+            label="Begin Intake Assessment"
+            variant="brand"
+            icon-name="utility:forward"
+            icon-position="right"
+            onclick={handleBeginIntake}
+            disabled={isCreatingIntake}
+          ></lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       INTAKE MODAL — Step 2: Interview Session (full-screen)
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <template if:true={showIntakeStep2}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-label="Intake Assessment">
+      <div class="slds-modal__container slds-modal__container--intake">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeIntakeModal}>
+            <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">Comprehensive Intake — {intakeClientName}</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_small cmh-intake-session">
+          <c-interview-session
+            case-id={intakeCaseId}
+            template-version-id={intakeTemplateVersionId}
+            oninterviewcomplete={handleIntakeComplete}
+          ></c-interview-session>
+        </div>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+</template>
