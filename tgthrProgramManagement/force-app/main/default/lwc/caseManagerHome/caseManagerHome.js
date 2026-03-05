@@ -71,7 +71,6 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     @track programOptions = [];
     @track intakeFirstName = '';
     @track intakeLastName = '';
-    @track intakeBirthdate = '';
     @track intakeProgramId = '';
     @track intakeError = '';
     @track isCreatingIntake = false;
@@ -205,7 +204,6 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     openIntakeStep1() {
         this.intakeFirstName = '';
         this.intakeLastName  = '';
-        this.intakeBirthdate = '';
         this.intakeProgramId = this.programOptions.length === 1 ? this.programOptions[0].value : '';
         this.intakeError = '';
         this.showIntakeStep1 = true;
@@ -235,7 +233,6 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
         createOnboardingRecords({
             firstName : this.intakeFirstName.trim(),
             lastName  : this.intakeLastName.trim(),
-            birthdate : this.intakeBirthdate || null,
             programId : this.intakeProgramId
         })
         .then(result => {
@@ -323,6 +320,11 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
                 console.error('CaseManagerHome: interactions error', err);
             })
             .finally(() => { this.isLoadingInteractions = false; });
+    }
+
+    // Always true — used as a getter because LWC API 62 doesn't allow {true} literals in templates
+    get isIntakeSession() {
+        return true;
     }
 
     showToast(title, message, variant) {

@@ -332,16 +332,7 @@
             </div>
           </div>
           <div class="slds-grid slds-gutters slds-m-top_small">
-            <div class="slds-col slds-size_1-of-2">
-              <lightning-input
-                type="date"
-                label="Date of Birth"
-                value={intakeBirthdate}
-                onchange={handleIntakeChange}
-                data-field="intakeBirthdate"
-              ></lightning-input>
-            </div>
-            <div class="slds-col slds-size_1-of-2">
+            <div class="slds-col slds-size_1-of-1">
               <lightning-combobox
                 label="Program"
                 placeholder="Select a program…"
@@ -391,6 +382,8 @@
           <c-interview-session
             case-id={intakeCaseId}
             template-version-id={intakeTemplateVersionId}
+            start-step="demographics"
+            is-intake-mode={isIntakeSession}
             oninterviewcomplete={handleIntakeComplete}
           ></c-interview-session>
         </div>

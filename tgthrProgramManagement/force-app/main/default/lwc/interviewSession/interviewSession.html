@@ -78,8 +78,11 @@
                                         <lightning-progress-step label="Demographics" value="demographics"></lightning-progress-step>
                                     </template>
                                 </template>
+                                <template if:true={showDemographicsAsClientInfo}>
+                                    <lightning-progress-step label="Client Info" value="demographics"></lightning-progress-step>
+                                </template>
                                 <lightning-progress-step label={interviewStepLabel} value="interview"></lightning-progress-step>
-                                <lightning-progress-step label="Review & Submit" value="review"></lightning-progress-step>
+                                <lightning-progress-step label="Review &amp; Submit" value="review"></lightning-progress-step>
                             </lightning-progress-indicator>
                         </div>
                     </template>
@@ -883,6 +886,23 @@
                                             </template>
                                         </div>
                                     </div>
+
+                                    <!-- Client Info (intake mode: demographics entered in Client Info step) -->
+                                    <template if:true={reviewClientInfoFields.length}>
+                                        <div class="slds-m-bottom_large">
+                                            <h3 class="slds-text-heading_small slds-m-bottom_small">Client Info</h3>
+                                            <div class="slds-grid slds-wrap slds-gutters_small">
+                                                <template for:each={reviewClientInfoFields} for:item="field">
+                                                    <div key={field.label} class="slds-col slds-size_1-of-2 slds-medium-size_1-of-4">
+                                                        <div class="slds-form-element slds-form-element_stacked">
+                                                            <span class="slds-form-element__label slds-text-title_bold">{field.label}</span>
+                                                            <div class="slds-form-element__static">{field.value}</div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
 
                                     <!-- Interview Answers by Section (Accordion) -->
                                     <lightning-accordion active-section-name={reviewActiveSections} allow-multiple-sections-open>
