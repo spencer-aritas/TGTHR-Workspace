@@ -52,6 +52,33 @@ def fetch_enrollments_for_programs(program_ids: List[str]) -> List[dict]:
     )
     return query_soql(soql).get("records", [])
 
+def fetch_enrollments_for_programs_chunked(
+    program_ids: List[str],
+    batch_size: int,
+    max_records: int = 0,
+) -> List[dict]:
+    """Fetch enrollments in bounded chunks to reduce peak memory pressure."""
+    ids = [i for i in program_ids if i]
+    if not ids:
+        return []
+
+    safe_batch_size = max(1, int(batch_size or 1))
+    all_rows: List[dict] = []
+
+    for start in range(0, len(ids), safe_batch_size):
+        chunk_ids = ids[start:start + safe_batch_size]
+        rows = fetch_enrollments_for_programs(chunk_ids)
+        all_rows.extend(rows)
+
+        if max_records > 0 and len(all_rows) >= max_records:
+            logger.warning(
+                "[sync] Enrollment cap reached (%s). Truncating remaining chunks.",
+                max_records,
+            )
+            return all_rows[:max_records]
+
+    return all_rows
+
 def fetch_accounts(account_ids: Iterable[str]) -> List[dict]:
     """Fetch person accounts by IDs"""
     ids = [i for i in account_ids if i]

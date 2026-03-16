@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     SYNC_SCHEDULE_HOUR: int = 2
     SYNC_SCHEDULE_MINUTE: int = 0
     TIMEZONE: str = "America/Denver"
+    SCHEDULER_MISFIRE_GRACE_SECONDS: int = 900
+    SCHEDULER_MAX_INSTANCES: int = 1
+    SCHEDULER_COALESCE: bool = True
+
+    # Sync runtime guardrails
+    SYNC_PROGRAM_BATCH_SIZE: int = 25
+    SYNC_MAX_ENROLLMENTS_PER_RUN: int = 0
 
     # Salesforce sandbox keys
     SF_BENEFITS_JWT_CONSUMER_KEY: Optional[str] = None
