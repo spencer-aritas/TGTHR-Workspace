@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import atexit
 import logging
-import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -16,23 +15,18 @@ from ..settings import settings
 from ..sync_runner import run_full_sync
 
 logger = logging.getLogger("scheduler")
-_sync_lock = threading.Lock()
 _scheduler: Optional[BackgroundScheduler] = None
 
 def run_nightly():
     """Nightly sync job that runs full sync from Salesforce"""
-    if not _sync_lock.acquire(blocking=False):
-        logger.warning("[nightly] previous sync still running, skipping overlapping run")
-        return
-
     logger.info(f"[nightly] {datetime.now(timezone.utc).isoformat()} running sync job")
     try:
         result = run_full_sync()
         logger.info(f"[nightly] Sync completed successfully: {result}")
+    except RuntimeError as e:
+        logger.warning(f"[nightly] {e}; skipping overlapping run")
     except Exception as e:
         logger.error(f"[nightly] Sync failed: {e}", exc_info=True)
-    finally:
-        _sync_lock.release()
 
 def start_scheduler():
     """Start the background scheduler with configured timing"""

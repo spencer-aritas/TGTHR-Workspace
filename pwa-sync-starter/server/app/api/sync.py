@@ -402,6 +402,8 @@ def run_full_sync():
         runner = SyncRunner()
         result = runner.run_full_sync()
         return {"success": True, "counts": result}
+    except RuntimeError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         logger.error(f"Full sync failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
