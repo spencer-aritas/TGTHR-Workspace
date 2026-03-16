@@ -7,6 +7,7 @@ from ..models.db import SessionLocal
 from ..schema import Note, Meta
 from ..salesforce.sf_client import _get_token, _api, _sf, get_person_account_record_type_id, create_person_account
 from ..salesforce.audit_log_service import audit_logger
+from ..jobs.scheduler import get_scheduler_state
 from ..sync_runner import SyncRunner
 import uuid
 import logging
@@ -383,6 +384,15 @@ def get_sync_status():
         return runner.get_sync_status()
     except Exception as e:
         logger.error(f"Error getting sync status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get('/sync/scheduler')
+def get_sync_scheduler_status():
+    """Get scheduler diagnostics, including next nightly run time."""
+    try:
+        return get_scheduler_state()
+    except Exception as e:
+        logger.error(f"Error getting scheduler status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post('/sync/run-full')

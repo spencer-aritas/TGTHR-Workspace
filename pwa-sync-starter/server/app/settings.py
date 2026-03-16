@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     # Sync runtime guardrails
     SYNC_PROGRAM_BATCH_SIZE: int = 25
     SYNC_MAX_ENROLLMENTS_PER_RUN: int = 0
+    SYNC_STALE_THRESHOLD_HOURS: int = 30
 
     # Salesforce sandbox keys
     SF_BENEFITS_JWT_CONSUMER_KEY: Optional[str] = None

@@ -37,6 +37,10 @@ class HealthyStatus(TypedDict):
     last_sync_counts: Dict[str, int]
     last_sync_timings_ms: Dict[str, int]
     last_sync_error: Optional[str]
+    is_sync_stale: bool
+    stale_threshold_hours: int
+    last_success_age_hours: Optional[float]
+    sync_health: Literal["ok", "stale", "error", "unknown"]
     status: Literal["healthy"]
 
 class ErrorStatus(TypedDict):
@@ -116,6 +120,21 @@ class SyncRunner:
         except json.JSONDecodeError:
             return {}
         return {}
+
+    @staticmethod
+    def _parse_iso8601(value: Optional[str]) -> Optional[datetime]:
+        if not value:
+            return None
+        normalized = value.strip()
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1] + "+00:00"
+        try:
+            dt = datetime.fromisoformat(normalized)
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc)
+            return dt
+        except ValueError:
+            return None
         
     def run_full_sync(self) -> Dict[str, int]:
         """Run complete sync from Salesforce to local database"""
@@ -255,6 +274,23 @@ class SyncRunner:
             except ValueError:
                 last_sync_duration_ms = None
 
+            stale_threshold_hours = max(1, int(settings.SYNC_STALE_THRESHOLD_HOURS))
+            is_sync_stale = False
+            last_success_age_hours: Optional[float] = None
+            sync_health: Literal["ok", "stale", "error", "unknown"] = "unknown"
+
+            if last_sync_status == "success":
+                parsed_last_sync = self._parse_iso8601(last_sync_time)
+                if parsed_last_sync is not None:
+                    age_seconds = (datetime.now(timezone.utc) - parsed_last_sync).total_seconds()
+                    last_success_age_hours = round(max(0.0, age_seconds) / 3600.0, 3)
+                    is_sync_stale = last_success_age_hours > stale_threshold_hours
+                    sync_health = "stale" if is_sync_stale else "ok"
+                else:
+                    sync_health = "unknown"
+            elif last_sync_status == "error":
+                sync_health = "error"
+
             return {
                 "counts": counts,
                 "last_sync_time": last_sync_time,
@@ -265,6 +301,10 @@ class SyncRunner:
                 "last_sync_counts": self._json_map(meta.get("last_sync_counts")),
                 "last_sync_timings_ms": self._json_map(meta.get("last_sync_timings_ms")),
                 "last_sync_error": last_sync_error,
+                "is_sync_stale": is_sync_stale,
+                "stale_threshold_hours": stale_threshold_hours,
+                "last_success_age_hours": last_success_age_hours,
+                "sync_health": sync_health,
                 "status": "healthy",
             }
         except Exception as e:

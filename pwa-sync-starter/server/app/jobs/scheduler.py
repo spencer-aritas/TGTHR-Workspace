@@ -6,6 +6,7 @@ import atexit
 import logging
 import threading
 from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -16,6 +17,7 @@ from ..sync_runner import run_full_sync
 
 logger = logging.getLogger("scheduler")
 _sync_lock = threading.Lock()
+_scheduler: Optional[BackgroundScheduler] = None
 
 def run_nightly():
     """Nightly sync job that runs full sync from Salesforce"""
@@ -34,6 +36,7 @@ def run_nightly():
 
 def start_scheduler():
     """Start the background scheduler with configured timing"""
+    global _scheduler
     tz_name = settings.TIMEZONE
     try:
         tz = ZoneInfo(tz_name)
@@ -59,7 +62,33 @@ def start_scheduler():
     )
 
     sched.start()
+    _scheduler = sched
     logger.info(f"Scheduler started with nightly sync at {settings.SYNC_SCHEDULE_HOUR:02d}:{settings.SYNC_SCHEDULE_MINUTE:02d} {tz_name}")
     atexit.register(lambda: sched.shutdown(wait=False))
     return sched
+
+def get_scheduler_state() -> Dict[str, Any]:
+    """Return scheduler diagnostics including next run time for the nightly job."""
+    if _scheduler is None:
+        return {
+            "started": False,
+            "running": False,
+            "timezone": settings.TIMEZONE,
+            "job_id": "nightly_sync",
+            "next_run_time": None,
+            "trigger": None,
+        }
+
+    job = _scheduler.get_job("nightly_sync")
+    next_run_time = job.next_run_time.isoformat() if job and job.next_run_time else None
+    trigger = str(job.trigger) if job else None
+
+    return {
+        "started": True,
+        "running": _scheduler.running,
+        "timezone": str(_scheduler.timezone),
+        "job_id": "nightly_sync",
+        "next_run_time": next_run_time,
+        "trigger": trigger,
+    }
 
