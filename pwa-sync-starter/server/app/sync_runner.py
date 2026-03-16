@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 import uuid
 from typing import Any, Dict, List, Optional, TypedDict, Literal, Union
@@ -21,6 +22,13 @@ from .sync_helpers import (
 )
 
 logger = logging.getLogger("sync_runner")
+_RUN_LOCK = threading.Lock()
+
+
+def is_sync_running() -> bool:
+    return _RUN_LOCK.locked()
+
+
 class Counts(TypedDict):
     programs: int
     participants: int
@@ -41,6 +49,10 @@ class HealthyStatus(TypedDict):
     stale_threshold_hours: int
     last_success_age_hours: Optional[float]
     sync_health: Literal["ok", "stale", "error", "unknown"]
+    has_synced_once: bool
+    sync_running: bool
+    data_scope: Literal["local_cache"]
+    program_filters: List[str]
     status: Literal["healthy"]
 
 class ErrorStatus(TypedDict):
@@ -138,6 +150,9 @@ class SyncRunner:
         
     def run_full_sync(self) -> Dict[str, int]:
         """Run complete sync from Salesforce to local database"""
+        if not _RUN_LOCK.acquire(blocking=False):
+            raise RuntimeError("sync already running")
+
         run_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc)
         run_t0 = time.perf_counter()
@@ -223,6 +238,7 @@ class SyncRunner:
             logger.error("[sync][%s] Unexpected error after %sms: %s", run_id, duration_ms, e, exc_info=True)
             raise
         finally:
+            _RUN_LOCK.release()
             if hasattr(self, 'db'):
                 self.db.close()
     
@@ -305,6 +321,10 @@ class SyncRunner:
                 "stale_threshold_hours": stale_threshold_hours,
                 "last_success_age_hours": last_success_age_hours,
                 "sync_health": sync_health,
+                "has_synced_once": bool(last_sync_time),
+                "sync_running": is_sync_running(),
+                "data_scope": "local_cache",
+                "program_filters": list(settings.PROGRAM_NAMES),
                 "status": "healthy",
             }
         except Exception as e:
