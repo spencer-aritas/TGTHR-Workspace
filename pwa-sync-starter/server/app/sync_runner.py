@@ -30,6 +30,13 @@ class Counts(TypedDict):
 class HealthyStatus(TypedDict):
     counts: Counts
     last_sync_time: Optional[str]
+    last_sync_status: Optional[str]
+    last_sync_run_id: Optional[str]
+    last_sync_started_at: Optional[str]
+    last_sync_duration_ms: Optional[int]
+    last_sync_counts: Dict[str, int]
+    last_sync_timings_ms: Dict[str, int]
+    last_sync_error: Optional[str]
     status: Literal["healthy"]
 
 class ErrorStatus(TypedDict):
@@ -83,6 +90,32 @@ class SyncRunner:
         self._upsert_meta("last_sync_started_at", started_at.isoformat())
         self._upsert_meta("last_sync_duration_ms", str(duration_ms))
         self._upsert_meta("last_sync_error", error)
+
+    def _read_meta_map(self) -> Dict[str, str]:
+        rows = self.db.fetch_all("SELECT key, value FROM meta")
+        return {
+            str(r.get("key")): str(r.get("value") or "")
+            for r in rows
+            if r.get("key") is not None
+        }
+
+    @staticmethod
+    def _json_map(value: Optional[str]) -> Dict[str, int]:
+        if not value:
+            return {}
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, dict):
+                out: Dict[str, int] = {}
+                for k, v in parsed.items():
+                    try:
+                        out[str(k)] = int(v)
+                    except (TypeError, ValueError):
+                        continue
+                return out
+        except json.JSONDecodeError:
+            return {}
+        return {}
         
     def run_full_sync(self) -> Dict[str, int]:
         """Run complete sync from Salesforce to local database"""
@@ -209,12 +242,31 @@ class SyncRunner:
                 "notes": _count("notes"),
             }
 
-            last_sync = self.db.fetch_all(
-                "SELECT value FROM meta WHERE key = 'last_sync_time' LIMIT 1"
-            )
-            last_sync_time: Optional[str] = last_sync[0]["value"] if last_sync else None
+            meta = self._read_meta_map()
+            last_sync_time: Optional[str] = meta.get("last_sync_time") or None
+            last_sync_status: Optional[str] = meta.get("last_sync_status") or None
+            last_sync_run_id: Optional[str] = meta.get("last_sync_run_id") or None
+            last_sync_started_at: Optional[str] = meta.get("last_sync_started_at") or None
+            last_sync_error: Optional[str] = meta.get("last_sync_error") or None
 
-            return {"counts": counts, "last_sync_time": last_sync_time, "status": "healthy"}
+            duration_raw = meta.get("last_sync_duration_ms")
+            try:
+                last_sync_duration_ms: Optional[int] = int(duration_raw) if duration_raw else None
+            except ValueError:
+                last_sync_duration_ms = None
+
+            return {
+                "counts": counts,
+                "last_sync_time": last_sync_time,
+                "last_sync_status": last_sync_status,
+                "last_sync_run_id": last_sync_run_id,
+                "last_sync_started_at": last_sync_started_at,
+                "last_sync_duration_ms": last_sync_duration_ms,
+                "last_sync_counts": self._json_map(meta.get("last_sync_counts")),
+                "last_sync_timings_ms": self._json_map(meta.get("last_sync_timings_ms")),
+                "last_sync_error": last_sync_error,
+                "status": "healthy",
+            }
         except Exception as e:
             logger.error(f"[sync] Error getting sync status: {e}")
             return {"status": "error", "error": str(e)}
