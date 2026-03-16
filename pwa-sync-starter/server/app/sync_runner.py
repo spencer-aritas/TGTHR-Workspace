@@ -11,6 +11,7 @@ from .salesforce.sf_client import query_soql, sobject_update, SFAuthError, SFErr
 from .sync_helpers import (
     fetch_programs,
     fetch_enrollments_for_programs,
+    fetch_enrollments_for_programs_chunked,
     fetch_accounts,
     upsert_programs,
     upsert_participants,
@@ -50,8 +51,17 @@ class SyncRunner:
             programs = fetch_programs()
             prog_ids = sorted(str(p["Id"]) for p in programs if isinstance(p.get("Id"), str))
             logger.info(f"[sync] Programs: {len(programs)}")
-            
-            enrollments = fetch_enrollments_for_programs(prog_ids) if prog_ids else []
+
+            batch_size = max(1, int(settings.SYNC_PROGRAM_BATCH_SIZE))
+            max_enrollments = max(0, int(settings.SYNC_MAX_ENROLLMENTS_PER_RUN))
+            if prog_ids:
+                enrollments = fetch_enrollments_for_programs_chunked(
+                    prog_ids,
+                    batch_size=batch_size,
+                    max_records=max_enrollments,
+                )
+            else:
+                enrollments = []
             acct_ids = sorted(str(e["AccountId"]) for e in enrollments if isinstance(e.get("AccountId"), str))
             logger.info(f"[sync] Enrollments: {len(enrollments)} | Accounts referenced: {len(acct_ids)}")
             

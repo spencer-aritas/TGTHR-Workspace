@@ -40,6 +40,11 @@ outreachintake.aritasconsulting.com {
 	# Handle API requests
 	handle /api/* {
 		reverse_proxy api:8000 {
+			transport http {
+				dial_timeout 10s
+				response_header_timeout 60s
+				read_timeout 120s
+			}
 			header_up Host {http.request.header.Host}
 			header_up X-Real-IP {http.request.remote.host}
 			header_up X-Forwarded-For {http.request.remote.host}
@@ -49,12 +54,18 @@ outreachintake.aritasconsulting.com {
 	
 	# Handle docgen requests
 	handle /docgen/* {
-		reverse_proxy docgen:8000
+		reverse_proxy docgen:8000 {
+			transport http {
+				dial_timeout 10s
+				response_header_timeout 120s
+				read_timeout 300s
+			}
+		}
 	}
 	
 	# Service worker and manifest need special handling
 	handle /sw.js {
-		reverse_proxy web:5173 {
+		reverse_proxy web:80 {
 			header_down Cache-Control "no-cache, no-store, must-revalidate"
 			header_down Pragma "no-cache"
 			header_down Service-Worker-Allowed "/"
@@ -63,7 +74,7 @@ outreachintake.aritasconsulting.com {
 	}
 	
 	handle /manifest.webmanifest {
-		reverse_proxy web:5173 {
+		reverse_proxy web:80 {
 			header_down Cache-Control "no-cache"
 			header_down Content-Type "application/manifest+json"
 		}
@@ -71,7 +82,12 @@ outreachintake.aritasconsulting.com {
 	
 	# Handle everything else
 	handle {
-		reverse_proxy web:5173 {
+		reverse_proxy web:80 {
+			transport http {
+				dial_timeout 10s
+				response_header_timeout 30s
+				read_timeout 120s
+			}
 			header_up Host {http.request.header.Host}
 			header_up X-Real-IP {http.request.remote.host}
 			header_up X-Forwarded-For {http.request.remote.host}
