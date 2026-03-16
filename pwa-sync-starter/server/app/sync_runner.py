@@ -1,16 +1,18 @@
 # server/app/sync_runner.py
 from __future__ import annotations
 
+import json
 import logging
+import time
+import uuid
 from typing import Any, Dict, List, Optional, TypedDict, Literal, Union
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .db import DuckClient
 from .settings import settings
-from .salesforce.sf_client import query_soql, sobject_update, SFAuthError, SFError
+from .salesforce.sf_client import SFAuthError, SFError
 from .sync_helpers import (
     fetch_programs,
-    fetch_enrollments_for_programs,
     fetch_enrollments_for_programs_chunked,
     fetch_accounts,
     upsert_programs,
@@ -41,19 +43,66 @@ class SyncRunner:
     
     def __init__(self):
         self.db = DuckClient()
+
+    def _upsert_meta(self, key: str, value: str) -> None:
+        self.db.execute(
+            """
+            INSERT OR REPLACE INTO meta (key, value)
+            VALUES (?, ?)
+            """,
+            (key, value),
+        )
+
+    def _persist_sync_success(
+        self,
+        run_id: str,
+        started_at: datetime,
+        duration_ms: int,
+        counts: Dict[str, int],
+        timings_ms: Dict[str, int],
+    ) -> None:
+        self._upsert_meta("last_sync_time", datetime.now(timezone.utc).isoformat())
+        self._upsert_meta("last_sync_status", "success")
+        self._upsert_meta("last_sync_run_id", run_id)
+        self._upsert_meta("last_sync_started_at", started_at.isoformat())
+        self._upsert_meta("last_sync_duration_ms", str(duration_ms))
+        self._upsert_meta("last_sync_counts", json.dumps(counts))
+        self._upsert_meta("last_sync_timings_ms", json.dumps(timings_ms))
+        self._upsert_meta("last_sync_error", "")
+
+    def _persist_sync_failure(
+        self,
+        run_id: str,
+        started_at: datetime,
+        duration_ms: int,
+        error: str,
+    ) -> None:
+        self._upsert_meta("last_sync_time", datetime.now(timezone.utc).isoformat())
+        self._upsert_meta("last_sync_status", "error")
+        self._upsert_meta("last_sync_run_id", run_id)
+        self._upsert_meta("last_sync_started_at", started_at.isoformat())
+        self._upsert_meta("last_sync_duration_ms", str(duration_ms))
+        self._upsert_meta("last_sync_error", error)
         
     def run_full_sync(self) -> Dict[str, int]:
         """Run complete sync from Salesforce to local database"""
-        logger.info("[sync] Starting full sync from Salesforce...")
+        run_id = str(uuid.uuid4())
+        started_at = datetime.now(timezone.utc)
+        run_t0 = time.perf_counter()
+        logger.info("[sync][%s] Starting full sync from Salesforce...", run_id)
+        timings_ms: Dict[str, int] = {}
         
         try:
             # Fetch data from Salesforce
+            stage_t0 = time.perf_counter()
             programs = fetch_programs()
+            timings_ms["fetch_programs"] = int((time.perf_counter() - stage_t0) * 1000)
             prog_ids = sorted(str(p["Id"]) for p in programs if isinstance(p.get("Id"), str))
-            logger.info(f"[sync] Programs: {len(programs)}")
+            logger.info("[sync][%s] Programs: %s", run_id, len(programs))
 
             batch_size = max(1, int(settings.SYNC_PROGRAM_BATCH_SIZE))
             max_enrollments = max(0, int(settings.SYNC_MAX_ENROLLMENTS_PER_RUN))
+            stage_t0 = time.perf_counter()
             if prog_ids:
                 enrollments = fetch_enrollments_for_programs_chunked(
                     prog_ids,
@@ -62,33 +111,64 @@ class SyncRunner:
                 )
             else:
                 enrollments = []
+            timings_ms["fetch_enrollments"] = int((time.perf_counter() - stage_t0) * 1000)
             acct_ids = sorted(str(e["AccountId"]) for e in enrollments if isinstance(e.get("AccountId"), str))
-            logger.info(f"[sync] Enrollments: {len(enrollments)} | Accounts referenced: {len(acct_ids)}")
+            logger.info(
+                "[sync][%s] Enrollments: %s | Accounts referenced: %s",
+                run_id,
+                len(enrollments),
+                len(acct_ids),
+            )
             
+            stage_t0 = time.perf_counter()
             accounts = fetch_accounts(acct_ids) if acct_ids else []
-            logger.info(f"[sync] Accounts (Person): {len(accounts)}")
+            timings_ms["fetch_accounts"] = int((time.perf_counter() - stage_t0) * 1000)
+            logger.info("[sync][%s] Accounts (Person): %s", run_id, len(accounts))
             
             # Upsert to local database
+            stage_t0 = time.perf_counter()
             prog_uuid_by_id = upsert_programs(self.db, programs)
+            timings_ms["upsert_programs"] = int((time.perf_counter() - stage_t0) * 1000)
+
+            stage_t0 = time.perf_counter()
             acct_uuid_by_id = upsert_participants(self.db, accounts)
+            timings_ms["upsert_participants"] = int((time.perf_counter() - stage_t0) * 1000)
+
+            stage_t0 = time.perf_counter()
             enr_uuid_by_id = upsert_enrollments(self.db, enrollments, prog_uuid_by_id, acct_uuid_by_id)
+            timings_ms["upsert_enrollments"] = int((time.perf_counter() - stage_t0) * 1000)
             
             # Get final counts
+            stage_t0 = time.perf_counter()
             counts = {
                 "programs": self.db.fetch_all("SELECT COUNT(*) n FROM programs")[0]["n"],
                 "participants": self.db.fetch_all("SELECT COUNT(*) n FROM participants")[0]["n"],
                 "enrollments": self.db.fetch_all("SELECT COUNT(*) n FROM program_enrollments")[0]["n"],
                 "active_enrollments": self.db.fetch_all("SELECT COUNT(*) n FROM baseline_active_enrollments")[0]["n"],
             }
+            timings_ms["count_queries"] = int((time.perf_counter() - stage_t0) * 1000)
+            duration_ms = int((time.perf_counter() - run_t0) * 1000)
+
+            self._persist_sync_success(run_id, started_at, duration_ms, counts, timings_ms)
             
-            logger.info(f"[sync] Completed: {counts}")
+            logger.info(
+                "[sync][%s] Completed in %sms | counts=%s | timings_ms=%s",
+                run_id,
+                duration_ms,
+                counts,
+                timings_ms,
+            )
             return counts
             
         except (SFAuthError, SFError) as e:
-            logger.error(f"[sync] Salesforce error: {e}")
+            duration_ms = int((time.perf_counter() - run_t0) * 1000)
+            self._persist_sync_failure(run_id, started_at, duration_ms, str(e))
+            logger.error("[sync][%s] Salesforce error after %sms: %s", run_id, duration_ms, e)
             raise
         except Exception as e:
-            logger.error(f"[sync] Unexpected error: {e}", exc_info=True)
+            duration_ms = int((time.perf_counter() - run_t0) * 1000)
+            self._persist_sync_failure(run_id, started_at, duration_ms, str(e))
+            logger.error("[sync][%s] Unexpected error after %sms: %s", run_id, duration_ms, e, exc_info=True)
             raise
         finally:
             if hasattr(self, 'db'):
