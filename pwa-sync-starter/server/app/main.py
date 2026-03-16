@@ -1,10 +1,12 @@
 # server/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import threading
 from .routers import baseline
 from .settings import settings
 from .models.db import engine, Base
 from .jobs.scheduler import start_scheduler
+from .sync_runner import run_initial_sync_if_needed
 from .api.sync import sf_router
 from .db import init_schema_and_seed
 import uuid
@@ -44,7 +46,7 @@ app.add_middleware(
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],  # Restrict methods
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-Sync-Admin-Token"],
 )
 
 # Security headers
@@ -89,3 +91,4 @@ def healthcheck():
 @app.on_event("startup")
 def _startup():
     start_scheduler()
+    threading.Thread(target=run_initial_sync_if_needed, name="initial-sync", daemon=True).start()

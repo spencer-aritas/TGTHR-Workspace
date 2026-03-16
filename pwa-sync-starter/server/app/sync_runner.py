@@ -29,6 +29,50 @@ def is_sync_running() -> bool:
     return _RUN_LOCK.locked()
 
 
+def _local_cache_empty() -> bool:
+    db = DuckClient()
+    try:
+        participants = int(db.fetch_all("SELECT COUNT(*) AS n FROM participants")[0]["n"])
+        enrollments = int(db.fetch_all("SELECT COUNT(*) AS n FROM program_enrollments")[0]["n"])
+        return participants == 0 and enrollments == 0
+    finally:
+        db.close()
+
+
+def run_initial_sync_if_needed() -> None:
+    """Run a bounded startup sync when local cache is empty."""
+    if not settings.SYNC_INITIAL_SYNC_ON_STARTUP:
+        logger.info("[startup-sync] disabled by configuration")
+        return
+
+    try:
+        if not _local_cache_empty():
+            logger.info("[startup-sync] local cache not empty, skipping initial sync")
+            return
+    except Exception as e:
+        logger.warning("[startup-sync] failed to check local cache state: %s", e)
+        return
+
+    max_retries = max(1, int(settings.SYNC_INITIAL_SYNC_MAX_RETRIES))
+    retry_delay = max(1, int(settings.SYNC_INITIAL_SYNC_RETRY_DELAY_SECONDS))
+
+    logger.info("[startup-sync] local cache empty, attempting initial sync (max_retries=%s)", max_retries)
+    for attempt in range(1, max_retries + 1):
+        try:
+            result = run_full_sync()
+            logger.info("[startup-sync] initial sync succeeded on attempt %s: %s", attempt, result)
+            return
+        except RuntimeError as e:
+            logger.warning("[startup-sync] attempt %s skipped: %s", attempt, e)
+        except Exception as e:
+            logger.error("[startup-sync] attempt %s failed: %s", attempt, e, exc_info=True)
+
+        if attempt < max_retries:
+            time.sleep(retry_delay)
+
+    logger.error("[startup-sync] exhausted retries without successful initial sync")
+
+
 class Counts(TypedDict):
     programs: int
     participants: int
@@ -331,7 +375,8 @@ class SyncRunner:
             logger.error(f"[sync] Error getting sync status: {e}")
             return {"status": "error", "error": str(e)}
         finally:
-            pass  
+            if hasattr(self, 'db'):
+                self.db.close()
 
 # Convenience functions for backward compatibility
 def run_full_sync() -> Dict[str, int]:

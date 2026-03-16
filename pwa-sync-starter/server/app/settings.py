@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     SYNC_PROGRAM_BATCH_SIZE: int = 25
     SYNC_MAX_ENROLLMENTS_PER_RUN: int = 0
     SYNC_STALE_THRESHOLD_HOURS: int = 30
+    SYNC_INITIAL_SYNC_ON_STARTUP: bool = True
+    SYNC_INITIAL_SYNC_MAX_RETRIES: int = 2
+    SYNC_INITIAL_SYNC_RETRY_DELAY_SECONDS: int = 30
+    SYNC_ADMIN_TOKEN: Optional[str] = None
 
     # Salesforce sandbox keys
     SF_BENEFITS_JWT_CONSUMER_KEY: Optional[str] = None

@@ -9,6 +9,7 @@ from ..salesforce.sf_client import _get_token, _api, _sf, get_person_account_rec
 from ..salesforce.audit_log_service import audit_logger
 from ..jobs.scheduler import get_scheduler_state
 from ..sync_runner import SyncRunner
+from ..settings import settings
 import uuid
 import logging
 
@@ -54,6 +55,22 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def _require_sync_admin(request: Request) -> None:
+    """Optionally protect privileged sync operations with a shared admin token."""
+    configured_token = settings.SYNC_ADMIN_TOKEN
+    if not configured_token:
+        return
+
+    token = request.headers.get("X-Sync-Admin-Token")
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:].strip()
+
+    if token != configured_token:
+        raise HTTPException(status_code=403, detail="admin token required")
 
 def get_next_version(db: Session) -> int:
     rec = db.get(Meta, 'serverVersion')
@@ -381,24 +398,45 @@ def get_sync_status():
     """Get current sync status and statistics"""
     try:
         runner = SyncRunner()
-        return runner.get_sync_status()
+        payload = runner.get_sync_status()
+        if isinstance(payload, dict) and payload.get("status") == "healthy":
+            scheduler_state = get_scheduler_state()
+            counts = payload.get("counts", {})
+            db_empty = int(counts.get("participants", 0)) == 0 and int(counts.get("enrollments", 0)) == 0
+            scheduler_not_started = not bool(scheduler_state.get("started"))
+            warning_codes: List[str] = []
+            if db_empty:
+                warning_codes.append("db_empty")
+            if scheduler_not_started:
+                warning_codes.append("scheduler_not_started")
+            if not payload.get("has_synced_once", False):
+                warning_codes.append("never_synced")
+
+            payload["warning_flags"] = {
+                "db_empty": db_empty,
+                "scheduler_not_started": scheduler_not_started,
+            }
+            payload["warning_codes"] = warning_codes
+        return payload
     except Exception as e:
         logger.error(f"Error getting sync status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get('/sync/scheduler')
-def get_sync_scheduler_status():
+def get_sync_scheduler_status(request: Request):
     """Get scheduler diagnostics, including next nightly run time."""
     try:
+        _require_sync_admin(request)
         return get_scheduler_state()
     except Exception as e:
         logger.error(f"Error getting scheduler status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post('/sync/run-full')
-def run_full_sync():
+def run_full_sync(request: Request):
     """Trigger a full sync from Salesforce"""
     try:
+        _require_sync_admin(request)
         runner = SyncRunner()
         result = runner.run_full_sync()
         return {"success": True, "counts": result}
