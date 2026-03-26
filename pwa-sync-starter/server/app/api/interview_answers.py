@@ -1,7 +1,7 @@
 # server/app/api/interview_answers.py
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 import logging
 
 logger = logging.getLogger("interview_answers_api")
@@ -11,7 +11,7 @@ class InterviewAnswerRequest(BaseModel):
     """Request body for submitting interview answers"""
     caseId: str
     templateVersionId: str
-    answers: Dict[str, str]  # Maps question IDs to answer values
+    answers: Dict[str, Any]  # Maps question IDs to answer values
     ssrsAssessmentId: Optional[str] = None
 
 @router.post("/interview-answers")

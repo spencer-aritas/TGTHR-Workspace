@@ -22,7 +22,7 @@ class InterviewAnswerService:
         self,
         case_id: str,
         template_version_id: str,
-        answers: Dict[str, str],
+        answers: Dict[str, Any],
         ssrs_assessment_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
@@ -107,7 +107,8 @@ class InterviewAnswerService:
                     if self._field_exists('InterviewAnswer__c', 'Section__c') and question.get('Section__c'):
                         answer_record['Section__c'] = question['Section__c']
 
-                    self._assign_answer_value(answer_record, question.get('Response_Type__c'), answer_value)
+                    normalized_answer_value = self._normalize_answer_value(answer_value)
+                    self._assign_answer_value(answer_record, question.get('Response_Type__c'), normalized_answer_value)
                     
                     logger.debug(f"Creating InterviewAnswer: {answer_record}")
                     answer_result = _sf(_api("/sobjects/InterviewAnswer__c/"), method="POST", json=answer_record)
@@ -121,7 +122,7 @@ class InterviewAnswerService:
                     if assessment_id and maps_to and maps_to.startswith('Assessment__c.'):
                         assessment_field = maps_to.split('.', 1)[1]
                         if self._field_exists('Assessment__c', assessment_field):
-                            coerced_value = self._coerce_value_for_assessment(question.get('Response_Type__c'), answer_value)
+                            coerced_value = self._coerce_value_for_assessment(question.get('Response_Type__c'), normalized_answer_value)
                             if coerced_value is not None:
                                 assessment_updates[assessment_field] = coerced_value
                         
@@ -129,6 +130,9 @@ class InterviewAnswerService:
                     logger.warning(f"Failed to create answer for question {question_id}: {e}", exc_info=True)
                     # Continue with other answers even if one fails
                     continue
+
+            if answers and answer_count == 0:
+                raise Exception('Failed to save any interview answers to Salesforce')
 
             if assessment_id and assessment_updates:
                 logger.debug(f"Updating Assessment {assessment_id} with mapped answers: {assessment_updates}")
@@ -288,6 +292,47 @@ class InterviewAnswerService:
     def _utc_now_iso(self) -> str:
         return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
+    def _normalize_answer_value(self, raw_value: Any) -> str:
+        if raw_value is None:
+            return ''
+
+        if isinstance(raw_value, bool):
+            return 'true' if raw_value else 'false'
+
+        if isinstance(raw_value, (int, float)):
+            return str(raw_value)
+
+        if isinstance(raw_value, list):
+            values = [self._normalize_answer_value(item).strip() for item in raw_value]
+            return ';'.join(value for value in values if value)
+
+        if isinstance(raw_value, dict):
+            for key in (
+                'value',
+                'values',
+                'selectedValue',
+                'selectedValues',
+                'responsePicklist',
+                'responseText',
+                'responseNumber',
+                'responseDate',
+                'responseDateTime',
+                'responseBoolean',
+                'answer',
+                'text',
+                'label',
+            ):
+                if key in raw_value:
+                    return self._normalize_answer_value(raw_value[key])
+
+            normalized_values = [self._normalize_answer_value(value).strip() for value in raw_value.values()]
+            non_blank_values = [value for value in normalized_values if value]
+            if len(non_blank_values) == 1:
+                return non_blank_values[0]
+            return ''
+
+        return str(raw_value).strip()
+
     def _create_assessment(
         self,
         case_id: str,
@@ -354,6 +399,9 @@ class InterviewAnswerService:
 
     def _coerce_value_for_assessment(self, response_type: Optional[str], raw_value: str) -> Any:
         normalized_type = (response_type or 'text').strip().lower().replace('-', '_')
+
+        if raw_value == '':
+            return None
 
         if normalized_type in {'number', 'decimal', 'score'}:
             return float(raw_value)

@@ -486,7 +486,7 @@ public with sharing class InterviewDocumentService {
         
         String answerQuery = 
             'SELECT Id, Response_Text__c, Response_Number__c, Response_Date__c, ' +
-            'Response_Boolean__c, Response_Picklist__c, ' +
+            'Response_DateTime__c, Response_Boolean__c, Response_Picklist__c, ' +
             'InterviewQuestion__r.Label__c, InterviewQuestion__r.Section__c, ' +
             'InterviewQuestion__r.Order__c, InterviewQuestion__r.Response_Type__c ' +
             'FROM InterviewAnswer__c ' +
@@ -518,50 +518,7 @@ public with sharing class InterviewDocumentService {
                 sectionMinOrder.put(sectionName, questionOrder);
             }
             
-            // Determine answer text from response fields
-            String answerText = '';
-            String normalizedResponseType = responseType != null ? responseType.trim().toLowerCase() : '';
-            Boolean isAmbiguousRadio = normalizedResponseType == 'radio';
-            Boolean isNumericScale = normalizedResponseType.contains('number')
-                || normalizedResponseType.contains('numeric')
-                || normalizedResponseType.contains('decimal')
-                || normalizedResponseType.contains('integer')
-                || normalizedResponseType.contains('scale')
-                || normalizedResponseType.contains('rating')
-                || normalizedResponseType.contains('score');
-
-            // For radio/scale, prefer number first to avoid false boolean defaults masking values.
-            if ((isAmbiguousRadio || isNumericScale) && answer.get('Response_Number__c') != null) {
-                answerText = String.valueOf(answer.get('Response_Number__c'));
-            } else if (answer.get('Response_Text__c') != null) {
-                answerText = (String)answer.get('Response_Text__c');
-                // Format time fields (stored as text in HH:MM or HH:MM:SS format)
-                if (responseType == 'Time' && answerText.contains(':')) {
-                    // Keep just HH:MM for display (strip seconds if present)
-                    String[] parts = answerText.split(':');
-                    if (parts.size() >= 2) {
-                        answerText = parts[0] + ':' + parts[1];
-                    }
-                }
-            } else if (answer.get('Response_Boolean__c') != null) {
-                Boolean boolValue = (Boolean)answer.get('Response_Boolean__c');
-                answerText = boolValue == true ? 'Yes' : 'No';
-            } else if (answer.get('Response_Number__c') != null) {
-                answerText = String.valueOf(answer.get('Response_Number__c'));
-            } else if (answer.get('Response_Date__c') != null) {
-                answerText = String.valueOf(answer.get('Response_Date__c'));
-            } else if (answer.get('Response_Picklist__c') != null) {
-                answerText = (String)answer.get('Response_Picklist__c');
-            }
-
-            if (answerText != null) {
-                String normalizedValue = answerText.trim().toLowerCase();
-                if (normalizedValue == 'true') {
-                    answerText = 'Yes';
-                } else if (normalizedValue == 'false') {
-                    answerText = 'No';
-                }
-            }
+            String answerText = extractInterviewAnswerText(answer, responseType);
             
             sectionGroups.get(sectionName).add(new Map<String, Object>{
                 'type' => 'qna',
@@ -593,6 +550,110 @@ public with sharing class InterviewDocumentService {
         }
         
         return sections;
+    }
+
+    private static Boolean isBooleanInterviewResponseType(String responseType) {
+        if (String.isBlank(responseType)) {
+            return false;
+        }
+
+        String normalized = responseType.trim().toLowerCase();
+        return normalized.contains('boolean')
+            || normalized.contains('checkbox')
+            || normalized.contains('toggle')
+            || normalized.contains('yes/no');
+    }
+
+    private static Boolean isNumericInterviewResponseType(String responseType) {
+        if (String.isBlank(responseType)) {
+            return false;
+        }
+
+        String normalized = responseType.trim().toLowerCase();
+        return normalized.contains('number')
+            || normalized.contains('numeric')
+            || normalized.contains('decimal')
+            || normalized.contains('integer')
+            || normalized.contains('scale')
+            || normalized.contains('rating')
+            || normalized.contains('score')
+            || normalized == 'radio';
+    }
+
+    private static String normalizeInterviewAnswerValue(Object value, String responseType, String fieldName) {
+        if (value == null) {
+            return '';
+        }
+
+        if (fieldName == 'Response_Boolean__c') {
+            return ((Boolean)value) == true ? 'Yes' : 'No';
+        }
+
+        String answerText = String.valueOf(value);
+        if (String.isBlank(answerText)) {
+            return '';
+        }
+
+        if (responseType == 'Time' && fieldName == 'Response_Text__c' && answerText.contains(':')) {
+            String[] parts = answerText.split(':');
+            if (parts.size() >= 2) {
+                answerText = parts[0] + ':' + parts[1];
+            }
+        }
+
+        String normalizedValue = answerText.trim().toLowerCase();
+        if (normalizedValue == 'true') {
+            return 'Yes';
+        }
+        if (normalizedValue == 'false') {
+            return 'No';
+        }
+
+        return answerText;
+    }
+
+    private static String extractInterviewAnswerText(SObject answer, String responseType) {
+        List<String> candidateFields;
+        if (isNumericInterviewResponseType(responseType)) {
+            candidateFields = new List<String>{
+                'Response_Number__c',
+                'Response_Text__c',
+                'Response_Picklist__c',
+                'Response_Date__c',
+                'Response_DateTime__c'
+            };
+        } else if (isBooleanInterviewResponseType(responseType)) {
+            candidateFields = new List<String>{
+                'Response_Boolean__c',
+                'Response_Text__c',
+                'Response_Picklist__c',
+                'Response_Date__c',
+                'Response_DateTime__c',
+                'Response_Number__c'
+            };
+        } else {
+            candidateFields = new List<String>{
+                'Response_Text__c',
+                'Response_Picklist__c',
+                'Response_Date__c',
+                'Response_DateTime__c',
+                'Response_Number__c'
+            };
+        }
+
+        for (String fieldName : candidateFields) {
+            Object fieldValue = answer.get(fieldName);
+            if (fieldValue == null) {
+                continue;
+            }
+
+            String normalized = normalizeInterviewAnswerValue(fieldValue, responseType, fieldName);
+            if (!String.isBlank(normalized)) {
+                return normalized;
+            }
+        }
+
+        return '';
     }
     
     /**
