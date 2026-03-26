@@ -11,7 +11,7 @@ type SectionId = 'ideation' | 'intensity' | 'behavior';
 
 interface SSRSAssessmentWizardProps {
   selectedCase: Case;
-  onComplete: () => void;
+  onComplete: (result?: SSRSAssessmentResult) => void;
   onCancel: () => void;
 }
 
@@ -572,12 +572,13 @@ export function SSRSAssessmentWizard({
   };
 
   const handleComplete = () => {
+    const completedResult = result ?? undefined;
     setSectionIndex(0);
     setCardIndex(0);
     setAssessmentData({});
     setResult(null);
     setIncludeIntensity(false);
-    onComplete();
+    onComplete(completedResult);
   };
 
   const renderToggleField = (fieldConfig: ToggleFieldConfig) => {

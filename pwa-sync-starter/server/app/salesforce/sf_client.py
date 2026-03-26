@@ -279,26 +279,42 @@ def ingest_encounter(encounter_data: Dict[str, Any]) -> Dict[str, Any]:
         )
     return _sf(path, method="POST", json=encounter_data)
 
-def create_interaction_summary_direct(record_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
+def create_interaction_summary_direct(
+    record_id: str,
+    notes: str,
+    uuid: str,
+    created_by_user_id: str = None,
+    *,
+    account_id: str | None = None,
+    interaction_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    interaction_purpose: str | None = None,
+) -> str:
     """Direct InteractionSummary creation with proper Name field"""
     from datetime import datetime
     
     # Determine if record_id is Account or Case and get account info
     if record_id.startswith('500'):  # Case ID prefix
         case = sobject_get("Case", record_id)
-        account_id = case.get('AccountId')
-        if not account_id:
+        resolved_account_id = account_id or case.get('AccountId')
+        if not resolved_account_id:
             raise Exception(f"Case {record_id} has no associated Account")
-        account = sobject_get("Account", account_id)
+        account = sobject_get("Account", resolved_account_id)
     else:  # Assume Account ID
-        account_id = record_id
-        account = sobject_get("Account", account_id)
+        resolved_account_id = account_id or record_id
+        account = sobject_get("Account", resolved_account_id)
     
     participant_name = f"{account.get('LastName', 'Unknown')}, {account.get('FirstName', '')}" if account.get('FirstName') else account.get('Name', 'Unknown')
     
     # Format date as MM/DD/YYYY
-    today = datetime.now()
-    formatted_date = f"{today.month:02d}/{today.day:02d}/{today.year}"
+    interaction_datetime = datetime.now()
+    if interaction_date:
+        try:
+            interaction_datetime = datetime.strptime(interaction_date, "%Y-%m-%d")
+        except ValueError:
+            logger.warning("Invalid interaction_date %s; falling back to today", interaction_date)
+    formatted_date = f"{interaction_datetime.month:02d}/{interaction_datetime.day:02d}/{interaction_datetime.year}"
     
     # Get CreatedBy user name for title (the actual staff member, not integration user)
     staff_name = "Staff User"  # Default fallback
@@ -326,12 +342,17 @@ def create_interaction_summary_direct(record_id: str, notes: str, uuid: str, cre
     payload = {
         "Name": title,  # Required field!
         "RelatedRecordId": record_id,  # Standard polymorphic field (Case ID)
-        "AccountId": account_id,  # Always the Account/Person Account ID
-        "Date_of_Interaction__c": today.strftime("%Y-%m-%d"),
-        "InteractionPurpose": "Communication Log",
+        "AccountId": resolved_account_id,  # Always the Account/Person Account ID
+        "Date_of_Interaction__c": interaction_datetime.strftime("%Y-%m-%d"),
+        "InteractionPurpose": interaction_purpose or "Communication Log",
         "MeetingNotes": notes,
         "UUID__c": uuid
     }
+
+    if start_time:
+        payload["Start_Time__c"] = start_time
+    if end_time:
+        payload["End_Time__c"] = end_time
     
     if created_by_user_id:
         payload["CreatedById"] = created_by_user_id
@@ -339,10 +360,31 @@ def create_interaction_summary_direct(record_id: str, notes: str, uuid: str, cre
     res = _sf(_api("/sobjects/InteractionSummary/"), method="POST", json=payload)
     return res["id"]
 
-def call_interaction_summary_service(record_id: str, notes: str, uuid: str, created_by_user_id: str = None) -> str:
+def call_interaction_summary_service(
+    record_id: str,
+    notes: str,
+    uuid: str,
+    created_by_user_id: str = None,
+    *,
+    account_id: str | None = None,
+    interaction_date: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    interaction_purpose: str | None = None,
+) -> str:
     """Call InteractionSummaryService with user context"""
     # Use direct creation with proper user context - supports both Account and Case IDs
-    return create_interaction_summary_direct(record_id, notes, uuid, created_by_user_id)
+    return create_interaction_summary_direct(
+        record_id,
+        notes,
+        uuid,
+        created_by_user_id,
+        account_id=account_id,
+        interaction_date=interaction_date,
+        start_time=start_time,
+        end_time=end_time,
+        interaction_purpose=interaction_purpose,
+    )
 
 def upsert_person_by_uuid(uuid: str, fields: dict) -> str:
     # PATCH /sobjects/Account/UUID__c/{uuid}
@@ -403,6 +445,10 @@ class SalesforceClient:
     def create(self, sobject: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new record in Salesforce"""
         return _sf(_api(f"/sobjects/{sobject}/"), method="POST", json=data)
+
+    def update(self, sobject: str, record_id: str, data: Dict[str, Any]) -> None:
+        """Update an existing Salesforce record."""
+        _sf(_api(f"/sobjects/{sobject}/{record_id}"), method="PATCH", json=data)
     
     def call_apex_rest(self, service_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Call an Apex REST service"""

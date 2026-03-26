@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import type { InterviewTemplateDefinition } from '@shared/contracts/index.ts';
+import type { InterviewTemplateDefinition, SSRSAssessmentResult } from '@shared/contracts/index.ts';
 import { Case } from '../services/caseService';
 import { interviewTemplateService } from '../services/interviewTemplateService';
 import { interviewAnswerService } from '../services/interviewAnswerService';
+import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
 
 interface InterviewLauncherProps {
   template: InterviewTemplateDefinition;
@@ -27,6 +28,15 @@ interface InterviewQuestion {
   DisplayOrder?: number;
 }
 
+function supportsEmbeddedSsrs(template: InterviewTemplateDefinition): boolean {
+  const name = `${template.templateName} ${template.versionName}`.toLowerCase();
+  return (
+    name.includes('comprehensive clinical assessment') ||
+    name.includes('comprehensive assessment') ||
+    name.includes('comprehensive intake')
+  );
+}
+
 export function InterviewLauncher({
   template,
   selectedCase,
@@ -38,6 +48,8 @@ export function InterviewLauncher({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showSSRS, setShowSSRS] = useState(false);
+  const [linkedSSRSResult, setLinkedSSRSResult] = useState<SSRSAssessmentResult | null>(null);
 
   useEffect(() => {
     loadQuestions();
@@ -80,7 +92,8 @@ export function InterviewLauncher({
       const result = await interviewAnswerService.saveInterviewAnswers(
         selectedCase.Id,
         template.templateVersionId,
-        answers
+        answers,
+        linkedSSRSResult?.assessmentId
       );
       
       console.log('Interview saved successfully:', result);
@@ -92,6 +105,21 @@ export function InterviewLauncher({
       setSubmitting(false);
     }
   };
+
+  if (showSSRS) {
+    return (
+      <SSRSAssessmentWizard
+        selectedCase={selectedCase}
+        onComplete={(result) => {
+          if (result) {
+            setLinkedSSRSResult(result);
+          }
+          setShowSSRS(false);
+        }}
+        onCancel={() => setShowSSRS(false)}
+      />
+    );
+  }
 
   return (
     <div style={{minHeight: '100vh', backgroundColor: '#f8f9fa'}}>
@@ -347,6 +375,39 @@ export function InterviewLauncher({
                   </div>
                 ))}
               </div>
+
+              {supportsEmbeddedSsrs(template) && (
+                <div
+                  style={{
+                    marginBottom: '24px',
+                    padding: '16px',
+                    border: '1px solid #d8dde6',
+                    borderRadius: '12px',
+                    backgroundColor: '#f8f9fa'
+                  }}
+                >
+                  <div className="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                    <div>
+                      <h2 className="slds-text-heading_small">Risk Assessment</h2>
+                      <p className="slds-text-body_small slds-text-color_weak">
+                        Complete the SSRS assessment within this interview before submission.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="slds-button slds-button_outline-brand"
+                      onClick={() => setShowSSRS(true)}
+                    >
+                      {linkedSSRSResult ? 'Edit Risk Assessment' : 'Launch Risk Assessment'}
+                    </button>
+                  </div>
+                  {linkedSSRSResult && (
+                    <div className="slds-text-body_small">
+                      <strong>Linked Assessment:</strong> {linkedSSRSResult.riskLevel} Risk
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="slds-grid slds-gutters">
                 <div className="slds-col slds-size_1-of-2">
