@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Case } from '../services/caseService';
 import { interactionSummaryService, InteractionSummaryData } from '../services/interactionSummaryService';
-import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
 import { AvailableInterviewsModal } from './AvailableInterviewsModal';
 import { InterviewLauncher } from './InterviewLauncher';
 import type { InterviewTemplateDefinition } from '@shared/contracts/index.ts';
@@ -32,7 +31,6 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
     endTime: ''
   });
   const [submitting, setSubmitting] = useState(false);
-  const [showSSRS, setShowSSRS] = useState(false);
   const [showAvailableInterviews, setShowAvailableInterviews] = useState(false);
   const [selectedInterviewTemplate, setSelectedInterviewTemplate] = useState<InterviewTemplateDefinition | null>(null);
 
@@ -98,26 +96,10 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
     }
   };
 
-  const handleSSRSComplete = async () => {
-    setShowSSRS(false);
-    // Reload interactions after SSRS assessment
-    await loadInteractions();
-  };
-
   const handleSelectInterview = (template: InterviewTemplateDefinition) => {
     setSelectedInterviewTemplate(template);
     setShowAvailableInterviews(false);
   };
-
-  if (showSSRS && selectedCase) {
-    return (
-      <SSRSAssessmentWizard
-        selectedCase={selectedCase}
-        onComplete={handleSSRSComplete}
-        onCancel={() => setShowSSRS(false)}
-      />
-    );
-  }
 
   if (selectedInterviewTemplate && selectedCase) {
     return (
@@ -191,6 +173,14 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
 
           {!loading && interactions.length === 0 && (
             <div className="slds-text-align_center slds-p-vertical_large">
+              <div className="slds-m-bottom_medium">
+                <button
+                  className="slds-button slds-button_outline-brand slds-size_1-of-1"
+                  onClick={() => setShowAvailableInterviews(true)}
+                >
+                  Available Interviews
+                </button>
+              </div>
               <p className="slds-text-body_regular">No interactions recorded yet.</p>
             </div>
           )}
@@ -198,24 +188,12 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
           {!loading && interactions.length > 0 && (
             <div style={{ marginBottom: '24px' }}>
               <div className="slds-m-bottom_medium">
-                <div className="slds-grid slds-gutters">
-                  <div className="slds-col slds-size_1-of-2">
-                    <button
-                      className="slds-button slds-button_outline-brand slds-size_1-of-1"
-                      onClick={() => setShowAvailableInterviews(true)}
-                    >
-                      Available Interviews
-                    </button>
-                  </div>
-                  <div className="slds-col slds-size_1-of-2">
-                    <button
-                      className="slds-button slds-button_outline-brand slds-size_1-of-1"
-                      onClick={() => setShowSSRS(true)}
-                    >
-                      SSRS Assessment
-                    </button>
-                  </div>
-                </div>
+                <button
+                  className="slds-button slds-button_outline-brand slds-size_1-of-1"
+                  onClick={() => setShowAvailableInterviews(true)}
+                >
+                  Available Interviews
+                </button>
               </div>
 
               <div style={{

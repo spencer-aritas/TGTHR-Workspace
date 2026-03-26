@@ -1,7 +1,7 @@
 # server/app/api/interview_answers.py
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict
+from typing import Dict, Optional
 import logging
 
 logger = logging.getLogger("interview_answers_api")
@@ -12,6 +12,7 @@ class InterviewAnswerRequest(BaseModel):
     caseId: str
     templateVersionId: str
     answers: Dict[str, str]  # Maps question IDs to answer values
+    ssrsAssessmentId: Optional[str] = None
 
 @router.post("/interview-answers")
 async def save_interview_answers(request: InterviewAnswerRequest):
@@ -28,7 +29,8 @@ async def save_interview_answers(request: InterviewAnswerRequest):
         result = service.save_interview_answers(
             request.caseId,
             request.templateVersionId,
-            request.answers
+            request.answers,
+            request.ssrsAssessmentId
         )
         
         logger.info(f"API response: Successfully saved interview {result['interview_id']}")

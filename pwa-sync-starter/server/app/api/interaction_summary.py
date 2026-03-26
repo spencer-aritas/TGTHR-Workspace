@@ -8,20 +8,26 @@ router = APIRouter()
 
 class InteractionSummaryRequest(BaseModel):
     RelatedRecordId: str
+    AccountId: Optional[str] = None
     InteractionDate: str
     StartTime: str
     EndTime: str
     Notes: str
+    NoteType: Optional[str] = None
+    SSRSAssessmentId: Optional[str] = None
     CreatedBy: str
     CreatedByEmail: str
 
 class InteractionSummaryResponse(BaseModel):
     Id: str
     RelatedRecordId: str
+    AccountId: Optional[str] = None
     InteractionDate: str
     StartTime: Optional[str] = None
     EndTime: Optional[str] = None
     Notes: str
+    NoteType: Optional[str] = None
+    SSRSAssessmentId: Optional[str] = None
     CreatedByName: Optional[str] = None
     CreatedDate: str
 

@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { caseService, Case } from '../services/caseService';
 import { interactionSummaryService } from '../services/interactionSummaryService';
-import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
+import { AvailableInterviewsModal } from './AvailableInterviewsModal';
+import { InterviewLauncher } from './InterviewLauncher';
 import { InteractionHistory } from './InteractionHistory';
+import { SSRSAssessmentWizard } from './SSRSAssessmentWizard';
 import { loginWithSalesforce } from '../lib/salesforceAuth';
+import type { InterviewTemplateDefinition, SSRSAssessmentResult } from '@shared/contracts/index.ts';
 
 interface InteractionFormData {
+  noteType: 'Case Note' | 'Clinical Note' | 'Peer Note';
   notes: string;
   date: string;
   startTime: string;
@@ -17,8 +21,9 @@ export function MyCasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [currentView, setCurrentView] = useState<'cases' | 'interaction' | 'history' | 'ssrs'>('cases');
+  const [currentView, setCurrentView] = useState<'cases' | 'interaction' | 'history'>('cases');
   const [formData, setFormData] = useState<InteractionFormData>({
+    noteType: 'Case Note',
     notes: '',
     date: new Date().toISOString().split('T')[0],
     startTime: '',
@@ -26,6 +31,10 @@ export function MyCasesPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [authRequired, setAuthRequired] = useState(false);
+  const [showAvailableInterviews, setShowAvailableInterviews] = useState(false);
+  const [selectedInterviewTemplate, setSelectedInterviewTemplate] = useState<InterviewTemplateDefinition | null>(null);
+  const [showSSRS, setShowSSRS] = useState(false);
+  const [linkedSSRSResult, setLinkedSSRSResult] = useState<SSRSAssessmentResult | null>(null);
 
   const loadCases = useCallback(async () => {
     try {
@@ -64,11 +73,13 @@ export function MyCasesPage() {
     setSelectedCase(caseItem);
     setCurrentView('interaction');
     setFormData({
+      noteType: 'Case Note',
       notes: '',
       date: new Date().toISOString().split('T')[0],
       startTime: '',
       endTime: ''
     });
+    setLinkedSSRSResult(null);
   };
 
   const handleViewHistory = (caseItem: Case) => {
@@ -77,19 +88,35 @@ export function MyCasesPage() {
     setCurrentView('history');
   };
 
-  const handleSSRSSelect = (caseItem: Case) => {
+  const handleAvailableInterviewsSelect = (caseItem: Case) => {
     if (!(caseItem.Account?.Id || caseItem.AccountId)) {
       setError('This case is missing an associated participant/account.');
       return;
     }
     setError('');
     setSelectedCase(caseItem);
-    setCurrentView('ssrs');
+    setShowAvailableInterviews(true);
+  };
+
+  const handleCloseAvailableInterviews = () => {
+    setShowAvailableInterviews(false);
+    if (currentView === 'cases') {
+      setSelectedCase(null);
+    }
+  };
+
+  const handleSelectInterviewTemplate = (template: InterviewTemplateDefinition) => {
+    setSelectedInterviewTemplate(template);
+    setShowAvailableInterviews(false);
   };
 
   const handleBackToCases = () => {
     setError('');
     setSelectedCase(null);
+    setSelectedInterviewTemplate(null);
+    setShowAvailableInterviews(false);
+    setShowSSRS(false);
+    setLinkedSSRSResult(null);
     setCurrentView('cases');
   };
 
@@ -101,14 +128,18 @@ export function MyCasesPage() {
     try {
       await interactionSummaryService.createInteractionSummary({
         RelatedRecordId: selectedCase.Id,
+        AccountId: selectedCase.Account?.Id || selectedCase.AccountId,
         InteractionDate: formData.date,
         StartTime: formData.startTime,
         EndTime: formData.endTime,
-        Notes: formData.notes
+        Notes: formData.notes,
+        NoteType: formData.noteType,
+        SSRSAssessmentId: linkedSSRSResult?.assessmentId
       });
       
       handleBackToCases();
       setFormData({
+        noteType: 'Case Note',
         notes: '',
         date: new Date().toISOString().split('T')[0],
         startTime: '',
@@ -121,9 +152,25 @@ export function MyCasesPage() {
     }
   };
 
-  if (currentView === 'ssrs' && selectedCase) {
+  if (showSSRS && selectedCase) {
     return (
       <SSRSAssessmentWizard
+        selectedCase={selectedCase}
+        onComplete={(result) => {
+          if (result) {
+            setLinkedSSRSResult(result);
+          }
+          setShowSSRS(false);
+        }}
+        onCancel={() => setShowSSRS(false)}
+      />
+    );
+  }
+
+  if (selectedInterviewTemplate && selectedCase) {
+    return (
+      <InterviewLauncher
+        template={selectedInterviewTemplate}
         selectedCase={selectedCase}
         onComplete={handleBackToCases}
         onCancel={handleBackToCases}
@@ -165,6 +212,27 @@ export function MyCasesPage() {
         <div className="slds-p-around_medium">
           <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <form onSubmit={handleSubmit}>
+              <div className="slds-form-element slds-m-bottom_medium">
+                <label className="slds-form-element__label" htmlFor="noteType">
+                  Note Type
+                </label>
+                <div className="slds-form-element__control">
+                  <select
+                    id="noteType"
+                    className="slds-select"
+                    value={formData.noteType}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      noteType: e.target.value as InteractionFormData['noteType']
+                    })}
+                  >
+                    <option value="Case Note">Case Note</option>
+                    <option value="Clinical Note">Clinical Note</option>
+                    <option value="Peer Note">Peer Note</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="slds-form-element slds-m-bottom_medium">
                 <label className="slds-form-element__label" htmlFor="notes">
                   Interaction Notes *
@@ -236,6 +304,37 @@ export function MyCasesPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div
+                style={{
+                  marginBottom: '24px',
+                  padding: '16px',
+                  border: '1px solid #d8dde6',
+                  borderRadius: '12px',
+                  backgroundColor: '#f8f9fa'
+                }}
+              >
+                <div className="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                  <div>
+                    <h2 className="slds-text-heading_small">Risk Assessment</h2>
+                    <p className="slds-text-body_small slds-text-color_weak">
+                      Launch the SSRS assessment within this note when risk screening is needed.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="slds-button slds-button_outline-brand"
+                    onClick={() => setShowSSRS(true)}
+                  >
+                    {linkedSSRSResult ? 'Edit Risk Assessment' : 'Launch Risk Assessment'}
+                  </button>
+                </div>
+                {linkedSSRSResult && (
+                  <div className="slds-text-body_small">
+                    <strong>Linked Assessment:</strong> {linkedSSRSResult.riskLevel} Risk
+                  </div>
+                )}
               </div>
 
               <div className="slds-text-align_center">
@@ -377,9 +476,9 @@ export function MyCasesPage() {
                         <div className="slds-col">
                           <button
                             className="slds-button slds-button_brand slds-size_1-of-1"
-                            onClick={() => handleSSRSSelect(caseItem)}
+                            onClick={() => handleAvailableInterviewsSelect(caseItem)}
                           >
-                            SSRS Assessment
+                            Available Interviews
                           </button>
                         </div>
                       </div>
@@ -391,6 +490,12 @@ export function MyCasesPage() {
           )}
         </div>
       </div>
+      {showAvailableInterviews && selectedCase && (
+        <AvailableInterviewsModal
+          onSelect={handleSelectInterviewTemplate}
+          onClose={handleCloseAvailableInterviews}
+        />
+      )}
     </div>
   );
 }

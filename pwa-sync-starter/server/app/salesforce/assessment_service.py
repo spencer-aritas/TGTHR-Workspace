@@ -323,3 +323,27 @@ class AssessmentServiceClient:
         logger.info("Creating follow-up task for case %s (%s risk)", case_id, risk_level)
         self.sf_client.create("Task", payload)
         return True
+
+    def link_assessment_to_interaction(self, assessment_id: str, interaction_summary_id: str) -> None:
+        """Link an Assessment__c record to an InteractionSummary when the org supports it."""
+        if not assessment_id or not interaction_summary_id:
+            return
+
+        if self._field_exists("Interaction_Summary__c"):
+            self.sf_client.update(
+                "Assessment__c",
+                assessment_id,
+                {"Interaction_Summary__c": interaction_summary_id}
+            )
+
+    def link_assessment_to_interview(self, assessment_id: str, interview_id: str) -> None:
+        """Link an Assessment__c record to an Interview__c when the org supports it."""
+        if not assessment_id or not interview_id:
+            return
+
+        if self._field_exists("Interview__c"):
+            self.sf_client.update(
+                "Assessment__c",
+                assessment_id,
+                {"Interview__c": interview_id}
+            )

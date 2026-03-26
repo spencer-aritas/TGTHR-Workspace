@@ -32,6 +32,9 @@ class SSRSAssessmentData(BaseModel):
     actualAttemptLifetimeDesc: Optional[str] = None
     actualAttemptPast3Months: Optional[bool] = None
 
+    class Config:
+        extra = "allow"
+
 class SSRSAssessmentRequest(BaseModel):
     accountId: str
     caseId: Optional[str] = None

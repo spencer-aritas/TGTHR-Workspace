@@ -16,22 +16,31 @@ class InteractionSummaryService:
         """Create an InteractionSummary record in Salesforce"""
         try:
             logger.info(f"Creating interaction summary for case: {data.get('RelatedRecordId')}")
-            
-            # Combine date and times into proper datetime format
-            interaction_date = data['InteractionDate']
-            start_time = data['StartTime']
-            end_time = data['EndTime']
-            
+
             # Create the interaction summary record using the existing sf_client method
             from .sf_client import call_interaction_summary_service
-            
+
             # Use the existing interaction summary creation method
             interaction_id = call_interaction_summary_service(
                 record_id=data['RelatedRecordId'],
+                account_id=data.get('AccountId'),
                 notes=data['Notes'],
+                interaction_date=data['InteractionDate'],
+                start_time=data.get('StartTime'),
+                end_time=data.get('EndTime'),
+                interaction_purpose=self._normalize_note_type(data.get('NoteType')),
                 uuid=f"interaction_{datetime.now().isoformat()}",
                 created_by_user_id=data.get('CreatedBy') or ''
             )
+
+            ssrs_assessment_id = data.get('SSRSAssessmentId')
+            if ssrs_assessment_id:
+                from .assessment_service import AssessmentServiceClient
+
+                AssessmentServiceClient().link_assessment_to_interaction(
+                    ssrs_assessment_id,
+                    interaction_id
+                )
             
             logger.info(f"Successfully created interaction summary: {interaction_id}")
             return interaction_id
@@ -49,7 +58,8 @@ class InteractionSummaryService:
             # Use standard fields: RelatedRecordId (case), Date_of_Interaction__c (date), MeetingNotes (notes)
             query = """
             SELECT Id, Name, RelatedRecordId, Date_of_Interaction__c, 
-                   Start_Time__c, End_Time__c, MeetingNotes, CreatedDate, 
+                     AccountId, InteractionPurpose, Start_Time__c, End_Time__c, MeetingNotes,
+                     CreatedDate, 
                    CreatedBy.Name
             FROM InteractionSummary
             WHERE RelatedRecordId = :recordId
@@ -72,10 +82,12 @@ class InteractionSummaryService:
                 interaction = {
                     'Id': record.get('Id'),
                     'RelatedRecordId': record.get('RelatedRecordId'),
+                    'AccountId': record.get('AccountId'),
                     'InteractionDate': record.get('Date_of_Interaction__c'),
                     'StartTime': record.get('Start_Time__c'),
                     'EndTime': record.get('End_Time__c'),
                     'Notes': record.get('MeetingNotes'),
+                    'NoteType': record.get('InteractionPurpose'),
                     'CreatedByName': record.get('CreatedBy', {}).get('Name') if record.get('CreatedBy') else 'Unknown',
                     'CreatedDate': record.get('CreatedDate')
                 }
@@ -90,3 +102,13 @@ class InteractionSummaryService:
             # Return empty list instead of raising to prevent breaking the UI
             logger.warning(f"Returning empty interaction list due to error")
             return []
+
+    def _normalize_note_type(self, note_type: Any) -> str:
+        normalized = str(note_type or '').strip().lower()
+        if normalized in {'clinical', 'clinical note'}:
+            return 'Clinical Note'
+        if normalized in {'peer', 'peer note'}:
+            return 'Peer Note'
+        if normalized in {'case', 'case note', 'case notes', 'case management', 'case management note'}:
+            return 'Case Note'
+        return 'Communication Log'

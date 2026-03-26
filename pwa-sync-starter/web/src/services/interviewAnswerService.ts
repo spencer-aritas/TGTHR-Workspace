@@ -4,6 +4,7 @@ interface SaveInterviewAnswersRequest {
   caseId: string;
   templateVersionId: string;
   answers: Record<string, string>;
+  ssrsAssessmentId?: string;
 }
 
 interface SaveInterviewAnswersResponse {
@@ -17,13 +18,15 @@ class InterviewAnswerService {
   async saveInterviewAnswers(
     caseId: string,
     templateVersionId: string,
-    answers: Record<string, string>
+    answers: Record<string, string>,
+    ssrsAssessmentId?: string
   ): Promise<SaveInterviewAnswersResponse> {
     try {
       const payload: SaveInterviewAnswersRequest = {
         caseId,
         templateVersionId,
-        answers
+        answers,
+        ssrsAssessmentId
       };
 
       const response = await fetch('/api/interview-answers', {
