@@ -98,13 +98,18 @@
         <!-- Header row: name + Open Case button -->
         <div class="cmh-detail__header">
           <div class="cmh-detail__header-left">
-            <div class="cmh-detail__photo-wrap">
-              <template if:true={selectedClient.photoUrl}>
-                <img src={selectedClient.photoUrl} alt={selectedClient.name} class="cmh-detail__photo" />
-              </template>
-              <template if:false={selectedClient.photoUrl}>
-                <lightning-icon icon-name="standard:person_account" size="large" class="cmh-detail__photo-icon"></lightning-icon>
-              </template>
+              <div class="cmh-detail__photo-container">
+                <div class="cmh-detail__photo-wrap">
+                  <template if:true={selectedClient.photoUrl}>
+                    <img src={selectedClient.photoUrl} alt={selectedClient.name} class="cmh-detail__photo" />
+                  </template>
+                  <template if:false={selectedClient.photoUrl}>
+                    <lightning-icon icon-name="standard:person_account" size="large" class="cmh-detail__photo-icon"></lightning-icon>
+                  </template>
+                </div>
+                <button class="cmh-detail__camera-btn" onclick={openPhotoCapture} title="Take Photo">
+                  <lightning-icon icon-name="utility:photo" size="xx-small" class="cmh-detail__camera-icon"></lightning-icon>
+                </button>
             </div>
             <div class="cmh-detail__name-block">
               <h2 class="cmh-detail__name">{selectedClient.name}</h2>
@@ -112,6 +117,12 @@
                 <span class="cmh-badge cmh-badge--program">{selectedClient.programName}</span>
               </template>
               <div class="cmh-detail__demo-row">
+                <template if:true={selectedClient.caseNumber}>
+                  <span>Case: <strong>{selectedClient.caseNumber}</strong></span>
+                </template>
+                <template if:true={selectedClient.status}>
+                  <span>Status: <strong>{selectedClient.status}</strong></span>
+                </template>
                 <template if:true={selectedClient.formattedBirthdate}>
                   <span>DOB: <strong>{selectedClient.formattedBirthdate}</strong></span>
                 </template>
@@ -125,6 +136,23 @@
             </div>
           </div>
           <div class="cmh-detail__header-right">
+            <lightning-button
+              label="Update Profile"
+              icon-name="utility:edit_form"
+              onclick={handleUpdateProfile}
+              variant="neutral"
+            ></lightning-button>
+            <template if:true={showCompleteIntakeButton}>
+              <lightning-button
+                label="Complete Intake"
+                icon-name="utility:forward"
+                onclick={handleCompleteIntake}
+                variant="brand"
+              ></lightning-button>
+            </template>
+            <template if:true={showIntakeCompleteBadge}>
+              <span class="cmh-badge cmh-badge--success">{intakeBadgeLabel}</span>
+            </template>
             <lightning-button
               label="Open Case"
               icon-name="utility:open"
@@ -156,8 +184,8 @@
                       <span class="cmh-goal__name">{goal.name}</span>
                       <span class={goal.statusClass}>{goal.status}</span>
                     </div>
-                    <template if:true={goal.category}>
-                      <div class="cmh-goal__category">{goal.category}</div>
+                    <template if:true={goal.displayCategory}>
+                      <div class="cmh-goal__category">{goal.displayCategory}</div>
                     </template>
                     <div class="cmh-goal__progress-row">
                       <div class="cmh-progress-bar">
@@ -185,7 +213,7 @@
           <!-- Diagnoses section -->
           <section class="cmh-section">
             <h3 class="cmh-section__title">
-              <lightning-icon icon-name="standard:health_check" size="x-small"></lightning-icon>
+              <lightning-icon icon-name="standard:care_type" size="x-small"></lightning-icon>
               Active Diagnoses
             </h3>
             <template if:true={diagnoses.length}>
@@ -217,16 +245,21 @@
                 <template if:false={isLoadingInteractions}>
                   <template if:true={interactions.length}>
                     <template for:each={interactions} for:item="ix">
-                      <div key={ix.id} class="cmh-activity-row">
+                      <div key={ix.id} class="cmh-activity-row cmh-activity-row--interaction">
                         <div class="cmh-activity__date">{ix.formattedDate}</div>
                         <div class="cmh-activity__body">
                           <div class="cmh-activity__title">{ix.purpose}</div>
                           <div class="cmh-activity__meta">by {ix.createdBy}</div>
-                          <template if:true={ix.notes}>
+                          <template if:true={ix.notesTruncated}>
                             <div class="cmh-activity__notes">{ix.notesTruncated}</div>
                           </template>
                         </div>
                         <lightning-badge label={ix.status} class="cmh-activity__status"></lightning-badge>
+                        <lightning-button-icon icon-name="utility:file" alternative-text="Open in Files"
+                          class="cmh-open-files-btn" data-record-id={ix.id}
+                          data-content-document-id={ix.contentDocumentId}
+                          onclick={handleOpenInFiles} size="small" variant="bare"
+                          title="Open in Files"></lightning-button-icon>
                       </div>
                     </template>
                   </template>
@@ -244,13 +277,19 @@
                 <template if:false={isLoadingDocs}>
                   <template if:true={documentation.length}>
                     <template for:each={documentation} for:item="doc">
-                      <div key={doc.id} class="cmh-activity-row">
+                      <div key={doc.id} class="cmh-activity-row cmh-activity-row--doc">
                         <div class="cmh-activity__date">{doc.formattedDate}</div>
                         <div class="cmh-activity__body">
-                          <div class="cmh-activity__title">{doc.templateName}</div>
-                          <div class="cmh-activity__meta">{doc.name}</div>
+                          <div class="cmh-activity__title">{doc.displayTitle}</div>
+                          <div class="cmh-activity__meta">{doc.displayMeta}</div>
                         </div>
                         <lightning-badge label={doc.status} class="cmh-activity__status"></lightning-badge>
+                        <lightning-button-icon icon-name="utility:file" alternative-text="Open in Files"
+                          class="cmh-open-files-btn" data-record-id={doc.openId}
+                          data-record-type={doc.recordType}
+                          data-content-document-id={doc.contentDocumentId}
+                          onclick={handleOpenInFiles} size="small" variant="bare"
+                          title="Open in Files"></lightning-button-icon>
                       </div>
                     </template>
                   </template>
@@ -275,6 +314,11 @@
                           <div class="cmh-activity__meta">{inc.type}</div>
                         </div>
                         <lightning-badge label={inc.status} class="cmh-activity__status cmh-activity__status--incident"></lightning-badge>
+                        <lightning-button-icon icon-name="utility:file" alternative-text="Open in Files"
+                          class="cmh-open-files-btn" data-record-id={inc.id}
+                          data-content-document-id={inc.contentDocumentId}
+                          onclick={handleOpenInFiles} size="small" variant="bare"
+                          title="Open in Files"></lightning-button-icon>
                       </div>
                     </template>
                   </template>
@@ -301,6 +345,17 @@
   <!-- ══════════════════════════════════════════════════════════════════════
        INTAKE MODAL — Step 1: Pre-Intake Form
   ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       WEBCAM PHOTO CAPTURE MODAL
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <template if:true={showPhotoCapture}>
+    <c-case-photo-capture
+      account-id={selectedClient.accountId}
+      onphotosaved={handlePhotoSaved}
+      oncancel={closePhotoCapture}>
+    </c-case-photo-capture>
+  </template>
+
   <template if:true={showIntakeStep1}>
     <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open" aria-label="New Client Intake">
       <div class="slds-modal__container">
@@ -353,7 +408,7 @@
         <footer class="slds-modal__footer">
           <lightning-button label="Cancel" onclick={closeIntakeModal}></lightning-button>
           <lightning-button
-            label="Begin Intake Assessment"
+            label="Begin Intake"
             variant="brand"
             icon-name="utility:forward"
             icon-position="right"
@@ -370,23 +425,67 @@
        INTAKE MODAL — Step 2: Interview Session (full-screen)
   ═══════════════════════════════════════════════════════════════════════ -->
   <template if:true={showIntakeStep2}>
-    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-label="Intake Assessment">
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-label={intakeTemplateLabel}>
       <div class="slds-modal__container slds-modal__container--intake">
         <header class="slds-modal__header">
           <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeIntakeModal}>
             <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
           </button>
-          <h2 class="slds-modal__title">Comprehensive Intake — {intakeClientName}</h2>
+          <h2 class="slds-modal__title">{intakeTemplateLabel} — {intakeClientName}</h2>
         </header>
         <div class="slds-modal__content slds-p-around_small cmh-intake-session">
           <c-interview-session
             case-id={intakeCaseId}
             template-version-id={intakeTemplateVersionId}
-            start-step="demographics"
+            start-step={intakeStartStep}
             is-intake-mode={isIntakeSession}
-            oninterviewcomplete={handleIntakeComplete}
+            allow-intake-demographics-editing={intakeAllowDemographicsEditing}
+            oninterviewcomplete={handleIntakeInterviewComplete}
           ></c-interview-session>
         </div>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+
+  <template if:true={showProfileModal}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-label="Update Client Profile">
+      <div class="slds-modal__container cmh-profile-modal">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeProfileModal}>
+            <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">Update Client Profile</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium cmh-profile-modal__content">
+          <template if:true={isLoadingProfile}>
+            <div class="cmh-profile-modal__loading">
+              <lightning-spinner alternative-text="Loading client profile" size="medium"></lightning-spinner>
+            </div>
+          </template>
+          <template if:false={isLoadingProfile}>
+            <template if:true={profileError}>
+              <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                <h2>{profileError}</h2>
+              </div>
+            </template>
+            <c-demographic-capture
+              data-form="profile"
+              account-data={profileFormData}
+              allow-editing-existing-data
+              ondemographicschange={handleProfileDemographicsChange}>
+            </c-demographic-capture>
+          </template>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button label="Cancel" onclick={closeProfileModal}></lightning-button>
+          <lightning-button
+            label="Save Profile"
+            variant="brand"
+            onclick={handleSaveProfile}
+            disabled={isLoadingProfile}
+          ></lightning-button>
+        </footer>
       </div>
     </section>
     <div class="slds-backdrop slds-backdrop_open"></div>

@@ -1,8 +1,13 @@
 # server/app/salesforce/interview_answer_service.py
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Dict, Any, Optional
-from .sf_client import _sf, _api, _query
+from uuid import uuid4
+
+import httpx
+
+from ..settings import settings
+from .sf_client import _sf, _api, _query, _get_token, call_interaction_summary_service
 from .assessment_service import AssessmentServiceClient
 
 logger = logging.getLogger("interview_answer_service")
@@ -42,6 +47,12 @@ class InterviewAnswerService:
             questions = self._get_template_questions(template_version_id)
             questions_by_id = {record['Id']: record for record in questions}
 
+            interaction_summary_id = self._create_interaction_summary(
+                case_id,
+                case_context.get('AccountId'),
+                template_context.get('template_name')
+            )
+
             assessment_id = self._create_assessment(
                 case_id,
                 case_context.get('AccountId'),
@@ -52,7 +63,8 @@ class InterviewAnswerService:
                 case_id,
                 case_context.get('AccountId'),
                 template_version_id,
-                template_context.get('template_name')
+                template_context.get('template_name'),
+                interaction_summary_id
             )
             
             logger.debug(f"Creating Interview header: {interview_data}")
@@ -67,9 +79,11 @@ class InterviewAnswerService:
             assessment_service = AssessmentServiceClient()
 
             if assessment_id:
+                assessment_service.link_assessment_to_interaction(assessment_id, interaction_summary_id)
                 assessment_service.link_assessment_to_interview(assessment_id, interview_id)
 
             if ssrs_assessment_id:
+                assessment_service.link_assessment_to_interaction(ssrs_assessment_id, interaction_summary_id)
                 assessment_service.link_assessment_to_interview(ssrs_assessment_id, interview_id)
             
             # Now create InterviewAnswer__c records for each answer
@@ -123,12 +137,16 @@ class InterviewAnswerService:
                     method="PATCH",
                     json=assessment_updates
                 )
+
+            document_generated = self._trigger_document_generation(interaction_summary_id)
             
             logger.info(f"Created {answer_count} InterviewAnswer records")
             
             return {
                 'success': True,
                 'interview_id': interview_id,
+                'interaction_summary_id': interaction_summary_id,
+                'document_generated': document_generated,
                 'answers_count': answer_count,
                 'message': f'Successfully saved interview with {answer_count} answers'
             }
@@ -188,9 +206,11 @@ class InterviewAnswerService:
         account_id: Optional[str],
         template_version_id: str,
         template_name: str,
+        interaction_summary_id: str,
     ) -> Dict[str, Any]:
         fields = self._get_object_fields('Interview__c')
         payload: Dict[str, Any] = {}
+        timestamp = self._utc_now_iso()
 
         if 'Name' in fields:
             payload['Name'] = f"{template_name} - {date.today().isoformat()}"
@@ -200,10 +220,73 @@ class InterviewAnswerService:
             payload['Client__c'] = account_id
         if 'InterviewTemplateVersion__c' in fields:
             payload['InterviewTemplateVersion__c'] = template_version_id
+        if interaction_summary_id and 'Interaction_Summary__c' in fields:
+            payload['Interaction_Summary__c'] = interaction_summary_id
         if 'Status__c' in fields:
             payload['Status__c'] = 'Submitted'
+        if 'Started_On__c' in fields:
+            payload['Started_On__c'] = timestamp
+        if 'Completed_On__c' in fields:
+            payload['Completed_On__c'] = timestamp
+        if 'UUID__c' in fields:
+            payload['UUID__c'] = str(uuid4())
 
         return payload
+
+    def _create_interaction_summary(
+        self,
+        case_id: str,
+        account_id: Optional[str],
+        template_name: str,
+    ) -> str:
+        interaction_date = date.today().isoformat()
+        timestamp = self._utc_now_iso()
+        notes = f"{template_name} completed in PWA" if template_name else 'Interview completed in PWA'
+
+        return call_interaction_summary_service(
+            record_id=case_id,
+            account_id=account_id,
+            notes=notes,
+            interaction_date=interaction_date,
+            start_time=timestamp,
+            end_time=timestamp,
+            interaction_purpose='Interview',
+            uuid=f"pwa_interview_{uuid4()}",
+            created_by_user_id=''
+        )
+
+    def _trigger_document_generation(self, interaction_summary_id: str) -> bool:
+        if not interaction_summary_id:
+            return False
+
+        try:
+            _, instance_url = _get_token()
+            response = httpx.post(
+                self._get_docgen_url('/trigger-interview-doc'),
+                json={
+                    'record_id': interaction_summary_id,
+                    'preview': False,
+                    'instance_url': instance_url,
+                },
+                timeout=120.0,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            return bool(payload.get('contentDocumentId'))
+        except Exception as exc:
+            logger.warning(
+                'Interview saved but document generation failed for interaction %s: %s',
+                interaction_summary_id,
+                exc,
+            )
+            return False
+
+    def _get_docgen_url(self, path: str) -> str:
+        base_url = getattr(settings, 'DOCGEN_BASE_URL', 'http://docgen:8000').rstrip('/')
+        return f"{base_url}{path}"
+
+    def _utc_now_iso(self) -> str:
+        return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
     def _create_assessment(
         self,
