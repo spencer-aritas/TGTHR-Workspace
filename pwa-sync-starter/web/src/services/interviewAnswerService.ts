@@ -10,6 +10,8 @@ interface SaveInterviewAnswersRequest {
 interface SaveInterviewAnswersResponse {
   success: boolean;
   interviewId: string;
+  interactionSummaryId?: string;
+  documentGenerated?: boolean;
   answersCount: number;
   message: string;
 }

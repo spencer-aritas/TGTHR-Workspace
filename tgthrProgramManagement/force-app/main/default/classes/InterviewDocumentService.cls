@@ -24,6 +24,28 @@ public with sharing class InterviewDocumentService {
         return callDocGenService(interactionSummaryId, false);
     }
 
+    @AuraEnabled
+    public static String generateDocumentByInterviewId(Id interviewId) {
+        if (interviewId == null) {
+            throw new AuraHandledException('Interview ID is required');
+        }
+
+        List<SObject> interviews = Database.query(
+            'SELECT Interaction_Summary__c FROM Interview__c WHERE Id = :interviewId LIMIT 1'
+        );
+
+        if (interviews.isEmpty()) {
+            throw new AuraHandledException('Interview not found');
+        }
+
+        Id interactionSummaryId = (Id) interviews[0].get('Interaction_Summary__c');
+        if (interactionSummaryId == null) {
+            throw new AuraHandledException('Interaction Summary not available for this interview.');
+        }
+
+        return callDocGenService(interactionSummaryId, false);
+    }
+
     /**
      * Regenerate interview document asynchronously (after DML).
      */
@@ -91,12 +113,15 @@ public with sharing class InterviewDocumentService {
             'InterviewTemplateVersion__r.InterviewTemplate__r.Id, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Category__c, ' +
+            'InterviewTemplateVersion__r.InterviewTemplate__r.has_cpt_codes__c, ' +
+            'InterviewTemplateVersion__r.InterviewTemplate__r.cpt_note_type__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Client_Signature_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Staff_Signature_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Allow_Benefits_Disbursement__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Housing_Benefit_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Clinical_Benefit_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Income_Benefits_Policy__c, ' +
+            'InterviewTemplateVersion__r.InterviewTemplate__r.Diagnoses_Policy__c, ' +
             'InterviewTemplateVersion__r.InterviewTemplate__r.Goals_Policy__c, ' +
             'CreatedBy.Name, CreatedById, CreatedDate, ' +
             'LastModifiedBy.Name, LastModifiedById, LastModifiedDate, ' +
@@ -122,25 +147,26 @@ public with sharing class InterviewDocumentService {
         String housingBenefitPolicy = 'Hidden';
         String clinicalBenefitPolicy = 'Hidden';
         String incomeBenefitsPolicy = 'Hidden';
+        String diagnosesPolicy = 'Hidden';
         String goalsPolicy = 'Hidden';
         
         SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
         if (templateVersion != null) {
             SObject template = templateVersion.getSObject('InterviewTemplate__r');
             if (template != null) {
-                clientSigPolicy = String.valueOf(template.get('Client_Signature_Policy__c'));
-                staffSigPolicy = String.valueOf(template.get('Staff_Signature_Policy__c'));
+                clientSigPolicy = normalizeSignaturePolicy((String)template.get('Client_Signature_Policy__c'));
+                staffSigPolicy = normalizeSignaturePolicy((String)template.get('Staff_Signature_Policy__c'));
                 allowBenefits = Boolean.valueOf(template.get('Allow_Benefits_Disbursement__c'));
                 housingBenefitPolicy = String.valueOf(template.get('Housing_Benefit_Policy__c'));
                 clinicalBenefitPolicy = String.valueOf(template.get('Clinical_Benefit_Policy__c'));
                 incomeBenefitsPolicy = String.valueOf(template.get('Income_Benefits_Policy__c'));
+                diagnosesPolicy = String.valueOf(template.get('Diagnoses_Policy__c'));
                 goalsPolicy = String.valueOf(template.get('Goals_Policy__c'));
-                
-                if (String.isBlank(clientSigPolicy)) clientSigPolicy = 'Hidden';
-                if (String.isBlank(staffSigPolicy)) staffSigPolicy = 'Hidden';
+
                 if (String.isBlank(housingBenefitPolicy)) housingBenefitPolicy = 'Hidden';
                 if (String.isBlank(clinicalBenefitPolicy)) clinicalBenefitPolicy = 'Hidden';
                 if (String.isBlank(incomeBenefitsPolicy)) incomeBenefitsPolicy = 'Hidden';
+                if (String.isBlank(diagnosesPolicy)) diagnosesPolicy = 'Hidden';
                 if (String.isBlank(goalsPolicy)) goalsPolicy = 'Hidden';
             }
         }
@@ -153,6 +179,7 @@ public with sharing class InterviewDocumentService {
             'housingBenefitPolicy' => housingBenefitPolicy,
             'clinicalBenefitPolicy' => clinicalBenefitPolicy,
             'incomeBenefitsPolicy' => incomeBenefitsPolicy,
+            'diagnosesPolicy' => diagnosesPolicy,
             'goalsPolicy' => goalsPolicy
         };
         
@@ -204,17 +231,17 @@ public with sharing class InterviewDocumentService {
             'id' => (String)interview.get('Id'),
             'interactionSummaryId' => (String)interview.get('Interaction_Summary__c'),
             'caseId' => (String)interview.get('Case__c'),
-            'dateStarted' => String.valueOf(interview.get('Started_On__c')),
-            'dateCompleted' => String.valueOf(interview.get('Completed_On__c')),
+            'dateStarted' => serializeTemporalForDocgen(interview.get('Started_On__c')),
+            'dateCompleted' => serializeTemporalForDocgen(interview.get('Completed_On__c')),
             'status' => (String)interview.get('Status__c'),
             'location' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : '', // Place of Service
             'channel' => 'In Person', // TODO: Add channel field
             // InteractionSummary details
             'meetingNotes' => isTreatmentPlan ? null : (interactionSummary != null ? (String)interactionSummary.get('MeetingNotes') : null),
-            'startTime' => isTreatmentPlan ? null : (interactionSummary != null ? String.valueOf(interactionSummary.get('Start_Time__c')) : null),
-            'endTime' => isTreatmentPlan ? null : (interactionSummary != null ? String.valueOf(interactionSummary.get('End_Time__c')) : null),
+            'startTime' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('Start_Time__c')) : null,
+            'endTime' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('End_Time__c')) : null,
             'placeOfService' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : null,
-            'dateOfInteraction' => interactionSummary != null ? String.valueOf(interactionSummary.get('Date_of_Interaction__c')) : null
+            'dateOfInteraction' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('Date_of_Interaction__c')) : null
         };
         
         Map<String, Object> staff = new Map<String, Object>{
@@ -246,6 +273,18 @@ public with sharing class InterviewDocumentService {
                 'items' => new List<Object>{ ssrsAssessment }
             });
         }
+
+        // Step 5: Build diagnoses section from InteractionSummary-linked diagnoses
+        List<Object> diagnoses = buildInterviewDiagnoses(interview);
+        if (!diagnoses.isEmpty()) {
+            sections.add(new Map<String, Object>{
+                'id' => 'DIAGNOSES',
+                'label' => 'Diagnoses',
+                'kind' => 'diagnoses',
+                'layout' => 'list',
+                'items' => diagnoses
+            });
+        }
         
         // Step 5: Build signatures[] based on policies
         List<Object> signatures = buildSignatures(interview, client, features);
@@ -262,7 +301,19 @@ public with sharing class InterviewDocumentService {
             });
         }
 
-        // Step 5.6: Build income_benefits section if present
+        // Step 5.6: Build CPT billing codes section from Interaction Service Lines
+        List<Object> cptCodes = buildCptBillingCodes(interview);
+        if (!cptCodes.isEmpty()) {
+            sections.add(new Map<String, Object>{
+                'id' => 'CPT_CODES',
+                'label' => 'CPT / Billing Codes',
+                'kind' => 'cpt_codes',
+                'layout' => 'list',
+                'items' => cptCodes
+            });
+        }
+
+        // Step 5.7: Build income_benefits section if present
         List<Object> incomeBenefits = buildIncomeBenefits(interview);
         if (!incomeBenefits.isEmpty()) {
             sections.add(new Map<String, Object>{
@@ -274,7 +325,7 @@ public with sharing class InterviewDocumentService {
             });
         }
 
-        // Step 5.7: Build goals section if present AND enabled in template
+        // Step 5.8: Build goals section if present AND enabled in template
         if (goalsPolicy != 'Hidden') {
             List<Object> goals = new List<Object>();
             Map<String, Object> carePlanConsent = null;
@@ -469,7 +520,20 @@ public with sharing class InterviewDocumentService {
             
             // Determine answer text from response fields
             String answerText = '';
-            if (answer.get('Response_Text__c') != null) {
+            String normalizedResponseType = responseType != null ? responseType.trim().toLowerCase() : '';
+            Boolean isAmbiguousRadio = normalizedResponseType == 'radio';
+            Boolean isNumericScale = normalizedResponseType.contains('number')
+                || normalizedResponseType.contains('numeric')
+                || normalizedResponseType.contains('decimal')
+                || normalizedResponseType.contains('integer')
+                || normalizedResponseType.contains('scale')
+                || normalizedResponseType.contains('rating')
+                || normalizedResponseType.contains('score');
+
+            // For radio/scale, prefer number first to avoid false boolean defaults masking values.
+            if ((isAmbiguousRadio || isNumericScale) && answer.get('Response_Number__c') != null) {
+                answerText = String.valueOf(answer.get('Response_Number__c'));
+            } else if (answer.get('Response_Text__c') != null) {
                 answerText = (String)answer.get('Response_Text__c');
                 // Format time fields (stored as text in HH:MM or HH:MM:SS format)
                 if (responseType == 'Time' && answerText.contains(':')) {
@@ -480,13 +544,23 @@ public with sharing class InterviewDocumentService {
                     }
                 }
             } else if (answer.get('Response_Boolean__c') != null) {
-                answerText = String.valueOf(answer.get('Response_Boolean__c'));
+                Boolean boolValue = (Boolean)answer.get('Response_Boolean__c');
+                answerText = boolValue == true ? 'Yes' : 'No';
             } else if (answer.get('Response_Number__c') != null) {
                 answerText = String.valueOf(answer.get('Response_Number__c'));
             } else if (answer.get('Response_Date__c') != null) {
                 answerText = String.valueOf(answer.get('Response_Date__c'));
             } else if (answer.get('Response_Picklist__c') != null) {
                 answerText = (String)answer.get('Response_Picklist__c');
+            }
+
+            if (answerText != null) {
+                String normalizedValue = answerText.trim().toLowerCase();
+                if (normalizedValue == 'true') {
+                    answerText = 'Yes';
+                } else if (normalizedValue == 'false') {
+                    answerText = 'No';
+                }
             }
             
             sectionGroups.get(sectionName).add(new Map<String, Object>{
@@ -544,7 +618,7 @@ public with sharing class InterviewDocumentService {
         System.debug('Staff Policy: ' + staffPolicy);
         
         // Client signature
-        if (clientPolicy != 'Hidden') {
+        if (isVisibleSignaturePolicy(clientPolicy)) {
             String contentDocId = (String)interview.get('Client_Signature_File_Id__c');
             System.debug('Client ContentDocument ID: ' + contentDocId);
             String signatureBase64 = getSignatureImageBase64(contentDocId);
@@ -556,7 +630,7 @@ public with sharing class InterviewDocumentService {
                 'policy' => clientPolicy,
                 'signed' => interview.get('Client_Signed__c'),
                 'displayName' => client != null ? (String)client.get('Name') : '',
-                'dateSigned' => String.valueOf(interview.get('Date_Client_Signed__c')),
+                'dateSigned' => serializeTemporalForDocgen(interview.get('Date_Client_Signed__c')),
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,
                 'sourceField' => 'Client_Signature_File_Id__c'
@@ -564,7 +638,7 @@ public with sharing class InterviewDocumentService {
         }
         
         // Staff signature
-        if (staffPolicy != 'Hidden') {
+        if (isVisibleSignaturePolicy(staffPolicy)) {
             String contentDocId = (String)interview.get('Staff_Signature_File_Id__c');
             System.debug('Staff ContentDocument ID: ' + contentDocId);
             String signatureBase64 = getSignatureImageBase64(contentDocId);
@@ -593,7 +667,7 @@ public with sharing class InterviewDocumentService {
                 'displayName' => displayName,
                 'signerName' => staffName,
                 'signerTitle' => staffTitle,
-                'dateSigned' => String.valueOf(interview.get('Date_Staff_Signed__c')),
+                'dateSigned' => serializeTemporalForDocgen(interview.get('Date_Staff_Signed__c')),
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,
                 'sourceField' => 'Staff_Signature_File_Id__c'
@@ -626,12 +700,12 @@ public with sharing class InterviewDocumentService {
             signatures.add(new Map<String, Object>{
                 'id' => 'CASE_MANAGER',
                 'role' => 'Case Manager',
-                'policy' => 'Required', // If present, it was required by the template
+                'policy' => 'Conditional', // Requirement is assignment/modality-driven
                 'signed' => hasCaseManagerSigned,
                 'displayName' => displayName,
                 'signerName' => cmName,
                 'signerTitle' => cmTitle,
-                'dateSigned' => String.valueOf(interview.get('Date_CaseManager_Signed__c')),
+                'dateSigned' => serializeTemporalForDocgen(interview.get('Date_CaseManager_Signed__c')),
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,
                 'sourceField' => 'CaseManager_Signature_File_Id__c'
@@ -664,12 +738,12 @@ public with sharing class InterviewDocumentService {
             signatures.add(new Map<String, Object>{
                 'id' => 'PEER_SUPPORT',
                 'role' => 'Peer Support',
-                'policy' => 'Required', // If present, it was required by the template
+                'policy' => 'Conditional', // Requirement is assignment/modality-driven
                 'signed' => hasPeerSupportSigned,
                 'displayName' => displayName,
                 'signerName' => psName,
                 'signerTitle' => psTitle,
-                'dateSigned' => String.valueOf(interview.get('Date_PeerSupport_Signed__c')),
+                'dateSigned' => serializeTemporalForDocgen(interview.get('Date_PeerSupport_Signed__c')),
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,
                 'sourceField' => 'PeerSupport_Signature_File_Id__c'
@@ -715,7 +789,7 @@ public with sharing class InterviewDocumentService {
                 'displayName' => displayName,
                 'signerName' => managerName,
                 'signerTitle' => managerTitle,
-                'dateSigned' => String.valueOf(interview.get('Manager_Signed_Date__c')),
+                'dateSigned' => getSignatureTimestampForDocgen(contentDocId),
                 'contentDocumentId' => contentDocId,
                 'imageBase64' => signatureBase64,
                 'sourceField' => 'Manager_Signature_File_Id__c'
@@ -729,6 +803,39 @@ public with sharing class InterviewDocumentService {
         }
         
         return signatures;
+    }
+
+    private static String normalizeSignaturePolicy(String policy) {
+        if (String.isBlank(policy)) {
+            return 'Hidden';
+        }
+
+        String normalizedPolicy = policy.trim();
+        if (normalizedPolicy.equalsIgnoreCase('null')) {
+            return 'Hidden';
+        }
+
+        return normalizedPolicy;
+    }
+
+    private static Boolean isVisibleSignaturePolicy(String policy) {
+        return normalizeSignaturePolicy(policy) != 'Hidden';
+    }
+
+    /**
+     * Serialize temporal values in an unambiguous format for Python docgen.
+     * - DateTime -> UTC ISO8601 with Z suffix (DST-safe when converted by docgen)
+     * - Date     -> YYYY-MM-DD (date-only, no artificial midnight timezone shifts)
+     */
+    private static String serializeTemporalForDocgen(Object value) {
+        if (value == null) return null;
+        if (value instanceof Datetime) {
+            return ((Datetime)value).formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
+        }
+        if (value instanceof Date) {
+            return String.valueOf((Date)value);
+        }
+        return String.valueOf(value);
     }
 
     /**
@@ -783,6 +890,302 @@ public with sharing class InterviewDocumentService {
         }
         
         return services;
+    }
+
+    /**
+     * Build CPT billing codes list from Interaction_Service_Line__c rows linked to the interview.
+     * This keeps interview docgen aligned with note docgen, which already carries CPT lines explicitly.
+     */
+    private static List<Object> buildCptBillingCodes(SObject interview) {
+        List<Object> items = new List<Object>();
+
+        try {
+            if (!shouldIncludeInterviewCptCodes(interview)) {
+                return items;
+            }
+
+            Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
+            if (interactionSummaryId == null) {
+                return items;
+            }
+
+            Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+            if (!gd.containsKey('Interaction_Service_Line__c')) {
+                return items;
+            }
+
+            Map<String, Schema.SObjectField> fieldMap = gd.get('Interaction_Service_Line__c').getDescribe().fields.getMap();
+            List<String> selectFields = new List<String>{ 'Id', 'Name', 'Service_Code__c' };
+
+            if (fieldMap.containsKey('modifier_1__c')) {
+                selectFields.add('Modifier_1__c');
+            }
+            if (fieldMap.containsKey('modifier_2__c')) {
+                selectFields.add('Modifier_2__c');
+            }
+            if (fieldMap.containsKey('duration_minutes__c')) {
+                selectFields.add('Duration_Minutes__c');
+            }
+            if (fieldMap.containsKey('units__c')) {
+                selectFields.add('Units__c');
+            }
+            if (fieldMap.containsKey('billing_status__c')) {
+                selectFields.add('Billing_Status__c');
+            }
+
+            String query = 'SELECT ' + String.join(selectFields, ', ') +
+                ' FROM Interaction_Service_Line__c WHERE Interaction_Summary__c = :interactionSummaryId' +
+                ' ORDER BY Service_Code__c ASC, Name ASC';
+
+            for (SObject line : Database.query(query)) {
+                String code = (String)line.get('Service_Code__c');
+                if (String.isBlank(code)) {
+                    continue;
+                }
+
+                String description = null;
+                String lineName = (String)line.get('Name');
+                if (String.isNotBlank(lineName)) {
+                    Integer separatorIndex = lineName.indexOf(' - ');
+                    if (separatorIndex >= 0 && separatorIndex + 3 < lineName.length()) {
+                        description = lineName.substring(separatorIndex + 3).trim();
+                    }
+                }
+
+                items.add(new Map<String, Object>{
+                    'type' => 'cpt_code',
+                    'id' => (String)line.get('Id'),
+                    'code' => code,
+                    'description' => description,
+                    'modifier1' => fieldMap.containsKey('modifier_1__c') ? line.get('Modifier_1__c') : null,
+                    'modifier2' => fieldMap.containsKey('modifier_2__c') ? line.get('Modifier_2__c') : null,
+                    'durationMinutes' => fieldMap.containsKey('duration_minutes__c') ? line.get('Duration_Minutes__c') : null,
+                    'units' => fieldMap.containsKey('units__c') ? line.get('Units__c') : null,
+                    'status' => fieldMap.containsKey('billing_status__c') ? line.get('Billing_Status__c') : null
+                });
+            }
+        } catch (Exception e) {
+            System.debug('Error building CPT billing codes: ' + e.getMessage());
+        }
+
+        return items;
+    }
+
+    private static List<Object> buildInterviewDiagnoses(SObject interview) {
+        List<Object> items = new List<Object>();
+
+        try {
+            if (!shouldIncludeInterviewDiagnoses(interview)) {
+                return items;
+            }
+
+            Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
+            if (interactionSummaryId == null) {
+                return items;
+            }
+
+            Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+            if (!gd.containsKey('Diagnosis__c')) {
+                return items;
+            }
+
+            Map<String, Schema.SObjectField> diagFieldMap = gd.get('Diagnosis__c').getDescribe().fields.getMap();
+
+            if (gd.containsKey('Diagnosis_Note_Link__c')) {
+                List<String> diagFields = new List<String>{ 'Id', 'Name', 'Status__c', 'Primary__c' };
+                for (String fieldName : new List<String>{
+                    'ICD10Code__c', 'Description__c', 'Type__c', 'Onset_Date__c', 'Notes__c', 'Category__c'
+                }) {
+                    if (diagFieldMap.containsKey(fieldName.toLowerCase())) {
+                        diagFields.add(fieldName);
+                    }
+                }
+
+                String linkQuery = 'SELECT Diagnosis__r.' + String.join(diagFields, ', Diagnosis__r.') +
+                    ' FROM Diagnosis_Note_Link__c WHERE InteractionSummary__c = :interactionSummaryId';
+
+                for (SObject link : Database.query(linkQuery)) {
+                    SObject diagnosis = link.getSObject('Diagnosis__r');
+                    if (diagnosis != null) {
+                        items.add(buildDiagnosisItem(diagnosis, diagFieldMap));
+                    }
+                }
+            }
+
+            if (items.isEmpty() && diagFieldMap.containsKey('interaction_summary__c')) {
+                List<String> directFields = new List<String>{ 'Id', 'Name', 'Status__c', 'Primary__c' };
+                for (String fieldName : new List<String>{
+                    'ICD10Code__c', 'Description__c', 'Type__c', 'Onset_Date__c', 'Notes__c', 'Category__c'
+                }) {
+                    if (diagFieldMap.containsKey(fieldName.toLowerCase())) {
+                        directFields.add(fieldName);
+                    }
+                }
+
+                String directQuery = 'SELECT ' + String.join(directFields, ', ') +
+                    ' FROM Diagnosis__c WHERE Interaction_Summary__c = :interactionSummaryId';
+
+                for (SObject diagnosis : Database.query(directQuery)) {
+                    items.add(buildDiagnosisItem(diagnosis, diagFieldMap));
+                }
+            }
+        } catch (Exception e) {
+            System.debug('Error building interview diagnoses: ' + e.getMessage());
+        }
+
+        return items;
+    }
+
+    private static Map<String, Object> buildDiagnosisItem(
+        SObject diagnosis,
+        Map<String, Schema.SObjectField> diagFieldMap
+    ) {
+        String code = diagFieldMap.containsKey('icd10code__c') ? (String)diagnosis.get('ICD10Code__c') : null;
+        String rawDescription = null;
+
+        if (diagFieldMap.containsKey('description__c')) {
+            rawDescription = (String)diagnosis.get('Description__c');
+        }
+        if (String.isBlank(rawDescription)) {
+            rawDescription = (String)diagnosis.get('Name');
+        }
+
+        Map<String, Object> item = new Map<String, Object>{
+            'type' => 'diagnosis',
+            'id' => (String)diagnosis.get('Id'),
+            'code' => normalizeDiagnosisCode(code),
+            'description' => normalizeDiagnosisDescription(code, rawDescription),
+            'status' => (String)diagnosis.get('Status__c'),
+            'isPrimary' => diagnosis.get('Primary__c') == true
+        };
+
+        if (diagFieldMap.containsKey('type__c')) {
+            item.put('category', diagnosis.get('Type__c'));
+        }
+        if (diagFieldMap.containsKey('category__c')) {
+            item.put('group', diagnosis.get('Category__c'));
+        }
+        if (diagFieldMap.containsKey('notes__c')) {
+            item.put('notes', diagnosis.get('Notes__c'));
+        }
+        if (diagFieldMap.containsKey('onset_date__c') && diagnosis.get('Onset_Date__c') != null) {
+            item.put('onsetDate', String.valueOf(diagnosis.get('Onset_Date__c')).substring(0, 10));
+        }
+
+        return item;
+    }
+
+    private static Boolean shouldIncludeInterviewDiagnoses(SObject interview) {
+        if (interview == null) {
+            return false;
+        }
+
+        SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
+        if (templateVersion == null) {
+            return false;
+        }
+
+        SObject template = templateVersion.getSObject('InterviewTemplate__r');
+        if (template == null) {
+            return false;
+        }
+
+        String diagnosesPolicy = String.valueOf(template.get('Diagnoses_Policy__c'));
+        return !String.isBlank(diagnosesPolicy) && diagnosesPolicy != 'Hidden';
+    }
+
+    private static String normalizeDiagnosisCode(String code) {
+        return String.isBlank(code) ? null : code.trim();
+    }
+
+    private static String normalizeDiagnosisDescription(String code, String description) {
+        String cleanDescription = String.isBlank(description) ? null : description.trim();
+        String cleanCode = normalizeDiagnosisCode(code);
+
+        if (String.isBlank(cleanDescription)) {
+            return cleanDescription;
+        }
+
+        if (String.isNotBlank(cleanCode)) {
+            String codeLower = cleanCode.toLowerCase();
+            String descLower = cleanDescription.toLowerCase();
+
+            String leadingToken = codeLower + ' - ';
+            if (descLower.startsWith(leadingToken) && cleanDescription.length() > leadingToken.length()) {
+                cleanDescription = cleanDescription.substring(leadingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            String trailingToken = ' - ' + codeLower;
+            if (descLower.endsWith(trailingToken) && cleanDescription.length() > trailingToken.length()) {
+                cleanDescription = cleanDescription.substring(0, cleanDescription.length() - trailingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            if (descLower == codeLower) {
+                return null;
+            }
+        }
+
+        return cleanDescription.replaceAll('\\s+', ' ');
+    }
+
+    private static Boolean shouldIncludeInterviewCptCodes(SObject interview) {
+        if (interview == null) {
+            return false;
+        }
+
+        SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
+        if (templateVersion == null) {
+            return false;
+        }
+
+        SObject template = templateVersion.getSObject('InterviewTemplate__r');
+        if (template == null) {
+            return false;
+        }
+
+        Boolean hasCptCodes = template.get('has_cpt_codes__c') != null
+            && (Boolean)template.get('has_cpt_codes__c');
+        if (!hasCptCodes) {
+            return false;
+        }
+
+        String normalizedNoteType = normalizeCptNoteType((String)template.get('cpt_note_type__c'));
+        if (String.isBlank(normalizedNoteType)) {
+            String templateName = (String)template.get('Name');
+            normalizedNoteType = normalizeCptNoteType(templateName);
+        }
+
+        return normalizedNoteType == 'Comp Assess';
+    }
+
+    private static String normalizeCptNoteType(String rawNoteType) {
+        if (String.isBlank(rawNoteType)) {
+            return null;
+        }
+
+        String normalized = rawNoteType.trim().toLowerCase();
+        if (normalized == 'clinical' || normalized == 'clinical note') {
+            return 'Clinical';
+        }
+        if (normalized == 'peer' || normalized == 'peer note') {
+            return 'Peer';
+        }
+        if (normalized == 'case management' || normalized == 'case note' || normalized == 'case notes' || normalized == 'case management note') {
+            return 'Case Management';
+        }
+        if (
+            normalized == 'comp assess'
+            || normalized == 'comprehensive assessment'
+            || normalized == 'comprehensive clinical assessment'
+            || normalized == 'comprehensive clinical intake assessment'
+            || normalized == 'comprehensive intake assessment'
+        ) {
+            return 'Comp Assess';
+        }
+
+        return rawNoteType.trim();
     }
     
     /**
@@ -971,6 +1374,20 @@ public with sharing class InterviewDocumentService {
     private static Map<String, Object> buildSsrsAssessment(SObject interview) {
         try {
             Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
+            Date interactionDate = null;
+            String interactionStartTime = null;
+            try {
+                SObject iSummary = interview.getSObject('Interaction_Summary__r');
+                if (iSummary != null) {
+                    interactionDate = (Date)iSummary.get('Date_of_Interaction__c');
+                    Datetime startDt = (Datetime)iSummary.get('Start_Time__c');
+                    if (startDt != null) {
+                        interactionStartTime = startDt.format('h:mm a', 'America/Denver');
+                    }
+                }
+            } catch (Exception ignore) {
+                // Relationship fields may not be present on all call paths.
+            }
             
             if (interactionSummaryId == null) {
                 return null;
@@ -1001,27 +1418,7 @@ public with sharing class InterviewDocumentService {
             
             if (String.isNotBlank(responseDataJson)) {
                 responseData = (Map<String, Object>)JSON.deserializeUntyped(responseDataJson);
-                
-                // Build structured response items for document display
-                // Suicidal Ideation - Lifetime
-                addSsrsResponseItem(responseItems, responseData, 'wishDeadLifetime', 'Wished to be dead (Lifetime)');
-                addSsrsResponseItem(responseItems, responseData, 'suicidalThoughtsLifetime', 'Active suicidal thoughts (Lifetime)');
-                addSsrsResponseItem(responseItems, responseData, 'methodsLifetime', 'Thought of method (Lifetime)');
-                addSsrsResponseItem(responseItems, responseData, 'intentLifetime', 'Intent to act (Lifetime)');
-                addSsrsResponseItem(responseItems, responseData, 'planLifetime', 'Specific plan (Lifetime)');
-                
-                // Suicidal Ideation - Past Month
-                addSsrsResponseItem(responseItems, responseData, 'wishDeadPastMonth', 'Wished to be dead (Past Month)');
-                addSsrsResponseItem(responseItems, responseData, 'suicidalThoughtsPastMonth', 'Active suicidal thoughts (Past Month)');
-                addSsrsResponseItem(responseItems, responseData, 'methodsPastMonth', 'Thought of method (Past Month)');
-                addSsrsResponseItem(responseItems, responseData, 'intentPastMonth', 'Intent to act (Past Month)');
-                addSsrsResponseItem(responseItems, responseData, 'planPastMonth', 'Specific plan (Past Month)');
-                
-                // Suicidal Behavior - Lifetime
-                addSsrsResponseItem(responseItems, responseData, 'actualAttemptLifetime', 'Actual suicide attempt (Lifetime)');
-                addSsrsResponseItem(responseItems, responseData, 'interruptedAttemptLifetime', 'Interrupted attempt (Lifetime)');
-                addSsrsResponseItem(responseItems, responseData, 'abortedAttemptLifetime', 'Aborted attempt (Lifetime)');
-                addSsrsResponseItem(responseItems, responseData, 'preparatoryActsLifetime', 'Preparatory acts/behavior (Lifetime)');
+                responseItems = buildSsrsResponseItemsFromData(responseData);
             }
             
             String assessedByName = '';
@@ -1037,7 +1434,9 @@ public with sharing class InterviewDocumentService {
             return new Map<String, Object>{
                 'type' => 'ssrs_assessment',
                 'assessmentId' => (String)assessment.get('Id'),
-                'assessmentDate' => String.valueOf(assessment.get('Assessment_Date__c')),
+                'assessmentDate' => String.valueOf(interactionDate != null ? interactionDate : assessment.get('Assessment_Date__c')),
+                'interactionDate' => String.valueOf(interactionDate != null ? interactionDate : assessment.get('Assessment_Date__c')),
+                'interactionStartTime' => interactionStartTime,
                 'riskLevel' => riskLevel,
                 'totalScore' => assessment.get('Total_Score__c'),
                 'status' => (String)assessment.get('Status__c'),
@@ -1052,7 +1451,159 @@ public with sharing class InterviewDocumentService {
     }
     
     /**
+     * Build the full structured list of C-SSRS response items from parsed Response_Data__c JSON.
+     * Creates section headers plus field items for all answered questions.
+     * Public so it can be called from PendingDocumentationController and SSRSAssessmentController.
+     */
+    public static List<Map<String, Object>> buildSsrsResponseItemsFromData(Map<String, Object> d) {
+        List<Map<String, Object>> items = new List<Map<String, Object>>();
+
+        // --- Suicidal Ideation - Lifetime ---
+        items.add(sectionHeader('hdr_ideation_lifetime', 'Suicidal Ideation — Lifetime'));
+        addBoolItem(items, d, 'wishDeadLifetime',         '1. Wish to be Dead',                                        'wishDeadLifetimeDesc');
+        addBoolItem(items, d, 'suicidalThoughtsLifetime', '2. Non-Specific Active Suicidal Thoughts',                  'suicidalThoughtsLifetimeDesc');
+        addBoolItem(items, d, 'methodsLifetime',          '3. Active Ideation with Any Method (No Intent)',            'methodsLifetimeDesc');
+        addBoolItem(items, d, 'intentLifetime',           '4. Active Ideation with Some Intent (No Specific Plan)',    'intentLifetimeDesc');
+        addBoolItem(items, d, 'planLifetime',             '5. Active Ideation with Specific Plan and Intent',          'planLifetimeDesc');
+
+        // --- Suicidal Ideation - Past Month ---
+        items.add(sectionHeader('hdr_ideation_recent', 'Suicidal Ideation — Past Month'));
+        addBoolItem(items, d, 'wishDeadPastMonth',         '1. Wish to be Dead',                                       'wishDeadPastMonthDesc');
+        addBoolItem(items, d, 'suicidalThoughtsPastMonth', '2. Non-Specific Active Suicidal Thoughts',                 'suicidalThoughtsPastMonthDesc');
+        addBoolItem(items, d, 'methodsPastMonth',          '3. Active Ideation with Any Method (No Intent)',           'methodsPastMonthDesc');
+        addBoolItem(items, d, 'intentPastMonth',           '4. Active Ideation with Some Intent (No Specific Plan)',   'intentPastMonthDesc');
+        addBoolItem(items, d, 'planPastMonth',             '5. Active Ideation with Specific Plan and Intent',         'planPastMonthDesc');
+
+        // --- Intensity of Ideation (only if any ideation present) ---
+        Boolean hasIdeation = (Boolean)d.get('suicidalThoughtsLifetime') == true
+                           || (Boolean)d.get('suicidalThoughtsPastMonth') == true;
+        if (hasIdeation || d.containsKey('frequencyLifetime') || d.containsKey('frequencyRecent')) {
+            items.add(sectionHeader('hdr_intensity', 'Intensity of Ideation'));
+            addIntensityItem(items, d, 'lifetimeMostSevereType', 'recentMostSevereType', 'Most Severe Ideation Type (1–5)');
+            addIntensityItem(items, d, 'frequencyLifetime',      'frequencyRecent',      'Frequency of Thoughts (1–5)');
+            addIntensityItem(items, d, 'durationLifetime',       'durationRecent',       'Duration of Thoughts (1–5)');
+            addIntensityItem(items, d, 'controllabilityLifetime','controllabilityRecent','Controllability of Thoughts (0–5)');
+            addIntensityItem(items, d, 'deterrentsLifetime',     'deterrentsRecent',     'Deterrents from Acting (0–5)');
+            addIntensityItem(items, d, 'reasonsLifetime',        'reasonsRecent',        'Reasons for Ideation (0–5)');
+        }
+
+        // --- Suicidal Behavior - Lifetime ---
+        items.add(sectionHeader('hdr_behavior_lifetime', 'Suicidal Behavior — Lifetime'));
+        addBoolItem(items, d, 'actualAttemptLifetime',      'Actual Suicide Attempt',                           'actualAttemptLifetimeDesc');
+        addCountItem(items, d, 'actualAttemptLifetimeCount','  # of Actual Attempts (Lifetime)');
+        addBoolItem(items, d, 'nonSuicidalSelfInjuryLifetime', 'Non-Suicidal Self-Injurious Behavior',          null);
+        addBoolItem(items, d, 'interruptedAttemptLifetime', 'Interrupted Attempt',                              'interruptedAttemptLifetimeDesc');
+        addCountItem(items, d, 'interruptedAttemptLifetimeCount', '  # of Interrupted Attempts (Lifetime)');
+        addBoolItem(items, d, 'abortedAttemptLifetime',     'Aborted / Self-Interrupted Attempt',               'abortedAttemptLifetimeDesc');
+        addCountItem(items, d, 'abortedAttemptLifetimeCount','  # of Aborted Attempts (Lifetime)');
+        addBoolItem(items, d, 'preparatoryActsLifetime',    'Preparatory Acts or Behavior',                     'preparatoryActsLifetimeDesc');
+        addCountItem(items, d, 'preparatoryActsLifetimeCount','  # of Preparatory Act Occurrences (Lifetime)');
+
+        // --- Suicidal Behavior - Past 3 Months ---
+        items.add(sectionHeader('hdr_behavior_recent', 'Suicidal Behavior — Past 3 Months'));
+        addBoolItem(items, d, 'actualAttemptPast3Months',      'Actual Suicide Attempt',                        null);
+        addCountItem(items, d, 'actualAttemptPast3MonthsCount','  # of Actual Attempts (Past 3 Months)');
+        addBoolItem(items, d, 'nonSuicidalSelfInjuryPast3Months','Non-Suicidal Self-Injurious Behavior',         null);
+        addBoolItem(items, d, 'interruptedAttemptPast3Months', 'Interrupted Attempt',                           null);
+        addCountItem(items, d, 'interruptedAttemptPast3MonthsCount','  # of Interrupted Attempts (Past 3 Months)');
+        addBoolItem(items, d, 'abortedAttemptPast3Months',     'Aborted / Self-Interrupted Attempt',            null);
+        addCountItem(items, d, 'abortedAttemptPast3MonthsCount','  # of Aborted Attempts (Past 3 Months)');
+        addBoolItem(items, d, 'preparatoryActsPast3Months',    'Preparatory Acts or Behavior',                  null);
+        addCountItem(items, d, 'preparatoryActsPast3MonthsCount','  # of Preparatory Act Occurrences (Past 3 Months)');
+
+        // --- Attempt Details ---
+        Boolean hasAttempts = (Boolean)d.get('actualAttemptLifetime') == true;
+        if (hasAttempts || d.containsKey('mostRecentAttemptDate')) {
+            items.add(sectionHeader('hdr_attempts', 'Attempt Details'));
+            addTextItem(items, d, 'mostRecentAttemptDate',              'Most Recent Attempt Date');
+            addTextItem(items, d, 'mostRecentAttemptLethality',         'Most Recent Attempt — Actual Lethality (0–5)');
+            addTextItem(items, d, 'mostRecentAttemptPotentialLethality','Most Recent Attempt — Potential Lethality (0–2)');
+            addTextItem(items, d, 'mostLethalAttemptDate',              'Most Lethal Attempt Date');
+            addTextItem(items, d, 'mostLethalAttemptLethality',         'Most Lethal Attempt — Actual Lethality (0–5)');
+            addTextItem(items, d, 'mostLethalAttemptPotentialLethality','Most Lethal Attempt — Potential Lethality (0–2)');
+            addTextItem(items, d, 'firstAttemptDate',                   'First Attempt Date');
+            addTextItem(items, d, 'firstAttemptLethality',              'First Attempt — Actual Lethality (0–5)');
+            addTextItem(items, d, 'firstAttemptPotentialLethality',     'First Attempt — Potential Lethality (0–2)');
+        }
+
+        return items;
+    }
+
+    private static Map<String, Object> sectionHeader(String key, String label) {
+        return new Map<String, Object>{ 'key' => key, 'label' => label, 'isHeader' => true };
+    }
+
+    private static void addBoolItem(
+        List<Map<String, Object>> items, Map<String, Object> d,
+        String boolKey, String label, String descKey
+    ) {
+        Object val = d.get(boolKey);
+        if (val == null) return;
+        Boolean bVal = val instanceof Boolean ? (Boolean)val : Boolean.valueOf(String.valueOf(val));
+        String description = (descKey != null) ? (String)d.get(descKey) : null;
+        items.add(new Map<String, Object>{
+            'key'         => boolKey,
+            'label'       => label,
+            'value'       => bVal ? 'Yes' : 'No',
+            'description' => String.isNotBlank(description) ? description : null,
+            'isPositive'  => bVal,
+            'isHeader'    => false
+        });
+    }
+
+    private static void addIntensityItem(
+        List<Map<String, Object>> items, Map<String, Object> d,
+        String lifetimeKey, String recentKey, String label
+    ) {
+        Object lv = d.get(lifetimeKey);
+        Object rv = d.get(recentKey);
+        if (lv == null && rv == null) return;
+        String combined = 'Lifetime: ' + (lv != null ? String.valueOf(lv) : '—')
+                        + '   Recent: ' + (rv != null ? String.valueOf(rv) : '—');
+        items.add(new Map<String, Object>{
+            'key'        => lifetimeKey,
+            'label'      => label,
+            'value'      => combined,
+            'isPositive' => false,
+            'isHeader'   => false
+        });
+    }
+
+    private static void addCountItem(
+        List<Map<String, Object>> items, Map<String, Object> d,
+        String key, String label
+    ) {
+        Object val = d.get(key);
+        if (val == null) return;
+        items.add(new Map<String, Object>{
+            'key'        => key,
+            'label'      => label,
+            'value'      => String.valueOf(val),
+            'isPositive' => false,
+            'isHeader'   => false
+        });
+    }
+
+    private static void addTextItem(
+        List<Map<String, Object>> items, Map<String, Object> d,
+        String key, String label
+    ) {
+        Object val = d.get(key);
+        if (val == null) return;
+        String strVal = String.valueOf(val);
+        if (String.isBlank(strVal)) return;
+        items.add(new Map<String, Object>{
+            'key'        => key,
+            'label'      => label,
+            'value'      => strVal,
+            'isPositive' => false,
+            'isHeader'   => false
+        });
+    }
+
+    /**
      * Helper method to add an SSRS response item if the value exists in responseData.
+     * @deprecated Use buildSsrsResponseItemsFromData instead.
      */
     private static void addSsrsResponseItem(
         List<Map<String, Object>> items, 
@@ -1145,7 +1696,6 @@ public with sharing class InterviewDocumentService {
                     LIMIT 1
                 ];
             }
-            
             System.debug('getSignatureImageBase64: Found ' + cvList.size() + ' ContentVersion records');
             
             if (!cvList.isEmpty() && cvList[0].VersionData != null) {
@@ -1164,6 +1714,40 @@ public with sharing class InterviewDocumentService {
         return null;
     }
     
+    private static String getSignatureTimestampForDocgen(String contentDocumentId) {
+        if (String.isBlank(contentDocumentId)) {
+            return null;
+        }
+
+        try {
+            List<ContentVersion> cvList;
+            if (contentDocumentId.startsWith('068')) {
+                cvList = [
+                    SELECT CreatedDate
+                    FROM ContentVersion
+                    WHERE Id = :contentDocumentId
+                    LIMIT 1
+                ];
+            } else {
+                cvList = [
+                    SELECT CreatedDate
+                    FROM ContentVersion
+                    WHERE ContentDocumentId = :contentDocumentId
+                    AND IsLatest = true
+                    LIMIT 1
+                ];
+            }
+
+            if (!cvList.isEmpty() && cvList[0].CreatedDate != null) {
+                return serializeTemporalForDocgen(cvList[0].CreatedDate);
+            }
+        } catch (Exception e) {
+            System.debug('getSignatureTimestampForDocgen: Error - ' + e.getMessage());
+        }
+
+        return null;
+    }
+
     /**
      * Internal method to call DocGen service.
      * 
@@ -1177,7 +1761,7 @@ public with sharing class InterviewDocumentService {
     private static String callDocGenService(Id interactionSummaryId, Boolean preview) {
         try {
             // Direct HTTP callout to DocGen service
-            String endpoint = 'https://docgen.aritasconsulting.com/trigger-interview-doc';
+            String endpoint = getDocGenEndpoint() + '/trigger-interview-doc';
             
             System.debug('========================================');
             System.debug('=== INTERVIEW DOCUMENT SERVICE START ===');
@@ -1263,27 +1847,6 @@ public with sharing class InterviewDocumentService {
                     
                     System.debug('✅ Document generated! ContentDocument ID: ' + contentDocId);
                     
-                    // Update InterviewDocument__c.ContentDocumentId__c so the
-                    // "Completed Documentation" tab can find the generated file.
-                    // DML after callout is legal here because callDocGenService is
-                    // always invoked outside a @future context.
-                    try {
-                        List<SObject> interviewDocs = Database.query(
-                            'SELECT Id FROM InterviewDocument__c ' +
-                            'WHERE Interview__r.Interaction_Summary__c = :interactionSummaryId ' +
-                            'ORDER BY CreatedDate DESC LIMIT 1'
-                        );
-                        if (!interviewDocs.isEmpty()) {
-                            interviewDocs[0].put('ContentDocumentId__c', contentDocId);
-                            update interviewDocs[0];
-                            System.debug('✅ InterviewDocument__c.ContentDocumentId__c updated: ' + contentDocId);
-                        } else {
-                            System.debug('⚠️ No InterviewDocument__c found for InteractionSummary: ' + interactionSummaryId);
-                        }
-                    } catch (Exception updateEx) {
-                        System.debug('⚠️ Non-fatal: could not update InterviewDocument ContentDocumentId__c: ' + updateEx.getMessage());
-                    }
-                    
                     return contentDocId;
                 }
             } else {
@@ -1309,7 +1872,7 @@ public with sharing class InterviewDocumentService {
      * Priority:
      * 1. Custom Metadata (DocGen_Settings__mdt) - if exists
      * 2. Named Credential (if configured) - future enhancement
-     * 3. Fallback to localhost for sandbox
+    * 3. Fallback to localhost for sandbox
      * 
      * @return Full endpoint URL (e.g., https://docgen.aritasconsulting.com or http://localhost:8001)
      */
@@ -1331,18 +1894,11 @@ public with sharing class InterviewDocumentService {
             System.debug('Custom Metadata not found or not accessible, falling back to default endpoint: ' + e.getMessage());
         }
         
-        // Fallback: Check if sandbox or production
-        Boolean isSandbox = [SELECT IsSandbox FROM Organization LIMIT 1].IsSandbox;
-        
-        if (isSandbox) {
-            // Development/Sandbox: Use localhost
-            System.debug('Sandbox environment detected, using localhost');
-            return 'http://localhost:8001';
-        } else {
-            // Production: Use production DocGen service
-            System.debug('Production environment detected, using production endpoint');
-            return 'https://docgen.aritasconsulting.com';
-        }
+        // Fallback: use the hosted DocGen service.
+        // The service determines sandbox vs. production from the instance_url in the request payload,
+        // and this host is already covered by Salesforce remote site / trusted endpoint config.
+        System.debug('No Custom Metadata found, falling back to hosted DocGen endpoint');
+        return 'https://docgen.aritasconsulting.com';
     }
     
     /**
@@ -1381,7 +1937,7 @@ public with sharing class InterviewDocumentService {
                 'SELECT COUNT() ' +
                 'FROM InterviewTemplateDocument__c ' +
                 'WHERE Interview_Template__c = :templateId ' +
-                'AND Status__c = \'Active\'';
+                'AND Status__c = \'Published\'';
             
             Integer docCount = Database.countQuery(docQuery);
             

@@ -37,6 +37,8 @@ async def save_interview_answers(request: InterviewAnswerRequest):
         return {
             "success": True,
             "interviewId": result['interview_id'],
+            "interactionSummaryId": result.get('interaction_summary_id'),
+            "documentGenerated": result.get('document_generated', False),
             "answersCount": result['answers_count'],
             "message": result['message']
         }
