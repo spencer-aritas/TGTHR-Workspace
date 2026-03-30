@@ -61,6 +61,7 @@ class InteractionSummaryService:
                    CreatedDate, LastModifiedDate,
                    CreatedBy.Name,
                    Interview__c,
+                   Interview__r.InterviewTemplateVersion__r.InterviewTemplate__r.Name,
                    Action_Required__c, Action_Assigned_To__c,
                    Requires_Manager_Approval__c, Manager_Signed__c,
                    Manager_Rejected__c, Manager_Approver__c
@@ -98,6 +99,7 @@ class InteractionSummaryService:
                     'CreatedDate': record.get('CreatedDate'),
                     'LastModifiedDate': record.get('LastModifiedDate'),
                     'InterviewId': record.get('Interview__c'),
+                    'InterviewTemplateName': ((record.get('Interview__r') or {}).get('InterviewTemplateVersion__r') or {}).get('InterviewTemplate__r', {}).get('Name'),
                     'ActionRequired': record.get('Action_Required__c'),
                     'ActionAssignedTo': record.get('Action_Assigned_To__c'),
                     'RequiresManagerApproval': record.get('Requires_Manager_Approval__c', False),
@@ -187,6 +189,11 @@ class InteractionSummaryService:
 
             case_id = rec.get('RelatedRecordId')
 
+            # Hydrate interview form answers if linked
+            interview_answers = []
+            if interview_id:
+                interview_answers = self._fetch_interview_answers(interview_id)
+
             # Hydrate related records from the Case
             goals = []
             benefits = []
@@ -246,6 +253,7 @@ class InteractionSummaryService:
                     'diagnoses': diagnoses,
                     'cptCodes': cpt_codes,
                 },
+                'interviewAnswers': interview_answers,
             }
 
             return detail
@@ -254,6 +262,44 @@ class InteractionSummaryService:
             raise
 
     # ── Related record hydration helpers ──────────────────────────────
+
+    def _fetch_interview_answers(self, interview_id: str) -> List[Dict[str, Any]]:
+        """Fetch InterviewAnswer__c records with question labels, grouped by section."""
+        try:
+            query = (
+                "SELECT Id, Section__c, Question_API_Name__c, "
+                "Response_Text__c, Response_Number__c, Response_Boolean__c, "
+                "Response_Picklist__c, Response_Date__c, "
+                "InterviewQuestion__r.Label__c, InterviewQuestion__r.Section__c, "
+                "InterviewQuestion__r.Order__c, InterviewQuestion__r.Response_Type__c "
+                "FROM InterviewAnswer__c "
+                "WHERE Interview__c = :interviewId "
+                "ORDER BY InterviewQuestion__r.Section__c, InterviewQuestion__r.Order__c"
+            )
+            result = self.sf_client.query(query, {"interviewId": interview_id})
+            answers = []
+            for r in result.get('records', []):
+                q = r.get('InterviewQuestion__r') or {}
+                # Determine display value from whichever response field is populated
+                value = (
+                    r.get('Response_Text__c')
+                    or r.get('Response_Picklist__c')
+                    or (str(r.get('Response_Number__c')) if r.get('Response_Number__c') is not None else None)
+                    or (str(r.get('Response_Date__c')) if r.get('Response_Date__c') else None)
+                    or (('Yes' if r.get('Response_Boolean__c') else 'No') if r.get('Response_Boolean__c') is not None else None)
+                    or ''
+                )
+                answers.append({
+                    'section': q.get('Section__c') or r.get('Section__c') or 'General',
+                    'label': q.get('Label__c') or r.get('Question_API_Name__c') or 'Question',
+                    'value': value,
+                    'responseType': q.get('Response_Type__c'),
+                    'order': q.get('Order__c'),
+                })
+            return answers
+        except Exception as e:
+            logger.warning(f"Could not fetch interview answers for {interview_id}: {e}")
+            return []
 
     def _fetch_goals(self, case_id: str) -> List[Dict[str, Any]]:
         try:

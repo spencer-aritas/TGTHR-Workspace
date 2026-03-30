@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { interactionSummaryService } from '../services/interactionSummaryService';
-import type { InteractionDetailResponse } from '@shared/contracts/index.ts';
+import type { InteractionDetailResponse, InteractionDetailInterviewAnswer } from '@shared/contracts/index.ts';
 
 interface InteractionDetailPanelProps {
   interactionId: string;
@@ -134,6 +134,11 @@ export function InteractionDetailPanel({ interactionId, onBack, onQuickNote }: I
           </Section>
         )}
 
+        {/* Interview Form Data */}
+        {detail.interviewAnswers && detail.interviewAnswers.length > 0 && (
+          <InterviewAnswersSection answers={detail.interviewAnswers} />
+        )}
+
         {/* Related Records: Goals */}
         {relatedRecords.goals.length > 0 && (
           <Section title={`Goals (${relatedRecords.goals.length})`}>
@@ -228,5 +233,39 @@ function RelatedRow({ primary, secondary, detail }: { primary: string; secondary
       </div>
       {detail && <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>{detail}</p>}
     </div>
+  );
+}
+
+function InterviewAnswersSection({ answers }: { answers: InteractionDetailInterviewAnswer[] }) {
+  // Group by section, preserving order
+  const sections: { name: string; items: InteractionDetailInterviewAnswer[] }[] = [];
+  const seen = new Map<string, InteractionDetailInterviewAnswer[]>();
+  for (const a of answers) {
+    const key = a.section || 'General';
+    if (!seen.has(key)) {
+      const items: InteractionDetailInterviewAnswer[] = [];
+      seen.set(key, items);
+      sections.push({ name: key, items });
+    }
+    seen.get(key)!.push(a);
+  }
+
+  return (
+    <>
+      {sections.map((sec) => (
+        <Section key={sec.name} title={sec.name}>
+          {sec.items.map((item, i) => (
+            <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div className="slds-text-body_small" style={{ fontWeight: 600, color: '#666', marginBottom: '2px' }}>
+                {item.label}
+              </div>
+              <div className="slds-text-body_regular" style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                {item.value || <span className="slds-text-color_weak">—</span>}
+              </div>
+            </div>
+          ))}
+        </Section>
+      ))}
+    </>
   );
 }

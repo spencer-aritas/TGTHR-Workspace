@@ -83,6 +83,14 @@ export interface InteractionDetailRelatedRecords {
   cptCodes: InteractionDetailCPTCode[];
 }
 
+export interface InteractionDetailInterviewAnswer {
+  section: string;
+  label: string;
+  value: string;
+  responseType?: string;
+  order?: number;
+}
+
 export interface InteractionDetailResponse {
   summary: InteractionDetailSummary;
   chronology: InteractionDetailChronology;
@@ -92,4 +100,5 @@ export interface InteractionDetailResponse {
   signature: InteractionDetailSignature;
   actions: InteractionDetailActions;
   relatedRecords: InteractionDetailRelatedRecords;
+  interviewAnswers?: InteractionDetailInterviewAnswer[];
 }

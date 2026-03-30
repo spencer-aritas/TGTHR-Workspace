@@ -237,8 +237,13 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f3f3f3')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    {/* Header: Date and Interaction Details */}
+                    {/* Header: Document Label, Date and Interaction Details */}
                     <div style={{ marginBottom: '12px' }}>
+                      {(interaction.InterviewTemplateName || interaction.InteractionPurpose) && (
+                        <div style={{ fontWeight: '700', fontSize: '1rem', color: '#16325c', marginBottom: '6px' }}>
+                          {interaction.InterviewTemplateName || interaction.InteractionPurpose}
+                        </div>
+                      )}
                       <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
