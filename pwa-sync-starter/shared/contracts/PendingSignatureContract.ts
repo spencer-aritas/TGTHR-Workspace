@@ -10,6 +10,8 @@ export interface PendingSignatureItem {
   caseId?: string;
   caseNumber?: string;
   clientName?: string;
+  /** InteractionSummary ID for loading full document detail */
+  interactionSummaryId?: string;
   /** Roles the current user can sign for on this document */
   pendingRoles: ('CaseManager' | 'PeerSupport' | 'Manager')[];
   caseManagerName?: string;

@@ -34,6 +34,7 @@ class SigningService:
             SELECT Id, Name, Status__c, Started_On__c,
                    Case__c, Case__r.CaseNumber, Case__r.Contact.Name,
                    InterviewTemplateVersion__r.InterviewTemplate__r.Name,
+                   Interaction_Summary__c,
                    Staff_Signed__c, Client_Signed__c,
                    CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name,
                    CaseManager_Signed__c, Date_CaseManager_Signed__c,
@@ -42,7 +43,7 @@ class SigningService:
                    Requires_Manager_Approval__c, Manager_Approver__c,
                    Manager_Approver__r.Name, Manager_Signed__c
             FROM Interview__c
-            WHERE Status__c NOT IN ('Voided', 'Signed')
+            WHERE Status__c NOT IN ('Voided', 'Signed', 'Recalled')
               AND (
                 (CaseManager_Signed_By__c = '{user_id}'
                  AND (CaseManager_Signed__c = false OR CaseManager_Signed__c = null))
@@ -103,6 +104,7 @@ class SigningService:
                     "caseId": r.get("Case__c"),
                     "caseNumber": case_number,
                     "clientName": client_name,
+                    "interactionSummaryId": r.get("Interaction_Summary__c"),
                     "pendingRoles": roles,
                     "caseManagerName": (r.get("CaseManager_Signed_By__r") or {}).get("Name"),
                     "peerSupportName": (r.get("PeerSupport_Signed_By__r") or {}).get("Name"),

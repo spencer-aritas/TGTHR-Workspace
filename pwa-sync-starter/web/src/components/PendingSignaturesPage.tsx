@@ -1,7 +1,9 @@
 // web/src/components/PendingSignaturesPage.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { pendingSignatureService } from '../services/pendingSignatureService';
+import { interactionSummaryService } from '../services/interactionSummaryService';
 import type { PendingSignatureItem } from '@shared/contracts/index.ts';
+import type { InteractionDetailResponse, InteractionDetailInterviewAnswer } from '@shared/contracts/index.ts';
 
 interface PendingSignaturesPageProps {
   onBack: () => void;
@@ -11,12 +13,6 @@ const ROLE_LABELS: Record<string, string> = {
   CaseManager: 'Case Manager',
   PeerSupport: 'Peer Support',
   Manager: 'Manager',
-};
-
-const ROLE_COLORS: Record<string, string> = {
-  CaseManager: '#e3f2fd',
-  PeerSupport: '#f3e5f5',
-  Manager: '#fff3e0',
 };
 
 export function PendingSignaturesPage({ onBack }: PendingSignaturesPageProps) {
@@ -53,11 +49,14 @@ export function PendingSignaturesPage({ onBack }: PendingSignaturesPageProps) {
 
   return (
     <div className="slds" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <header className="slds-page-header slds-p-around_medium" style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e5e5' }}>
+      <header style={{
+        backgroundColor: 'white', borderBottom: '2px solid #e5e5e5',
+        padding: '12px 16px', position: 'sticky', top: 0, zIndex: 10,
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 className="slds-page-header__title">Pending Signatures</h1>
-            <p className="slds-text-body_small slds-text-color_weak">Documents awaiting your signature</p>
+            <h1 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: '#16325c' }}>Pending Signatures</h1>
+            <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>Documents awaiting your signature</p>
           </div>
           <button className="slds-button slds-button_neutral" onClick={onBack}>Back</button>
         </div>
@@ -107,13 +106,22 @@ export function PendingSignaturesPage({ onBack }: PendingSignaturesPageProps) {
             {/* Metadata */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
               {item.caseNumber && (
-                <span style={{ ...badgeStyle, backgroundColor: '#f0f0f0' }}>Case {item.caseNumber}</span>
+                <span style={{
+                  display: 'inline-block', padding: '2px 10px', borderRadius: '12px',
+                  fontSize: '0.75rem', backgroundColor: '#f0f0f0', color: '#333',
+                }}>Case {item.caseNumber}</span>
               )}
               {item.status && (
-                <span style={{ ...badgeStyle, backgroundColor: '#e8f5e9' }}>{item.status}</span>
+                <span style={{
+                  display: 'inline-block', padding: '2px 10px', borderRadius: '12px',
+                  fontSize: '0.75rem', backgroundColor: '#e8f5e9', color: '#333',
+                }}>{item.status}</span>
               )}
               {item.startedOn && (
-                <span style={{ ...badgeStyle, backgroundColor: '#f0f0f0' }}>
+                <span style={{
+                  display: 'inline-block', padding: '2px 10px', borderRadius: '12px',
+                  fontSize: '0.75rem', backgroundColor: '#f0f0f0', color: '#333',
+                }}>
                   {new Date(item.startedOn).toLocaleDateString()}
                 </span>
               )}
@@ -139,15 +147,7 @@ export function PendingSignaturesPage({ onBack }: PendingSignaturesPageProps) {
   );
 }
 
-const badgeStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '2px 10px',
-  borderRadius: '12px',
-  fontSize: '0.75rem',
-  color: '#333',
-};
-
-/* ── Signing flow (attestation + signature pad + submit) ──────── */
+/* ── Signing flow (document detail + attestation + signature pad + submit) ──────── */
 
 function SigningFlow({
   item,
@@ -164,8 +164,27 @@ function SigningFlow({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [detail, setDetail] = useState<InteractionDetailResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(!!item.interactionSummaryId);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
+
+  // Fetch full document detail for review
+  useEffect(() => {
+    if (!item.interactionSummaryId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await interactionSummaryService.getInteractionDetail(item.interactionSummaryId!);
+        if (!cancelled) setDetail(data);
+      } catch {
+        // Non-blocking — signing can still proceed without detail
+      } finally {
+        if (!cancelled) setDetailLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [item.interactionSummaryId]);
 
   function clearCanvas() {
     const canvas = canvasRef.current;
@@ -239,13 +258,16 @@ function SigningFlow({
 
   return (
     <div className="slds" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <header className="slds-page-header slds-p-around_medium" style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e5e5' }}>
+      <header style={{
+        backgroundColor: 'white', borderBottom: '2px solid #e5e5e5',
+        padding: '12px 16px', position: 'sticky', top: 0, zIndex: 10,
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 className="slds-page-header__title">
+            <h1 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0, color: '#16325c' }}>
               Sign as {ROLE_LABELS[role] || role}
             </h1>
-            <p className="slds-text-body_small slds-text-color_weak">
+            <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
               {item.templateName || item.interviewName} — {item.clientName || item.caseNumber || ''}
             </p>
           </div>
@@ -254,35 +276,39 @@ function SigningFlow({
       </header>
 
       <div className="slds-p-around_medium" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Document summary */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <h2 className="slds-text-heading_small" style={{ marginBottom: '8px' }}>Document Details</h2>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-            <span className="slds-text-body_small" style={{ fontWeight: 600, color: '#666' }}>Document</span>
-            <span className="slds-text-body_small">{item.templateName || item.interviewName || '—'}</span>
-          </div>
-          {item.clientName && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-              <span className="slds-text-body_small" style={{ fontWeight: 600, color: '#666' }}>Client</span>
-              <span className="slds-text-body_small">{item.clientName}</span>
+        {/* Document metadata */}
+        <DetailCard title="Document">
+          <DField label="Document" value={item.templateName || item.interviewName || '—'} />
+          {item.clientName && <DField label="Client" value={item.clientName} />}
+          {item.caseNumber && <DField label="Case" value={item.caseNumber} />}
+          <DField label="Your Role" value={ROLE_LABELS[role] || role} />
+        </DetailCard>
+
+        {/* Full document content from InteractionSummary */}
+        {detailLoading && (
+          <DetailCard title="Loading Document Content…">
+            <div className="slds-text-align_center slds-p-vertical_small">
+              <div className="slds-spinner slds-spinner_small slds-spinner_inline">
+                <div className="slds-spinner__dot-a" /><div className="slds-spinner__dot-b" />
+              </div>
             </div>
-          )}
-          {item.caseNumber && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-              <span className="slds-text-body_small" style={{ fontWeight: 600, color: '#666' }}>Case</span>
-              <span className="slds-text-body_small">{item.caseNumber}</span>
-            </div>
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-            <span className="slds-text-body_small" style={{ fontWeight: 600, color: '#666' }}>Your Role</span>
-            <span style={{ ...badgeStyle, backgroundColor: ROLE_COLORS[role] || '#f0f0f0' }}>
-              {ROLE_LABELS[role] || role}
-            </span>
-          </div>
-        </div>
+          </DetailCard>
+        )}
+
+        {detail && (
+          <DocumentContentSections detail={detail} />
+        )}
+
+        {!item.interactionSummaryId && !detailLoading && (
+          <DetailCard title="Document Content">
+            <p className="slds-text-body_small slds-text-color_weak">
+              Detailed content is not available for this document. Please review the document in Salesforce before signing.
+            </p>
+          </DetailCard>
+        )}
 
         {/* Attestation */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+        <DetailCard title="Attestation">
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
             <input
               type="checkbox"
@@ -295,12 +321,11 @@ function SigningFlow({
               My electronic signature below represents my professional endorsement of this record.
             </span>
           </label>
-        </div>
+        </DetailCard>
 
         {/* Signature pad */}
         {attested && (
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <p className="slds-text-body_small" style={{ fontWeight: 600, marginBottom: '8px' }}>Draw your signature</p>
+          <DetailCard title="Draw your signature">
             <canvas
               ref={canvasRef}
               width={320}
@@ -325,7 +350,7 @@ function SigningFlow({
             >
               Clear
             </button>
-          </div>
+          </DetailCard>
         )}
 
         {error && <p className="slds-text-color_error">{error}</p>}
@@ -340,5 +365,215 @@ function SigningFlow({
         </button>
       </div>
     </div>
+  );
+}
+
+/* ── Document content sections (reuses InteractionDetail data) ─── */
+
+function DocumentContentSections({ detail }: { detail: InteractionDetailResponse }) {
+  const { content, relatedRecords, interviewAnswers } = detail;
+
+  return (
+    <>
+      {/* Meeting Notes */}
+      {content.notesHtml && (
+        <DetailCard title="Meeting Notes">
+          <div
+            style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontSize: '0.875rem' }}
+            dangerouslySetInnerHTML={{ __html: content.notesHtml }}
+          />
+        </DetailCard>
+      )}
+
+      {/* Interview Form Data */}
+      {interviewAnswers && interviewAnswers.length > 0 && (
+        <InterviewFormSections answers={interviewAnswers} />
+      )}
+
+      {/* Goals */}
+      {relatedRecords.goals.length > 0 && (
+        <DetailCard title={`Goals (${relatedRecords.goals.length})`}>
+          {relatedRecords.goals.map((g) => (
+            <div key={g.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{g.name || g.id}</span>
+                {g.status && <SmallBadge color="#e8f5e9" text={g.status} />}
+              </div>
+              {g.narrative && <p className="slds-text-body_small" style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{g.narrative}</p>}
+              {(g.progressBefore != null || g.progressAfter != null) && (
+                <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                  Progress: {g.progressBefore ?? '—'} → {g.progressAfter ?? '—'}
+                  {g.timeSpentMinutes != null && ` · ${g.timeSpentMinutes} min`}
+                </p>
+              )}
+            </div>
+          ))}
+        </DetailCard>
+      )}
+
+      {/* Services Provided */}
+      {relatedRecords.services.length > 0 && (
+        <DetailCard title={`Services Provided (${relatedRecords.services.length})`}>
+          {relatedRecords.services.map((s) => (
+            <div key={s.id} style={{ padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>{s.name || s.id}</span>
+                {s.status && <span className="slds-text-body_small slds-text-color_weak">{s.status}</span>}
+              </div>
+              {(s.amount != null || s.date) && (
+                <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                  {[s.amount != null ? `$${s.amount}` : null, s.date ? new Date(s.date).toLocaleDateString() : null].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
+          ))}
+        </DetailCard>
+      )}
+
+      {/* Diagnoses */}
+      {relatedRecords.diagnoses.length > 0 && (
+        <DetailCard title={`Diagnoses (${relatedRecords.diagnoses.length})`}>
+          {relatedRecords.diagnoses.map((d) => (
+            <div key={d.id} style={{ padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>
+                  {d.code ? `${d.code} — ${d.name || ''}` : d.name || d.id}
+                </span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {d.primary && <SmallBadge color="#e3f2fd" text="Primary" />}
+                  {d.status && <SmallBadge color="#e8f5e9" text={d.status} />}
+                </div>
+              </div>
+              {d.description && <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>{d.description}</p>}
+              {(d.category || d.onsetDate) && (
+                <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                  {[d.category, d.onsetDate ? `Onset: ${new Date(d.onsetDate).toLocaleDateString()}` : null].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
+          ))}
+        </DetailCard>
+      )}
+
+      {/* Assessments */}
+      {relatedRecords.assessments.length > 0 && (
+        <DetailCard title={`Assessments (${relatedRecords.assessments.length})`}>
+          {relatedRecords.assessments.map((a) => (
+            <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.type || a.name || 'Assessment'}</span>
+                {a.riskLevel && (
+                  <SmallBadge
+                    color={a.riskLevel === 'High' || a.riskLevel === 'Imminent' ? '#fce4ec' : a.riskLevel === 'Moderate' ? '#fff3e0' : '#e8f5e9'}
+                    text={`Risk: ${a.riskLevel}`}
+                  />
+                )}
+              </div>
+              <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                {[
+                  a.totalScore != null ? `Score: ${a.totalScore}` : null,
+                  a.assessedBy ? `By: ${a.assessedBy}` : null,
+                  a.date ? new Date(a.date).toLocaleDateString() : null,
+                  a.status,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+          ))}
+        </DetailCard>
+      )}
+
+      {/* CPT / Service Lines */}
+      {relatedRecords.serviceLines && relatedRecords.serviceLines.length > 0 && (
+        <DetailCard title={`Service Lines / CPT Codes (${relatedRecords.serviceLines.length})`}>
+          {relatedRecords.serviceLines.map((sl) => (
+            <div key={sl.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                  {sl.serviceCode || sl.name || sl.id}
+                  {(sl.modifier1 || sl.modifier2) && (
+                    <span style={{ fontWeight: 400, color: '#666' }}>
+                      {' '}({[sl.modifier1, sl.modifier2].filter(Boolean).join(', ')})
+                    </span>
+                  )}
+                </span>
+                {sl.billingStatus && <SmallBadge color={sl.billingStatus === 'Billed' ? '#e8f5e9' : '#fff3e0'} text={sl.billingStatus} />}
+              </div>
+              <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                {[
+                  sl.durationMinutes != null ? `${sl.durationMinutes} min` : null,
+                  sl.units != null ? `${sl.units} unit${sl.units !== 1 ? 's' : ''}` : null,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+          ))}
+        </DetailCard>
+      )}
+    </>
+  );
+}
+
+/* ── Interview answer sections (grouped by section header) ─────── */
+
+function InterviewFormSections({ answers }: { answers: InteractionDetailInterviewAnswer[] }) {
+  const sections: { name: string; items: InteractionDetailInterviewAnswer[] }[] = [];
+  const seen = new Map<string, InteractionDetailInterviewAnswer[]>();
+  for (const a of answers) {
+    const key = a.section || 'General';
+    if (!seen.has(key)) {
+      const items: InteractionDetailInterviewAnswer[] = [];
+      seen.set(key, items);
+      sections.push({ name: key, items });
+    }
+    seen.get(key)!.push(a);
+  }
+
+  return (
+    <>
+      {sections.map((sec) => (
+        <DetailCard key={sec.name} title={sec.name}>
+          {sec.items.map((item, i) => (
+            <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div className="slds-text-body_small" style={{ fontWeight: 600, color: '#666', marginBottom: '2px' }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}>
+                {item.value || <span className="slds-text-color_weak">—</span>}
+              </div>
+            </div>
+          ))}
+        </DetailCard>
+      ))}
+    </>
+  );
+}
+
+/* ── Tiny shared helpers ─────────────────────────────────────────── */
+
+function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+      <h2 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '10px', color: '#16325c' }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function DField({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+      <span className="slds-text-body_small" style={{ fontWeight: 600, color: '#666' }}>{label}</span>
+      <span className="slds-text-body_small">{value}</span>
+    </div>
+  );
+}
+
+function SmallBadge({ color, text }: { color: string; text: string }) {
+  return (
+    <span style={{
+      display: 'inline-block', padding: '2px 10px', borderRadius: '12px',
+      fontSize: '0.75rem', backgroundColor: color, color: '#333',
+    }}>
+      {text}
+    </span>
   );
 }
