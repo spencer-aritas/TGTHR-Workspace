@@ -1,0 +1,175 @@
+<template>
+    <lightning-card title="New Interaction Summary" icon-name="standard:note">
+        <div class="slds-p-around_medium">
+            <p class="slds-text-body_regular slds-m-bottom_medium">
+                Quickly log an interaction summary for any participant directly from the home screen.
+            </p>
+            <lightning-button
+                variant="brand"
+                label="New Interaction Summary"
+                icon-name="utility:new"
+                onclick={openModal}>
+            </lightning-button>
+        </div>
+    </lightning-card>
+
+    <!-- ─── Modal ─────────────────────────────────────────────────────────── -->
+    <template lwc:if={showModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="is-modal-heading"
+            class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container modal-container">
+
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeModal}>
+                    </lightning-button-icon>
+                    <h2 id="is-modal-heading" class="slds-text-heading_medium">
+                        <lightning-icon icon-name="standard:note" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        New Interaction Summary
+                    </h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <!-- Success state -->
+                    <template lwc:if={submitSuccess}>
+                        <div class="success-panel slds-p-around_medium">
+                            <lightning-icon icon-name="utility:success" size="large" class="slds-m-bottom_small success-icon"></lightning-icon>
+                            <h3 class="slds-text-heading_small slds-m-bottom_small">Interaction Summary Created</h3>
+                            <p class="slds-text-body_regular slds-m-bottom_medium">{resultRecordName}</p>
+                            <template lwc:if={resultContentDocumentId}>
+                                <p class="slds-text-body_regular slds-m-bottom_medium">
+                                    The summary document has been generated and attached to the record.
+                                </p>
+                                <lightning-button
+                                    variant="brand"
+                                    label="Open in Files"
+                                    icon-name="utility:preview"
+                                    onclick={handleViewDocument}
+                                    class="slds-m-right_small">
+                                </lightning-button>
+                            </template>
+                            <template lwc:if={docGenError}>
+                                <p class="slds-text-color_error slds-text-body_small slds-m-bottom_small">
+                                    Note: Document generation encountered an issue — {docGenError}
+                                </p>
+                                <lightning-button
+                                    variant="neutral"
+                                    label="Open Record"
+                                    icon-name="utility:new_window"
+                                    onclick={handleOpenRecord}
+                                    class="slds-m-right_small">
+                                </lightning-button>
+                            </template>
+                            <lightning-button
+                                variant="neutral"
+                                label="Close"
+                                onclick={closeModal}
+                                class="slds-m-top_small">
+                            </lightning-button>
+                            <lightning-button
+                                variant="brand-outline"
+                                label="New Summary"
+                                icon-name="utility:add"
+                                onclick={resetForm}
+                                class="slds-m-top_small slds-m-left_small">
+                            </lightning-button>
+                        </div>
+                    </template>
+
+                    <!-- Form state -->
+                    <template lwc:else>
+                        <div class="slds-grid slds-wrap slds-gutters_small">
+
+                            <!-- Participant -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                <lightning-record-picker
+                                    label="Participant"
+                                    placeholder="Search participants..."
+                                    object-api-name="Account"
+                                    value={accountId}
+                                    required
+                                    onchange={handleAccountChange}>
+                                </lightning-record-picker>
+                            </div>
+
+                            <!-- Date -->
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                                <lightning-input
+                                    type="date"
+                                    label="Interaction Date"
+                                    value={interactionDate}
+                                    required
+                                    onchange={handleDateChange}>
+                                </lightning-input>
+                            </div>
+
+                            <!-- Time -->
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                                <lightning-input
+                                    type="time"
+                                    label="Interaction Time"
+                                    value={interactionTime}
+                                    required
+                                    onchange={handleTimeChange}>
+                                </lightning-input>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                <lightning-textarea
+                                    label="Notes"
+                                    value={notes}
+                                    max-length="10000"
+                                    placeholder="Enter interaction notes..."
+                                    onchange={handleNotesChange}>
+                                </lightning-textarea>
+                            </div>
+
+                        </div>
+
+                        <template lwc:if={saveError}>
+                            <p class="slds-text-color_error slds-m-top_x-small">{saveError}</p>
+                        </template>
+
+                        <template lwc:if={saving}>
+                            <div class="slds-m-top_small">
+                                <lightning-spinner alternative-text="Saving..." size="small"></lightning-spinner>
+                                <span class="slds-m-left_small slds-text-body_small">Saving interaction summary…</span>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+
+                <template lwc:if={showFormFooter}>
+                    <footer class="slds-modal__footer">
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeModal}
+                            disabled={saving}>
+                        </lightning-button>
+                        <lightning-button
+                            variant="brand"
+                            label="Save"
+                            icon-name="utility:save"
+                            onclick={handleSubmit}
+                            disabled={saving}
+                            class="slds-m-left_small">
+                        </lightning-button>
+                    </footer>
+                </template>
+
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

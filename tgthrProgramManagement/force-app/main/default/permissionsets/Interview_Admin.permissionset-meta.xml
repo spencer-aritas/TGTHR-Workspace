@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>CaseFormDocumentController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <fieldPermissions>
         <editable>true</editable>
         <field>Benefit.Available_for_Peer__c</field>
@@ -127,6 +131,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>InterviewQuestionLibrary__c.Allow_Carry_Forward__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>InterviewQuestionLibrary__c.Category__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -187,6 +196,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>InterviewQuestionLibrary__c.Requires_Review__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>InterviewQuestionLibrary__c.Response_Type__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -208,6 +222,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>InterviewQuestion__c.API_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>InterviewQuestion__c.Allow_Carry_Forward__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -288,6 +307,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>InterviewQuestion__c.Required__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>InterviewQuestion__c.Requires_Review__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -632,7 +656,27 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Program.Intake_Template__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Interview__c.Case__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.CaseManager_Signature_File_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.CaseManager_Signed_By__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.CaseManager_Signed__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -667,7 +711,17 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Interview__c.Date_CaseManager_Signed__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Interview__c.Date_Client_Signed__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.Date_PeerSupport_Signed__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -713,6 +767,21 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Interview__c.PDF_File_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.PeerSupport_Signature_File_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.PeerSupport_Signed_By__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Interview__c.PeerSupport_Signed__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -831,6 +900,16 @@
         <object>Interview__c</object>
         <viewAllFields>true</viewAllFields>
         <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>CaseFormDocument__c</object>
+        <viewAllFields>false</viewAllFields>
+        <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <tabSettings>
         <tab>InterviewAnswer__c</tab>

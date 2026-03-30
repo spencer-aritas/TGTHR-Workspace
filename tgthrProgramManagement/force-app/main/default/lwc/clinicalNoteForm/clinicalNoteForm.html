@@ -346,24 +346,23 @@
                         <lightning-accordion-section name="codes" label="Diagnosis Codes">
                             <div data-section="codes">
                                 <div class="slds-m-bottom_small">
-                                    <lightning-button
-                                        label="Add Diagnosis"
-                                        icon-name="utility:add"
-                                        variant="brand"
-                                        onclick={handleOpenIcd10Selector}>
-                                    </lightning-button>
+                                    <p class="slds-text-body_small slds-text-color_weak">
+                                        Case Notes can link existing active diagnoses only.
+                                    </p>
                                 </div>
 
-                                <c-icd10-code-selector
-                                    account-id={accountId}
+                                <c-diagnosis-selector
                                     case-id={recordId}
-                                    ondiagnosisadded={handleDiagnosisAdded}>
-                                </c-icd10-code-selector>
+                                    account-id={accountId}
+                                    allow-new-diagnoses={allowNewDiagnoses}
+                                    selected-diagnoses={selectedDiagnoses}
+                                    ondiagnosischange={handleDiagnosisChange}>
+                                </c-diagnosis-selector>
 
                                 <template if:true={hasSelectedDiagnoses}>
                                     <div class="diagnosis-cards-container slds-m-top_medium">
                                         <template for:each={formattedDiagnoses} for:item="diag">
-                                            <article key={diag.code} class="slds-card diagnosis-card">
+                                            <article key={diag.key} class="slds-card diagnosis-card">
                                                 <div class="slds-card__header slds-grid slds-grid_vertical-align-center">
                                                     <div class="slds-col slds-grow">
                                                         <span class="slds-text-title_bold">{diag.code}</span> - {diag.description}
@@ -377,7 +376,7 @@
                                                             alternative-text="Remove diagnosis"
                                                             title="Remove diagnosis"
                                                             variant="bare"
-                                                            data-code={diag.code}
+                                                            data-key={diag.key}
                                                             onclick={handleRemoveDiagnosis}>
                                                         </lightning-button-icon>
                                                     </div>
@@ -439,7 +438,7 @@
                                                 class="slds-m-right_x-small"></lightning-icon>
                                             <h2>
                                                 <strong>Correction Mode:</strong> This note must be re-submitted to
-                                                <strong>{reapprovalManagerName}</strong> for approval.
+                                                the assigned approver for approval.
                                             </h2>
                                         </div>
                                     </template>
@@ -449,16 +448,16 @@
                                             <lightning-input
                                                 type="checkbox"
                                                 label={managerApprovalLabel}
-                                                checked={requestManagerCoSign}
+                                                checked={managerApprovalChecked}
                                                 onchange={handleManagerApprovalToggle}
                                                 disabled={isManagerApprovalDisabled}>
                                             </lightning-input>
                                             <template if:false={hasManager}>
                                                 <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                                                    No manager is assigned to your user profile. Contact your administrator if you need manager approval capabilities.
+                                                    No Signing Authority users are available. Contact your administrator.
                                                 </p>
                                             </template>
-                                            <template if:true={requestManagerCoSign}>
+                                            <template if:true={managerApprovalChecked}>
                                                 <!-- Approver Selection - Hidden in re-approval/correction mode -->
                                                 <template if:false={isReapprovalScenario}>
                                                     <div class="slds-m-top_small slds-m-bottom_small">
@@ -475,7 +474,7 @@
                                                 </template>
                                                 <p class="slds-text-body_small slds-text-color_success slds-m-top_xx-small">
                                                     <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                                                    {managerName} will be notified to co-sign this note after you save.
+                                                    {managerApprovalHelpText}
                                                 </p>
                                             </template>
                                         </div>
@@ -486,6 +485,13 @@
                     </lightning-accordion>
 
                     <div class="actions">
+                        <template if:true={saveAndSubmitBannerMessage}>
+                            <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small" role="alert">
+                                <span class="slds-assistive-text">warning</span>
+                                <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small" alternative-text="Manager routing"></lightning-icon>
+                                <h2>{saveAndSubmitBannerMessage}</h2>
+                            </div>
+                        </template>
                         <lightning-button
                             variant="neutral"
                             label="Reset"

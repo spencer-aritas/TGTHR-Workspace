@@ -684,13 +684,14 @@ export default class InteractionSummaryBoard extends LightningElement {
 
     this.convo = t.map((r) => ({
       Id: r.Id,
-      AccountId: r.AccountId || accountId, // Make sure we have the AccountId
-      Program__c: r.Program__c, // Include Program ID for follow-up
-      CaseId: r.CaseId || r.Case__c || "", // Include Case ID for related record linking
+      AccountId: r.AccountId || accountId,
+      Program__c: r.Program__c,
+      CaseId: r.CaseId || "",
       Date_of_Interaction__c: r.Date_of_Interaction__c,
       InteractionPurpose: r.InteractionPurpose,
+      NoteTypeLabel: r.NoteTypeLabel,
       MeetingNotes: r.MeetingNotes,
-      CreatedBy_Name: r.CreatedBy ? r.CreatedBy.Name : null,
+      CreatedBy_Name: r.CreatedBy_Name || null,
       Notify_Case_Manager__c: r.Notify_Case_Manager__c,
       noteClass: r.Notify_Case_Manager__c ? "note note-attn" : "note",
       isPendingApproval: r.Requires_Manager_Approval__c === true && r.Manager_Signed__c !== true

@@ -624,12 +624,12 @@ public with sharing class InterviewDocumentService {
             };
         } else if (isBooleanInterviewResponseType(responseType)) {
             candidateFields = new List<String>{
-                'Response_Boolean__c',
                 'Response_Text__c',
                 'Response_Picklist__c',
                 'Response_Date__c',
                 'Response_DateTime__c',
-                'Response_Number__c'
+                'Response_Number__c',
+                'Response_Boolean__c'
             };
         } else {
             candidateFields = new List<String>{
@@ -909,34 +909,80 @@ public with sharing class InterviewDocumentService {
         List<Object> services = new List<Object>();
         
         try {
-            Id interviewId = (Id)interview.get('Id');
             Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
             
             if (interactionSummaryId == null) {
                 return services;
             }
-            
-            // Query benefit disbursements linked to the same interaction date/participant
-            Id accountId = (Id)interview.get('Client__c');
-            Date interviewDate = Date.today();
-            if (interview.get('Started_On__c') != null) {
-                Datetime startedOn = (Datetime)interview.get('Started_On__c');
-                interviewDate = startedOn.date();
+
+            Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
+            if (!globalDescribe.containsKey('BenefitDisbursement') || !globalDescribe.containsKey('BenefitAssignment')) {
+                return services;
             }
-            
-            String disbursementQuery = 
-                'SELECT Id, Name, Benefit.Name, Benefit.Type__c, DisbursedQuantity, ServiceDate__c ' +
+
+            Map<String, Schema.SObjectField> disbursementFields = globalDescribe.get('BenefitDisbursement').getDescribe().fields.getMap();
+            String quantityField = resolveFieldApiName(disbursementFields, new List<String>{ 'DisbursedQuantity', 'Quantity__c' });
+
+            List<String> disbursementSelectFields = new List<String>{ 'Id', 'BenefitAssignmentId' };
+            if (quantityField != null) {
+                disbursementSelectFields.add(quantityField);
+            }
+
+            String disbursementQuery =
+                'SELECT ' + String.join(disbursementSelectFields, ', ') + ' ' +
                 'FROM BenefitDisbursement ' +
-                'WHERE AccountId = :accountId AND ServiceDate__c = :interviewDate ' +
-                'ORDER BY Benefit.Name';
+                'WHERE InteractionSummary__c = :interactionSummaryId ' +
+                'ORDER BY CreatedDate ASC';
             
             List<SObject> disbursements = Database.query(disbursementQuery);
+
+            Set<Id> assignmentIds = new Set<Id>();
+            for (SObject disbursement : disbursements) {
+                Id assignmentId = (Id)disbursement.get('BenefitAssignmentId');
+                if (assignmentId != null) {
+                    assignmentIds.add(assignmentId);
+                }
+            }
+
+            Map<Id, SObject> assignmentById = new Map<Id, SObject>();
+            if (!assignmentIds.isEmpty()) {
+                List<String> assignmentSelectFields = new List<String>{ 'Id', 'BenefitId', 'Benefit.Name' };
+                if (globalDescribe.containsKey('Benefit')) {
+                    String benefitTypeField = resolveFieldApiName(
+                        globalDescribe.get('Benefit').getDescribe().fields.getMap(),
+                        new List<String>{ 'BenefitType', 'Type__c', 'BenefitType__c' }
+                    );
+                    if (benefitTypeField != null) {
+                        assignmentSelectFields.add('Benefit.' + benefitTypeField);
+                    }
+                }
+
+                for (SObject assignment : Database.query(
+                    'SELECT ' + String.join(assignmentSelectFields, ', ') + ' ' +
+                    'FROM BenefitAssignment ' +
+                    'WHERE Id IN :assignmentIds'
+                )) {
+                    assignmentById.put((Id)assignment.get('Id'), assignment);
+                }
+            }
             
             for (SObject disbursement : disbursements) {
-                SObject benefit = disbursement.getSObject('Benefit');
+                SObject assignment = assignmentById.get((Id)disbursement.get('BenefitAssignmentId'));
+                SObject benefit = assignment != null ? assignment.getSObject('Benefit') : null;
                 String benefitName = benefit != null ? (String)benefit.get('Name') : 'Unknown';
-                String benefitType = benefit != null ? (String)benefit.get('Type__c') : '';
-                Decimal quantity = (Decimal)disbursement.get('DisbursedQuantity');
+                String benefitType = '';
+                if (benefit != null && globalDescribe.containsKey('Benefit')) {
+                    String benefitTypeField = resolveFieldApiName(
+                        globalDescribe.get('Benefit').getDescribe().fields.getMap(),
+                        new List<String>{ 'BenefitType', 'Type__c', 'BenefitType__c' }
+                    );
+                    if (benefitTypeField != null && benefit.get(benefitTypeField) != null) {
+                        benefitType = String.valueOf(benefit.get(benefitTypeField));
+                    }
+                }
+                Decimal quantity = quantityField != null && disbursement.get(quantityField) != null
+                    ? (Decimal)disbursement.get(quantityField)
+                    : null;
                 
                 services.add(new Map<String, Object>{
                     'type' => 'service',
@@ -951,6 +997,25 @@ public with sharing class InterviewDocumentService {
         }
         
         return services;
+    }
+
+    private static String resolveFieldApiName(Map<String, Schema.SObjectField> fieldMap, List<String> candidateFieldApiNames) {
+        if (fieldMap == null || candidateFieldApiNames == null || candidateFieldApiNames.isEmpty()) {
+            return null;
+        }
+
+        for (String candidate : candidateFieldApiNames) {
+            if (String.isBlank(candidate)) {
+                continue;
+            }
+            for (String existingField : fieldMap.keySet()) {
+                if (existingField != null && existingField.equalsIgnoreCase(candidate)) {
+                    return existingField;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

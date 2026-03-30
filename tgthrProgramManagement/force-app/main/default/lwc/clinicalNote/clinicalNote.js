@@ -102,6 +102,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     @track selectedApproverId = null;
     @track isReapprovalScenario = false; // True when editing a rejected note that's already awaiting re-approval
     @track reapprovalManagerName = null; // Name of manager who will re-approve
+    @track isResubmissionScenario = false; // True for recalled/rejected edits where routing policy is preserved server-side
     
     // ICD-10 Diagnoses
     @track selectedDiagnoses = [];  // Diagnoses selected for THIS note (new or from existing)
@@ -116,6 +117,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     
     // Track if we are editing a confirmed/existing note vs a new/draft one
     @track isExistingNote = false;
+    existingNote = null;
 
     originalFormState;
 
@@ -124,13 +126,6 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     wiredManagerInfo({ data, error }) {
         if (data) {
             this.managerInfo = data;
-            // Only auto-select manager if they are in the valid signing authorities list
-            if (this.managerInfo.hasManager && !this.selectedApproverId && this.signingAuthorityOptions && this.signingAuthorityOptions.length > 0) {
-                const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
-                if (managerInList) {
-                    this.selectedApproverId = this.managerInfo.managerId;
-                }
-            }
         } else if (error) {
             console.error('Error getting manager info:', error);
             this.managerInfo = { hasManager: false };
@@ -145,14 +140,6 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 label: user.Name,
                 value: user.Id
             }));
-            
-            // Should only auto-select manager if they are in the returned list
-            if (this.managerInfo && this.managerInfo.hasManager && !this.selectedApproverId) {
-                const managerInList = this.signingAuthorityOptions.some(opt => opt.value === this.managerInfo.managerId);
-                if (managerInList) {
-                    this.selectedApproverId = this.managerInfo.managerId;
-                }
-            }
         } else if (error) {
             console.error('Error getting signing authorities:', error);
             this.signingAuthorityOptions = [];
@@ -199,6 +186,78 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     get goalsWorkedOnCount() {
         return Object.values(this.goalWorkState).filter(g => g.workedOn).length;
     }
+
+    get workedOnGoalNames() {
+        if (!this.activeGoals || !this.goalWorkState) {
+            return [];
+        }
+        return this.activeGoals
+            .filter(goal => this.goalWorkState[goal.id]?.workedOn)
+            .map(goal => goal.name)
+            .filter(Boolean);
+    }
+
+    get hasWorkedOnGoals() {
+        return this.workedOnGoalNames.length > 0;
+    }
+
+    get selectedDiagnosisSummary() {
+        if (!Array.isArray(this.selectedDiagnoses)) {
+            return [];
+        }
+        return this.selectedDiagnoses.map(d => ({
+            key: d.key || d.Id || d.id || `${d.code}-${d.description}`,
+            label: this.buildDiagnosisDisplayLabel(d)
+        }));
+    }
+
+    cleanDiagnosisCode(code) {
+        return (code || '').toString().trim();
+    }
+
+    cleanDiagnosisDescription(code, description) {
+        const cleanCode = this.cleanDiagnosisCode(code);
+        let cleanDescription = (description || '').toString().trim();
+
+        if (!cleanDescription || !cleanCode) {
+            return cleanDescription;
+        }
+
+        const escapedCode = cleanCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const leadingCodePattern = new RegExp(`^${escapedCode}\\s*-\\s*`, 'i');
+        const trailingCodePattern = new RegExp(`\\s*-\\s*${escapedCode}$`, 'i');
+
+        cleanDescription = cleanDescription.replace(leadingCodePattern, '').trim();
+        cleanDescription = cleanDescription.replace(trailingCodePattern, '').trim();
+
+        if (cleanDescription.toLowerCase() === cleanCode.toLowerCase()) {
+            return '';
+        }
+
+        return cleanDescription.replace(/\s{2,}/g, ' ');
+    }
+
+    buildDiagnosisDisplayLabel(diagnosis) {
+        const code = this.cleanDiagnosisCode(diagnosis?.code || diagnosis?.ICD10Code__c || diagnosis?.icd10Code);
+        const description = this.cleanDiagnosisDescription(
+            code,
+            diagnosis?.description || diagnosis?.Description__c || diagnosis?.Name
+        );
+
+        return [code, description].filter(Boolean).join(' - ') || '(Unnamed Diagnosis)';
+    }
+
+    get hasSelectedDiagnoses() {
+        return this.selectedDiagnosisSummary.length > 0;
+    }
+
+    get selectedCptCodeSummary() {
+        return Array.isArray(this.selectedCptCodes) ? this.selectedCptCodes : [];
+    }
+
+    get hasSelectedCptCodes() {
+        return this.selectedCptCodeSummary.length > 0;
+    }
     
 
     
@@ -228,11 +287,81 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             const selected = this.signingAuthorityOptions.find(opt => opt.value === this.selectedApproverId);
             if (selected) return selected.label;
         }
-        return this.managerInfo?.managerName || 'Your Manager';
+        return 'the selected approver';
     }
 
     get managerApprovalLabel() {
         return 'Request Approval/Co-Signature';
+    }
+
+    get serviceDateTimeForManagerApproval() {
+        const interactionDate = this.form?.interactionDate;
+        if (!interactionDate) {
+            return null;
+        }
+
+        const startTime = this.form?.startTime || '12:00';
+        const parsed = new Date(`${interactionDate}T${startTime}`);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    get isLateEntryManagerApprovalRequired() {
+        const serviceDateTime = this.serviceDateTimeForManagerApproval;
+        if (!serviceDateTime) {
+            return false;
+        }
+
+        return (Date.now() - serviceDateTime.getTime()) > (72 * 60 * 60 * 1000);
+    }
+
+    get managerApprovalChecked() {
+        return this.isLateEntryManagerApprovalRequired || this.requestManagerCoSign;
+    }
+
+    get coSignConfirmationText() {
+        if (this.selectedApproverId) {
+            const selected = this.signingAuthorityOptions.find(opt => opt.value === this.selectedApproverId);
+            if (selected) {
+                return selected.label + ' will be notified to co-sign this note after you save.';
+            }
+        }
+        return 'The selected approver will be notified to co-sign this note after you save.';
+    }
+
+    get managerApprovalHelpText() {
+        if (this.isReapprovalScenario) {
+            return `This recalled or rejected note will return to ${this.reapprovalManagerName || this.managerName} under the original signing policy.`;
+        }
+
+        if (this.isLateEntryManagerApprovalRequired) {
+            return 'This note date is outside the 72-hour reporting window. Select a Signing Authority approver to route the required manager co-sign.';
+        }
+
+        return this.coSignConfirmationText;
+    }
+
+    get saveAndSubmitBannerMessage() {
+        if (this.isReapprovalScenario && this.isLateEntryManagerApprovalRequired) {
+            return 'Save & Submit will preserve the original manager routing for this recalled or rejected note, and it remains in Manager Co-Sign because the note date is outside the 72-hour reporting window.';
+        }
+
+        if (this.isReapprovalScenario) {
+            return 'Save & Submit will preserve the original manager routing for this recalled or rejected note and return it to the assigned approver.';
+        }
+
+        if (this.isLateEntryManagerApprovalRequired) {
+            return 'Save & Submit will route this note into Manager Co-Sign because the note date is outside the 72-hour reporting window.';
+        }
+
+        return null;
+    }
+
+    get effectiveManagerApproverId() {
+        if (this.isReapprovalScenario && this.existingNote?.managerApproverId) {
+            return this.existingNote.managerApproverId;
+        }
+
+        return this.selectedApproverId;
     }
     
     handleManagerApprovalToggle(event) {
@@ -245,6 +374,21 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
     handleApproverChange(event) {
         this.selectedApproverId = event.detail.value;
+    }
+
+    validateManagerApprovalRequirement() {
+        if (this.managerApprovalChecked && this.hasManager && !this.effectiveManagerApproverId) {
+            this._showToast(
+                'Approver Required',
+                this.isLateEntryManagerApprovalRequired
+                    ? 'This note was entered outside the 72-hour reporting window. Select a Signing Authority approver before saving.'
+                    : 'Please select an approver from the Signing Authority list before saving.',
+                'error'
+            );
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -316,7 +460,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     }
 
     get isManagerApprovalDisabled() {
-        return this.managerMissing || this.isReapprovalScenario;
+        return this.managerMissing || this.isReapprovalScenario || this.isLateEntryManagerApprovalRequired;
     }
 
     @wire(getObjectInfo, { objectApiName: INTERACTION_OBJECT })
@@ -494,6 +638,21 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             codeIds: [],
             benefitIds: []
         };
+
+        // Reset per-note state so values from a previously opened note do not leak
+        // into a fresh note session in the same component lifecycle.
+        this.isExistingNote = false;
+        this.isResubmissionScenario = false;
+        this.isReapprovalScenario = false;
+        this.reapprovalManagerName = null;
+        this.requestManagerCoSign = false;
+        this.selectedApproverId = null;
+        this.selectedDiagnoses = [];
+        this.selectedExistingDiagnosisIds = [];
+        this.newDiagnosesToCreate = [];
+        this.selectedCptCodes = [];
+        this.ssrsAssessmentData = null;
+        this.ssrsAssessmentId = null;
         this.goalOptions = (goalAssignments || []).map((item) => ({
             label: item.label,
             value: item.id,
@@ -531,6 +690,11 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         if (existingNote) {
             console.log('Pre-filling form with existing note data');
             this.isExistingNote = true;
+            this.existingNote = existingNote;
+            const existingStatus = (existingNote.status || '').toLowerCase();
+            const isRejectedNote = existingNote.wasRejected === true;
+            const isRecalledNote = existingStatus === 'recalled';
+            this.isResubmissionScenario = isRejectedNote || isRecalledNote;
             this.form = {
                 ...this.form,
                 interactionDate: existingNote.interactionDate || this.form.interactionDate,
@@ -549,8 +713,13 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 this.ssrsAssessmentId = existingNote.ssrsAssessmentId;
             }
             
-            // Set manager approval info if already requested (e.g., after rejection)
-            if (existingNote.requiresManagerApproval === true || existingNote.wasRejected === true) {
+            // Preserve original manager routing for re-submissions (recalled/rejected)
+            // and for any note already pending manager approval.
+            if (
+                existingNote.requiresManagerApproval === true ||
+                isRejectedNote ||
+                (isRecalledNote && !!existingNote.managerApproverId)
+            ) {
                 this.requestManagerCoSign = true;
                 this.isReapprovalScenario = true; // Disable checkbox, show message
                 this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
@@ -560,7 +729,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             }
             
             // If note was rejected, clear the signature so staff must re-sign
-            if (existingNote.wasRejected === true) {
+            if (isRejectedNote === true) {
                 // Signature will be cleared after template renders
                 this._clearSignatureOnRender = true;
                 
@@ -604,7 +773,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 this.selectedDiagnoses = existingNote.selectedDiagnoses.map((d, index) => ({
                     key: `${d.codeId || d.id}_${Date.now()}_${index}`,
                     code: d.code,
-                    description: d.description,
+                    description: this.cleanDiagnosisDescription(d.code, d.description),
                     status: d.status || 'Active',
                     notes: d.notes || '',
                     isPrimary: d.isPrimary || false,
@@ -938,7 +1107,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 return {
                 Id: d.Id,
                 code: d.ICD10Code__c || d.code,
-                description: d.description || d.Name,
+                description: this.cleanDiagnosisDescription(d.ICD10Code__c || d.code, d.description || d.Name),
                 status: d.Status__c || 'Active',
                 isResolved: (d.Status__c === 'Resolved' || d.status === 'Resolved'),
                 diagnosisType: d.DiagnosisType__c || 'Chronic',
@@ -967,7 +1136,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 
                 return {
                 code: d.code || d.icd10Code,
-                description: d.description,
+                description: this.cleanDiagnosisDescription(d.code || d.icd10Code, d.description),
                 status: d.status || 'Active',
                 isResolved: (d.status === 'Resolved'),
                 diagnosisType: d.diagnosisType,
@@ -1277,10 +1446,16 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
         // If editing an existing note (previously signed), require manager co-sign to proceed with changes.
         // We allow the save if:
         // 1. It's a NEW note (isExistingNote is false), even if interactionId exists (e.g. from SSRS auto-creation).
-        // 2. It's an EXISTING note AND the user is requesting co-sign (Re-approval flow).
-        if (this.isExistingNote && !this.requestManagerCoSign) {
+        // 2. It's a recalled/rejected re-submission where routing policy is preserved server-side.
+        // 3. It's an EXISTING note AND the user is requesting co-sign (standard re-approval flow).
+        if (this.isExistingNote && !this.managerApprovalChecked && !this.isResubmissionScenario) {
             this.isSaving = false;
             this._showToast('Re-approval Required', 'This note has already been signed. Please make your changes and request manager co-sign instead of signing again.', 'warning');
+            return;
+        }
+
+        if (!this.validateManagerApprovalRequirement()) {
+            this.isSaving = false;
             return;
         }
         
@@ -1329,7 +1504,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 diagnosesArray = this.selectedDiagnoses.map(d => ({
                     id: d.Id || null, // Pass ID for existing records to trigger update
                     code: d.code || d.icd10Code,
-                    description: d.description,
+                    description: this.cleanDiagnosisDescription(d.code || d.icd10Code, d.description),
                     status: d.status || 'Active',
                     diagnosisType: d.diagnosisType || 'Chronic',
                     onsetDate: d.onsetDate || null,
@@ -1381,7 +1556,10 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 ssrsAssessmentId: ssrsAssessmentId,
                 noteType: this.noteType,
                 diagnoses: diagnosesArray,  // ← Send new diagnoses to create
-                selectedCptCodes: this.selectedCptCodes  // ← Send selected CPT codes for billing
+                selectedCptCodes: this.selectedCptCodes,  // ← Send selected CPT codes for billing
+                requestManagerCoSign: this.managerApprovalChecked && this.hasManager,
+                managerApproverId: this.effectiveManagerApproverId,
+                markCompleted: !(this.managerApprovalChecked && this.hasManager)
             };
 
             console.log('=== COMPLETE REQUEST DEBUG ===');
@@ -1425,13 +1603,17 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             // Goal assignment details are now saved by the backend with goalWorkDetails
             // No need for separate _saveGoalWork call
 
-            // Request manager approval if toggled
-            if (this.requestManagerCoSign && this.hasManager) {
+            const requiresManagerApproval = result?.requiresManagerApproval === true;
+            const managerApprovalForced = result?.managerApprovalForced === true;
+
+            // Request manager approval for new routing scenarios.
+            // Recalled/rejected resubmissions preserve and notify from the server-side save path.
+            if (requiresManagerApproval && !this.isResubmissionScenario) {
                 try {
                     await requestManagerApproval({ 
                         recordId: this.interactionId, 
                         recordType: 'Interaction',
-                        approverId: this.selectedApproverId
+                        approverId: this.effectiveManagerApproverId
                     });
                     console.log('Manager approval requested successfully');
                 } catch (approvalErr) {
@@ -1455,8 +1637,12 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
             // Generate document via docgen service (attaches to InteractionSummary)
             await this._generateNoteDocument(result.interactionSummaryId);
 
-            const successMsg = this.requestManagerCoSign && this.hasManager 
-                ? `Clinical note saved. Manager approval requested from ${this.managerName}.`
+            const successMsg = requiresManagerApproval
+                ? this.isResubmissionScenario
+                    ? 'Clinical note saved. Original manager co-sign routing has been preserved for re-submission.'
+                    : managerApprovalForced
+                        ? 'Clinical note saved. Late entry requires manager approval and has been routed for co-sign.'
+                        : 'Clinical note saved. Manager approval requested.'
                 : 'Clinical note saved successfully.';
             this._showToast('Success', successMsg, 'success');
             

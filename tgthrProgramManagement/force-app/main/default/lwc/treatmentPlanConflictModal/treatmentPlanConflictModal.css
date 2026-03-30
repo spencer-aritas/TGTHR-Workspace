@@ -1,0 +1,21 @@
+.active-plan-card {
+    border-top: 3px solid #2e844a;
+}
+
+.new-plan-card {
+    border-top: 3px solid #0176d3;
+}
+
+.conflict-subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.875rem;
+}
+
+.slds-dl_horizontal__label {
+    font-size: 0.75rem;
+    width: 7rem;
+}
+
+.slds-dl_horizontal__detail {
+    font-weight: 600;
+}

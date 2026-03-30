@@ -377,7 +377,7 @@
                                             <lightning-input
                                                 type="checkbox"
                                                 label={managerApprovalLabel}
-                                                checked={requestManagerCoSign}
+                                                checked={managerApprovalChecked}
                                                 onchange={handleManagerApprovalToggle}
                                                 disabled={isManagerApprovalDisabled}>
                                             </lightning-input>
@@ -386,7 +386,7 @@
                                                     No manager is assigned to your user profile. Contact your administrator if you need manager approval capabilities.
                                                 </p>
                                             </template>
-                                            <template if:true={requestManagerCoSign}>
+                                            <template if:true={managerApprovalChecked}>
                                                 <!-- Approver Selection - Hidden in re-approval/correction mode -->
                                                 <template if:false={isReapprovalScenario}>
                                                     <div class="slds-m-top_small slds-m-bottom_small">
@@ -403,7 +403,7 @@
                                                 </template>
                                                 <p class="slds-text-body_small slds-text-color_success slds-m-top_xx-small">
                                                     <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                                                    {managerName} will be notified to co-sign this note after you save.
+                                                    {managerApprovalHelpText}
                                                 </p>
                                             </template>
                                         </div>
@@ -414,6 +414,13 @@
                     </lightning-accordion>
 
                     <div class="actions">
+                        <template if:true={saveAndSubmitBannerMessage}>
+                            <div class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small" role="alert">
+                                <span class="slds-assistive-text">warning</span>
+                                <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small" alternative-text="Manager routing"></lightning-icon>
+                                <h2>{saveAndSubmitBannerMessage}</h2>
+                            </div>
+                        </template>
                         <lightning-button
                             variant="neutral"
                             label="Reset"

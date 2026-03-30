@@ -1,4 +1,5 @@
 import { db } from './db';
+import { signatureService } from '../services/signatureService';
 
 class SyncService {
   private syncing = false;
@@ -68,6 +69,17 @@ class SyncService {
       
       if (!response.ok) {
         throw new Error(`Sync failed: ${response.status}`);
+      }
+    } else if (entity === 'SignatureRecord') {
+      await signatureService.uploadToSalesforce(payload);
+
+      // Mark local record as synced
+      if (payload.id) {
+        try {
+          await db.signatures.update(payload.id, { synced: true });
+        } catch {
+          // non-critical — the upload already succeeded
+        }
       }
     }
   }

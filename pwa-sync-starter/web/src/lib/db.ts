@@ -41,7 +41,7 @@ export interface SignatureRecord {
 
 export interface OutboxItem {
   id?: number;
-  entity: 'PersonAccount' | 'ProgramIntake' | 'SignatureRecord';
+  entity: 'PersonAccount' | 'ProgramIntake' | 'SignatureRecord' | 'SigningRequest';
   payload: any;
   createdAt: string;
   attempts: number;

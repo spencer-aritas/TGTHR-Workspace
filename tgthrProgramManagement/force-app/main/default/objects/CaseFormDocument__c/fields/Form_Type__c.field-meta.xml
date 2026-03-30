@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Form_Type__c</fullName>
+    <label>Form Type</label>
+    <type>Picklist</type>
+    <required>true</required>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>ROI</fullName>
+                <default>false</default>
+                <label>ROI</label>
+            </value>
+            <value>
+                <fullName>Consent Form</fullName>
+                <default>false</default>
+                <label>Consent Form</label>
+            </value>
+            <value>
+                <fullName>Disclosure Form</fullName>
+                <default>false</default>
+                <label>Disclosure Form</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

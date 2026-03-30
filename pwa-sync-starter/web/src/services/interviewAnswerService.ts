@@ -1,10 +1,13 @@
 // web/src/services/interviewAnswerService.ts
 
+import { getCurrentUser } from '../lib/salesforceAuth';
+
 interface SaveInterviewAnswersRequest {
   caseId: string;
   templateVersionId: string;
   answers: Record<string, string>;
   ssrsAssessmentId?: string;
+  createdById?: string;
 }
 
 interface SaveInterviewAnswersResponse {
@@ -24,11 +27,15 @@ class InterviewAnswerService {
     ssrsAssessmentId?: string
   ): Promise<SaveInterviewAnswersResponse> {
     try {
+      const currentUser = getCurrentUser();
+      const resolvedUserId = currentUser?.sfUserId || currentUser?.id;
+
       const payload: SaveInterviewAnswersRequest = {
         caseId,
         templateVersionId,
         answers,
-        ssrsAssessmentId
+        ssrsAssessmentId,
+        createdById: resolvedUserId
       };
 
       const response = await fetch('/api/interview-answers', {

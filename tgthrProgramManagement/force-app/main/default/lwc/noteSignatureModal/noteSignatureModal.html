@@ -76,18 +76,18 @@
                                     </template>
                                 </div>
                                 <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
-                                    <span class="slds-text-title_caps">Created On</span>
+                                    <span class="slds-text-title_caps">Created On ({mountainTimeZoneLabel})</span>
                                     <p class="slds-text-body_regular">{formattedCreatedDate}</p>
                                 </div>
                                 <template if:true={noteData.startTime}>
                                     <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
-                                        <span class="slds-text-title_caps">Start Time</span>
+                                        <span class="slds-text-title_caps">Start Time ({mountainTimeZoneLabel})</span>
                                         <p class="slds-text-body_regular">{noteData.startTime}</p>
                                     </div>
                                 </template>
                                 <template if:true={noteData.endTime}>
                                     <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
-                                        <span class="slds-text-title_caps">End Time</span>
+                                        <span class="slds-text-title_caps">End Time ({mountainTimeZoneLabel})</span>
                                         <p class="slds-text-body_regular">{noteData.endTime}</p>
                                     </div>
                                 </template>
@@ -108,12 +108,21 @@
                                         onclick={handleViewDocument}>
                                     </lightning-button>
                                     <lightning-button
-                                        label="Download"
+                                        label="Download PDF"
                                         variant="base"
                                         icon-name="utility:download"
                                         class="slds-m-left_x-small"
                                         onclick={handleDownloadDocument}>
                                     </lightning-button>
+                                    <template if:true={showWordDownload}>
+                                        <lightning-button
+                                            label="Download in Word"
+                                            variant="base"
+                                            icon-name="utility:file"
+                                            class="slds-m-left_x-small"
+                                            onclick={handleDownloadWordDocument}>
+                                        </lightning-button>
+                                    </template>
                                 </div>
                             </div>
                         </template>

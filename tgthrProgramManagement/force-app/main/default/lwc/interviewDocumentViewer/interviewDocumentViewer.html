@@ -21,10 +21,24 @@
                                             <div class="slds-grid slds-grid_vertical-align-center">
                                                 <div class="slds-col slds-has-flexi-truncate">
                                                     <div class="slds-text-heading_small slds-truncate">
-                                                        {doc.templateName}
-                                                    </div>
-                                                    <div class="slds-text-body_small text-muted">
-                                                        {doc.completedDateFormatted}
+                                                        {doc.displayName}
+                                                        <template if:true={doc.isActivePlan}>
+                                                            <span class="completed-badge completed-badge--active slds-m-left_xx-small">Active</span>
+                                                        </template>
+                                                        <template if:true={doc.isInactivePlan}>
+                                                            <span class="completed-badge completed-badge--inactive slds-m-left_xx-small">Inactive</span>
+                                                        </template>
+                                                        <template if:true={doc.isAmendment}>
+                                                            <span class="completed-badge completed-badge--amendment slds-m-left_xx-small">Amended</span>
+                                                        </template>                                                    </div>
+                                                    <div class="slds-text-body_small text-muted slds-grid slds-grid_vertical-align-center">
+                                                        <span class="slds-truncate">Interaction ({mountainTimeZoneLabel}): {doc.displayDateFormatted}</span>
+                                                        <template if:true={doc.showUnlockIcon}>
+                                                            <lightning-icon icon-name="utility:unlock" size="xx-small" variant="success" title="Within 72-hour recall window" class="slds-m-left_xx-small slds-no-flex"></lightning-icon>
+                                                        </template>
+                                                        <template if:true={doc.showLockIcon}>
+                                                            <lightning-icon icon-name="utility:lock" size="xx-small" class="slds-m-left_xx-small slds-no-flex text-muted" title="Edit window closed"></lightning-icon>
+                                                        </template>
                                                     </div>
                                                     <!-- Signed by info -->
                                                     <div class="slds-text-body_small">
@@ -77,28 +91,30 @@
                         <!-- Document Header -->
                         <div class="slds-grid slds-grid_vertical-align-center slds-wrap slds-m-bottom_medium">
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
-                                <h2 class="slds-text-heading_medium">{selectedDocument.templateName}</h2>
+                                <h2 class="slds-text-heading_medium">{documentName}</h2>
                                 <div class="slds-m-top_xx-small">
                                     <template if:true={selectedDocument.templateCategory}>
                                         <span class="completed-badge completed-badge--neutral">{selectedDocument.templateCategory}</span>
                                     </template>
-                                    <span class={computedStatusBadgeClass}>{computedStatus}</span>
+                                    <span class={selectedDocument.statusBadgeClass}>{selectedDocument.statusBadgeLabel}</span>
+                                    <template if:true={selectedDocument.isActivePlan}>
+                                        <span class="completed-badge completed-badge--active slds-m-left_xx-small">Active</span>
+                                    </template>
+                                    <template if:true={selectedDocument.isInactivePlan}>
+                                        <span class="completed-badge completed-badge--inactive slds-m-left_xx-small">Inactive</span>
+                                    </template>
+                                    <template if:true={selectedDocument.isAmendment}>
+                                        <span class="completed-badge completed-badge--amendment slds-m-left_xx-small">Amended</span>
+                                    </template>
                                 </div>
                                 <div class="slds-text-body_small text-muted slds-m-top_xx-small">
                                     Submitted By: {submittedByDisplay} • Submitted On: {submittedOnDisplay}
                                 </div>
+                                <div class="slds-text-body_small text-muted slds-m-top_xx-small">
+                                    Interaction Date &amp; Start Time ({mountainTimeZoneLabel}): {interactionDateTimeDisplay} • Started On: {startedOnDisplay} • Completed On: {completedOnDisplay}
+                                </div>
                             </div>
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right slds-m-top_small slds-medium-m-top_none">
-                                <template if:true={hasCaseContext}>
-                                    <div class="slds-m-bottom_small">
-                                        <lightning-button
-                                            label="Back to Case"
-                                            variant="neutral"
-                                            icon-name="utility:chevronleft"
-                                            onclick={handleBackToCase}>
-                                        </lightning-button>
-                                    </div>
-                                </template>
                                 <lightning-button-group>
                                     <lightning-button 
                                         label="Previous" 
@@ -114,22 +130,63 @@
                                         disabled={isLastDocument}>
                                     </lightning-button>
                                 </lightning-button-group>
-                                <div class="slds-m-top_small">
+                                <div class="slds-m-top_small slds-grid slds-grid_align-end slds-wrap">
                                     <lightning-button 
                                         variant="brand"
-                                        label="Download" 
+                                        label="Download PDF" 
                                         icon-name="utility:download" 
                                         onclick={handleDownload}
-                                        class="slds-m-right_x-small"
+                                        class="slds-m-left_x-small slds-m-top_xx-small"
                                         disabled={isOpeningInFiles}>
                                     </lightning-button>
+                                    <template if:true={showWordDownload}>
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="Download in Word"
+                                            icon-name="utility:file"
+                                            onclick={handleDownloadWord}
+                                            class="slds-m-left_x-small slds-m-top_xx-small"
+                                            disabled={isOpeningInFiles}>
+                                        </lightning-button>
+                                    </template>
                                     <lightning-button 
                                         variant="neutral"
                                         label="Open in Files" 
                                         icon-name="utility:new_window" 
                                         onclick={handleOpenInFiles}
+                                        class="slds-m-left_x-small slds-m-top_xx-small"
                                         disabled={isOpeningInFiles}>
                                     </lightning-button>
+                                    <template if:true={showRecallButton}>
+                                        <template if:false={showRecallConfirm}>
+                                            <lightning-button
+                                                variant="destructive-text"
+                                                label="Recall Document"
+                                                icon-name="utility:undo"
+                                                onclick={handleRecall}
+                                                class="slds-m-left_x-small slds-m-top_xx-small"
+                                                disabled={isRecalling}>
+                                            </lightning-button>
+                                        </template>
+                                        <template if:true={showRecallConfirm}>
+                                            <div class="slds-box slds-box_x-small slds-theme_shade slds-m-top_small slds-size_1-of-1">
+                                                <p class="slds-text-body_small slds-m-bottom_x-small">Recall this document? All signatures will be cleared and it will return to Pending Documentation.</p>
+                                                <lightning-button
+                                                    variant="destructive"
+                                                    label="Yes, Recall"
+                                                    onclick={handleRecallConfirm}
+                                                    disabled={isRecalling}>
+                                                </lightning-button>
+                                                <lightning-button
+                                                    variant="neutral"
+                                                    label="Cancel"
+                                                    onclick={handleRecallCancel}
+                                                    class="slds-m-left_x-small"
+                                                    disabled={isRecalling}>
+                                                </lightning-button>
+                                            </div>
+                                        </template>
+                                    </template>
                                     <template if:true={isOpeningInFiles}>
                                         <lightning-spinner alternative-text="Opening file" size="small"></lightning-spinner>
                                     </template>
@@ -182,4 +239,86 @@
             </div>
         </div>
     </lightning-card>
+
+    <!-- Recalled Note Modals — opened immediately after a note is recalled so the user can edit inline -->
+    <template if:true={showRecalledClinicalNoteModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true"
+            aria-labelledby="recalled-clinical-note-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon class="slds-modal__close" icon-name="utility:close"
+                        alternative-text="Close" variant="bare-inverse"
+                        onclick={closeRecalledNoteModal}>
+                    </lightning-button-icon>
+                    <h2 id="recalled-clinical-note-modal-heading" class="slds-text-heading_medium">Edit &amp; Resubmit Clinical Note</h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <c-clinical-note
+                        record-id={_caseId}
+                        interaction-id={recalledNoteInteractionId}
+                        onclose={closeRecalledNoteModal}>
+                    </c-clinical-note>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeRecalledNoteModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showRecalledCaseNoteModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true"
+            aria-labelledby="recalled-case-note-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon class="slds-modal__close" icon-name="utility:close"
+                        alternative-text="Close" variant="bare-inverse"
+                        onclick={closeRecalledNoteModal}>
+                    </lightning-button-icon>
+                    <h2 id="recalled-case-note-modal-heading" class="slds-text-heading_medium">Edit &amp; Resubmit Case Note</h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <c-clinical-note-form
+                        record-id={_caseId}
+                        interaction-id={recalledNoteInteractionId}
+                        onclose={closeRecalledNoteModal}>
+                    </c-clinical-note-form>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeRecalledNoteModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={showRecalledPeerNoteModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true"
+            aria-labelledby="recalled-peer-note-modal-heading"
+            class="slds-modal slds-fade-in-open documentation-modal">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon class="slds-modal__close" icon-name="utility:close"
+                        alternative-text="Close" variant="bare-inverse"
+                        onclick={closeRecalledNoteModal}>
+                    </lightning-button-icon>
+                    <h2 id="recalled-peer-note-modal-heading" class="slds-text-heading_medium">Edit &amp; Resubmit Peer Note</h2>
+                </header>
+                <div class="slds-modal__content modal-body">
+                    <c-peer-note
+                        record-id={_caseId}
+                        interaction-id={recalledNoteInteractionId}
+                        onclose={closeRecalledNoteModal}>
+                    </c-peer-note>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={closeRecalledNoteModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>

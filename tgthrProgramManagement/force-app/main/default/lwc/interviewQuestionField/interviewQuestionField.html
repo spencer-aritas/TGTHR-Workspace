@@ -1,11 +1,51 @@
 <template>
-    <div class="question-field">
+    <div class={questionFieldClass}>
+        <template if:true={hasCarryForwardPrompt}>
+            <section class="carry-forward-card slds-m-bottom_small" aria-label="Carry forward review">
+                <div class="carry-forward-card__header">
+                    <p class="carry-forward-card__eyebrow">Carry Forward Review</p>
+                    <h3 class="carry-forward-card__title">{question.label}</h3>
+                </div>
+                <div class="carry-forward-card__body">
+                    <p><strong>Field Value:</strong> {carryForward.displayValue}</p>
+                    <p><strong>Date Recorded:</strong> {carryForward.recordedDateLabel}</p>
+                    <p><strong>Author/Type:</strong> {carryForward.sourceLabel}</p>
+                </div>
+                <template if:true={carryForward.actionLabel}>
+                    <p class="carry-forward-card__status slds-m-top_small">
+                        <strong>Reviewed:</strong> {carryForward.actionLabel}
+                    </p>
+                </template>
+                <div class="slds-button-group slds-m-top_small" role="group">
+                    <lightning-button
+                        label="Confirm"
+                        variant="brand-outline"
+                        onclick={handleConfirmCarryForward}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Edit"
+                        variant="neutral"
+                        onclick={handleEditCarryForward}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Ignore"
+                        variant="destructive-text"
+                        onclick={handleIgnoreCarryForward}>
+                    </lightning-button>
+                </div>
+                <template if:true={carryForward.requiresReview}>
+                    <p class="carry-forward-card__warning slds-m-top_x-small">Review required before submit.</p>
+                </template>
+            </section>
+        </template>
+
         <!-- Text -->
         <template if:true={isText}>
             <lightning-input
                 type="text"
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -20,6 +60,7 @@
             <lightning-textarea
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -34,6 +75,7 @@
             <lightning-textarea
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -49,6 +91,7 @@
             <lightning-input-rich-text
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -64,6 +107,7 @@
                 type="number"
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -82,6 +126,7 @@
                     label={question.label}
                     options={yesNoOptions}
                     value={booleanValue}
+                    data-input-control
                     data-question-id={question.questionId}
                     data-response-type={question.responseType}
                     onchange={handleChange}
@@ -95,6 +140,7 @@
                     type="checkbox"
                     label={question.label}
                     checked={question.answer}
+                    data-input-control
                     data-question-id={question.questionId}
                     data-response-type={question.responseType}
                     disabled={question.isReadOnly}
@@ -110,6 +156,7 @@
                 label={question.label}
                 value={question.answer}
                 options={question.picklistOptions}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -154,6 +201,7 @@
                 type="date"
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -169,6 +217,7 @@
                 type="datetime"
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}
@@ -184,6 +233,7 @@
                 type="text"
                 label={question.label}
                 value={question.answer}
+                data-input-control
                 data-question-id={question.questionId}
                 data-response-type={question.responseType}
                 onchange={handleChange}

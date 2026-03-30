@@ -3,6 +3,7 @@ import { Case } from '../services/caseService';
 import { interactionSummaryService, InteractionSummaryData } from '../services/interactionSummaryService';
 import { AvailableInterviewsModal } from './AvailableInterviewsModal';
 import { InterviewLauncher } from './InterviewLauncher';
+import { InteractionDetailPanel } from './InteractionDetailPanel';
 import type { InterviewTemplateDefinition } from '@shared/contracts/index.ts';
 
 interface InteractionHistoryProps {
@@ -33,6 +34,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
   const [submitting, setSubmitting] = useState(false);
   const [showAvailableInterviews, setShowAvailableInterviews] = useState(false);
   const [selectedInterviewTemplate, setSelectedInterviewTemplate] = useState<InterviewTemplateDefinition | null>(null);
+  const [selectedInteractionId, setSelectedInteractionId] = useState<string | null>(null);
 
   const loadInteractions = useCallback(async () => {
     try {
@@ -100,6 +102,19 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
     setSelectedInterviewTemplate(template);
     setShowAvailableInterviews(false);
   };
+
+  if (selectedInteractionId) {
+    return (
+      <InteractionDetailPanel
+        interactionId={selectedInteractionId}
+        onBack={() => setSelectedInteractionId(null)}
+        onQuickNote={(id) => {
+          setSelectedInteractionId(null);
+          handleQuickNote(id);
+        }}
+      />
+    );
+  }
 
   if (selectedInterviewTemplate && selectedCase) {
     return (
@@ -206,12 +221,21 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                 {interactions.map((interaction, index) => (
                   <div
                     key={interaction.Id}
+                    onClick={() => setSelectedInteractionId(interaction.Id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setSelectedInteractionId(interaction.Id); }}
                     style={{
                       borderBottom: index < interactions.length - 1 ? '1px solid #e5e5e5' : 'none',
                       paddingBottom: '20px',
                       marginBottom: '20px',
-                      paddingTop: index === 0 ? '0' : '20px'
+                      paddingTop: index === 0 ? '0' : '20px',
+                      cursor: 'pointer',
+                      borderRadius: '8px',
+                      transition: 'background-color 0.15s',
                     }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f3f3f3')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
                     {/* Header: Date and Interaction Details */}
                     <div style={{ marginBottom: '12px' }}>
@@ -228,6 +252,50 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                           <span style={{ fontWeight: '600' }}>By:</span>{' '}
                           {interaction.CreatedByName}
                         </div>
+                      </div>
+
+                      {/* Metadata badges */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                        {interaction.InteractionPurpose && (
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '12px',
+                            fontSize: '0.75rem', backgroundColor: '#e1f5fe', color: '#0277bd',
+                          }}>
+                            {interaction.InteractionPurpose}
+                          </span>
+                        )}
+                        {interaction.Status && (
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '12px',
+                            fontSize: '0.75rem', backgroundColor: '#e8f5e9', color: '#2e7d32',
+                          }}>
+                            {interaction.Status}
+                          </span>
+                        )}
+                        {interaction.RequiresManagerApproval && (
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '12px',
+                            fontSize: '0.75rem', backgroundColor: '#fff3e0', color: '#e65100',
+                          }}>
+                            Manager Approval Required
+                          </span>
+                        )}
+                        {interaction.InterviewId && (
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '12px',
+                            fontSize: '0.75rem', backgroundColor: '#f3e5f5', color: '#6a1b9a',
+                          }}>
+                            Interview Linked
+                          </span>
+                        )}
+                        {interaction.ActionRequired && (
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '12px',
+                            fontSize: '0.75rem', backgroundColor: '#fce4ec', color: '#c62828',
+                          }}>
+                            Action Required
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -282,7 +350,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                     }}>
                       <button
                         className="slds-button slds-button_text"
-                        onClick={() => handleQuickNote(interaction.Id)}
+                        onClick={(e) => { e.stopPropagation(); handleQuickNote(interaction.Id); }}
                         style={{
                           padding: '4px 8px',
                           fontSize: '0.875rem',

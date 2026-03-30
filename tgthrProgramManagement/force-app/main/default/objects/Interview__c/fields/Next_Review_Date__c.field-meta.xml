@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Next_Review_Date__c</fullName>
+    <description>The scheduled date for the next treatment plan review.</description>
+    <label>Next Review Date</label>
+    <type>Date</type>
+</CustomField>

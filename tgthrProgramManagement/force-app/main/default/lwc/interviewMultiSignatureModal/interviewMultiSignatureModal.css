@@ -1,0 +1,24 @@
+.text-muted {
+    color: #706e6b;
+}
+
+.content-box {
+    background-color: #fafaf9;
+}
+
+.client-header {
+    background-color: #f3f2f2;
+}
+
+.slds-modal__container {
+    max-width: 60rem;
+}
+
+.amendment-notice {
+    background-color: #fff8e1;
+    border-left: 4px solid #bf6a00;
+}
+
+.amendment-notice__title {
+    color: #bf6a00;
+}

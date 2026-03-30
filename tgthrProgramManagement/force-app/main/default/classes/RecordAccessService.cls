@@ -193,7 +193,55 @@ public with sharing class RecordAccessService {
             throw new AuraHandledException('Failed to log amendment: ' + e.getMessage());
         }
     }
-    
+
+    /**
+     * Log a signature-related event for audit trail purposes.
+     * Called from LWC after successful Treatment Plan / Interview submission.
+     *
+     * @param recordId       The Interview__c (or InteractionSummary__c) record Id
+     * @param objectType     Object type label, e.g. 'Interview'
+     * @param action         One of: SIGN, SIGN_SUPPRESSED, COSIGN_REQUESTED
+     * @param description    Human-readable description, e.g. 'Staff signed Treatment Plan'
+     *                       or 'Case Management Not Requested — signature suppressed'
+     */
+    @AuraEnabled
+    public static void logSignatureEvent(
+        String recordId,
+        String objectType,
+        String action,
+        String description
+    ) {
+        if (String.isBlank(recordId) || String.isBlank(action)) {
+            throw new AuraHandledException('Record ID and action are required for signature audit logging.');
+        }
+
+        try {
+            Id userId = UserInfo.getUserId();
+            AccessContext ctx = determineAccessContext(recordId, objectType, userId);
+
+            SObject auditLog = (SObject) Type.forName('Audit_Log__c').newInstance();
+            auditLog.put('Action__c', action);           // SIGN, SIGN_SUPPRESSED, COSIGN_REQUESTED
+            auditLog.put('UUID__c', recordId);
+            auditLog.put('Record_Id__c', recordId);
+            auditLog.put('Object_Type__c', objectType != null ? objectType : 'Interview');
+            auditLog.put('User__c', userId);
+            auditLog.put('Timestamp__c', System.now());
+            auditLog.put('Description__c', description);
+            auditLog.put('Access_Context__c', ctx.contextDescription);
+            auditLog.put('Has_Legitimate_Access__c', ctx.hasLegitimateAccess);
+            auditLog.put('Is_Curiosity_Browse__c', false);
+            auditLog.put('Client_Name__c', ctx.clientName);
+
+            insert auditLog;
+
+        } catch (AuraHandledException e) {
+            throw e;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'Failed to log signature event: ' + e.getMessage());
+            throw new AuraHandledException('Failed to log signature event: ' + e.getMessage());
+        }
+    }
+
     /**
      * Check if a record is locked and requires amendment workflow.
      * 

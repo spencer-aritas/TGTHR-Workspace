@@ -51,3 +51,19 @@
     height: 100%;
 }
 
+.amendment-confirm-modal {
+    max-width: 36rem;
+}
+
+.amendment-confirm-header {
+    background-color: #bf6a00;
+}
+
+.amendment-confirm-body {
+    text-align: center;
+}
+
+.amendment-confirm-icon {
+    display: block;
+    margin: 0 auto 0.75rem;
+}

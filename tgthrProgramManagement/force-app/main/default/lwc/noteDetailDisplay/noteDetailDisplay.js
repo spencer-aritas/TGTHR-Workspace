@@ -1,6 +1,7 @@
 import { LightningElement, api, track } from 'lwc';
 import getNoteForApproval from '@salesforce/apex/PendingDocumentationController.getNoteForApproval';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
+import { formatDateOnlyMountain, formatDateTimeMountain, getMountainTimeZoneLabel } from 'c/dateTimeDisplay';
 
 export default class NoteDetailDisplay extends LightningElement {
     _recordId;
@@ -21,6 +22,7 @@ export default class NoteDetailDisplay extends LightningElement {
     @track isLoading = false;
     @track error;
     _lastLoggedRecordId;
+    mountainTimeZoneLabel = getMountainTimeZoneLabel();
 
     connectedCallback() {
         if (this.recordId) {
@@ -86,15 +88,25 @@ export default class NoteDetailDisplay extends LightningElement {
         }) || 'N/A';
     }
 
-    get formattedCreatedDate() {
-        if (!this.noteData.createdDate) return 'N/A';
-        return new Date(this.noteData.createdDate).toLocaleString('en-US', {
+    get formattedInteractionDate() {
+        return this.formatDateOnly(this.noteData.dateOfInteraction, {
             year: 'numeric',
             month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+            day: 'numeric'
+        }) || 'N/A';
+    }
+
+    get formattedInteractionStartTime() {
+        return this.noteData.startTime || 'N/A';
+    }
+
+    get formattedInteractionEndTime() {
+        return this.noteData.endTime || 'N/A';
+    }
+
+    get formattedCreatedDate() {
+        if (!this.noteData.createdDate) return 'N/A';
+        return formatDateTimeMountain(this.noteData.createdDate);
     }
 
     get formattedDob() {
@@ -103,6 +115,19 @@ export default class NoteDetailDisplay extends LightningElement {
             month: 'short',
             day: 'numeric'
         }) || 'N/A';
+    }
+
+    get ssrsInteractionDateDisplay() {
+        const ssrsDate = this.noteData?.ssrsAssessment?.interactionDate || this.noteData?.ssrsAssessment?.assessmentDate;
+        return this.formatDateOnly(ssrsDate, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }) || 'N/A';
+    }
+
+    get ssrsInteractionStartTimeDisplay() {
+        return this.noteData?.ssrsAssessment?.interactionStartTime || this.noteData?.startTime || 'N/A';
     }
 
     get formattedAuthorSignedDate() {
@@ -121,6 +146,22 @@ export default class NoteDetailDisplay extends LightningElement {
         }) || 'N/A';
     }
 
+    get formattedCaseManagerSignedDate() {
+        return this.formatDateOnly(this.noteData.caseManagerSignedDate, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }) || 'N/A';
+    }
+
+    get formattedPeerSupportSignedDate() {
+        return this.formatDateOnly(this.noteData.peerSupportSignedDate, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }) || 'N/A';
+    }
+
     // Section visibility getters
     get hasDiagnoses() {
         return this.noteData.diagnoses && this.noteData.diagnoses.length > 0;
@@ -132,6 +173,37 @@ export default class NoteDetailDisplay extends LightningElement {
 
     get hasBenefits() {
         return this.noteData.benefits && this.noteData.benefits.length > 0;
+    }
+
+    get benefitCountLabel() {
+        const count = this.enrichedBenefits.length;
+        if (!count) {
+            return '';
+        }
+        return count === 1 ? '1 service recorded' : `${count} services recorded`;
+    }
+
+    get enrichedBenefits() {
+        const benefits = Array.isArray(this.noteData.benefits) ? this.noteData.benefits : [];
+        return benefits.map((benefit, index) => {
+            const quantity = benefit?.quantity;
+            const status = typeof benefit?.status === 'string' ? benefit.status.trim() : '';
+            const type = typeof benefit?.type === 'string' ? benefit.type.trim() : '';
+            return {
+                ...benefit,
+                key: `${benefit?.name || 'benefit'}-${benefit?.serviceDate || 'date'}-${index}`,
+                displayType: type || 'Service',
+                hasType: Boolean(type),
+                displayStatus: status || '',
+                hasStatus: Boolean(status),
+                displayQuantity: quantity !== null && quantity !== undefined ? `${quantity}` : 'Not recorded',
+                displayServiceDate: this.formatDateOnly(benefit?.serviceDate, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                }) || 'Date not recorded'
+            };
+        });
     }
 
     get hasCptCodes() {
@@ -157,8 +229,28 @@ export default class NoteDetailDisplay extends LightningElement {
         return this.isInterview && this.noteData.showCarePlanConsent === true;
     }
 
+    get isTreatmentPlanInterview() {
+        return this.showCarePlanConsent;
+    }
+
+    get showCaseManagerApprovalStatus() {
+        return this.isTreatmentPlanInterview && (
+            this.noteData.caseManagerSigned === true
+            || !!this.noteData.caseManagerSignedDate
+            || !!this.noteData.caseManagerSignedBy
+        );
+    }
+
+    get showPeerSupportApprovalStatus() {
+        return this.isTreatmentPlanInterview && (
+            this.noteData.peerSupportSigned === true
+            || !!this.noteData.peerSupportSignedDate
+            || !!this.noteData.peerSupportSignedBy
+        );
+    }
+
     get showCarePlanDetails() {
-        if (!this.isInterview) {
+        if (!this.isTreatmentPlanInterview) {
             return false;
         }
         return !!(
@@ -192,19 +284,7 @@ export default class NoteDetailDisplay extends LightningElement {
 
     formatDateOnly(value, options) {
         if (!value) return null;
-        if (typeof value === 'string') {
-            const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-            if (match) {
-                const year = Number(match[1]);
-                const month = Number(match[2]) - 1;
-                const day = Number(match[3]);
-                return new Date(year, month, day).toLocaleDateString('en-US', options);
-            }
-        }
-
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return null;
-        return date.toLocaleDateString('en-US', options);
+        return formatDateOnlyMountain(value, options);
     }
 
     get carePlanConsentParticipatedDisplay() {

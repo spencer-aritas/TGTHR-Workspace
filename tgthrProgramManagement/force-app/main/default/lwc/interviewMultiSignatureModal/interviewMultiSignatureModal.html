@@ -1,0 +1,359 @@
+<template>
+    <template if:true={isOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-modal="true" aria-labelledby="modal-heading">
+            <div class="slds-modal__container">
+
+                <!-- Header — green theme matching note signature modal -->
+                <header class="slds-modal__header slds-theme_success">
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        class="slds-modal__close"
+                        onclick={handleCancel}>
+                    </lightning-button-icon>
+                    <h2 id="modal-heading" class="slds-text-heading_medium slds-hyphenate">
+                        <lightning-icon icon-name="utility:edit" size="small" class="slds-m-right_small"></lightning-icon>
+                        Review &amp; Sign Treatment Plan
+                    </h2>
+                </header>
+
+                <!-- Body -->
+                <div class="slds-modal__content slds-p-around_medium" style="max-height: 70vh; overflow-y: auto;">
+                    <template if:true={isLoading}>
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </template>
+
+                    <template if:false={isLoading}>
+
+                        <!-- Participant Info -->
+                        <div class="slds-box slds-theme_default slds-m-bottom_medium client-header" style="border-left: 4px solid #2e844a;">
+                            <div class="slds-grid slds-wrap slds-gutters_small">
+                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_x-small">
+                                    <span class="slds-text-title_caps slds-text-color_weak">Participant</span>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                                    <div class="slds-grid slds-grid_vertical-align-center">
+                                        <lightning-icon icon-name="standard:individual" size="small" class="slds-m-right_small"></lightning-icon>
+                                        <p class="slds-text-heading_small">{interviewData.clientName}</p>
+                                    </div>
+                                </div>
+                                <template if:true={interviewData.caseNumber}>
+                                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                                        <span class="slds-text-title_caps slds-text-color_weak">Case #</span>
+                                        <p class="slds-text-body_regular slds-text-link" onclick={handleViewCase} style="cursor: pointer;">{interviewData.caseNumber}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Amendment Notice: shown when this Treatment Plan will supersede an active plan outside the review window -->
+                        <template if:true={interviewData.isAmendment}>
+                            <div class="slds-box slds-m-bottom_medium amendment-notice">
+                                <div class="slds-grid slds-grid_vertical-align-start">
+                                    <lightning-icon icon-name="utility:warning" size="small" class="slds-m-right_small slds-flex-item slds-growth-none"></lightning-icon>
+                                    <div class="slds-col">
+                                        <p class="slds-text-heading_small slds-m-bottom_xx-small amendment-notice__title">You Are Amending an Active Treatment Plan</p>
+                                        <p class="slds-text-body_small">A Treatment Plan is already active for this participant and is not within the scheduled review window. Once all signatures are collected, this document will become the new active plan and will be recorded as an <strong>Amendment</strong> in the participant&#x2019;s chart.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Document Metadata -->
+                        <div class="slds-box slds-theme_shade slds-m-bottom_medium">
+                            <div class="slds-grid slds-wrap slds-gutters_small">
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                    <span class="slds-text-title_caps">Document</span>
+                                    <p class="slds-text-body_regular">{interviewData.name}</p>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
+                                    <span class="slds-text-title_caps">Date</span>
+                                    <p class="slds-text-body_regular">{formattedStartDate}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Document Preview -->
+                        <template if:true={interviewData.documentId}>
+                            <div class="slds-m-bottom_medium">
+                                <div class="slds-grid slds-grid_vertical-align-center">
+                                    <lightning-icon icon-name="doctype:word" size="small" class="slds-m-right_small"></lightning-icon>
+                                    <span class="slds-text-heading_small">{documentTitle}</span>
+                                    <lightning-button
+                                        label="View Document"
+                                        variant="base"
+                                        icon-name="utility:new_window"
+                                        class="slds-m-left_small"
+                                        onclick={handleViewDocument}>
+                                    </lightning-button>
+                                    <lightning-button
+                                        label="Download PDF"
+                                        variant="base"
+                                        icon-name="utility:download"
+                                        class="slds-m-left_x-small"
+                                        onclick={handleDownloadDocument}>
+                                    </lightning-button>
+                                    <template if:true={showWordDownload}>
+                                        <lightning-button
+                                            label="Download in Word"
+                                            variant="base"
+                                            icon-name="utility:file"
+                                            class="slds-m-left_x-small"
+                                            onclick={handleDownloadWordDocument}>
+                                        </lightning-button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Active Care Plan Goals -->
+                        <div class="slds-m-bottom_large">
+                            <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                <lightning-icon icon-name="utility:goals" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                Active Care Plan Goals
+                            </h3>
+                            <template if:true={hasAnyGoals}>
+                                <div class="slds-box slds-box_x-small content-box">
+                                    <ul class="slds-list_dotted">
+                                        <template for:each={allGoals} for:item="goal">
+                                            <li key={goal.id} class="slds-text-body_small slds-m-bottom_x-small">
+                                                <strong>{goal.goalName}</strong>
+                                                <template if:true={goal.serviceModality}>
+                                                    <span class="slds-badge slds-m-left_x-small">{goal.serviceModality}</span>
+                                                </template>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </template>
+                            <template if:false={hasAnyGoals}>
+                                <div class="slds-box slds-box_x-small slds-theme_shade">
+                                    <p class="slds-text-body_small slds-text-color_weak">
+                                        <lightning-icon icon-name="utility:info" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        No active care plan goals found for this participant.
+                                    </p>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Care Plan Summary -->
+                        <template if:true={interviewData.showCarePlanConsent}>
+                            <div class="slds-m-bottom_large">
+                                <h3 class="slds-text-heading_small slds-m-bottom_x-small">
+                                    <lightning-icon icon-name="utility:checkin" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                    Care Plan Details
+                                </h3>
+                                <div class="slds-box slds-box_x-small slds-theme_shade content-box">
+                                    <div class="slds-grid slds-wrap slds-gutters_small">
+                                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                            <p class="slds-text-title_caps">Next Review Date</p>
+                                            <p class="slds-text-body_small">{interviewData.carePlanNextReviewDate}</p>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                            <p class="slds-text-title_caps">Expected Discharge Date</p>
+                                            <p class="slds-text-body_small">{interviewData.carePlanDischargeDate}</p>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-1">
+                                            <p class="slds-text-title_caps">Discharge Plan</p>
+                                            <p class="slds-text-body_small">{interviewData.carePlanDischargePlan}</p>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                            <p class="slds-text-body_small">
+                                                Participated in plan:
+                                                <strong>{carePlanConsentParticipatedLabel}</strong>
+                                            </p>
+                                        </div>
+                                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                            <p class="slds-text-body_small">
+                                                Offered copy:
+                                                <strong>{carePlanConsentOfferedLabel}</strong>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Clinician Signature -->
+                        <template if:true={showClinicianSection}>
+                            <div class="slds-m-bottom_medium">
+                                <div class="slds-box slds-theme_default" style="border-left: 4px solid #2e844a;">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">
+                                        <lightning-icon icon-name="utility:edit" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Clinician Signature
+                                    </h3>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
+                                        Assigned to: <strong>{clinicianAssignedToName}</strong>
+                                    </p>
+
+                                    <!-- Already signed -->
+                                    <template if:true={clinicianAlreadySigned}>
+                                        <div class="slds-text-color_success">
+                                            <lightning-icon icon-name="utility:success" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                            <strong>Signed</strong> on {clinicianSignedDate}
+                                        </div>
+                                    </template>
+
+                                    <!-- Signature pad (controls hidden — Submit button saves programmatically) -->
+                                    <template if:true={showClinicianSignaturePad}>
+                                        <c-signature-pad
+                                            title="Clinician Signature — Draw below then click Submit"
+                                            record-id={recordId}
+                                            data-role="clinician"
+                                            filename={clinicianSignatureFilename}
+                                            hide-controls>
+                                        </c-signature-pad>
+                                    </template>
+
+                                    <!-- Waiting for another user -->
+                                    <template if:false={showClinicianSignaturePad}>
+                                        <template if:false={clinicianAlreadySigned}>
+                                            <p class="slds-text-color_weak slds-text-body_small">
+                                                Waiting for {clinicianAssignedToName} to sign
+                                            </p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Case Manager Signature -->
+                        <template if:true={showCaseManagerSection}>
+                            <div class="slds-m-bottom_medium">
+                                <div class="slds-box slds-theme_default" style="border-left: 4px solid #0176d3;">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">
+                                        <lightning-icon icon-name="utility:user" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Case Manager Signature
+                                    </h3>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
+                                        Assigned to: <strong>{caseManagerAssignedToName}</strong>
+                                    </p>
+
+                                    <!-- Case Management Goals for this signer -->
+                                    <template if:true={hasCaseManagerGoals}>
+                                        <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_medium">
+                                            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                                                <strong>Case Management Goals being acknowledged:</strong>
+                                            </p>
+                                            <ul class="slds-list_dotted">
+                                                <template for:each={caseManagerGoals} for:item="goal">
+                                                    <li key={goal.id} class="slds-text-body_small">{goal.goalName}</li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+
+                                    <!-- Already signed -->
+                                    <template if:true={caseManagerAlreadySigned}>
+                                        <div class="slds-text-color_success">
+                                            <lightning-icon icon-name="utility:success" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                            <strong>Signed</strong> on {caseManagerSignedDate}
+                                        </div>
+                                    </template>
+
+                                    <!-- Signature pad (controls hidden — Submit button saves programmatically) -->
+                                    <template if:true={showCaseManagerSignaturePad}>
+                                        <c-signature-pad
+                                            title="Case Manager Signature — Draw below then click Submit"
+                                            record-id={recordId}
+                                            data-role="casemanager"
+                                            filename={caseManagerSignatureFilename}
+                                            hide-controls>
+                                        </c-signature-pad>
+                                    </template>
+
+                                    <!-- Waiting for another user -->
+                                    <template if:false={showCaseManagerSignaturePad}>
+                                        <template if:false={caseManagerAlreadySigned}>
+                                            <p class="slds-text-color_weak slds-text-body_small">
+                                                Waiting for {caseManagerAssignedToName} to sign
+                                            </p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Peer Support Signature -->
+                        <template if:true={showPeerSupportSection}>
+                            <div class="slds-m-bottom_medium">
+                                <div class="slds-box slds-theme_default" style="border-left: 4px solid #0176d3;">
+                                    <h3 class="slds-text-heading_small slds-m-bottom_small">
+                                        <lightning-icon icon-name="utility:user" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        Peer Support Signature
+                                    </h3>
+                                    <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
+                                        Assigned to: <strong>{peerSupportAssignedToName}</strong>
+                                    </p>
+
+                                    <!-- Peer Support Goals for this signer -->
+                                    <template if:true={hasPeerSupportGoals}>
+                                        <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_medium">
+                                            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
+                                                <strong>Peer Support Goals being acknowledged:</strong>
+                                            </p>
+                                            <ul class="slds-list_dotted">
+                                                <template for:each={peerSupportGoals} for:item="goal">
+                                                    <li key={goal.id} class="slds-text-body_small">{goal.goalName}</li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+
+                                    <!-- Already signed -->
+                                    <template if:true={peerSupportAlreadySigned}>
+                                        <div class="slds-text-color_success">
+                                            <lightning-icon icon-name="utility:success" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                            <strong>Signed</strong> on {peerSupportSignedDate}
+                                        </div>
+                                    </template>
+
+                                    <!-- Signature pad (controls hidden — Submit button saves programmatically) -->
+                                    <template if:true={showPeerSupportSignaturePad}>
+                                        <c-signature-pad
+                                            title="Peer Support Signature — Draw below then click Submit"
+                                            record-id={recordId}
+                                            data-role="peersupport"
+                                            filename={peerSupportSignatureFilename}
+                                            hide-controls>
+                                        </c-signature-pad>
+                                    </template>
+
+                                    <!-- Waiting for another user -->
+                                    <template if:false={showPeerSupportSignaturePad}>
+                                        <template if:false={peerSupportAlreadySigned}>
+                                            <p class="slds-text-color_weak slds-text-body_small">
+                                                Waiting for {peerSupportAssignedToName} to sign
+                                            </p>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                    </template>
+                </div>
+
+                <!-- Footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        onclick={handleCancel}
+                        disabled={isProcessing}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <lightning-button
+                        label="Submit Signatures"
+                        variant="brand"
+                        icon-name="utility:check"
+                        onclick={handleSubmit}
+                        loading={isProcessing}
+                        disabled={submitButtonDisabled}>
+                    </lightning-button>
+                </footer>
+
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

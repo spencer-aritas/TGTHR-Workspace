@@ -21,6 +21,9 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public String noteType; // Type of note: 'Clinical', 'Peer', or 'Case'
         @AuraEnabled public List<DiagnosisInput> diagnoses; // ICD-10 diagnoses selected in the note
         @AuraEnabled public List<String> selectedCptCodes; // List of CPT code strings selected by user for billing
+        @AuraEnabled public Boolean markCompleted; // True when no co-sign needed — sets Status = 'Completed' immediately
+        @AuraEnabled public Boolean requestManagerCoSign;
+        @AuraEnabled public Id managerApproverId;
     }
 
     /**
@@ -66,6 +69,44 @@ public with sharing class ClinicalNoteController {
         @AuraEnabled public Boolean success;
         @AuraEnabled public Id interactionSummaryId;
         @AuraEnabled public String errorMessage;
+        @AuraEnabled public Boolean requiresManagerApproval;
+        @AuraEnabled public Boolean managerApprovalForced;
+    }
+
+    private static String normalizeDiagnosisCode(String code) {
+        return String.isBlank(code) ? null : code.trim();
+    }
+
+    private static String normalizeDiagnosisDescription(String code, String description) {
+        String cleanDescription = String.isBlank(description) ? null : description.trim();
+        String cleanCode = normalizeDiagnosisCode(code);
+
+        if (String.isBlank(cleanDescription)) {
+            return cleanDescription;
+        }
+
+        if (String.isNotBlank(cleanCode)) {
+            String codeLower = cleanCode.toLowerCase();
+            String descLower = cleanDescription.toLowerCase();
+
+            String leadingToken = codeLower + ' - ';
+            if (descLower.startsWith(leadingToken) && cleanDescription.length() > leadingToken.length()) {
+                cleanDescription = cleanDescription.substring(leadingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            String trailingToken = ' - ' + codeLower;
+            if (descLower.endsWith(trailingToken) && cleanDescription.length() > trailingToken.length()) {
+                cleanDescription = cleanDescription.substring(0, cleanDescription.length() - trailingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            if (descLower == codeLower) {
+                return null;
+            }
+        }
+
+        return cleanDescription.replaceAll('\\s+', ' ');
     }
 
     /**
@@ -97,7 +138,7 @@ public with sharing class ClinicalNoteController {
         String query = 'SELECT Id, Date_of_Interaction__c, Start_Time__c, End_Time__c, ' +
                        'Interpreter_Used__c, POS__c, MeetingNotes, Description_of_Services__c, ' +
                        'Response_and_Progress__c, Plan__c, ' +
-                       'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, Manager_Rejected__c ' +
+                       'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, Manager_Rejected__c, Status ' +
                        'FROM InteractionSummary WHERE Id = :interactionId';
                        
         List<SObject> records = Database.query(query);
@@ -126,6 +167,7 @@ public with sharing class ClinicalNoteController {
         noteData.put('managerApproverId', note.get('Manager_Approver__c'));
         noteData.put('managerApproverName', note.getSObject('Manager_Approver__r')?.get('Name'));
         noteData.put('wasRejected', note.get('Manager_Rejected__c'));
+        noteData.put('status', note.get('Status'));
         
         // Load Goal Details
         List<SObject> goalDetails = [
@@ -159,6 +201,9 @@ public with sharing class ClinicalNoteController {
                 for (SObject link : Database.query(linkQuery)) {
                     diagnosisIds.add((Id)link.get('Diagnosis__c'));
                 }
+                if (diagnosisIds.isEmpty()) {
+                    System.debug('ClinicalNoteController: no Diagnosis_Note_Link__c rows found for InteractionSummary ' + interactionId + '; checking legacy direct lookup fallback.');
+                }
             }
             
             // If junction records exist, query the diagnoses
@@ -177,6 +222,9 @@ public with sharing class ClinicalNoteController {
                     FROM Diagnosis__c 
                     WHERE Interaction_Summary__c = :interactionId
                 ];
+                if (!diagnoses.isEmpty()) {
+                    System.debug('ClinicalNoteController: loaded ' + diagnoses.size() + ' diagnoses via legacy Interaction_Summary__c fallback for InteractionSummary ' + interactionId);
+                }
             }
         } catch (Exception e) {
             System.debug('Error retrieving diagnoses: ' + e.getMessage());
@@ -188,9 +236,11 @@ public with sharing class ClinicalNoteController {
         List<Map<String, Object>> diagnosisList = new List<Map<String, Object>>();
         for (Diagnosis__c d : diagnoses) {
             Map<String, Object> diagData = new Map<String, Object>();
+            String normalizedCode = normalizeDiagnosisCode(d.ICD10Code__c);
+            String normalizedDescription = normalizeDiagnosisDescription(normalizedCode, d.Description__c);
             diagData.put('id', d.Id);
-            diagData.put('code', d.ICD10Code__c);
-            diagData.put('description', d.Description__c);
+            diagData.put('code', normalizedCode);
+            diagData.put('description', normalizedDescription);
             diagData.put('status', d.Status__c);
             diagData.put('notes', d.Notes__c);
             diagData.put('isPrimary', d.Primary__c);
@@ -230,20 +280,53 @@ public with sharing class ClinicalNoteController {
         
         // Load CPT Codes via Interaction_Service_Line__c records
         List<String> selectedCptCodes = new List<String>();
+        List<Map<String, Object>> cptCodes = new List<Map<String, Object>>();
         try {
-            String serviceLineQuery = 'SELECT Service_Code__c FROM Interaction_Service_Line__c WHERE Interaction_Summary__c = :interactionId';
+            Map<String, Schema.SObjectField> serviceLineFields = Schema.getGlobalDescribe().get('Interaction_Service_Line__c').getDescribe().fields.getMap();
+            List<String> selectFields = new List<String>{ 'Service_Code__c' };
+            if (serviceLineFields.containsKey('modifier_1__c')) {
+                selectFields.add('Modifier_1__c');
+            }
+            if (serviceLineFields.containsKey('modifier_2__c')) {
+                selectFields.add('Modifier_2__c');
+            }
+            if (serviceLineFields.containsKey('duration_minutes__c')) {
+                selectFields.add('Duration_Minutes__c');
+            }
+            if (serviceLineFields.containsKey('units__c')) {
+                selectFields.add('Units__c');
+            }
+            if (serviceLineFields.containsKey('billing_status__c')) {
+                selectFields.add('Billing_Status__c');
+            }
+
+            String serviceLineQuery = 'SELECT ' + String.join(selectFields, ', ') + ' FROM Interaction_Service_Line__c WHERE Interaction_Summary__c = :interactionId';
             List<SObject> serviceLines = Database.query(serviceLineQuery);
             for (SObject sl : serviceLines) {
                 String code = (String)sl.get('Service_Code__c');
-                if (String.isNotBlank(code) && !selectedCptCodes.contains(code)) {
+                if (String.isBlank(code)) {
+                    continue;
+                }
+
+                if (!selectedCptCodes.contains(code)) {
                     selectedCptCodes.add(code);
                 }
+
+                cptCodes.add(new Map<String, Object>{
+                    'code' => code,
+                    'modifier1' => serviceLineFields.containsKey('modifier_1__c') ? sl.get('Modifier_1__c') : null,
+                    'modifier2' => serviceLineFields.containsKey('modifier_2__c') ? sl.get('Modifier_2__c') : null,
+                    'durationMinutes' => serviceLineFields.containsKey('duration_minutes__c') ? sl.get('Duration_Minutes__c') : null,
+                    'units' => serviceLineFields.containsKey('units__c') ? sl.get('Units__c') : null,
+                    'status' => serviceLineFields.containsKey('billing_status__c') ? sl.get('Billing_Status__c') : null
+                });
             }
             System.debug('Found ' + selectedCptCodes.size() + ' unique CPT codes for interaction ' + interactionId);
         } catch (Exception e) {
             System.debug('Error loading CPT codes: ' + e.getMessage());
         }
         noteData.put('selectedCptCodes', selectedCptCodes);
+        noteData.put('cptCodes', cptCodes);
 
         return noteData;
     }
@@ -617,10 +700,12 @@ public with sharing class ClinicalNoteController {
                 }
 
                 Map<String, String> dto = new Map<String, String>();
+                String normalizedCode = normalizeDiagnosisCode(code);
+                String normalizedDescription = normalizeDiagnosisDescription(normalizedCode, description);
                 dto.put('Id', (String)diag.get('Id'));
-                dto.put('ICD10Code__c', code);
+                dto.put('ICD10Code__c', normalizedCode);
                 dto.put('Name', name); 
-                dto.put('description', description); // Pass description to UI
+                dto.put('description', normalizedDescription); // Pass normalized description to UI
 
                 if (selectFields.contains('Status__c')) dto.put('Status__c', (String)diag.get('Status__c'));
                 if (selectFields.contains('Type__c')) dto.put('DiagnosisType__c', (String)diag.get('Type__c'));
@@ -775,8 +860,9 @@ public with sharing class ClinicalNoteController {
      */
     private static List<ServiceLineConfig> getCptCodesForNoteType(String noteType) {
         List<ServiceLineConfig> configs = new List<ServiceLineConfig>();
+        String normalizedNoteType = normalizeCptNoteType(noteType);
         
-        if (noteType == 'Clinical') {
+        if (normalizedNoteType == 'Clinical') {
             configs.add(new ServiceLineConfig('90791', null, null, 'Intake w/o Medical Services'));
             configs.add(new ServiceLineConfig('90832', null, null, 'Individual Psychotherapy 30 min'));
             configs.add(new ServiceLineConfig('90834', null, null, 'Individual Psychotherapy 45 min'));
@@ -790,10 +876,10 @@ public with sharing class ClinicalNoteController {
             configs.add(new ServiceLineConfig('H0023', null, null, 'BH Outreach'));
             configs.add(new ServiceLineConfig('H2011', null, null, 'Crisis Services'));
             configs.add(new ServiceLineConfig('T1017', 'U2', null, 'Targeted Case Management'));
-        } else if (noteType == 'Comp Assess') {
+        } else if (normalizedNoteType == 'Comp Assess') {
             configs.add(new ServiceLineConfig('90791', null, null, 'Intake w/o Medical Services'));
             configs.add(new ServiceLineConfig('H0002', null, null, 'BH Screening'));
-        } else if (noteType == 'Peer' || noteType == 'Case Management') {
+        } else if (normalizedNoteType == 'Peer' || normalizedNoteType == 'Case Management') {
             // For Peer/Case Management notes:
             // - Modifier 1 (U2) is auto-derived (peer-provided service)
             // - Modifier 2 (UA/UB) is auto-derived from program (see createInteractionServiceLines)
@@ -964,6 +1050,9 @@ public with sharing class ClinicalNoteController {
                 request.noteType = 'Clinical';
             }
 
+            Map<String, Schema.SObjectField> noteFields = Schema.getGlobalDescribe()
+                .get('InteractionSummary').getDescribe().fields.getMap();
+
             Date interactionDate = request.interactionDate != null
                 ? Date.valueOf(request.interactionDate)
                 : Date.today();
@@ -978,11 +1067,25 @@ public with sharing class ClinicalNoteController {
 
             Datetime startDateTime = Datetime.newInstance(interactionDate, startTime);
             Datetime endDateTime = Datetime.newInstance(interactionDate, endTime);
+            Datetime authorCompletedAt = Datetime.now();
+            Boolean managerApprovalForced = DocumentationDeadlineService.requiresManagerEscalationForLateEntry(startDateTime, authorCompletedAt);
+            Boolean shouldRequireManagerApproval = request.requestManagerCoSign == true || managerApprovalForced;
             if (endDateTime.getTime() <= startDateTime.getTime()) {
                 result.success = false;
                 result.errorMessage = 'End Time must be after Start Time.';
                 return result;
             }
+
+            if (shouldRequireManagerApproval && request.managerApproverId == null) {
+                result.success = false;
+                result.errorMessage = managerApprovalForced
+                    ? 'This note was entered outside the 72-hour reporting window. Select a Signing Authority approver to route the required manager co-sign.'
+                    : 'Please select an approver from the Signing Authority list.';
+                return result;
+            }
+
+            result.requiresManagerApproval = shouldRequireManagerApproval;
+            result.managerApprovalForced = managerApprovalForced;
 
             Id accountId = request.accountId;
             if (accountId == null) {
@@ -1001,14 +1104,19 @@ public with sharing class ClinicalNoteController {
 
             SObject summary;
             Boolean isUpdate = false;
+            Boolean shouldAuditResubmissionRouting = false;
+            String resubmissionAuditDetails;
 
             // CHECK FOR UPDATE / AMENDMENT
             if (request.interactionSummaryId != null) {
                 isUpdate = true;
                 String query = 'SELECT Id, Name, Manager_Rejected__c, Manager_Signed__c, Amendment_Count__c, Requires_Manager_Approval__c, ' + 
                                'Action_Required__c, Action_Assigned_To__c, Action_Escalated_By__c, Action_Notes__c, ' +
-                               'Manager_Approver__c, RelatedRecordId ' +
-                               'FROM InteractionSummary WHERE Id = \'' + request.interactionSummaryId + '\' LIMIT 1';
+                               'Manager_Approver__c, RelatedRecordId, Status';
+                if (noteFields.containsKey('Signed_By_Name__c')) {
+                    query += ', Signed_By_Name__c';
+                }
+                query += ' FROM InteractionSummary WHERE Id = \'' + request.interactionSummaryId + '\' LIMIT 1';
                 List<SObject> existing = Database.query(query);
                 
                 if (existing.isEmpty()) {
@@ -1032,7 +1140,7 @@ public with sharing class ClinicalNoteController {
                     summary.put('Manager_Rejection_Reason__c', null);
                     summary.put('Requires_Manager_Approval__c', true); // Resuming approval workflow
                     summary.put('Manager_Signed__c', false);
-                    summary.put('Status', 'Published'); // Reset status from Completed to Published so it appears in Pending lists
+                    summary.put('Status', DocumentStatus.NOTE_PENDING); // Reset to pending-approval queue
                     
                     // Track Amendment
                     Decimal currentCount = (Decimal)summary.get('Amendment_Count__c');
@@ -1060,10 +1168,13 @@ public with sharing class ClinicalNoteController {
                             System.debug('⚠️ Non-fatal: Failed to send re-approval notification: ' + notifEx.getMessage());
                         }
                     }
+
+                    shouldAuditResubmissionRouting = true;
+                    resubmissionAuditDetails = 'Rejected note amended and re-routed for manager co-sign. PreservedApproverId=' + String.valueOf(managerId);
                 }
                 
                 // Update specific fields (re-map input)
-                String noteLabel = request.noteType + ' Note';
+                String noteLabel = normalizeNotePurpose(request.noteType);
                 summary.put('Name', noteLabel + ' - ' + interactionDate.format());
                 summary.put('Date_of_Interaction__c', interactionDate);
                 summary.put('InteractionPurpose', noteLabel);
@@ -1084,11 +1195,97 @@ public with sharing class ClinicalNoteController {
                     System.debug('Error clearing old goal details: ' + ex.getMessage());
                 }
 
+                // Recalled note re-submission: author is re-signing a note whose signatures were cleared.
+                // Re-sign and re-route to the preserved manager approver (if any) — same policy as the original submission.
+                Boolean isRecalledResubmit = summary.get('Status') == DocumentStatus.NOTE_RECALLED;
+
+                if (isRecalledResubmit) {
+                    // Clear recall action assignment once the author is re-submitting.
+                    putIfFieldExists(summary, 'Action_Required__c', false);
+                    putIfFieldExists(summary, 'Action_Assigned_To__c', null);
+                    putIfFieldExists(summary, 'Action_Escalated_By__c', null);
+                    putIfFieldExists(summary, 'Action_Notes__c', null);
+
+                    // Re-apply the original signature routing if a manager was involved.
+                    if (summary.get('Manager_Approver__c') != null) {
+                        summary.put('Requires_Manager_Approval__c', true);
+                        summary.put('Manager_Signed__c', false);
+                        summary.put('Status', DocumentStatus.NOTE_PENDING); // Re-enter the pending-approvals queue
+
+                        // Notify the preserved approver
+                        Id managerId = (Id)summary.get('Manager_Approver__c');
+                        Id caseId   = (Id)summary.get('RelatedRecordId');
+                        String noteName = (String)summary.get('Name');
+                        if (managerId != null && caseId != null) {
+                            try {
+                                PendingDocNotificationService.notifyApproverOfCoSignRequest(
+                                    managerId, caseId, noteName, (Id)summary.get('Id'), 'Interaction'
+                                );
+                            } catch (Exception notifEx) {
+                                System.debug('\u26a0\ufe0f Non-fatal: re-routing notification failed: ' + notifEx.getMessage());
+                            }
+                        }
+
+                        shouldAuditResubmissionRouting = true;
+                        resubmissionAuditDetails = 'Recalled note resubmitted and re-routed to preserved manager approver. PreservedApproverId=' + String.valueOf(managerId);
+                    } else {
+                        // No manager was involved, so just complete it.
+                        summary.put('Status', DocumentStatus.NOTE_COMPLETED);
+                        putIfFieldExists(summary, 'Completed_On__c', DateTime.now());
+
+                        shouldAuditResubmissionRouting = true;
+                        resubmissionAuditDetails = 'Recalled note resubmitted with original non-manager signing policy restored.';
+                    }
+                } else if (isRejected) {
+                    // A rejected note is being resubmitted by the author.
+                    summary.put('Requires_Manager_Approval__c', true);
+                    summary.put('Manager_Signed__c', false);
+                    summary.put('Manager_Rejected__c', false);
+                    summary.put('Manager_Rejection_Reason__c', null);
+                    summary.put('Status', DocumentStatus.NOTE_PENDING); // Re-enter the pending-approvals queue
+                    // Notify the preserved approver
+                    Id managerId = (Id)summary.get('Manager_Approver__c');
+                    Id caseId   = (Id)summary.get('RelatedRecordId');
+                    String noteName = (String)summary.get('Name');
+                    if (managerId != null && caseId != null) {
+                        try {
+                            PendingDocNotificationService.notifyApproverOfCoSignRequest(
+                                managerId, caseId, noteName, (Id)summary.get('Id'), 'Interaction'
+                            );
+                        } catch (Exception notifEx) {
+                            System.debug('\u26a0\ufe0f Non-fatal: re-routing notification failed: ' + notifEx.getMessage());
+                        }
+                    }
+
+                    shouldAuditResubmissionRouting = true;
+                    resubmissionAuditDetails = 'Rejected note resubmitted and routed back to preserved manager approver. PreservedApproverId=' + String.valueOf(managerId);
+                }
+
+                if (shouldRequireManagerApproval && !isRecalledResubmit && !isRejected) {
+                    stampManagerApprovalRouting(summary, request.managerApproverId, DocumentStatus.NOTE_PENDING);
+                }
+
+                // Mark completed immediately when no co-sign is needed (update path).
+                // This applies to notes that are not recalled and not rejected.
+                if (!isRecalledResubmit && !isRejected && shouldRequireManagerApproval != true && request.markCompleted == true) {
+                    // Server-side safety: only mark Completed when shared lifecycle says all required signatures are present.
+                    if (NoteSignatureLifecycleService.isFullySigned(summary, noteFields)) {
+                        summary.put('Status', DocumentStatus.NOTE_COMPLETED);
+                        putIfFieldExists(summary, 'Completed_On__c', authorCompletedAt);
+                    }
+                }
+
+                // Always re-sign on update, as the user is explicitly saving changes.
+                putIfFieldExists(summary, 'Signed_By__c', UserInfo.getUserId());
+                putIfFieldExists(summary, 'Signed_By_Name__c', UserInfo.getName());
+                putIfFieldExists(summary, 'Signed_Date__c', Date.today());
+                preserveAuthorCompletedOn(summary, authorCompletedAt);
+
                 update summary;
-                
+
             } else {
                 // INSERT NEW
-                String noteLabel = request.noteType + ' Note';
+                String noteLabel = normalizeNotePurpose(request.noteType);
                 summary = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
                 summary.put('AccountId', accountId);
                 summary.put('RelatedRecordId', request.caseId);
@@ -1107,8 +1304,28 @@ public with sharing class ClinicalNoteController {
                 putIfFieldExists(summary, 'Signed_By__c', UserInfo.getUserId());
                 putIfFieldExists(summary, 'Signed_By_Name__c', UserInfo.getName());
                 putIfFieldExists(summary, 'Signed_Date__c', Date.today());
+                preserveAuthorCompletedOn(summary, authorCompletedAt);
+                
+                if (shouldRequireManagerApproval) {
+                    stampManagerApprovalRouting(summary, request.managerApproverId, DocumentStatus.NOTE_PENDING);
+                } else if (request.markCompleted == true && NoteSignatureLifecycleService.isFullySigned(summary, noteFields)) {
+                    summary.put('Status', DocumentStatus.NOTE_COMPLETED);
+                    putIfFieldExists(summary, 'Completed_On__c', authorCompletedAt);
+                }
 
                 insert summary;
+            }
+
+            if (managerApprovalForced) {
+                logComplianceAudit(
+                    'LATE_ENTRY_MANAGER_CO_SIGN',
+                    summary.Id,
+                    'InteractionSummary',
+                    'Late-entry note submitted outside the 72-hour reporting window; manager co-sign required. NoteType=' + normalizeNotePurpose(request.noteType) + ', ServiceDateTime=' + String.valueOf(startDateTime) + ', ApproverId=' + String.valueOf(request.managerApproverId)
+                );
+            }
+            if (shouldAuditResubmissionRouting) {
+                logComplianceAudit('RESUBMISSION_REROUTED', summary.Id, 'InteractionSummary', resubmissionAuditDetails);
             }
 
             // Create Interaction Service Line records for selected CPT codes only
@@ -1172,7 +1389,27 @@ public with sharing class ClinicalNoteController {
             // Handle diagnoses: create/update and link via junction object
             // NOTE: Removed legacy delete logic that wiped out diagnoses linked via Interaction_Summary__c
             if (request.diagnoses != null && !request.diagnoses.isEmpty()) {
-                createDiagnoses(accountId, request.diagnoses, summary.Id);
+                List<DiagnosisInput> diagnosesToProcess = request.diagnoses;
+                String normalizedDiagnosisNoteType = normalizeCptNoteType(request.noteType);
+
+                if (normalizedDiagnosisNoteType == 'Peer' || normalizedDiagnosisNoteType == 'Case Management') {
+                    List<DiagnosisInput> existingOnlyDiagnoses = new List<DiagnosisInput>();
+                    for (DiagnosisInput diagnosis : diagnosesToProcess) {
+                        if (diagnosis != null && String.isNotBlank(diagnosis.id)) {
+                            existingOnlyDiagnoses.add(diagnosis);
+                        }
+                    }
+
+                    if (existingOnlyDiagnoses.size() != diagnosesToProcess.size()) {
+                        System.debug('Skipping new diagnosis creation for ' + normalizedDiagnosisNoteType + ' note type. Only existing diagnoses can be linked.');
+                    }
+
+                    diagnosesToProcess = existingOnlyDiagnoses;
+                }
+
+                if (!diagnosesToProcess.isEmpty()) {
+                    createDiagnoses(accountId, diagnosesToProcess, summary.Id);
+                }
             }
 
             System.debug('>>> Checking SSRS Assessment ID: ' + request.ssrsAssessmentId);
@@ -1219,6 +1456,86 @@ public with sharing class ClinicalNoteController {
             return result;
         }
     }
+
+    /**
+     * Normalize note type values to canonical InteractionPurpose labels.
+     * This avoids drift such as "Case Management" vs "Case Note".
+     */
+    private static String normalizeNotePurpose(String noteType) {
+        String nt = String.isBlank(noteType) ? '' : noteType.trim();
+        String lower = nt.toLowerCase();
+
+        if (lower == 'clinical' || lower == 'clinical note') {
+            return 'Clinical Note';
+        }
+        if (lower == 'peer' || lower == 'peer note') {
+            return 'Peer Note';
+        }
+        if (lower == 'case' || lower == 'case note' || lower == 'case notes' || lower == 'case management' || lower == 'case management note') {
+            return 'Case Note';
+        }
+
+        if (nt.endsWith(' Note')) {
+            return nt;
+        }
+        if (String.isBlank(nt)) {
+            return 'Clinical Note';
+        }
+        return nt + ' Note';
+    }
+
+    private static String normalizeCptNoteType(String noteType) {
+        String nt = String.isBlank(noteType) ? '' : noteType.trim();
+        String lower = nt.toLowerCase();
+
+        if (lower == 'clinical' || lower == 'clinical note') {
+            return 'Clinical';
+        }
+        if (lower == 'peer' || lower == 'peer note') {
+            return 'Peer';
+        }
+        if (lower == 'case' || lower == 'case note' || lower == 'case notes' || lower == 'case management' || lower == 'case management note') {
+            return 'Case Management';
+        }
+        if (lower == 'comp assess' || lower == 'comprehensive assessment' || lower == 'comprehensive clinical assessment') {
+            return 'Comp Assess';
+        }
+
+        return nt;
+    }
+
+    private static void stampManagerApprovalRouting(SObject summary, Id approverId, String pendingStatus) {
+        if (summary == null) {
+            return;
+        }
+
+        putIfFieldExists(summary, 'Requires_Manager_Approval__c', true);
+        putIfFieldExists(summary, 'Manager_Approver__c', approverId);
+        putIfFieldExists(summary, 'Manager_Signed__c', false);
+        putIfFieldExists(summary, 'Manager_Signed_Date__c', null);
+        putIfFieldExists(summary, 'Manager_Rejected__c', false);
+        putIfFieldExists(summary, 'Manager_Rejection_Reason__c', null);
+        if (String.isNotBlank(pendingStatus)) {
+            summary.put('Status', pendingStatus);
+        }
+    }
+
+    private static void preserveAuthorCompletedOn(SObject summary, Datetime authorCompletedAt) {
+        if (summary == null || authorCompletedAt == null) {
+            return;
+        }
+
+        Object existingCompletedOn = null;
+        try {
+            existingCompletedOn = summary.get('Completed_On__c');
+        } catch (Exception ex) {
+            existingCompletedOn = null;
+        }
+
+        if (existingCompletedOn == null) {
+            putIfFieldExists(summary, 'Completed_On__c', authorCompletedAt);
+        }
+    }
     /**
      * Creates an audit log entry for changes to sensitive records
      */
@@ -1240,6 +1557,18 @@ public with sharing class ClinicalNoteController {
         } catch (Exception e) {
             System.debug('Error creating audit log: ' + e.getMessage());
             // Don't fail the transaction if logging fails, but log to debug
+        }
+    }
+
+    private static void logComplianceAudit(String actionType, Id recordId, String objectType, String details) {
+        if (recordId == null || String.isBlank(actionType) || String.isBlank(objectType) || String.isBlank(details)) {
+            return;
+        }
+
+        try {
+            AuditLogService.logAction(actionType, String.valueOf(recordId), details, objectType);
+        } catch (Exception ex) {
+            System.debug('Compliance audit logging failed (non-fatal): ' + ex.getMessage());
         }
     }
 
@@ -1379,6 +1708,7 @@ public with sharing class ClinicalNoteController {
 
                  } catch (Exception insertEx) {
                      System.debug('Could not create Code__c records in system helper: ' + insertEx.getMessage());
+                     throw new AuraHandledException('Unable to create diagnosis code records: ' + insertEx.getMessage());
                  }
              }
              
@@ -1433,9 +1763,31 @@ public with sharing class ClinicalNoteController {
          * Force-set a field value in system mode, ignoring FLS.
          */
         private void forceSetField(SObject rec, String fieldName, Object value) {
-            if (value == null) return;
+            if (value == null || rec == null || String.isBlank(fieldName)) return;
             try {
-                rec.put(fieldName, value);
+                Map<String, Schema.SObjectField> fields = rec.getSObjectType().getDescribe().fields.getMap();
+                String lowerName = fieldName.toLowerCase();
+                Schema.SObjectField targetField = null;
+
+                if (fields.containsKey(lowerName)) {
+                    targetField = fields.get(lowerName);
+                } else {
+                    for (String key : fields.keySet()) {
+                        if (key.endsWith('__' + lowerName)) {
+                            targetField = fields.get(key);
+                            break;
+                        }
+                    }
+                }
+
+                if (targetField == null) return;
+
+                Schema.DescribeFieldResult dfr = targetField.getDescribe();
+                if (dfr.isCalculated() || dfr.isAutoNumber()) {
+                    return;
+                }
+
+                rec.put(dfr.getName(), value);
             } catch (Exception e) {
                 System.debug('System: Could not force-set ' + fieldName + ': ' + e.getMessage());
             }
@@ -1489,11 +1841,25 @@ public with sharing class ClinicalNoteController {
                 if (fieldMap.containsKey('status__c')) {
                     whereClause += ' AND Status__c = \'Active\'';
                 }
+
+                // Match DiagnosisSummaryController ordering so the Clinical Note
+                // selector presents the same primary/current diagnosis at the top
+                // as the Case card.
+                List<String> orderByParts = new List<String>();
+                if (fieldMap.containsKey('primary__c')) {
+                    orderByParts.add('Primary__c DESC NULLS LAST');
+                } else if (fieldMap.containsKey('primary_eligible__c')) {
+                    orderByParts.add('Primary_Eligible__c DESC NULLS LAST');
+                }
+                if (fieldMap.containsKey('onset_date__c')) {
+                    orderByParts.add('Onset_Date__c DESC NULLS LAST');
+                }
+                orderByParts.add('CreatedDate DESC');
                 
                 String query = 'SELECT ' + String.join(selectFields, ', ') +
                               ' FROM Diagnosis__c ' +
                               whereClause + 
-                              ' ORDER BY CreatedDate DESC';
+                              ' ORDER BY ' + String.join(orderByParts, ', ');
 
                 List<SObject> diagnoses = Database.query(query);
                 
@@ -1545,10 +1911,12 @@ public with sharing class ClinicalNoteController {
                     }
 
                     Map<String, String> dto = new Map<String, String>();
+                    String normalizedCode = normalizeDiagnosisCode(code);
+                    String normalizedDescription = normalizeDiagnosisDescription(normalizedCode, description);
                     dto.put('Id', (String)diag.get('Id'));
-                    dto.put('ICD10Code__c', code);
+                    dto.put('ICD10Code__c', normalizedCode);
                     dto.put('Name', name); 
-                    dto.put('description', description); // Pass description to UI
+                    dto.put('description', normalizedDescription); // Pass normalized description to UI
 
                     if (selectFields.contains('Status__c')) dto.put('Status__c', (String)diag.get('Status__c'));
                     if (selectFields.contains('Type__c')) dto.put('DiagnosisType__c', (String)diag.get('Type__c'));
@@ -1770,10 +2138,15 @@ public with sharing class ClinicalNoteController {
         Set<String> existingCodes = new Set<String>();
         if (!codesToLookup.isEmpty()) {
             try {
-                // Query existing diagnoses by Code__c formula field or via Code_Name__r.Name
-                String existingQuery = 'SELECT Id, Code__c FROM Diagnosis__c WHERE Client__c = :accountId AND Status__c = \'Active\'';
+                // Use ICD10Code__c (text field, always set on modern records) for dedup.
+                // Code__c is a formula derived from Code_Name__c lookup and is null when
+                // the lookup is blank, causing false negatives in the duplicate check.
+                String existingQuery = 'SELECT Id, ICD10Code__c, Code__c FROM Diagnosis__c WHERE Client__c = :accountId AND Status__c = \'Active\'';
                 for (SObject existing : Database.query(existingQuery)) {
-                    String existingCode = (String)existing.get('Code__c');
+                    String existingCode = (String)existing.get('ICD10Code__c');
+                    if (String.isBlank(existingCode)) {
+                        existingCode = (String)existing.get('Code__c'); // fallback to formula
+                    }
                     if (String.isNotBlank(existingCode)) {
                         existingCodes.add(existingCode.toUpperCase());
                     }
@@ -1801,6 +2174,8 @@ public with sharing class ClinicalNoteController {
         for (DiagnosisInput diag : diagnoses) {
             System.debug('*** Processing Diagnosis V2 ***');
             System.debug('Processing diagnosis - id: ' + diag.id + ', code: ' + diag.code + ', status: ' + diag.status);
+            String normalizedCode = normalizeDiagnosisCode(diag.code);
+            String normalizedDescriptionInput = normalizeDiagnosisDescription(normalizedCode, diag.description);
             
             // UPDATE EXISTING DIAGNOSIS
             if (String.isNotBlank(diag.id)) {
@@ -1822,8 +2197,8 @@ public with sharing class ClinicalNoteController {
 
             // JOIN/INSERT NEW DIAGNOSIS
             // Skip if this code already exists as ACTIVE for this client
-            if (String.isNotBlank(diag.code) && existingCodes.contains(diag.code.toUpperCase())) {
-                System.debug('⚠️ Skipping duplicate ACTIVE diagnosis code: ' + diag.code + ' (already exists for client)');
+            if (String.isNotBlank(normalizedCode) && existingCodes.contains(normalizedCode.toUpperCase())) {
+                System.debug('⚠️ Skipping duplicate ACTIVE diagnosis code: ' + normalizedCode + ' (already exists for client)');
                 continue;
             }
             
@@ -1834,22 +2209,23 @@ public with sharing class ClinicalNoteController {
             
             // Name - use "code - description" format for display (code first for sorting/lookup)
             // Fallback description from MDT if user input is empty
-            String resolvedDescription = diag.description;
-            if (String.isBlank(resolvedDescription) && String.isNotBlank(diag.code)) {
-                if (resolvedDescriptions.containsKey(diag.code)) {
-                    resolvedDescription = resolvedDescriptions.get(diag.code);
-                } else if (resolvedDescriptionsUpper.containsKey(diag.code.toUpperCase())) {
-                    resolvedDescription = resolvedDescriptionsUpper.get(diag.code.toUpperCase());
+            String resolvedDescription = normalizedDescriptionInput;
+            if (String.isBlank(resolvedDescription) && String.isNotBlank(normalizedCode)) {
+                if (resolvedDescriptions.containsKey(normalizedCode)) {
+                    resolvedDescription = resolvedDescriptions.get(normalizedCode);
+                } else if (resolvedDescriptionsUpper.containsKey(normalizedCode.toUpperCase())) {
+                    resolvedDescription = resolvedDescriptionsUpper.get(normalizedCode.toUpperCase());
                 }
             }
+            resolvedDescription = normalizeDiagnosisDescription(normalizedCode, resolvedDescription);
 
             String diagName = '';
-            if (String.isNotBlank(diag.code) && String.isNotBlank(resolvedDescription)) {
-                diagName = diag.code + ' - ' + resolvedDescription;
+            if (String.isNotBlank(normalizedCode) && String.isNotBlank(resolvedDescription)) {
+                diagName = normalizedCode + ' - ' + resolvedDescription;
             } else if (String.isNotBlank(resolvedDescription)) {
                 diagName = resolvedDescription;
-            } else if (String.isNotBlank(diag.code)) {
-                diagName = diag.code;
+            } else if (String.isNotBlank(normalizedCode)) {
+                diagName = normalizedCode;
             }
             if (String.isNotBlank(diagName) && diagName.length() > 80) {
                 diagName = diagName.substring(0, 80);
@@ -1860,10 +2236,10 @@ public with sharing class ClinicalNoteController {
             // Link to Code__c object - this populates the Code__c formula field on Diagnosis__c
             if (String.isNotBlank(diag.code)) {
                 Id codeId = null;
-                if (codeNumberToId.containsKey(diag.code)) {
-                    codeId = codeNumberToId.get(diag.code);
-                } else if (codeNumberToId.containsKey(diag.code.toUpperCase())) {
-                    codeId = codeNumberToId.get(diag.code.toUpperCase());
+                if (codeNumberToId.containsKey(normalizedCode)) {
+                    codeId = codeNumberToId.get(normalizedCode);
+                } else if (codeNumberToId.containsKey(normalizedCode.toUpperCase())) {
+                    codeId = codeNumberToId.get(normalizedCode.toUpperCase());
                 }
                 
                 if (codeId != null) {
@@ -1874,17 +2250,17 @@ public with sharing class ClinicalNoteController {
                         putFieldIfExists(diagRec, fieldMap, 'Code_Name__c', codeId);
                     }
                 } else {
-                    System.debug('Warning: Code ID not found for ' + diag.code);
+                    System.debug('Warning: Code ID not found for ' + normalizedCode);
                 }
             }
 
             // Attempt to store Code in text field if available
-            if (String.isNotBlank(diag.code)) {
+            if (String.isNotBlank(normalizedCode)) {
                 // Try direct assignment for known field
                 try {
-                    diagRec.put('ICD10Code__c', diag.code);
+                    diagRec.put('ICD10Code__c', normalizedCode);
                 } catch (Exception e) {
-                    putFieldIfExists(diagRec, fieldMap, 'ICD10Code__c', diag.code);
+                    putFieldIfExists(diagRec, fieldMap, 'ICD10Code__c', normalizedCode);
                 }
             }
             
@@ -2017,6 +2393,8 @@ public with sharing class ClinicalNoteController {
             } catch (Exception e) {
                 System.debug('❌ Error creating junction records: ' + e.getMessage());
             }
+        } else {
+            System.debug('No new Diagnosis_Note_Link__c rows needed for InteractionSummary ' + noteId);
         }
     }
 
@@ -2025,50 +2403,37 @@ public with sharing class ClinicalNoteController {
      * Uses namespace-aware check.
      */
     private static void putFieldIfExists(SObject record, Map<String, Schema.SObjectField> fieldMap, String fieldName, Object value) {
-        System.debug('>>> putFieldIfExists called for field: ' + fieldName + ', value: ' + value);
-        if (value == null) {
-            System.debug('>>> Value is null, returning early');
+        if (record == null || fieldMap == null || String.isBlank(fieldName) || value == null) {
             return;
         }
-        
+
         String lowerName = fieldName.toLowerCase();
         Schema.SObjectField targetField = null;
-        
-        // 1. Direct match (fastest)
+
         if (fieldMap.containsKey(lowerName)) {
             targetField = fieldMap.get(lowerName);
-            System.debug('>>> Found direct match for field: ' + lowerName);
         } else {
-            System.debug('>>> No direct match for field: ' + lowerName + ', checking namespace fallback');
-            // 2. Namespace fallback (e.g. tgthr__FieldName__c when looking for FieldName__c)
             for (String key : fieldMap.keySet()) {
                 if (key.endsWith('__' + lowerName)) {
                     targetField = fieldMap.get(key);
-                    System.debug('>>> Found namespace match: ' + key);
                     break;
                 }
             }
         }
 
-        if (targetField != null) {
-            Schema.DescribeFieldResult dfr = targetField.getDescribe();
-            System.debug('>>> Field ' + dfr.getName() + ' - calculated: ' + dfr.isCalculated() + ', auto-number: ' + dfr.isAutoNumber());
-            // Skip calculated or auto-number fields to prevent "Field is not editable" errors
-            if (!dfr.isCalculated() && !dfr.isAutoNumber()) {
-                try {
-                    System.debug('>>> Setting field ' + dfr.getName() + ' to value: ' + value);
-                    record.put(dfr.getName(), value);
-                    System.debug('>>> Field set successfully. Record now has ' + fieldName + ' = ' + record.get(dfr.getName()));
-                } catch (Exception e) {
-                    System.debug('WARNING: Failed to put field ' + dfr.getName() + ' with value ' + value + ': ' + e.getMessage());
-                }
-            } else {
-                System.debug('>>> Skipping field ' + fieldName + ' because it is calculated or auto-number');
-            }
-        } else {
-            System.debug('>>> Field ' + fieldName + ' not found in fieldMap');
-            // List available fields for debugging
-            System.debug('>>> Available fields in fieldMap: ' + String.join(new List<String>(fieldMap.keySet()), ', '));
+        if (targetField == null) {
+            return;
+        }
+
+        Schema.DescribeFieldResult dfr = targetField.getDescribe();
+        if (dfr.isCalculated() || dfr.isAutoNumber()) {
+            return;
+        }
+
+        try {
+            record.put(dfr.getName(), value);
+        } catch (Exception e) {
+            System.debug('WARNING: Failed to put field ' + dfr.getName() + ' with value ' + value + ': ' + e.getMessage());
         }
     }
 
@@ -2240,51 +2605,11 @@ public with sharing class ClinicalNoteController {
         Id interactionSummaryId
     ) {
         try {
-            // Get program from ProgramEnrollment using AccountId (participant)
-            Id programId;
-            String enrollmentStatus;
-            Id enrollmentId;
-            
-            System.debug('🔍 Looking for active ProgramEnrollment for participant: ' + accountId);
-            try {
-                String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment WHERE AccountId = :accountId AND Status IN (\'Enrolled\',\'Active\') ORDER BY CreatedDate DESC LIMIT 1';
-                List<SObject> enrollments = Database.query(enrollmentQuery);
-                if (!enrollments.isEmpty()) {
-                    programId = (Id) enrollments[0].get('ProgramId');
-                    enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
-                    enrollmentId = enrollments[0].Id;
-                    System.debug('✅ Found ProgramId via AccountId: ' + programId + ', Status: ' + enrollmentStatus);
-                }
-            } catch (Exception e1) {
-                System.debug('❌ ProgramId field not found, trying Program__c: ' + e1.getMessage());
-                try {
-                    String enrollmentQuery = 'SELECT Id, Program__c, Status FROM ProgramEnrollment WHERE AccountId = :accountId AND Status IN (\'Enrolled\',\'Active\') ORDER BY CreatedDate DESC LIMIT 1';
-                    List<SObject> enrollments = Database.query(enrollmentQuery);
-                    if (!enrollments.isEmpty()) {
-                        programId = (Id) enrollments[0].get('Program__c');
-                        enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
-                        enrollmentId = enrollments[0].Id;
-                        System.debug('✅ Found Program__c via AccountId: ' + programId + ', Status: ' + enrollmentStatus);
-                    }
-                } catch (Exception e2) {
-                    System.debug('❌ Trying Account__c field: ' + e2.getMessage());
-                    try {
-                        String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment WHERE Account__c = :accountId AND Status IN (\'Enrolled\',\'Active\') ORDER BY CreatedDate DESC LIMIT 1';
-                        List<SObject> enrollments = Database.query(enrollmentQuery);
-                        if (!enrollments.isEmpty()) {
-                            programId = (Id) enrollments[0].get('ProgramId');
-                            enrollmentStatus = String.valueOf(enrollments[0].get('Status'));
-                            enrollmentId = enrollments[0].Id;
-                            System.debug('✅ Found ProgramId via Account__c: ' + programId + ', Status: ' + enrollmentStatus);
-                        }
-                    } catch (Exception e3) {
-                        System.debug('❌ Could not find ProgramEnrollment: ' + e3.getMessage());
-                    }
-                }
-            }
+            // Reuse the same program-resolution rules as the note form benefit picker.
+            Id programId = getProgramIdForCase(caseId);
             
             if (programId == null) {
-                System.debug('❌ No active ProgramEnrollment found for participant: ' + accountId);
+                System.debug('❌ No eligible ProgramEnrollment found for case ' + caseId + ' and participant ' + accountId);
                 return;
             }
             
@@ -2416,6 +2741,7 @@ public with sharing class ClinicalNoteController {
         // Determine program context for modifier derivation
         String programName = getProgramNameForCase(caseId, accountId);
         String modifier2 = deriveModifier2FromProgram(programName);
+        String normalizedNoteType = normalizeCptNoteType(noteType);
         System.debug('Program context: ' + programName + ' → Modifier 2: ' + modifier2);
         
         // Get all possible CPT codes for this note type
@@ -2449,7 +2775,7 @@ public with sharing class ClinicalNoteController {
             String appliedModifier2 = config.modifier2;
             
             // For Peer/Case Management notes, apply U2 as Modifier 1 (peer-provided)
-            if (noteType == 'Peer' || noteType == 'Case Management') {
+            if (normalizedNoteType == 'Peer' || normalizedNoteType == 'Case Management') {
                 appliedModifier1 = 'U2';
                 // Apply program-based Modifier 2 for housing codes (not T1017)
                 if (config.code != 'T1017' && String.isNotBlank(modifier2)) {

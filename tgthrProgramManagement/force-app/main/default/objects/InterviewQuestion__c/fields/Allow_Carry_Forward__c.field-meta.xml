@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Allow_Carry_Forward__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, the interview runtime can resolve and present a prior answer for reuse.</description>
+    <externalId>false</externalId>
+    <label>Allow Carry Forward</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

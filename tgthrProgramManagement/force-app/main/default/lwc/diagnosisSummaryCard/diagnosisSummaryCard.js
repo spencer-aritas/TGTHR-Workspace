@@ -25,7 +25,6 @@ export default class DiagnosisSummaryCard extends LightningElement {
     @api objectApiName; // 'Case' or 'Account'
     
     @track diagnoses = [];
-    @track primaryDiagnosis = null;
     @track isLoading = true;
     @track error = null;
     @track expandedIds = new Set();
@@ -75,7 +74,13 @@ export default class DiagnosisSummaryCard extends LightningElement {
     }
     
     get activeDiagnoses() {
-        return this.diagnoses.filter(d => d.status === 'Active' || !d.status);
+        const activeDiagnoses = this.diagnoses.filter(d => d.status === 'Active' || !d.status);
+        return [...activeDiagnoses].sort((left, right) => {
+            if (left.isPrimary === right.isPrimary) {
+                return 0;
+            }
+            return left.isPrimary ? -1 : 1;
+        });
     }
     
     get historicalDiagnoses() {
@@ -98,7 +103,7 @@ export default class DiagnosisSummaryCard extends LightningElement {
     }
     
     get cardTitle() {
-        return `Problem List (${this.activeCount} Active)`;
+        return `Active Diagnoses (${this.activeCount})`;
     }
     
     get emptyStateMessage() {
@@ -146,7 +151,6 @@ export default class DiagnosisSummaryCard extends LightningElement {
             } else {
                 this.error = null;
                 this.diagnoses = this.formatDiagnoses(data.diagnoses || []);
-                this.primaryDiagnosis = data.primaryDiagnosis;
                 this.totalCount = data.totalCount || 0;
                 this.activeCount = data.activeCount || 0;
                 this.historicalCount = data.historicalCount || 0;
@@ -162,7 +166,7 @@ export default class DiagnosisSummaryCard extends LightningElement {
     // =====================================
     
     formatDiagnoses(rawDiagnoses) {
-        return rawDiagnoses.map(d => ({
+        return this.dedupeDiagnoses(rawDiagnoses).map(d => ({
             ...d,
             isExpanded: this.expandedIds.has(d.id),
             expandIcon: this.expandedIds.has(d.id) ? 'utility:chevrondown' : 'utility:chevronright',
@@ -179,9 +183,34 @@ export default class DiagnosisSummaryCard extends LightningElement {
             cardClass: this.getCardClass(d.isPrimary, d.status)
         }));
     }
-    
+
+    dedupeDiagnoses(rawDiagnoses) {
+        const uniqueDiagnoses = [];
+        const seenKeys = new Set();
+
+        (rawDiagnoses || []).forEach(diagnosis => {
+            const identity = diagnosis.id || [
+                diagnosis.codeNumber || diagnosis.code || '',
+                diagnosis.description || '',
+                diagnosis.status || '',
+                diagnosis.isPrimary ? 'primary' : 'secondary'
+            ].join('|');
+
+            if (seenKeys.has(identity)) {
+                return;
+            }
+
+            seenKeys.add(identity);
+            uniqueDiagnoses.push(diagnosis);
+        });
+
+        return uniqueDiagnoses;
+    }
+
     getStatusBadgeClass(status, isPrimary) {
-        if (isPrimary) return 'slds-badge slds-badge_inverse';
+        if (isPrimary) {
+            return 'slds-badge slds-theme_info';
+        }
         if (!status || status === 'Active') return 'slds-badge slds-theme_success';
         return 'slds-badge';
     }

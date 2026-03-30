@@ -1,16 +1,11 @@
 import { getCurrentUser } from '../lib/salesforceAuth';
-import type { InteractionSummaryRequest } from '@shared/contracts/index.ts';
+import type {
+  InteractionSummaryRequest,
+  InteractionTimelineRow,
+  InteractionDetailResponse
+} from '@shared/contracts/index.ts';
 
-export interface InteractionSummaryData {
-  Id: string;
-  RelatedRecordId: string;
-  InteractionDate: string;
-  StartTime?: string;
-  EndTime?: string;
-  Notes: string;
-  CreatedByName?: string;
-  CreatedDate: string;
-}
+export type InteractionSummaryData = InteractionTimelineRow;
 
 class InteractionSummaryService {
   async createInteractionSummary(
@@ -62,6 +57,25 @@ class InteractionSummaryService {
     } catch (err) {
       console.error('Failed to fetch interactions for case', err);
       return [];
+    }
+  }
+
+  async getInteractionDetail(interactionId: string): Promise<InteractionDetailResponse | null> {
+    try {
+      const response = await fetch(`/api/interaction-summary/${encodeURIComponent(interactionId)}`);
+
+      if (response.status === 404) {
+        return null;
+      }
+      if (!response.ok) {
+        console.error(`Failed to fetch interaction detail (HTTP ${response.status})`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (err) {
+      console.error('Failed to fetch interaction detail', err);
+      return null;
     }
   }
 }

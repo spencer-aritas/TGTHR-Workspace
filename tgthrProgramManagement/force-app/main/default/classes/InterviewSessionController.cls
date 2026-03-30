@@ -1,5 +1,65 @@
 public with sharing class InterviewSessionController {
 
+    private static final Set<String> DEFAULT_CARRY_FORWARD_API_NAMES = new Set<String>{
+        'Known_Allergies__c',
+        'Currently_Taking_Medications__c',
+        'Medication_Notes__c',
+        'DV_Experience__c',
+        'Currently_Employed__c',
+        'Last_Grade_Completed__c',
+        'Currently_in_School__c',
+        'School_Name__c',
+        'Social_Connections__c',
+        'Social_Networks__c',
+        'Current_Health_Concerns__c',
+        'Medical_Provider_Name__c',
+        'Current_Substance_Use__c',
+        'Substance_Use_Frequency__c',
+        'Legal_System_Involvement__c',
+        'On_Probation_Parole__c'
+    };
+
+    private static final Set<String> ELIGIBLE_CARRY_FORWARD_INTERVIEW_STATUSES = new Set<String>{
+        DocumentStatus.INTERVIEW_SUBMITTED,
+        DocumentStatus.INTERVIEW_SIGNED
+    };
+
+    private static String normalizeDiagnosisCode(String code) {
+        return String.isBlank(code) ? null : code.trim();
+    }
+
+    private static String normalizeDiagnosisDescription(String code, String description) {
+        String cleanDescription = String.isBlank(description) ? null : description.trim();
+        String cleanCode = normalizeDiagnosisCode(code);
+
+        if (String.isBlank(cleanDescription)) {
+            return cleanDescription;
+        }
+
+        if (String.isNotBlank(cleanCode)) {
+            String codeLower = cleanCode.toLowerCase();
+            String descLower = cleanDescription.toLowerCase();
+
+            String leadingToken = codeLower + ' - ';
+            if (descLower.startsWith(leadingToken) && cleanDescription.length() > leadingToken.length()) {
+                cleanDescription = cleanDescription.substring(leadingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            String trailingToken = ' - ' + codeLower;
+            if (descLower.endsWith(trailingToken) && cleanDescription.length() > trailingToken.length()) {
+                cleanDescription = cleanDescription.substring(0, cleanDescription.length() - trailingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            if (descLower == codeLower) {
+                return null;
+            }
+        }
+
+        return cleanDescription.replaceAll('\\s+', ' ');
+    }
+
     public class TemplateQuestionDTO {
         @AuraEnabled public Id questionId;
         @AuraEnabled public String uuid;
@@ -13,6 +73,19 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public Integer order;
         @AuraEnabled public List<String> picklistValues;
         @AuraEnabled public String section;
+        @AuraEnabled public Boolean allowCarryForward;
+        @AuraEnabled public Boolean requiresReview;
+    }
+
+    public class CarryForwardCandidateDTO {
+        @AuraEnabled public Id questionId;
+        @AuraEnabled public String apiName;
+        @AuraEnabled public String value;
+        @AuraEnabled public List<String> values;
+        @AuraEnabled public String displayValue;
+        @AuraEnabled public String recordedDate;
+        @AuraEnabled public String sourceLabel;
+        @AuraEnabled public Id sourceInterviewId;
     }
 
     public class TemplateSectionDTO {
@@ -31,6 +104,9 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public String category;
         @AuraEnabled public String variant;
         @AuraEnabled public String status;
+        @AuraEnabled public Boolean hasCptCodes;
+        @AuraEnabled public String cptNoteType;
+        @AuraEnabled public String allowedCptCodes;
         @AuraEnabled public List<TemplateSectionDTO> sections;
         @AuraEnabled public String clientSignaturePolicy;
         @AuraEnabled public String staffSignaturePolicy;
@@ -48,6 +124,7 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public Map<String, Object> accountData;
         @AuraEnabled public List<Map<String, String>> housingBenefitOptions;
         @AuraEnabled public List<Map<String, String>> clinicalBenefitOptions;
+        @AuraEnabled public List<CarryForwardCandidateDTO> carryForwardCandidates;
     }
 
     public class InteractionInput {
@@ -95,6 +172,7 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public Id caseId;
         @AuraEnabled public Id accountId;
         @AuraEnabled public Id templateVersionId;
+        @AuraEnabled public Id sourceInterviewId; // Recalled source interview to carry forward signer policy/snapshots
         @AuraEnabled public String startedAt; // ISO 8601 timestamp when interview was first started (for audit trail)
         @AuraEnabled public InteractionInput interaction;
         @AuraEnabled public List<AnswerDTO> answers;
@@ -107,6 +185,10 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public CarePlanConsentDTO carePlanConsent;
         @AuraEnabled public Id ssrsAssessmentId; // Link to SSRS Assessment if completed during this interview
         @AuraEnabled public List<DiagnosisInput> diagnoses; // Diagnoses selected in the interview
+        @AuraEnabled public List<String> selectedCptCodes; // CPT codes selected by user (Comp Assess only)
+        @AuraEnabled public List<Id> reviewedCarryForwardQuestionIds;
+        @AuraEnabled public Boolean requestManagerCoSign;
+        @AuraEnabled public Id managerApproverId;
         
         public SaveRequest() {
             // No-arg constructor for proper deserialization
@@ -131,9 +213,51 @@ public with sharing class InterviewSessionController {
         @AuraEnabled public Id interactionSummaryId;
         @AuraEnabled public Id assessmentId;
         @AuraEnabled public String errorMessage;
+        @AuraEnabled public Boolean requiresManagerApproval;
+        @AuraEnabled public Boolean managerApprovalForced;
     }
 
-    @AuraEnabled(cacheable=true)
+    // ──────────────────────────────────────────────────────────────────────
+    // DTOs for loadRecalledInterview — pre-populating a recalled interview
+    // ──────────────────────────────────────────────────────────────────────
+
+    public class RecalledInteractionInput {
+        @AuraEnabled public String interactionDate;
+        @AuraEnabled public String startDateTime;
+        @AuraEnabled public String endDateTime;
+        @AuraEnabled public String meetingNotes;
+        @AuraEnabled public String location;
+        @AuraEnabled public Boolean interpreterUsed;
+    }
+
+    public class AnswerRestoreDTO {
+        @AuraEnabled public Id questionId;
+        @AuraEnabled public String value;
+        @AuraEnabled public List<String> values;
+    }
+
+    public class IncomeBenefitRestoreDTO {
+        @AuraEnabled public String label;
+        @AuraEnabled public Boolean checked;
+        @AuraEnabled public String statedIncome;
+    }
+
+    public class RecalledInterviewResponse {
+        @AuraEnabled public RecalledInteractionInput interactionInput;
+        @AuraEnabled public List<AnswerRestoreDTO> answers;
+        @AuraEnabled public List<IncomeBenefitRestoreDTO> incomeBenefitsData;
+        @AuraEnabled public List<DiagnosisInput> selectedDiagnoses;
+        @AuraEnabled public List<String> selectedCptCodes;
+        @AuraEnabled public CarePlanConsentDTO carePlanConsent;
+        @AuraEnabled public Id caseManagerSignedById;
+        @AuraEnabled public String caseManagerSignedByName;
+        @AuraEnabled public Id peerSupportSignedById;
+        @AuraEnabled public String peerSupportSignedByName;
+        // Preserved manager approver — LWC uses this to auto-check the co-sign toggle
+        @AuraEnabled public Id managerApproverId;
+    }
+
+    @AuraEnabled
     public static SessionInitResponse initializeSession(Id caseId, Id templateVersionId) {
         if (caseId == null) {
             throw new System.StringException('Case Id is required.');
@@ -148,6 +272,7 @@ public with sharing class InterviewSessionController {
         response.accountData = fetchAccountData(caseId);
         response.housingBenefitOptions = fetchHousingBenefits(caseId, response.template);
         response.clinicalBenefitOptions = fetchClinicalBenefits(caseId, response.template);
+        response.carryForwardCandidates = buildCarryForwardCandidates(resolveAccountId(caseId, null), response.template);
         return response;
     }
 
@@ -198,7 +323,8 @@ public with sharing class InterviewSessionController {
             System.debug('Querying for template version: ' + request.templateVersionId);
             Id templateVersionId = request.templateVersionId;
             List<SObject> templateVersions = Database.query(
-                'SELECT Id, Name, Version__c, InterviewTemplate__c, InterviewTemplate__r.Name ' +
+                'SELECT Id, Name, Version__c, InterviewTemplate__c, InterviewTemplate__r.Name, ' +
+                'InterviewTemplate__r.has_cpt_codes__c, InterviewTemplate__r.cpt_note_type__c, InterviewTemplate__r.allowed_cpt_codes__c ' +
                 'FROM InterviewTemplateVersion__c WHERE Id = :templateVersionId LIMIT 1'
             );
             System.debug('Template versions found: ' + templateVersions.size());
@@ -215,6 +341,22 @@ public with sharing class InterviewSessionController {
             Date interactionDate = extractInteractionDate(request.interaction);
             Time startTime = extractTime(request.interaction != null ? request.interaction.startTime : null);
             Time endTime = extractTime(request.interaction != null ? request.interaction.endTime : null);
+            Time effectiveServiceTime = startTime != null ? startTime : Time.newInstance(12, 0, 0, 0);
+            Datetime authorCompletedAt = Datetime.now();
+            Datetime serviceDateTime = Datetime.newInstance(interactionDate, effectiveServiceTime);
+            Boolean managerApprovalForced = DocumentationDeadlineService.requiresManagerEscalationForLateEntry(serviceDateTime, authorCompletedAt);
+            Boolean shouldRequireManagerApproval = request.requestManagerCoSign == true || managerApprovalForced;
+
+            if (shouldRequireManagerApproval && request.managerApproverId == null) {
+                result.success = false;
+                result.errorMessage = managerApprovalForced
+                    ? 'This interview was entered outside the 72-hour reporting window. Select a Signing Authority approver to route the required manager co-sign.'
+                    : 'Please select an approver from the Signing Authority list.';
+                return result;
+            }
+
+            result.requiresManagerApproval = shouldRequireManagerApproval;
+            result.managerApprovalForced = managerApprovalForced;
 
             if (startTime != null && endTime != null) {
                 // Convert times to total milliseconds for proper comparison
@@ -227,6 +369,40 @@ public with sharing class InterviewSessionController {
             }
 
             Id accountId = resolveAccountId(request.caseId, request.accountId);
+            validateCarryForwardReviewCompletion(request, accountId);
+            Id sourceInterviewId = request.sourceInterviewId;
+            Boolean shouldAuditRecallResubmission = false;
+            String recallResubmissionAuditDetails;
+
+            // Recall/resubmission path: if sourceInterviewId points to a recalled interview,
+            // update that same record tree in place instead of inserting a new Interview.
+            Boolean isRecallResubmit = false;
+            Id existingInterviewId;
+            Id existingSummaryId;
+            Id existingAssessmentId;
+            if (sourceInterviewId != null) {
+                List<SObject> sourceInterviews = Database.query(
+                    'SELECT Id, Case__c, InterviewTemplateVersion__c, Interaction_Summary__c, Status__c ' +
+                    'FROM Interview__c WHERE Id = :sourceInterviewId LIMIT 1'
+                );
+                if (!sourceInterviews.isEmpty()) {
+                    SObject sourceInterview = sourceInterviews[0];
+                    String sourceStatus = (String) sourceInterview.get('Status__c');
+                    if ((Id) sourceInterview.get('Case__c') == request.caseId
+                        && (Id) sourceInterview.get('InterviewTemplateVersion__c') == request.templateVersionId
+                        && sourceStatus == DocumentStatus.INTERVIEW_RECALLED) {
+                        isRecallResubmit = true;
+                        existingInterviewId = (Id) sourceInterview.get('Id');
+                        existingSummaryId = (Id) sourceInterview.get('Interaction_Summary__c');
+                        List<SObject> sourceAssessments = Database.query(
+                            'SELECT Id FROM Assessment__c WHERE Interview__c = :existingInterviewId ORDER BY CreatedDate DESC LIMIT 1'
+                        );
+                        if (!sourceAssessments.isEmpty()) {
+                            existingAssessmentId = (Id) sourceAssessments[0].get('Id');
+                        }
+                    }
+                }
+            }
 
             SObject summary = buildInteractionSummary(
                 request.caseId,
@@ -238,10 +414,24 @@ public with sharing class InterviewSessionController {
                 request.interaction != null ? request.interaction.location : null,
                 request.interaction != null ? request.interaction.interpreterUsed : null
             );
-            insert summary;
+            if (isRecallResubmit && existingSummaryId != null) {
+                summary.put('Id', existingSummaryId);
+                update summary;
+            } else {
+                insert summary;
+            }
+
+            List<ServiceLineConfig> templateCptConfigs = getTemplateCptConfigs(templateVersion);
 
             // Create Interaction Service Line records for Comp Assess billing
-            createInteractionServiceLines((Id)summary.get('Id'), 'Comp Assess', accountId, request.caseId);
+            // Only create lines for CPT codes explicitly selected by the user
+            if (request.selectedCptCodes != null && !request.selectedCptCodes.isEmpty()) {
+                List<String> validatedSelectedCptCodes = validateSelectedCptCodes(request.selectedCptCodes, templateCptConfigs);
+                if (isRecallResubmit) {
+                    clearInteractionServiceLines((Id)summary.get('Id'));
+                }
+                createSelectedInteractionServiceLines((Id)summary.get('Id'), validatedSelectedCptCodes, accountId, request.caseId, templateCptConfigs);
+            }
 
             // Create Assessment__c record
             SObject assessment = buildAssessment(
@@ -252,8 +442,14 @@ public with sharing class InterviewSessionController {
             );
             Id assessmentId = null;
             if (assessment != null) {
-                insert assessment;
-                assessmentId = (Id)assessment.get('Id');
+                if (isRecallResubmit && existingAssessmentId != null) {
+                    assessment.put('Id', existingAssessmentId);
+                    update assessment;
+                    assessmentId = existingAssessmentId;
+                } else {
+                    insert assessment;
+                    assessmentId = (Id)assessment.get('Id');
+                }
             }
 
             SObject interview = buildInterview(
@@ -263,9 +459,161 @@ public with sharing class InterviewSessionController {
                 assessmentId,
                 templateVersion,
                 interactionDate,
-                request.startedAt
+                request.startedAt,
+                shouldRequireManagerApproval,
+                request.managerApproverId
             );
-            insert interview;
+            if (isRecallResubmit && existingInterviewId != null) {
+                interview.put('Id', existingInterviewId);
+
+                // Clear recall/action routing and signature state so this record re-enters
+                // normal signing flow as a corrected submission of the same plan.
+                Map<String, Schema.SObjectField> ivFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+                if (ivFields.containsKey('action_required__c')) interview.put('Action_Required__c', false);
+                if (ivFields.containsKey('action_assigned_to__c')) interview.put('Action_Assigned_To__c', null);
+                if (ivFields.containsKey('action_escalated_by__c')) interview.put('Action_Escalated_By__c', null);
+                if (ivFields.containsKey('action_notes__c')) interview.put('Action_Notes__c', null);
+                if (ivFields.containsKey('requires_manager_approval__c')) interview.put('Requires_Manager_Approval__c', false);
+                if (ivFields.containsKey('manager_signed__c')) interview.put('Manager_Signed__c', false);
+                if (ivFields.containsKey('manager_signed_date__c')) interview.put('Manager_Signed_Date__c', null);
+                if (ivFields.containsKey('manager_approver__c')) interview.put('Manager_Approver__c', null);
+                if (ivFields.containsKey('client_signed__c')) interview.put('Client_Signed__c', false);
+                if (ivFields.containsKey('staff_signed__c')) interview.put('Staff_Signed__c', false);
+                if (ivFields.containsKey('casemanager_signed__c')) interview.put('CaseManager_Signed__c', false);
+                if (ivFields.containsKey('date_casemanager_signed__c')) interview.put('Date_CaseManager_Signed__c', null);
+                if (ivFields.containsKey('peersupport_signed__c')) interview.put('PeerSupport_Signed__c', false);
+                if (ivFields.containsKey('date_peersupport_signed__c')) interview.put('Date_PeerSupport_Signed__c', null);
+
+                update interview;
+
+                shouldAuditRecallResubmission = true;
+                recallResubmissionAuditDetails = 'Recalled interview resubmitted; signing workflow restarted. RequiresManagerApproval=' + String.valueOf(shouldRequireManagerApproval) + ', ApproverId=' + String.valueOf(request.managerApproverId);
+            } else {
+                insert interview;
+            }
+
+            // Recall/resubmission path: carry forward signer assignments and care-plan snapshot
+            // directly from the recalled source interview so signing policy survives even when
+            // client-side restore state is partial.
+            if (!isRecallResubmit && sourceInterviewId != null) {
+                try {
+                    Map<String, Schema.SObjectField> ivFieldMap =
+                        Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+                    SObject src = [
+                        SELECT Id,
+                               CaseManager_Signed_By__c,
+                               PeerSupport_Signed_By__c,
+                               Manager_Approver__c,
+                               Consent_Participated__c,
+                               Documentation_Offered__c,
+                               Next_Review_Date__c,
+                               Expected_Discharge_Date__c,
+                               Discharge_Plan__c
+                        FROM Interview__c
+                        WHERE Id = :sourceInterviewId
+                        LIMIT 1
+                    ];
+
+                    Id fallbackCaseManagerSignedBy = (Id) src.get('CaseManager_Signed_By__c');
+                    Id fallbackPeerSupportSignedBy = (Id) src.get('PeerSupport_Signed_By__c');
+                    Id interviewTemplateId = (Id) templateVersion.get('InterviewTemplate__c');
+                    if ((fallbackCaseManagerSignedBy == null || fallbackPeerSupportSignedBy == null)
+                        && request.caseId != null
+                        && interviewTemplateId != null) {
+                        List<SObject> priorWithAssignments = Database.query(
+                            'SELECT Id, CaseManager_Signed_By__c, PeerSupport_Signed_By__c ' +
+                            'FROM Interview__c ' +
+                            'WHERE Case__c = :request.caseId ' +
+                            'AND InterviewTemplateVersion__r.InterviewTemplate__c = :interviewTemplateId ' +
+                            'AND Id != :sourceInterviewId ' +
+                            'AND (CaseManager_Signed_By__c != null OR PeerSupport_Signed_By__c != null) ' +
+                            'ORDER BY LastModifiedDate DESC ' +
+                            'LIMIT 1'
+                        );
+                        if (!priorWithAssignments.isEmpty()) {
+                            SObject prior = priorWithAssignments[0];
+                            if (fallbackCaseManagerSignedBy == null) {
+                                fallbackCaseManagerSignedBy = (Id) prior.get('CaseManager_Signed_By__c');
+                            }
+                            if (fallbackPeerSupportSignedBy == null) {
+                                fallbackPeerSupportSignedBy = (Id) prior.get('PeerSupport_Signed_By__c');
+                            }
+                        }
+                    }
+
+                    SObject carry = Schema.getGlobalDescribe().get('Interview__c').newSObject();
+                    carry.put('Id', (Id) interview.get('Id'));
+
+                    putFieldIfExists(carry, ivFieldMap, 'CaseManager_Signed_By__c', fallbackCaseManagerSignedBy);
+                    putFieldIfExists(carry, ivFieldMap, 'PeerSupport_Signed_By__c', fallbackPeerSupportSignedBy);
+                    putFieldIfExists(carry, ivFieldMap, 'Manager_Approver__c', src.get('Manager_Approver__c'));
+                    putFieldIfExists(carry, ivFieldMap, 'Consent_Participated__c', src.get('Consent_Participated__c'));
+                    putFieldIfExists(carry, ivFieldMap, 'Documentation_Offered__c', src.get('Documentation_Offered__c'));
+                    putFieldIfExists(carry, ivFieldMap, 'Next_Review_Date__c', src.get('Next_Review_Date__c'));
+                    putFieldIfExists(carry, ivFieldMap, 'Expected_Discharge_Date__c', src.get('Expected_Discharge_Date__c'));
+                    putFieldIfExists(carry, ivFieldMap, 'Discharge_Plan__c', src.get('Discharge_Plan__c'));
+
+                    update carry;
+                } catch (Exception carryEx) {
+                    System.debug('Non-fatal recall carry-forward error: ' + carryEx.getMessage());
+                }
+            }
+
+            // Persist Care Plan values on Interview__c as versioned, review-surface data.
+            // Pending Documentation and co-sign review screens read these fields from Interview.
+            if (request.carePlanConsent != null) {
+                Map<String, Schema.SObjectField> ivFieldMap =
+                    Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+
+                SObject interviewCarePlanUpdate = Schema.getGlobalDescribe().get('Interview__c').newSObject();
+                interviewCarePlanUpdate.put('Id', (Id) interview.get('Id'));
+
+                putFieldIfExists(interviewCarePlanUpdate, ivFieldMap, 'Consent_Participated__c', request.carePlanConsent.consentParticipated == true);
+                putFieldIfExists(interviewCarePlanUpdate, ivFieldMap, 'Documentation_Offered__c', request.carePlanConsent.consentOffered == true);
+                putFieldIfExists(interviewCarePlanUpdate, ivFieldMap, 'Next_Review_Date__c', request.carePlanConsent.nextReviewDate);
+                putFieldIfExists(interviewCarePlanUpdate, ivFieldMap, 'Expected_Discharge_Date__c', request.carePlanConsent.dischargeDate);
+                putFieldIfExists(interviewCarePlanUpdate, ivFieldMap, 'Discharge_Plan__c', request.carePlanConsent.dischargePlan);
+
+                update interviewCarePlanUpdate;
+            }
+
+            // Auto-carry forward manager approver from the most recent prior Interview for the
+            // same Case + same InterviewTemplate. Only Manager_Approver__c is copied — CM/PS signer
+            // assignments are intentionally excluded because copying them causes the new Interview to
+            // enter "pending co-signature" state and blocks activation.
+            if (!isRecallResubmit) {
+                try {
+                Id newInterviewId = (Id) interview.get('Id');
+                Id templateId = (Id) templateVersion.get('InterviewTemplate__c');
+                Id caseIdForQuery = request.caseId;
+                List<SObject> priorInterviews = Database.query(
+                    'SELECT Id, Manager_Approver__c ' +
+                    'FROM Interview__c ' +
+                    'WHERE Case__c = :caseIdForQuery ' +
+                    '  AND InterviewTemplateVersion__r.InterviewTemplate__c = :templateId ' +
+                    '  AND Id != :newInterviewId ' +
+                    '  AND Manager_Approver__c != null ' +
+                    'ORDER BY CreatedDate DESC ' +
+                    'LIMIT 1'
+                );
+                if (!priorInterviews.isEmpty()) {
+                    Id mgr = (Id) priorInterviews[0].get('Manager_Approver__c');
+                    if (mgr != null) {
+                        Map<String, Schema.SObjectField> ivFields =
+                            Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+                        if (ivFields.containsKey('manager_approver__c')) {
+                            SObject signerUpdate = Schema.getGlobalDescribe().get('Interview__c').newSObject();
+                            signerUpdate.put('Id', newInterviewId);
+                            signerUpdate.put('Manager_Approver__c', mgr);
+                            update signerUpdate;
+                            System.debug('Auto-copied Manager_Approver__c from prior Interview ' + priorInterviews[0].get('Id') + ' to ' + newInterviewId);
+                        }
+                    }
+                }
+            } catch (Exception signerEx) {
+                System.debug('Auto-copy manager approver (non-fatal): ' + signerEx.getMessage());
+            }
+            }
 
             // Link Interview back to InteractionSummary
             putIfFieldExists(summary, 'Interview__c', (Id)interview.get('Id'));
@@ -304,6 +652,9 @@ public with sharing class InterviewSessionController {
             System.debug('Answers to process: ' + (request.answers != null ? request.answers.size() : 0));
             if (request.answers != null && !request.answers.isEmpty()) {
                 System.debug('Building answer records...');
+                if (isRecallResubmit) {
+                    clearInterviewAnswers((Id)interview.get('Id'));
+                }
                 List<SObject> answerRecords = buildAnswerRecords((Id)interview.get('Id'), request.answers);
                 System.debug('Answer records built: ' + answerRecords.size());
                 insert answerRecords;
@@ -320,6 +671,9 @@ public with sharing class InterviewSessionController {
             }
 
             if (request.diagnoses != null && !request.diagnoses.isEmpty()) {
+                if (isRecallResubmit) {
+                    clearDiagnosisLinks((Id)summary.get('Id'));
+                }
                 createDiagnoses(accountId, request.diagnoses, (Id)summary.get('Id'));
             }
 
@@ -357,11 +711,24 @@ public with sharing class InterviewSessionController {
             result.interviewId = (Id)interview.get('Id');
             result.interactionSummaryId = (Id)summary.get('Id');
             result.assessmentId = assessmentId;
+
+            if (managerApprovalForced) {
+                logComplianceAudit(
+                    'LATE_ENTRY_MANAGER_CO_SIGN',
+                    result.interviewId,
+                    'Interview',
+                    'Late-entry interview submitted outside the 72-hour reporting window; manager co-sign required. ServiceDateTime=' + String.valueOf(serviceDateTime) + ', ApproverId=' + String.valueOf(request.managerApproverId)
+                );
+            }
+            if (shouldAuditRecallResubmission) {
+                logComplianceAudit('RESUBMISSION_REROUTED', result.interviewId, 'Interview', recallResubmissionAuditDetails);
+            }
+
             return result;
         } catch (Exception e) {
             Database.rollback(sp);
             result.success = false;
-            result.errorMessage = e.getMessage();
+            result.errorMessage = formatSaveException(e);
             return result;
         }
     }
@@ -374,7 +741,9 @@ public with sharing class InterviewSessionController {
         String caseManagerSignatureId,
         Id caseManagerSignedBy,
         String peerSupportSignatureId,
-        Id peerSupportSignedBy
+        Id peerSupportSignedBy,
+        Boolean isTreatmentPlan,
+        Boolean managerApprovalRequested
     ) {
         try {
             if (interviewId == null) {
@@ -384,6 +753,8 @@ public with sharing class InterviewSessionController {
             // Query Interview with all signature fields to check current state
             SObject interview = Database.query(
                 'SELECT Id, Client__c, ' +
+                'Case__c, Name, ' +
+                'Requires_Manager_Approval__c, Manager_Signed__c, ' +
                 'CaseManager_Signed_By__c, CaseManager_Signed__c, ' +
                 'PeerSupport_Signed_By__c, PeerSupport_Signed__c ' +
                 'FROM Interview__c WHERE Id = :interviewId LIMIT 1'
@@ -475,6 +846,11 @@ public with sharing class InterviewSessionController {
                 Boolean finalCMSigned = !String.isBlank(caseManagerSignatureId) ? true : existingCMSigned;
                 Id finalPSSignedBy = peerSupportSignedBy != null ? peerSupportSignedBy : existingPSSignedBy;
                 Boolean finalPSSigned = !String.isBlank(peerSupportSignatureId) ? true : existingPSSigned;
+                Boolean existingRequiresManager = interview.get('Requires_Manager_Approval__c') != null
+                    && (Boolean)interview.get('Requires_Manager_Approval__c');
+                Boolean finalRequiresManager = (managerApprovalRequested == true) || existingRequiresManager;
+                Boolean finalManagerSigned = interview.get('Manager_Signed__c') != null
+                    && (Boolean)interview.get('Manager_Signed__c');
                 
                 System.debug('Final CM SignedBy: ' + finalCMSignedBy + ' | Signed: ' + finalCMSigned);
                 System.debug('Final PS SignedBy: ' + finalPSSignedBy + ' | Signed: ' + finalPSSigned);
@@ -483,21 +859,65 @@ public with sharing class InterviewSessionController {
                 Boolean hasPendingCaseManager = finalCMSignedBy != null && !finalCMSigned;
                 Boolean hasPendingPeerSupport = finalPSSignedBy != null && !finalPSSigned;
                 Boolean hasPendingMultiSignatures = hasPendingCaseManager || hasPendingPeerSupport;
+                Boolean hasPendingManagerApproval = finalRequiresManager && !finalManagerSigned;
                 
                 System.debug('Pending CM: ' + hasPendingCaseManager + ' | Pending PS: ' + hasPendingPeerSupport);
                 System.debug('Has pending multi-signatures: ' + hasPendingMultiSignatures);
+                System.debug('Pending manager approval: ' + hasPendingManagerApproval + ' (requested=' + finalRequiresManager + ', managerSigned=' + finalManagerSigned + ')');
                 
                 if (hasPendingMultiSignatures) {
-                    putIfFieldExists(interview, 'Status__c', 'In Progress');
+                    putIfFieldExists(interview, 'Status__c', DocumentStatus.INTERVIEW_IN_PROGRESS);
                     System.debug('✅ Interview marked In Progress - pending multi-signatures');
                 } else {
                     // All required signatures are collected or no multi-signatures needed
-                    putIfFieldExists(interview, 'Status__c', 'Submitted');
+                    putIfFieldExists(interview, 'Status__c', DocumentStatus.INTERVIEW_SUBMITTED);
                     System.debug('✅ Interview marked Submitted - all signatures collected');
                 }
                 
                 update interview;
                 System.debug('Interview updated. Final Status: ' + interview.get('Status__c'));
+
+                // Notify assigned co-signers when signatures are deferred (assign-for-later flow).
+                // This is especially important after recall/resubmission so users get re-sign prompts.
+                try {
+                    Id interviewCaseId = (Id) interview.get('Case__c');
+                    String interviewName = (String) interview.get('Name');
+                    if (String.isBlank(interviewName)) interviewName = 'Treatment Plan';
+
+                    if (hasPendingCaseManager && caseManagerSignedBy != null && String.isBlank(caseManagerSignatureId)) {
+                        PendingDocNotificationService.notifyUserOfActionItem(
+                            finalCMSignedBy,
+                            interviewCaseId,
+                            interviewName,
+                            'Please complete your Case Manager signature.',
+                            interviewId,
+                            'Interview'
+                        );
+                    }
+                    if (hasPendingPeerSupport && peerSupportSignedBy != null && String.isBlank(peerSupportSignatureId)) {
+                        PendingDocNotificationService.notifyUserOfActionItem(
+                            finalPSSignedBy,
+                            interviewCaseId,
+                            interviewName,
+                            'Please complete your Peer Support signature.',
+                            interviewId,
+                            'Interview'
+                        );
+                    }
+                } catch (Exception notifEx) {
+                    System.debug('Non-fatal co-signer notification error: ' + notifEx.getMessage());
+                }
+
+                // Only activate when no co-signers are pending AND no manager approval is pending.
+                // This prevents sign-now CM/PS flows from skipping the manager co-sign step.
+                if (!hasPendingMultiSignatures && !hasPendingManagerApproval && isTreatmentPlan == true) {
+                    try {
+                        TreatmentPlanActivationService.finalizeTreatmentPlan(interviewId);
+                        System.debug('✅ Treatment Plan activated from InterviewSessionController for: ' + interviewId);
+                    } catch (Exception activationEx) {
+                        System.debug('⚠️ Treatment Plan activation error (non-fatal): ' + activationEx.getMessage());
+                    }
+                }
             }
 
             return true;
@@ -605,6 +1025,9 @@ public with sharing class InterviewSessionController {
         InterviewTemplateVersion__c versionRecord = [
             SELECT Id, Name, Version__c, Status__c, Variant__c, Effective_From__c, Effective_To__c,
                    InterviewTemplate__c, InterviewTemplate__r.Name, InterviewTemplate__r.Category__c,
+                   InterviewTemplate__r.has_cpt_codes__c,
+                   InterviewTemplate__r.cpt_note_type__c,
+                   InterviewTemplate__r.allowed_cpt_codes__c,
                    InterviewTemplate__r.Client_Signature_Policy__c,
                    InterviewTemplate__r.Staff_Signature_Policy__c,
                    InterviewTemplate__r.Income_Benefits_Policy__c,
@@ -627,6 +1050,14 @@ public with sharing class InterviewSessionController {
         template.category = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Category__c : null;
         template.variant = versionRecord.Variant__c;
         template.status = versionRecord.Status__c;
+        template.hasCptCodes = versionRecord.InterviewTemplate__r != null && versionRecord.InterviewTemplate__r.has_cpt_codes__c;
+        template.cptNoteType = versionRecord.InterviewTemplate__r != null
+            ? normalizeCptNoteType((String) versionRecord.InterviewTemplate__r.get('cpt_note_type__c'))
+            : null;
+        template.allowedCptCodes = versionRecord.InterviewTemplate__r != null
+            ? (String) versionRecord.InterviewTemplate__r.get('allowed_cpt_codes__c')
+            : null;
+        template.allowedCptCodes = serializeConfiguredCptCodes(template.templateId, template.allowedCptCodes);
         template.clientSignaturePolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Client_Signature_Policy__c : 'Hidden';
         template.staffSignaturePolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Staff_Signature_Policy__c : 'Hidden';
         template.incomeBenefitsPolicy = versionRecord.InterviewTemplate__r != null ? versionRecord.InterviewTemplate__r.Income_Benefits_Policy__c : 'Hidden';
@@ -641,7 +1072,8 @@ public with sharing class InterviewSessionController {
 
         for (InterviewQuestion__c questionRecord : [
             SELECT Id, Label__c, API_Name__c, Response_Type__c, Section__c, Help_Text__c,
-                   Maps_To__c, Required__c, Sensitive__c, Score_Weight__c, Picklist_Values__c, Order__c, UUID__c
+                   Maps_To__c, Required__c, Sensitive__c, Score_Weight__c, Picklist_Values__c, Order__c, UUID__c,
+                   Allow_Carry_Forward__c, Requires_Review__c
             FROM InterviewQuestion__c
             WHERE InterviewTemplateVersion__c = :templateVersionId
             ORDER BY Section__c, Order__c, Label__c
@@ -670,6 +1102,8 @@ public with sharing class InterviewSessionController {
             question.order = questionRecord.Order__c != null ? Integer.valueOf(questionRecord.Order__c) : 0;
             question.picklistValues = parsePicklist(questionRecord.Picklist_Values__c);
             question.section = sectionName;
+            question.allowCarryForward = isCarryForwardEnabled(questionRecord);
+            question.requiresReview = isCarryForwardReviewRequired(questionRecord);
 
             sectionsByName.get(sectionName).questions.add(question);
         }
@@ -681,6 +1115,301 @@ public with sharing class InterviewSessionController {
         }
 
         return template;
+    }
+
+    private static Boolean isStarterCarryForwardQuestion(String apiName) {
+        return String.isNotBlank(apiName) && DEFAULT_CARRY_FORWARD_API_NAMES.contains(apiName);
+    }
+
+    private static Boolean isCarryForwardEnabled(InterviewQuestion__c questionRecord) {
+        return questionRecord != null
+            && (questionRecord.Allow_Carry_Forward__c == true || isStarterCarryForwardQuestion(questionRecord.API_Name__c));
+    }
+
+    private static Boolean isCarryForwardReviewRequired(InterviewQuestion__c questionRecord) {
+        return questionRecord != null
+            && isCarryForwardEnabled(questionRecord)
+            && (questionRecord.Requires_Review__c == true || isStarterCarryForwardQuestion(questionRecord.API_Name__c));
+    }
+
+    private static List<CarryForwardCandidateDTO> buildCarryForwardCandidates(Id accountId, TemplateDTO template) {
+        List<CarryForwardCandidateDTO> candidates = new List<CarryForwardCandidateDTO>();
+        if (accountId == null || template == null || template.sections == null) {
+            return candidates;
+        }
+
+        Map<String, TemplateQuestionDTO> questionsByApiName = new Map<String, TemplateQuestionDTO>();
+        for (TemplateSectionDTO section : template.sections) {
+            if (section == null || section.questions == null) {
+                continue;
+            }
+
+            for (TemplateQuestionDTO question : section.questions) {
+                if (question == null || question.allowCarryForward != true || String.isBlank(question.apiName)) {
+                    continue;
+                }
+                questionsByApiName.put(question.apiName, question);
+            }
+        }
+
+        if (questionsByApiName.isEmpty()) {
+            return candidates;
+        }
+
+        Map<String, SObject> latestAnswersByApiName = queryLatestCarryForwardAnswers(accountId, questionsByApiName.keySet());
+        for (TemplateSectionDTO section : template.sections) {
+            if (section == null || section.questions == null) {
+                continue;
+            }
+
+            for (TemplateQuestionDTO question : section.questions) {
+                if (question == null || question.allowCarryForward != true || String.isBlank(question.apiName)) {
+                    continue;
+                }
+
+                SObject answerRecord = latestAnswersByApiName.get(question.apiName);
+                if (answerRecord == null) {
+                    continue;
+                }
+
+                CarryForwardCandidateDTO candidate = buildCarryForwardCandidate(question, answerRecord);
+                if (candidate != null) {
+                    candidates.add(candidate);
+                }
+            }
+        }
+
+        return candidates;
+    }
+
+    private static Map<String, SObject> queryLatestCarryForwardAnswers(Id accountId, Set<String> questionApiNames) {
+        Map<String, SObject> latestAnswersByApiName = new Map<String, SObject>();
+        if (accountId == null || questionApiNames == null || questionApiNames.isEmpty()) {
+            return latestAnswersByApiName;
+        }
+
+        Set<String> eligibleStatuses = ELIGIBLE_CARRY_FORWARD_INTERVIEW_STATUSES;
+
+        Map<String, Schema.SObjectField> answerFieldMap =
+            Schema.getGlobalDescribe().get('InterviewAnswer__c').getDescribe().fields.getMap();
+        List<String> queryFields = new List<String>{
+            'Id', 'InterviewQuestion__c', 'Question_API_Name__c', 'Interview__c',
+            'Interview__r.CreatedDate', 'Interview__r.Completed_On__c',
+            'Interview__r.CreatedBy.Name',
+            'Interview__r.InterviewTemplateVersion__r.InterviewTemplate__r.Name',
+            'Interview__r.Interaction_Summary__r.Date_of_Interaction__c'
+        };
+        for (String fieldName : new List<String>{
+                'Response_Value__c', 'Response_Number__c', 'Response_Boolean__c',
+                'Response_Date__c', 'Response_Datetime__c', 'Response_Text__c',
+                'Response_Picklist__c', 'Response_JSON__c', 'Value__c', 'Answer_Value__c'}) {
+            if (answerFieldMap.containsKey(fieldName.toLowerCase())) {
+                queryFields.add(fieldName);
+            }
+        }
+
+        String query = 'SELECT ' + String.join(queryFields, ', ') +
+            ' FROM InterviewAnswer__c' +
+            ' WHERE Question_API_Name__c IN :questionApiNames' +
+            ' AND Interview__r.Client__c = :accountId' +
+            ' AND Interview__r.Status__c IN :eligibleStatuses' +
+            ' ORDER BY Interview__r.Completed_On__c DESC NULLS LAST,' +
+            ' Interview__r.Interaction_Summary__r.Date_of_Interaction__c DESC NULLS LAST,' +
+            ' Interview__r.CreatedDate DESC, CreatedDate DESC';
+
+        for (SObject answerRecord : Database.query(query)) {
+            String apiName = (String) answerRecord.get('Question_API_Name__c');
+            if (String.isBlank(apiName) || latestAnswersByApiName.containsKey(apiName)) {
+                continue;
+            }
+
+            String rawValue = resolveCarryForwardRawValue(answerRecord, answerFieldMap);
+            if (String.isBlank(rawValue)) {
+                continue;
+            }
+
+            latestAnswersByApiName.put(apiName, answerRecord);
+        }
+
+        return latestAnswersByApiName;
+    }
+
+    private static CarryForwardCandidateDTO buildCarryForwardCandidate(TemplateQuestionDTO question, SObject answerRecord) {
+        if (question == null || answerRecord == null) {
+            return null;
+        }
+
+        Map<String, Schema.SObjectField> answerFieldMap =
+            Schema.getGlobalDescribe().get('InterviewAnswer__c').getDescribe().fields.getMap();
+        String rawValue = resolveCarryForwardRawValue(answerRecord, answerFieldMap);
+        List<String> rawValues = extractCarryForwardValues(rawValue, question.responseType);
+        if (String.isBlank(rawValue) && (rawValues == null || rawValues.isEmpty())) {
+            return null;
+        }
+
+        CarryForwardCandidateDTO candidate = new CarryForwardCandidateDTO();
+        candidate.questionId = question.questionId;
+        candidate.apiName = question.apiName;
+        candidate.value = rawValue;
+        candidate.values = rawValues;
+        candidate.displayValue = formatCarryForwardDisplayValue(question.responseType, rawValue, rawValues);
+        candidate.sourceInterviewId = (Id) answerRecord.get('Interview__c');
+
+        SObject interviewRecord = answerRecord.getSObject('Interview__r');
+        if (interviewRecord != null) {
+            SObject templateVersionRecord = interviewRecord.getSObject('InterviewTemplateVersion__r');
+            SObject templateRecord = templateVersionRecord != null ? templateVersionRecord.getSObject('InterviewTemplate__r') : null;
+            String templateName = templateRecord != null ? (String) templateRecord.get('Name') : null;
+            String normalizedTemplateName = InterviewTemplateLabelService.normalizeDisplayLabel(templateName);
+            SObject createdByRecord = interviewRecord.getSObject('CreatedBy');
+            String authorName = createdByRecord != null ? (String) createdByRecord.get('Name') : null;
+            if (String.isNotBlank(authorName) && String.isNotBlank(normalizedTemplateName)) {
+                candidate.sourceLabel = authorName + ' / ' + normalizedTemplateName;
+            } else if (String.isNotBlank(authorName)) {
+                candidate.sourceLabel = authorName;
+            } else {
+                candidate.sourceLabel = normalizedTemplateName;
+            }
+
+            SObject summaryRecord = interviewRecord.getSObject('Interaction_Summary__r');
+            Date interactionDate = summaryRecord != null ? (Date) summaryRecord.get('Date_of_Interaction__c') : null;
+            if (interactionDate != null) {
+                candidate.recordedDate = String.valueOf(interactionDate);
+            } else {
+                Datetime completedOn = (Datetime) interviewRecord.get('Completed_On__c');
+                if (completedOn != null) {
+                    candidate.recordedDate = completedOn.format('yyyy-MM-dd');
+                }
+            }
+        }
+
+        if (String.isBlank(candidate.sourceLabel)) {
+            candidate.sourceLabel = 'Unknown Author / Previous Interview';
+        }
+
+        return candidate;
+    }
+
+    private static String resolveCarryForwardRawValue(
+        SObject answerRecord,
+        Map<String, Schema.SObjectField> answerFieldMap
+    ) {
+        if (answerRecord == null || answerFieldMap == null) {
+            return null;
+        }
+
+        if (answerFieldMap.containsKey('response_number__c')) {
+            Object numberValue = answerRecord.get('Response_Number__c');
+            if (numberValue != null) {
+                return String.valueOf(numberValue);
+            }
+        }
+
+        if (answerFieldMap.containsKey('response_date__c')) {
+            Object dateValue = answerRecord.get('Response_Date__c');
+            if (dateValue != null) {
+                return String.valueOf(dateValue);
+            }
+        }
+
+        if (answerFieldMap.containsKey('response_datetime__c')) {
+            Object datetimeValue = answerRecord.get('Response_Datetime__c');
+            if (datetimeValue != null) {
+                return ((Datetime) datetimeValue).format('yyyy-MM-dd\'T\'HH:mm');
+            }
+        }
+
+        for (String fieldName : new List<String>{
+                'Response_Picklist__c', 'Response_Value__c', 'Response_Text__c',
+                'Response_JSON__c', 'Value__c', 'Answer_Value__c'}) {
+            if (!answerFieldMap.containsKey(fieldName.toLowerCase())) {
+                continue;
+            }
+
+            Object value = answerRecord.get(fieldName);
+            if (value != null && String.isNotBlank(String.valueOf(value))) {
+                return String.valueOf(value);
+            }
+        }
+
+        if (answerFieldMap.containsKey('response_boolean__c')) {
+            Object booleanValue = answerRecord.get('Response_Boolean__c');
+            if (booleanValue != null) {
+                return ((Boolean) booleanValue) ? 'true' : 'false';
+            }
+        }
+
+        return null;
+    }
+
+    private static List<String> extractCarryForwardValues(String rawValue, String responseType) {
+        if (String.isBlank(rawValue)) {
+            return new List<String>();
+        }
+
+        String normalizedType = String.isBlank(responseType) ? '' : responseType.toLowerCase();
+        if ('radios'.equals(normalizedType) || 'multi_picklist'.equals(normalizedType) || 'multipicklist'.equals(normalizedType)) {
+            return new List<String>(rawValue.split(';'));
+        }
+
+        return new List<String>();
+    }
+
+    private static String formatCarryForwardDisplayValue(String responseType, String rawValue, List<String> rawValues) {
+        if (rawValues != null && !rawValues.isEmpty()) {
+            return String.join(rawValues, ', ');
+        }
+
+        String normalizedType = String.isBlank(responseType) ? '' : responseType.toLowerCase();
+        if (normalizedType == 'boolean' || normalizedType == 'checkbox') {
+            if ('true'.equalsIgnoreCase(rawValue)) {
+                return 'Yes';
+            }
+            if ('false'.equalsIgnoreCase(rawValue)) {
+                return 'No';
+            }
+        }
+
+        return String.isBlank(rawValue) ? '(No response)' : rawValue;
+    }
+
+    private static void validateCarryForwardReviewCompletion(SaveRequest request, Id accountId) {
+        if (request == null || request.templateVersionId == null || accountId == null) {
+            return;
+        }
+
+        Map<Id, String> reviewableQuestions = new Map<Id, String>();
+        for (InterviewQuestion__c questionRecord : [
+            SELECT Id, API_Name__c, Allow_Carry_Forward__c, Requires_Review__c
+            FROM InterviewQuestion__c
+            WHERE InterviewTemplateVersion__c = :request.templateVersionId
+        ]) {
+            if (isCarryForwardReviewRequired(questionRecord) && String.isNotBlank(questionRecord.API_Name__c)) {
+                reviewableQuestions.put(questionRecord.Id, questionRecord.API_Name__c);
+            }
+        }
+
+        if (reviewableQuestions.isEmpty()) {
+            return;
+        }
+
+        Set<String> apiNames = new Set<String>(reviewableQuestions.values());
+        Map<String, SObject> latestAnswersByApiName = queryLatestCarryForwardAnswers(accountId, apiNames);
+        if (latestAnswersByApiName.isEmpty()) {
+            return;
+        }
+
+        Set<Id> reviewedQuestionIds = new Set<Id>();
+        if (request.reviewedCarryForwardQuestionIds != null) {
+            reviewedQuestionIds.addAll(request.reviewedCarryForwardQuestionIds);
+        }
+
+        for (Id questionId : reviewableQuestions.keySet()) {
+            String apiName = reviewableQuestions.get(questionId);
+            if (latestAnswersByApiName.containsKey(apiName) && !reviewedQuestionIds.contains(questionId)) {
+                throw new System.StringException('Please review each carried forward answer before saving and submitting this interview.');
+            }
+        }
     }
 
     /**
@@ -1128,6 +1857,20 @@ public with sharing class InterviewSessionController {
         return caseRecord.AccountId;
     }
 
+    private static Boolean listContainsIgnoreCase(List<String> values, String expectedValue) {
+        if (values == null || String.isBlank(expectedValue)) {
+            return false;
+        }
+
+        for (String value : values) {
+            if (value != null && value.equalsIgnoreCase(expectedValue)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static Map<String, Object> fetchAccountData(Id caseId) {
         Map<String, Object> result = new Map<String, Object>();
         
@@ -1144,21 +1887,66 @@ public with sharing class InterviewSessionController {
                 return result;
             }
             
-            // Dynamically query Account fields
             Schema.SObjectType accountType = Schema.getGlobalDescribe().get('Account');
             Map<String, Schema.SObjectField> fieldMap = accountType.getDescribe().fields.getMap();
-            
-            // Build list of fields to query (only accessible fields)
+
+            List<String> desiredFields = new List<String>{
+                'Id',
+                'Name',
+                'FirstName',
+                'MiddleName',
+                'LastName',
+                'Preferred_Name__pc',
+                'PersonBirthdate',
+                'Age__pc',
+                'Social_Security_Number__pc',
+                'MEDICAID_Number__pc',
+                'Translator_Needed__pc',
+                'Referral_Source__c',
+                'Gender_Identity__pc',
+                'Gender_Identity_Other_Description__pc',
+                'PersonPronouns',
+                'Pronouns_Other_Description__pc',
+                'Race_and_Ethnicity__pc',
+                'Race_Ethnicity_Detail__c',
+                'Sexual_Orientation__pc',
+                'Sexual_Orientation_Other_Description__pc',
+                'PersonMobilePhone',
+                'PersonEmail',
+                'Emergency_Contact_Name__c',
+                'Emergency_Contact_Relationship__c',
+                'Place_of_Birth_City_County__pc',
+                'Veteran_Service__pc',
+                'Known_Allergies__c',
+                'Primary_Diagnosis__c',
+                'Currently_Taking_Medications__c',
+                'Need_Help_Refilling_Medications__c',
+                'Medication_Notes__c'
+            };
+
             List<String> queryFields = new List<String>();
-            for (String fieldName : fieldMap.keySet()) {
-                Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldName).getDescribe();
-                if (fieldDescribe.isAccessible()) {
-                    queryFields.add(fieldName);
+            for (String desiredField : desiredFields) {
+                for (String fieldName : fieldMap.keySet()) {
+                    if (fieldName != null && fieldName.equalsIgnoreCase(desiredField)) {
+                        Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldName).getDescribe();
+                        if (fieldDescribe.isAccessible()) {
+                            queryFields.add(fieldName);
+                        }
+                        break;
+                    }
                 }
             }
+
+            if (queryFields.isEmpty()) {
+                return result;
+            }
+
+            Boolean includesReferralSource = listContainsIgnoreCase(queryFields, 'Referral_Source__c');
             
             // Query Account with dynamic fields
-            String queryString = 'SELECT ' + String.join(queryFields, ', ') + ' FROM Account WHERE Id = :accountId LIMIT 1';
+            String queryString = 'SELECT ' + String.join(queryFields, ', ') +
+                (includesReferralSource ? ', Referral_Source__r.Name' : '') +
+                ' FROM Account WHERE Id = :accountId LIMIT 1';
             Id accountId = caseRecord.AccountId;
             List<Account> accounts = Database.query(queryString);
             
@@ -1168,12 +1956,26 @@ public with sharing class InterviewSessionController {
             
             Account acc = accounts[0];
             
-            // Convert SObject to Map
-            Map<String, Object> populatedMap = acc.getPopulatedFieldsAsMap();
-            for (String fieldName : populatedMap.keySet()) {
-                Object value = populatedMap.get(fieldName);
-                if (value != null) {
-                    result.put(fieldName, value);
+            for (String fieldName : queryFields) {
+                result.put(fieldName, acc.get(fieldName));
+            }
+            if (includesReferralSource) {
+                SObject referralSource = acc.getSObject('Referral_Source__r');
+                result.put('Referral_Source_Name', referralSource != null ? referralSource.get('Name') : null);
+            }
+
+            if ((result.get('FirstName') == null || result.get('LastName') == null) && result.get('Name') != null) {
+                String fullName = String.valueOf(result.get('Name')).trim();
+                Integer separatorIndex = fullName.lastIndexOf(' ');
+                if (separatorIndex > 0) {
+                    if (result.get('FirstName') == null) {
+                        result.put('FirstName', fullName.substring(0, separatorIndex).trim());
+                    }
+                    if (result.get('LastName') == null) {
+                        result.put('LastName', fullName.substring(separatorIndex + 1).trim());
+                    }
+                } else if (result.get('LastName') == null) {
+                    result.put('LastName', fullName);
                 }
             }
             
@@ -1260,7 +2062,9 @@ public with sharing class InterviewSessionController {
         Id assessmentId,
         SObject templateVersion,
         Date interactionDate,
-        String startedAtIso
+        String startedAtIso,
+        Boolean requiresManagerApproval,
+        Id managerApproverId
     ) {
         SObject interview = Schema.getGlobalDescribe().get('Interview__c').newSObject();
         interview.put('Case__c', caseId);
@@ -1270,8 +2074,8 @@ public with sharing class InterviewSessionController {
         // Note: Assessment__c relationship is on Assessment, not Interview (Assessment__c.Interview__c)
         // Set status to Submitted since saveInterviewSession is for final submission (drafts use Save for Later)
         // Valid values: In Progress, Submitted, Signed, Voided
-        interview.put('Status__c', 'Submitted');
-        interview.put('Name', formatInterviewName(templateVersion, accountId, interactionDate));
+        interview.put('Status__c', DocumentStatus.INTERVIEW_SUBMITTED);
+        interview.put('Name', formatInterviewName(templateVersion, caseId, accountId, interactionDate));
         
         // Set Started_On__c from when interview was first started (draft creation time), or now if not from draft
         Datetime startedOn = Datetime.now();
@@ -1286,6 +2090,12 @@ public with sharing class InterviewSessionController {
         }
         putIfFieldExists(interview, 'Started_On__c', startedOn);
         putIfFieldExists(interview, 'Completed_On__c', Datetime.now());
+        if (requiresManagerApproval == true) {
+            putIfFieldExists(interview, 'Requires_Manager_Approval__c', true);
+            putIfFieldExists(interview, 'Manager_Approver__c', managerApproverId);
+            putIfFieldExists(interview, 'Manager_Signed__c', false);
+            putIfFieldExists(interview, 'Manager_Signed_Date__c', null);
+        }
         // Generate UUID for document viewer to uniquely identify this interview
         putIfFieldExists(interview, 'UUID__c', generateUUID());
         
@@ -1293,6 +2103,7 @@ public with sharing class InterviewSessionController {
         
         return interview;
     }
+
     
     /**
      * Generate a UUID v4 string for unique interview identification.
@@ -1304,6 +2115,18 @@ public with sharing class InterviewSessionController {
                '4' + h.substring(13,16) + '-' + 
                'a' + h.substring(17,20) + '-' + 
                h.substring(20);
+    }
+
+    private static void logComplianceAudit(String actionType, Id recordId, String objectType, String details) {
+        if (recordId == null || String.isBlank(actionType) || String.isBlank(objectType) || String.isBlank(details)) {
+            return;
+        }
+
+        try {
+            AuditLogService.logAction(actionType, String.valueOf(recordId), details, objectType);
+        } catch (Exception ex) {
+            System.debug('Compliance audit logging failed (non-fatal): ' + ex.getMessage());
+        }
     }
 
     private static List<SObject> buildAnswerRecords(Id interviewId, List<AnswerDTO> answerDtos) {
@@ -1370,12 +2193,17 @@ public with sharing class InterviewSessionController {
                 'Boolean_Value__c'
             };
             if (!String.isBlank(dto.value)) {
-                Boolean boolValue = dto.value.equalsIgnoreCase('true');
+                Boolean boolValue = parseExplicitBoolean(dto.value);
+                if (boolValue == null) {
+                    // Do not coerce arbitrary values (e.g., "5") to false.
+                    // Fall through to text fields so data is preserved.
+                } else {
                 for (String fieldName : booleanFields) {
                     if (fieldMap.containsKey(fieldName)) {
                         answer.put(fieldName, boolValue);
                         return;
                     }
+                }
                 }
             }
         } else if ('date'.equals(normalizedType)) {
@@ -1421,6 +2249,22 @@ public with sharing class InterviewSessionController {
                 return;
             }
         }
+    }
+
+    private static Boolean parseExplicitBoolean(String rawValue) {
+        if (String.isBlank(rawValue)) {
+            return null;
+        }
+
+        String normalized = rawValue.trim().toLowerCase();
+        if (normalized == 'true' || normalized == 'yes' || normalized == '1') {
+            return true;
+        }
+        if (normalized == 'false' || normalized == 'no' || normalized == '0') {
+            return false;
+        }
+
+        return null;
     }
 
     private static void putIfFieldExists(SObject record, String fieldApiName, Object value) {
@@ -1565,14 +2409,24 @@ public with sharing class InterviewSessionController {
         return options;
     }
 
-    private static String formatInterviewName(SObject templateVersion, Id accountId, Date interactionDate) {
+    private static String formatInterviewName(SObject templateVersion, Id caseId, Id accountId, Date interactionDate) {
         // Format: TemplateName - LastName - Date (to stay under 80 char limit)
         List<String> parts = new List<String>();
         
         // Add template name
         SObject template = (SObject)templateVersion.getSObject('InterviewTemplate__r');
         if (template != null && template.get('Name') != null) {
-            parts.add((String)template.get('Name'));
+            String templateName = (String)template.get('Name');
+            if (String.isNotBlank(templateName) && templateName.toLowerCase().contains('psycho-social intake')) {
+                String programName = getProgramNameForCase(caseId);
+                String normalizedName = 'Psycho-Social Intake';
+                if (String.isNotBlank(programName)) {
+                    normalizedName += ' - ' + programName;
+                }
+                parts.add(normalizedName);
+            } else {
+                parts.add(templateName);
+            }
         }
         
         // Add person account last name
@@ -1592,6 +2446,50 @@ public with sharing class InterviewSessionController {
         parts.add(datePart);
         
         return String.join(parts, ' - ');
+    }
+
+    private static String getProgramNameForCase(Id caseId) {
+        if (caseId == null) {
+            return null;
+        }
+
+        try {
+            List<SObject> enrollments = Database.query(
+                'SELECT Program.Name FROM ProgramEnrollment ' +
+                'WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ' +
+                'ORDER BY CreatedDate DESC LIMIT 1'
+            );
+            if (!enrollments.isEmpty()) {
+                SObject program = enrollments[0].getSObject('Program');
+                if (program != null) {
+                    String name = (String)program.get('Name');
+                    if (String.isNotBlank(name)) {
+                        return name;
+                    }
+                }
+            }
+        } catch (Exception e1) {
+            try {
+                List<SObject> enrollments = Database.query(
+                    'SELECT Program__r.Name FROM ProgramEnrollment ' +
+                    'WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ' +
+                    'ORDER BY CreatedDate DESC LIMIT 1'
+                );
+                if (!enrollments.isEmpty()) {
+                    SObject program = enrollments[0].getSObject('Program__r');
+                    if (program != null) {
+                        String name = (String)program.get('Name');
+                        if (String.isNotBlank(name)) {
+                            return name;
+                        }
+                    }
+                }
+            } catch (Exception e2) {
+                System.debug('Could not determine Program name for case ' + caseId + ': ' + e2.getMessage());
+            }
+        }
+
+        return null;
     }
 
     private static void createBenefitDisbursements(
@@ -1629,11 +2527,6 @@ public with sharing class InterviewSessionController {
             
             if (programId == null) {
                 System.debug('No active ProgramEnrollment found for case: ' + caseId);
-                return;
-            }
-            
-            if (enrollmentStatus != 'Enrolled' && enrollmentStatus != 'Active') {
-                System.debug('Participant enrollment status is "' + enrollmentStatus + '" - skipping benefit disbursements');
                 return;
             }
             
@@ -1777,131 +2670,40 @@ public with sharing class InterviewSessionController {
             }
             
             Account acc = new Account(Id = accountId);
-            
-            // Map demographics to Account fields - only update if new value provided and not empty
-            if (demographics.containsKey('FirstName') && demographics.get('FirstName') != null && String.valueOf(demographics.get('FirstName')) != '') {
-                acc.put('FirstName', demographics.get('FirstName'));
-            }
-            if (demographics.containsKey('MiddleName') && demographics.get('MiddleName') != null && String.valueOf(demographics.get('MiddleName')) != '') {
-                acc.put('MiddleName', demographics.get('MiddleName'));
-            }
-            if (demographics.containsKey('LastName') && demographics.get('LastName') != null && String.valueOf(demographics.get('LastName')) != '') {
-                acc.put('LastName', demographics.get('LastName'));
-            }
-            if (demographics.containsKey('Preferred_Name__pc') && demographics.get('Preferred_Name__pc') != null && String.valueOf(demographics.get('Preferred_Name__pc')) != '') {
-                putIfFieldExists(acc, 'Preferred_Name__pc', demographics.get('Preferred_Name__pc'));
-            }
-            if (demographics.containsKey('PersonBirthdate') && demographics.get('PersonBirthdate') != null && String.valueOf(demographics.get('PersonBirthdate')) != '' && String.valueOf(demographics.get('PersonBirthdate')) != 'null') {
-                try {
-                    acc.put('PersonBirthdate', Date.valueOf(String.valueOf(demographics.get('PersonBirthdate'))));
-                } catch (Exception e) {
-                    System.debug('Error parsing PersonBirthdate: ' + e.getMessage());
-                }
-            }
-            // SSN - LWC now sends Social_Security_Number__pc directly
-            if (demographics.containsKey('Social_Security_Number__pc') && demographics.get('Social_Security_Number__pc') != null && String.valueOf(demographics.get('Social_Security_Number__pc')) != '') {
-                putIfFieldExists(acc, 'Social_Security_Number__pc', demographics.get('Social_Security_Number__pc'));
-            }
-            if (demographics.containsKey('MEDICAID_Number__pc') && demographics.get('MEDICAID_Number__pc') != null && String.valueOf(demographics.get('MEDICAID_Number__pc')) != '') {
-                putIfFieldExists(acc, 'MEDICAID_Number__pc', demographics.get('MEDICAID_Number__pc'));
-            }
-            if (demographics.containsKey('Translator_Needed__pc') && demographics.get('Translator_Needed__pc') != null && String.valueOf(demographics.get('Translator_Needed__pc')) != '') {
-                putIfFieldExists(acc, 'Translator_Needed__pc', demographics.get('Translator_Needed__pc'));
-            }
-            if (demographics.containsKey('Referral_Source__c') && demographics.get('Referral_Source__c') != null && String.valueOf(demographics.get('Referral_Source__c')) != '') {
-                putIfFieldExists(acc, 'Referral_Source__c', demographics.get('Referral_Source__c'));
-            }
-            // Gender Identity - LWC now sends Gender_Identity__pc directly
-            if (demographics.containsKey('Gender_Identity__pc') && demographics.get('Gender_Identity__pc') != null && String.valueOf(demographics.get('Gender_Identity__pc')) != '') {
-                putIfFieldExists(acc, 'Gender_Identity__pc', demographics.get('Gender_Identity__pc'));
-                // Also map to standard PersonGenderIdentity field if available
-                putIfFieldExists(acc, 'PersonGenderIdentity', demographics.get('Gender_Identity__pc'));
-            }
-            // Gender Identity Other - LWC now sends Gender_Identity_Other_Description__pc directly
-            if (demographics.containsKey('Gender_Identity_Other_Description__pc') && demographics.get('Gender_Identity_Other_Description__pc') != null && String.valueOf(demographics.get('Gender_Identity_Other_Description__pc')) != '') {
-                putIfFieldExists(acc, 'Gender_Identity_Other_Description__pc', demographics.get('Gender_Identity_Other_Description__pc'));
-            }
-            // Pronouns - LWC now sends PersonPronouns directly
-            if (demographics.containsKey('PersonPronouns') && demographics.get('PersonPronouns') != null && String.valueOf(demographics.get('PersonPronouns')) != '') {
-                putIfFieldExists(acc, 'PersonPronouns', demographics.get('PersonPronouns'));
-            }
-            // Pronouns Other - LWC now sends Pronouns_Other_Description__pc directly
-            if (demographics.containsKey('Pronouns_Other_Description__pc') && demographics.get('Pronouns_Other_Description__pc') != null && String.valueOf(demographics.get('Pronouns_Other_Description__pc')) != '') {
-                putIfFieldExists(acc, 'Pronouns_Other_Description__pc', demographics.get('Pronouns_Other_Description__pc'));
-            }
-            // Race/Ethnicity - LWC now sends Race_and_Ethnicity__pc directly
-            if (demographics.containsKey('Race_and_Ethnicity__pc') && demographics.get('Race_and_Ethnicity__pc') != null) {
-                // Handle multi-select picklist (List<String> -> semicolon-separated)
-                Object raceValue = demographics.get('Race_and_Ethnicity__pc');
-                Set<String> selectedRaces = new Set<String>();
-                
-                if (raceValue instanceof List<Object>) {
-                    for (Object val : (List<Object>)raceValue) {
-                        selectedRaces.add(String.valueOf(val));
-                    }
-                    // Save the multi-picklist value as semicolon-separated string
-                    String joinedValue = String.join(new List<String>(selectedRaces), ';');
-                    if (joinedValue != '') {
-                        putIfFieldExists(acc, 'Race_and_Ethnicity__pc', joinedValue);
-                    }
-                } else if (String.valueOf(raceValue) != '') {
-                    String raceStr = String.valueOf(raceValue);
-                    selectedRaces.addAll(raceStr.split(';'));
-                    putIfFieldExists(acc, 'Race_and_Ethnicity__pc', raceStr);
-                }
-                
-                // NOTE: Individual race boolean fields (Race_American_Indian_or_Alaska_Native__pc, etc.)
-                // are FORMULA FIELDS derived from Race_and_Ethnicity__pc - do not update directly
-                // The Race_and_Ethnicity__pc multi-select picklist is the source of truth
-            }
-            if (demographics.containsKey('Race_Ethnicity_Detail__c') && demographics.get('Race_Ethnicity_Detail__c') != null && String.valueOf(demographics.get('Race_Ethnicity_Detail__c')) != '') {
-                putIfFieldExists(acc, 'Race_Ethnicity_Detail__c', demographics.get('Race_Ethnicity_Detail__c'));
-            }
-            // Sexual Orientation - LWC now sends Sexual_Orientation__pc directly
-            if (demographics.containsKey('Sexual_Orientation__pc') && demographics.get('Sexual_Orientation__pc') != null && String.valueOf(demographics.get('Sexual_Orientation__pc')) != '') {
-                putIfFieldExists(acc, 'Sexual_Orientation__pc', demographics.get('Sexual_Orientation__pc'));
-            }
-            // Sexual Orientation Other - LWC now sends Sexual_Orientation_Other_Description__pc directly
-            if (demographics.containsKey('Sexual_Orientation_Other_Description__pc') && demographics.get('Sexual_Orientation_Other_Description__pc') != null && String.valueOf(demographics.get('Sexual_Orientation_Other_Description__pc')) != '') {
-                putIfFieldExists(acc, 'Sexual_Orientation_Other_Description__pc', demographics.get('Sexual_Orientation_Other_Description__pc'));
-            }
-            if (demographics.containsKey('PersonMobilePhone') && demographics.get('PersonMobilePhone') != null && String.valueOf(demographics.get('PersonMobilePhone')) != '') {
-                acc.put('PersonMobilePhone', demographics.get('PersonMobilePhone'));
-            }
-            if (demographics.containsKey('PersonEmail') && demographics.get('PersonEmail') != null && String.valueOf(demographics.get('PersonEmail')) != '') {
-                acc.put('PersonEmail', demographics.get('PersonEmail'));
-            }
-            if (demographics.containsKey('Emergency_Contact_Name__c') && demographics.get('Emergency_Contact_Name__c') != null && String.valueOf(demographics.get('Emergency_Contact_Name__c')) != '') {
-                putIfFieldExists(acc, 'Emergency_Contact_Name__c', demographics.get('Emergency_Contact_Name__c'));
-            }
-            if (demographics.containsKey('Emergency_Contact_Relationship__c') && demographics.get('Emergency_Contact_Relationship__c') != null && String.valueOf(demographics.get('Emergency_Contact_Relationship__c')) != '') {
-                putIfFieldExists(acc, 'Emergency_Contact_Relationship__c', demographics.get('Emergency_Contact_Relationship__c'));
-            }
-            // Place of Birth - LWC now sends Place_of_Birth_City_County__pc directly
-            if (demographics.containsKey('Place_of_Birth_City_County__pc') && demographics.get('Place_of_Birth_City_County__pc') != null && String.valueOf(demographics.get('Place_of_Birth_City_County__pc')) != '') {
-                putIfFieldExists(acc, 'Place_of_Birth_City_County__pc', demographics.get('Place_of_Birth_City_County__pc'));
-            }
-            // Veteran - LWC now sends Veteran_Service__pc directly
-            if (demographics.containsKey('Veteran_Service__pc') && demographics.get('Veteran_Service__pc') != null && String.valueOf(demographics.get('Veteran_Service__pc')) != '') {
-                putIfFieldExists(acc, 'Veteran_Service__pc', demographics.get('Veteran_Service__pc'));
-            }
-            if (demographics.containsKey('Known_Allergies__c') && demographics.get('Known_Allergies__c') != null && String.valueOf(demographics.get('Known_Allergies__c')) != '') {
-                putIfFieldExists(acc, 'Known_Allergies__c', demographics.get('Known_Allergies__c'));
-            }
-            // Primary Diagnosis - LWC now sends Primary_Diagnosis__c directly
-            if (demographics.containsKey('Primary_Diagnosis__c') && demographics.get('Primary_Diagnosis__c') != null && String.valueOf(demographics.get('Primary_Diagnosis__c')) != '') {
-                putIfFieldExists(acc, 'Primary_Diagnosis__c', demographics.get('Primary_Diagnosis__c'));
-            }
-            // Taking Medications - LWC now sends Currently_Taking_Medications__c directly
-            if (demographics.containsKey('Currently_Taking_Medications__c') && demographics.get('Currently_Taking_Medications__c') != null && String.valueOf(demographics.get('Currently_Taking_Medications__c')) != '') {
-                putIfFieldExists(acc, 'Currently_Taking_Medications__c', demographics.get('Currently_Taking_Medications__c'));
-            }
-            // Needs Medication Refill Help - LWC now sends Need_Help_Refilling_Medications__c directly
-            if (demographics.containsKey('Need_Help_Refilling_Medications__c') && demographics.get('Need_Help_Refilling_Medications__c') != null && String.valueOf(demographics.get('Need_Help_Refilling_Medications__c')) != '') {
-                putIfFieldExists(acc, 'Need_Help_Refilling_Medications__c', demographics.get('Need_Help_Refilling_Medications__c'));
-            }
-            if (demographics.containsKey('Medication_Notes__c') && demographics.get('Medication_Notes__c') != null && String.valueOf(demographics.get('Medication_Notes__c')) != '') {
-                putIfFieldExists(acc, 'Medication_Notes__c', demographics.get('Medication_Notes__c'));
+
+            List<String> validationErrors = new List<String>();
+            putAccountFieldIfProvided(acc, demographics, 'FirstName', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'MiddleName', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'LastName', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Preferred_Name__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'PersonBirthdate', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Social_Security_Number__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'MEDICAID_Number__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Translator_Needed__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Referral_Source__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Gender_Identity__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'PersonGenderIdentity', validationErrors, 'Gender_Identity__pc');
+            putAccountFieldIfProvided(acc, demographics, 'Gender_Identity_Other_Description__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'PersonPronouns', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Pronouns_Other_Description__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Race_and_Ethnicity__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Race_Ethnicity_Detail__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Sexual_Orientation__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Sexual_Orientation_Other_Description__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'PersonMobilePhone', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'PersonEmail', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Emergency_Contact_Name__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Emergency_Contact_Relationship__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Place_of_Birth_City_County__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Veteran_Service__pc', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Known_Allergies__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Primary_Diagnosis__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Currently_Taking_Medications__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Need_Help_Refilling_Medications__c', validationErrors);
+            putAccountFieldIfProvided(acc, demographics, 'Medication_Notes__c', validationErrors);
+
+            if (!validationErrors.isEmpty()) {
+                System.debug('Account demographics validation errors (continuing with valid fields): ' + String.join(validationErrors, ' | '));
             }
 
             // Debug: List all fields being updated on Account before update
@@ -1909,6 +2711,11 @@ public with sharing class InterviewSessionController {
             System.debug('=== updateAccountDemographics: Fields to update ===');
             for (String fieldName : populatedMap.keySet()) {
                 System.debug('  ' + fieldName + ' = ' + populatedMap.get(fieldName));
+            }
+
+            if (populatedMap.size() <= 1) {
+                System.debug('No valid demographic field updates remained after coercion for Account: ' + accountId);
+                return;
             }
             
             // Check if Name is somehow in the populated fields (it shouldn't be)
@@ -1922,6 +2729,239 @@ public with sharing class InterviewSessionController {
             System.debug('Error updating Account demographics: ' + e.getMessage());
             // Don't throw - allow interview to save even if Account update fails
         }
+    }
+
+    private static String normalizeNullableString(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        String normalizedValue = String.valueOf(value).trim();
+        if (normalizedValue == '' || normalizedValue == 'null') {
+            return null;
+        }
+        return normalizedValue;
+    }
+
+    private static void putAccountFieldIfProvided(
+        SObject record,
+        Map<String, Object> demographics,
+        String fieldApiName,
+        List<String> validationErrors,
+        String sourceFieldName
+    ) {
+        if (record == null || demographics == null || String.isBlank(fieldApiName)) {
+            return;
+        }
+
+        String sourceKey = String.isNotBlank(sourceFieldName) ? sourceFieldName : fieldApiName;
+        if (!demographics.containsKey(sourceKey)) {
+            return;
+        }
+
+        putAccountField(record, fieldApiName, demographics.get(sourceKey), validationErrors);
+    }
+
+    private static void putAccountFieldIfProvided(
+        SObject record,
+        Map<String, Object> demographics,
+        String fieldApiName,
+        List<String> validationErrors
+    ) {
+        putAccountFieldIfProvided(record, demographics, fieldApiName, validationErrors, null);
+    }
+
+    private static void putAccountField(SObject record, String fieldApiName, Object value, List<String> validationErrors) {
+        if (record == null || String.isBlank(fieldApiName)) {
+            return;
+        }
+
+        Map<String, Schema.SObjectField> fieldMap = record.getSObjectType().getDescribe().fields.getMap();
+        Schema.SObjectField targetField = null;
+        for (String key : fieldMap.keySet()) {
+            if (key != null && key.equalsIgnoreCase(fieldApiName)) {
+                targetField = fieldMap.get(key);
+                break;
+            }
+        }
+        if (targetField == null) {
+            return;
+        }
+
+        Schema.DescribeFieldResult describeResult = targetField.getDescribe();
+        if (describeResult.isCalculated() || describeResult.isAutoNumber()) {
+            return;
+        }
+
+        try {
+            record.put(describeResult.getName(), coerceAccountFieldValue(describeResult, value, fieldApiName));
+        } catch (Exception e) {
+            if (validationErrors != null) {
+                validationErrors.add(fieldApiName + ' (' + describeResult.getType() + '): ' + e.getMessage());
+            }
+        }
+    }
+
+    private static Object coerceAccountFieldValue(Schema.DescribeFieldResult describeResult, Object value, String fieldApiName) {
+        if (describeResult == null) {
+            return value;
+        }
+
+        Schema.DisplayType fieldType = describeResult.getType();
+        if (fieldType == Schema.DisplayType.MultiPicklist) {
+            return coerceAccountMultiPicklistValue(describeResult, value, fieldApiName);
+        }
+
+        if (fieldType == Schema.DisplayType.Picklist) {
+            return coerceAccountPicklistValue(describeResult, value, fieldApiName);
+        }
+
+        if (fieldType == Schema.DisplayType.Boolean) {
+            return coerceBooleanAccountField(value, fieldApiName);
+        }
+
+        if (fieldType == Schema.DisplayType.Reference) {
+            return coerceReferenceAccountField(describeResult, value, fieldApiName);
+        }
+
+        if (fieldType == Schema.DisplayType.Date) {
+            String normalizedDate = normalizeNullableString(value);
+            if (normalizedDate == null) {
+                return null;
+            }
+            return Date.valueOf(normalizedDate.length() >= 10 ? normalizedDate.substring(0, 10) : normalizedDate);
+        }
+
+        if (fieldType == Schema.DisplayType.DateTime) {
+            String normalizedDateTime = normalizeNullableString(value);
+            if (normalizedDateTime == null) {
+                return null;
+            }
+            return Datetime.valueOf(normalizedDateTime.replace('T', ' '));
+        }
+
+        if (fieldType == Schema.DisplayType.Integer) {
+            String normalizedInteger = normalizeNullableString(value);
+            return normalizedInteger == null ? null : Integer.valueOf(normalizedInteger);
+        }
+
+        if (
+            fieldType == Schema.DisplayType.Double ||
+            fieldType == Schema.DisplayType.Currency ||
+            fieldType == Schema.DisplayType.Percent
+        ) {
+            String normalizedDecimal = normalizeNullableString(value);
+            return normalizedDecimal == null ? null : Decimal.valueOf(normalizedDecimal);
+        }
+
+        return normalizeNullableString(value);
+    }
+
+    private static Object coerceAccountPicklistValue(Schema.DescribeFieldResult describeResult, Object value, String fieldApiName) {
+        String normalizedValue = normalizeNullableString(value);
+        if (normalizedValue == null) {
+            return null;
+        }
+
+        String coercedValue = coercePicklistValue(describeResult, normalizedValue);
+        if (coercedValue != null) {
+            return coercedValue;
+        }
+
+        throw new AuraHandledException('Invalid picklist value for ' + fieldApiName + ': ' + normalizedValue);
+    }
+
+    private static Object coerceAccountMultiPicklistValue(Schema.DescribeFieldResult describeResult, Object value, String fieldApiName) {
+        if (value == null) {
+            return null;
+        }
+
+        List<String> rawValues = new List<String>();
+        if (value instanceof List<Object>) {
+            for (Object item : (List<Object>)value) {
+                String normalizedItem = normalizeNullableString(item);
+                if (normalizedItem != null) {
+                    rawValues.add(normalizedItem);
+                }
+            }
+        } else {
+            String normalizedValue = normalizeNullableString(value);
+            if (normalizedValue != null) {
+                rawValues.addAll(normalizedValue.split(';'));
+            }
+        }
+
+        if (rawValues.isEmpty()) {
+            return null;
+        }
+
+        List<String> coercedValues = new List<String>();
+        for (String rawItem : rawValues) {
+            String normalizedItem = normalizeNullableString(rawItem);
+            if (normalizedItem == null) {
+                continue;
+            }
+
+            String coercedItem = coercePicklistValue(describeResult, normalizedItem);
+            if (coercedItem == null) {
+                throw new AuraHandledException('Invalid picklist value for ' + fieldApiName + ': ' + normalizedItem);
+            }
+            coercedValues.add(coercedItem);
+        }
+
+        return coercedValues.isEmpty() ? null : String.join(coercedValues, ';');
+    }
+
+    private static Boolean coerceBooleanAccountField(Object value, String fieldApiName) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean)value;
+        }
+
+        String normalizedValue = normalizeNullableString(value);
+        if (normalizedValue == null) {
+            return null;
+        }
+
+        String lowerValue = normalizedValue.toLowerCase();
+        if (lowerValue == 'true' || lowerValue == 'yes' || lowerValue == '1') {
+            return true;
+        }
+        if (lowerValue == 'false' || lowerValue == 'no' || lowerValue == '0') {
+            return false;
+        }
+
+        throw new AuraHandledException('Expected Yes/No or True/False for ' + fieldApiName + '.');
+    }
+
+    private static Id coerceReferenceAccountField(Schema.DescribeFieldResult describeResult, Object value, String fieldApiName) {
+        String normalizedValue = normalizeNullableString(value);
+        if (normalizedValue == null) {
+            return null;
+        }
+
+        Id referenceId;
+        try {
+            referenceId = (Id)normalizedValue;
+        } catch (Exception e) {
+            throw new AuraHandledException('Expected a valid record selection for ' + fieldApiName + '.');
+        }
+
+        if (fieldApiName == 'Referral_Source__c') {
+            List<Account> matchingAccounts = [
+                SELECT Id, IsPersonAccount
+                FROM Account
+                WHERE Id = :referenceId
+                LIMIT 1
+            ];
+            if (matchingAccounts.isEmpty() || matchingAccounts[0].IsPersonAccount) {
+                throw new AuraHandledException('Referral Source must be a business account.');
+            }
+        }
+
+        return referenceId;
     }
 
     private static void createIncomeBenefitRecords(Id assessmentId, List<Map<String, Object>> incomeBenefits) {
@@ -2048,9 +3088,15 @@ public with sharing class InterviewSessionController {
         Set<String> existingCodes = new Set<String>();
         if (!codesToLookup.isEmpty()) {
             try {
-                String existingQuery = 'SELECT Id, Code__c FROM Diagnosis__c WHERE Client__c = :accountId AND Status__c = \'Active\'';
+                // Use ICD10Code__c (text field, always set on modern records) for dedup.
+                // Code__c is a formula derived from Code_Name__c lookup and is null when
+                // the lookup is blank, causing false negatives in the duplicate check.
+                String existingQuery = 'SELECT Id, ICD10Code__c, Code__c FROM Diagnosis__c WHERE Client__c = :accountId AND Status__c = \'Active\'';
                 for (SObject existing : Database.query(existingQuery)) {
-                    String existingCode = (String)existing.get('Code__c');
+                    String existingCode = (String)existing.get('ICD10Code__c');
+                    if (String.isBlank(existingCode)) {
+                        existingCode = (String)existing.get('Code__c'); // fallback to formula
+                    }
                     if (String.isNotBlank(existingCode)) {
                         existingCodes.add(existingCode.toUpperCase());
                     }
@@ -2075,6 +3121,9 @@ public with sharing class InterviewSessionController {
         List<SObject> diagnosesToUpdate = new List<SObject>();
 
         for (DiagnosisInput diag : diagnoses) {
+            String normalizedCode = normalizeDiagnosisCode(diag.code);
+            String normalizedDescriptionInput = normalizeDiagnosisDescription(normalizedCode, diag.description);
+
             if (String.isNotBlank(diag.id)) {
                 SObject diagUpdate = diagType.newSObject(diag.id);
                 putFieldIfExists(diagUpdate, fieldMap, 'Status__c', String.isNotBlank(diag.status) ? diag.status : 'Active');
@@ -2084,41 +3133,42 @@ public with sharing class InterviewSessionController {
                 continue;
             }
 
-            if (String.isNotBlank(diag.code) && existingCodes.contains(diag.code.toUpperCase())) {
+            if (String.isNotBlank(normalizedCode) && existingCodes.contains(normalizedCode.toUpperCase())) {
                 continue;
             }
 
             SObject diagRec = diagType.newSObject();
             diagRec.put('Client__c', accountId);
 
-            String resolvedDescription = diag.description;
-            if (String.isBlank(resolvedDescription) && String.isNotBlank(diag.code)) {
-                if (resolvedDescriptions.containsKey(diag.code)) {
-                    resolvedDescription = resolvedDescriptions.get(diag.code);
-                } else if (resolvedDescriptionsUpper.containsKey(diag.code.toUpperCase())) {
-                    resolvedDescription = resolvedDescriptionsUpper.get(diag.code.toUpperCase());
+            String resolvedDescription = normalizedDescriptionInput;
+            if (String.isBlank(resolvedDescription) && String.isNotBlank(normalizedCode)) {
+                if (resolvedDescriptions.containsKey(normalizedCode)) {
+                    resolvedDescription = resolvedDescriptions.get(normalizedCode);
+                } else if (resolvedDescriptionsUpper.containsKey(normalizedCode.toUpperCase())) {
+                    resolvedDescription = resolvedDescriptionsUpper.get(normalizedCode.toUpperCase());
                 }
             }
+            resolvedDescription = normalizeDiagnosisDescription(normalizedCode, resolvedDescription);
 
             String diagName = '';
-            if (String.isNotBlank(diag.code) && String.isNotBlank(resolvedDescription)) {
-                diagName = diag.code + ' - ' + resolvedDescription;
+            if (String.isNotBlank(normalizedCode) && String.isNotBlank(resolvedDescription)) {
+                diagName = normalizedCode + ' - ' + resolvedDescription;
             } else if (String.isNotBlank(resolvedDescription)) {
                 diagName = resolvedDescription;
-            } else if (String.isNotBlank(diag.code)) {
-                diagName = diag.code;
+            } else if (String.isNotBlank(normalizedCode)) {
+                diagName = normalizedCode;
             }
             if (String.isNotBlank(diagName) && diagName.length() > 80) {
                 diagName = diagName.substring(0, 80);
             }
             diagRec.put('Name', diagName);
 
-            if (String.isNotBlank(diag.code)) {
+            if (String.isNotBlank(normalizedCode)) {
                 Id codeId = null;
-                if (codeNumberToId.containsKey(diag.code)) {
-                    codeId = codeNumberToId.get(diag.code);
-                } else if (codeNumberToId.containsKey(diag.code.toUpperCase())) {
-                    codeId = codeNumberToId.get(diag.code.toUpperCase());
+                if (codeNumberToId.containsKey(normalizedCode)) {
+                    codeId = codeNumberToId.get(normalizedCode);
+                } else if (codeNumberToId.containsKey(normalizedCode.toUpperCase())) {
+                    codeId = codeNumberToId.get(normalizedCode.toUpperCase());
                 }
 
                 if (codeId != null) {
@@ -2130,11 +3180,11 @@ public with sharing class InterviewSessionController {
                 }
             }
 
-            if (String.isNotBlank(diag.code)) {
+            if (String.isNotBlank(normalizedCode)) {
                 try {
-                    diagRec.put('ICD10Code__c', diag.code);
+                    diagRec.put('ICD10Code__c', normalizedCode);
                 } catch (Exception e) {
-                    putFieldIfExists(diagRec, fieldMap, 'ICD10Code__c', diag.code);
+                    putFieldIfExists(diagRec, fieldMap, 'ICD10Code__c', normalizedCode);
                 }
             }
 
@@ -2243,9 +3293,13 @@ public with sharing class InterviewSessionController {
         if (!linksToInsert.isEmpty()) {
             try {
                 insert linksToInsert;
+                System.debug('Created ' + linksToInsert.size() + ' Diagnosis_Note_Link__c rows for InteractionSummary ' + noteId);
             } catch (Exception e) {
                 System.debug('Could not insert diagnosis links: ' + e.getMessage());
+                throw new AuraHandledException('Unable to save diagnoses for this interview. ' + formatSaveException(e));
             }
+        } else {
+            System.debug('No new Diagnosis_Note_Link__c rows needed for InteractionSummary ' + noteId);
         }
     }
 
@@ -2350,6 +3404,7 @@ public with sharing class InterviewSessionController {
 
                 } catch (Exception insertEx) {
                     System.debug('Could not create Code__c records in system helper: ' + insertEx.getMessage());
+                    throw new AuraHandledException('Unable to create diagnosis code records. ' + formatSaveException(insertEx));
                 }
             }
 
@@ -2394,9 +3449,31 @@ public with sharing class InterviewSessionController {
         }
 
         private void forceSetField(SObject rec, String fieldName, Object value) {
-            if (value == null) return;
+            if (value == null || rec == null || String.isBlank(fieldName)) return;
             try {
-                rec.put(fieldName, value);
+                Map<String, Schema.SObjectField> fields = rec.getSObjectType().getDescribe().fields.getMap();
+                String lowerName = fieldName.toLowerCase();
+                Schema.SObjectField targetField = null;
+
+                if (fields.containsKey(lowerName)) {
+                    targetField = fields.get(lowerName);
+                } else {
+                    for (String key : fields.keySet()) {
+                        if (key.endsWith('__' + lowerName)) {
+                            targetField = fields.get(key);
+                            break;
+                        }
+                    }
+                }
+
+                if (targetField == null) return;
+
+                Schema.DescribeFieldResult dfr = targetField.getDescribe();
+                if (dfr.isCalculated() || dfr.isAutoNumber()) {
+                    return;
+                }
+
+                rec.put(dfr.getName(), value);
             } catch (Exception e) {
                 System.debug('System: Could not force-set ' + fieldName + ': ' + e.getMessage());
             }
@@ -2509,7 +3586,7 @@ public with sharing class InterviewSessionController {
             putFieldIfExists(serviceLine, fieldMap, 'Case__c', caseId);
             putFieldIfExists(serviceLine, fieldMap, 'Modifier_1__c', config.modifier1);
             putFieldIfExists(serviceLine, fieldMap, 'Modifier_2__c', config.modifier2);
-            putFieldIfExists(serviceLine, fieldMap, 'Billing_Status__c', 'Pending');
+            putFieldIfExists(serviceLine, fieldMap, 'Billing_Status__c', 'Draft');
 
             if (serviceDate != null) {
                 putFieldIfExists(serviceLine, fieldMap, 'Service_Date__c', serviceDate);
@@ -2531,6 +3608,7 @@ public with sharing class InterviewSessionController {
             
             Integer successCount = 0;
             Integer failCount = 0;
+            List<String> failureMessages = new List<String>();
             
             for (Integer i = 0; i < saveResults.size(); i++) {
                 Database.SaveResult sr = saveResults[i];
@@ -2547,12 +3625,313 @@ public with sharing class InterviewSessionController {
                     for (Database.Error err : sr.getErrors()) {
                         errorMsg += err.getMessage() + ' ';
                     }
+                    String formattedFailure = 'CPT ' + config.code + ': ' + errorMsg.trim();
+                    failureMessages.add(formattedFailure);
                     System.debug('✗ Failed to create service line ' + config.code + ': ' + errorMsg.trim());
                 }
             }
             
             System.debug('Created ' + successCount + ' service lines for ' + noteType + ' note (' + failCount + ' failed)');
+            if (!failureMessages.isEmpty()) {
+                throw new AuraHandledException('Unable to save CPT billing codes. ' + String.join(failureMessages, ' | '));
+            }
         }
+    }
+
+    /**
+     * Creates Interaction Service Line records for only the CPT codes explicitly selected by the user.
+     * Used for Comprehensive Assessment where the user picks which codes to bill.
+     */
+    private static void createSelectedInteractionServiceLines(
+        Id interactionSummaryId,
+        List<String> selectedCodes,
+        Id accountId,
+        Id caseId,
+        List<ServiceLineConfig> availableConfigs
+    ) {
+        if (interactionSummaryId == null || selectedCodes == null || selectedCodes.isEmpty() || availableConfigs == null || availableConfigs.isEmpty()) {
+            return;
+        }
+
+        // Build a Set for O(1) lookup
+        Set<String> codeSet = new Set<String>(selectedCodes);
+
+        List<ServiceLineConfig> filteredConfigs = new List<ServiceLineConfig>();
+        for (ServiceLineConfig cfg : availableConfigs) {
+            if (codeSet.contains(cfg.code)) {
+                filteredConfigs.add(cfg);
+            }
+        }
+
+        if (filteredConfigs.isEmpty()) {
+            System.debug('No matching CPT configs found for selected codes: ' + selectedCodes);
+            return;
+        }
+
+        Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+        if (!gd.containsKey('Interaction_Service_Line__c')) {
+            System.debug('Interaction_Service_Line__c object not available in this org');
+            return;
+        }
+
+        Schema.SObjectType serviceLineType = gd.get('Interaction_Service_Line__c');
+        Map<String, Schema.SObjectField> fieldMap = serviceLineType.getDescribe().fields.getMap();
+
+        Date serviceDate;
+        Datetime startDateTime;
+        Datetime endDateTime;
+        try {
+            SObject interaction = [
+                SELECT Date_of_Interaction__c, Start_Time__c, End_Time__c
+                FROM InteractionSummary
+                WHERE Id = :interactionSummaryId
+                LIMIT 1
+            ];
+            if (interaction != null) {
+                serviceDate = (Date)interaction.get('Date_of_Interaction__c');
+                startDateTime = (Datetime)interaction.get('Start_Time__c');
+                endDateTime = (Datetime)interaction.get('End_Time__c');
+            }
+        } catch (Exception e) {
+            System.debug('Could not load InteractionSummary timing for service lines: ' + e.getMessage());
+        }
+
+        List<SObject> serviceLinesToInsert = new List<SObject>();
+        for (ServiceLineConfig config : filteredConfigs) {
+            SObject serviceLine = serviceLineType.newSObject();
+            serviceLine.put('Interaction_Summary__c', interactionSummaryId);
+            serviceLine.put('Service_Code__c', config.code);
+
+            String lineName = config.code;
+            if (String.isNotBlank(config.modifier1)) lineName += ' + ' + config.modifier1;
+            if (String.isNotBlank(config.modifier2)) lineName += ' + ' + config.modifier2;
+            if (String.isNotBlank(config.description)) lineName += ' - ' + config.description;
+            if (lineName.length() > 80) lineName = lineName.substring(0, 80);
+            serviceLine.put('Name', lineName);
+
+            putFieldIfExists(serviceLine, fieldMap, 'Client__c', accountId);
+            putFieldIfExists(serviceLine, fieldMap, 'Case__c', caseId);
+            putFieldIfExists(serviceLine, fieldMap, 'Modifier_1__c', config.modifier1);
+            putFieldIfExists(serviceLine, fieldMap, 'Modifier_2__c', config.modifier2);
+            putFieldIfExists(serviceLine, fieldMap, 'Billing_Status__c', 'Draft');
+
+            if (serviceDate != null) {
+                putFieldIfExists(serviceLine, fieldMap, 'Service_Date__c', serviceDate);
+            }
+            if (startDateTime != null && endDateTime != null) {
+                Long durationMs = endDateTime.getTime() - startDateTime.getTime();
+                Decimal durationMinutes = Decimal.valueOf(durationMs) / 60000;
+                putFieldIfExists(serviceLine, fieldMap, 'Duration_Minutes__c', durationMinutes);
+                Decimal units = (durationMinutes / 15).setScale(2);
+                putFieldIfExists(serviceLine, fieldMap, 'Units__c', units);
+            }
+
+            serviceLinesToInsert.add(serviceLine);
+        }
+
+        if (!serviceLinesToInsert.isEmpty()) {
+            Database.SaveResult[] saveResults = Database.insert(serviceLinesToInsert, false);
+            Integer successCount = 0;
+            List<String> failureMessages = new List<String>();
+            for (Database.SaveResult sr : saveResults) {
+                if (sr.isSuccess()) {
+                    successCount++;
+                } else {
+                    for (Database.Error err : sr.getErrors()) {
+                        String failureMessage = formatDatabaseError(err);
+                        failureMessages.add(failureMessage);
+                        System.debug('✗ Failed to create selected service line: ' + failureMessage);
+                    }
+                }
+            }
+            System.debug('Created ' + successCount + ' of ' + serviceLinesToInsert.size() + ' selected CPT service lines');
+            if (!failureMessages.isEmpty()) {
+                throw new AuraHandledException('Unable to save CPT billing codes. ' + String.join(failureMessages, ' | '));
+            }
+        }
+    }
+
+    private static String formatSaveException(Exception e) {
+        if (e == null) {
+            return 'Unknown save error.';
+        }
+
+        if (e instanceof DmlException) {
+            DmlException dml = (DmlException)e;
+            List<String> messages = new List<String>();
+            for (Integer index = 0; index < dml.getNumDml(); index++) {
+                String message = dml.getDmlMessage(index);
+                String statusCode = String.valueOf(dml.getDmlType(index));
+                List<String> fields = dml.getDmlFieldNames(index);
+                String fieldText = (fields != null && !fields.isEmpty()) ? ' Fields: ' + String.join(fields, ', ') + '.' : '';
+                messages.add(statusCode + ': ' + message + fieldText);
+            }
+            if (!messages.isEmpty()) {
+                return String.join(messages, ' | ');
+            }
+        }
+
+        return e.getMessage();
+    }
+
+    private static String formatDatabaseError(Database.Error error) {
+        if (error == null) {
+            return 'Unknown database error.';
+        }
+
+        String statusCode = error.getStatusCode() != null ? String.valueOf(error.getStatusCode()) : 'ERROR';
+        List<String> fields = error.getFields();
+        String fieldText = (fields != null && !fields.isEmpty()) ? ' Fields: ' + String.join(fields, ', ') + '.' : '';
+        return statusCode + ': ' + error.getMessage() + fieldText;
+    }
+
+    private static List<ServiceLineConfig> getTemplateCptConfigs(SObject templateVersion) {
+        List<ServiceLineConfig> configs = new List<ServiceLineConfig>();
+        if (templateVersion == null) {
+            return configs;
+        }
+
+        SObject template = templateVersion.getSObject('InterviewTemplate__r');
+        if (template == null) {
+            return configs;
+        }
+
+        Boolean hasCptCodes = template.get('has_cpt_codes__c') != null && (Boolean) template.get('has_cpt_codes__c');
+        if (!hasCptCodes) {
+            return configs;
+        }
+
+        String noteType = normalizeCptNoteType((String) template.get('cpt_note_type__c'));
+        if (String.isBlank(noteType)) {
+            noteType = 'Comp Assess';
+        }
+
+        configs = getCptCodesForNoteType(noteType);
+        Set<String> allowedCodes = getConfiguredTemplateCptCodes((Id) template.get('Id'));
+        if (allowedCodes.isEmpty()) {
+            allowedCodes = parseConfiguredCptCodes((String) template.get('allowed_cpt_codes__c'));
+        }
+        if (allowedCodes.isEmpty()) {
+            return configs;
+        }
+
+        List<ServiceLineConfig> filteredConfigs = new List<ServiceLineConfig>();
+        for (ServiceLineConfig config : configs) {
+            if (allowedCodes.contains(config.code)) {
+                filteredConfigs.add(config);
+            }
+        }
+
+        return filteredConfigs;
+    }
+
+    private static List<String> validateSelectedCptCodes(List<String> selectedCodes, List<ServiceLineConfig> availableConfigs) {
+        if (selectedCodes == null || selectedCodes.isEmpty()) {
+            return new List<String>();
+        }
+        if (availableConfigs == null || availableConfigs.isEmpty()) {
+            throw new System.StringException('This template is not configured for CPT billing.');
+        }
+
+        Set<String> allowedCodes = new Set<String>();
+        for (ServiceLineConfig config : availableConfigs) {
+            allowedCodes.add(config.code);
+        }
+
+        List<String> validatedCodes = new List<String>();
+        for (String code : selectedCodes) {
+            if (String.isBlank(code)) {
+                continue;
+            }
+
+            String normalizedCode = code.trim().toUpperCase();
+            if (!allowedCodes.contains(normalizedCode)) {
+                throw new System.StringException('Selected CPT code is not allowed for this template: ' + normalizedCode);
+            }
+            if (!validatedCodes.contains(normalizedCode)) {
+                validatedCodes.add(normalizedCode);
+            }
+        }
+
+        return validatedCodes;
+    }
+
+    private static Set<String> parseConfiguredCptCodes(String rawCodes) {
+        Set<String> parsedCodes = new Set<String>();
+        if (String.isBlank(rawCodes)) {
+            return parsedCodes;
+        }
+
+        for (String token : rawCodes.split('[,;\\s]+')) {
+            if (String.isNotBlank(token)) {
+                parsedCodes.add(token.trim().toUpperCase());
+            }
+        }
+
+        return parsedCodes;
+    }
+
+    private static String serializeConfiguredCptCodes(Id templateId, String legacyAllowedCodes) {
+        Set<String> configuredCodes = getConfiguredTemplateCptCodes(templateId);
+        if (configuredCodes.isEmpty()) {
+            return legacyAllowedCodes;
+        }
+
+        List<String> serializedCodes = new List<String>();
+        serializedCodes.addAll(configuredCodes);
+        serializedCodes.sort();
+        return String.join(serializedCodes, ',');
+    }
+
+    private static Set<String> getConfiguredTemplateCptCodes(Id templateId) {
+        Set<String> configuredCodes = new Set<String>();
+        if (templateId == null) {
+            return configuredCodes;
+        }
+
+        Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
+        if (!globalDescribe.containsKey('InterviewTemplateCPTCode__c')) {
+            return configuredCodes;
+        }
+
+        try {
+            for (SObject policyRow : Database.query(
+                'SELECT CPT_Code__c FROM InterviewTemplateCPTCode__c ' +
+                'WHERE InterviewTemplate__c = :templateId ' +
+                'AND (Active__c = true OR Active__c = null)'
+            )) {
+                String code = (String) policyRow.get('CPT_Code__c');
+                if (String.isNotBlank(code)) {
+                    configuredCodes.add(code.trim().toUpperCase());
+                }
+            }
+        } catch (Exception e) {
+            System.debug('Could not load InterviewTemplateCPTCode__c rows for template ' + templateId + ': ' + e.getMessage());
+        }
+
+        return configuredCodes;
+    }
+
+    private static String normalizeCptNoteType(String rawNoteType) {
+        if (String.isBlank(rawNoteType)) {
+            return null;
+        }
+
+        String normalized = rawNoteType.trim().toLowerCase();
+        if (normalized == 'clinical' || normalized == 'clinical note') {
+            return 'Clinical';
+        }
+        if (normalized == 'peer' || normalized == 'peer note') {
+            return 'Peer';
+        }
+        if (normalized == 'case management' || normalized == 'case note' || normalized == 'case notes' || normalized == 'case management note') {
+            return 'Case Management';
+        }
+        if (normalized == 'comp assess' || normalized == 'comprehensive assessment' || normalized == 'comprehensive clinical assessment') {
+            return 'Comp Assess';
+        }
+
+        return rawNoteType.trim();
     }
 
     /**
@@ -2609,17 +3988,547 @@ public with sharing class InterviewSessionController {
         return configs;
     }
 
+    private static void clearInterviewAnswers(Id interviewId) {
+        if (interviewId == null) {
+            return;
+        }
+        try {
+            List<SObject> existingAnswers = Database.query(
+                'SELECT Id FROM InterviewAnswer__c WHERE Interview__c = :interviewId'
+            );
+            if (!existingAnswers.isEmpty()) {
+                delete existingAnswers;
+            }
+        } catch (Exception e) {
+            System.debug('Could not clear existing InterviewAnswer__c rows: ' + e.getMessage());
+        }
+    }
+
+    private static void clearInteractionServiceLines(Id interactionSummaryId) {
+        if (interactionSummaryId == null) {
+            return;
+        }
+        try {
+            List<SObject> existingLines = Database.query(
+                'SELECT Id FROM Interaction_Service_Line__c WHERE Interaction_Summary__c = :interactionSummaryId'
+            );
+            if (!existingLines.isEmpty()) {
+                delete existingLines;
+            }
+        } catch (Exception e) {
+            System.debug('Could not clear existing Interaction_Service_Line__c rows: ' + e.getMessage());
+        }
+    }
+
+    private static void clearDiagnosisLinks(Id interactionSummaryId) {
+        if (interactionSummaryId == null) {
+            return;
+        }
+        try {
+            List<SObject> links = Database.query(
+                'SELECT Id FROM Diagnosis_Note_Link__c WHERE InteractionSummary__c = :interactionSummaryId'
+            );
+            if (!links.isEmpty()) {
+                delete links;
+            }
+        } catch (Exception e) {
+            System.debug('Could not clear existing Diagnosis_Note_Link__c rows: ' + e.getMessage());
+        }
+    }
+
     /**
      * Helper to put a field value only if the field exists on the object.
      */
     private static void putFieldIfExists(SObject record, Map<String, Schema.SObjectField> fieldMap, String fieldName, Object value) {
-        if (value == null) {
+        if (record == null || fieldMap == null || String.isBlank(fieldName) || value == null) {
             return;
         }
-        
+
         String lowerName = fieldName.toLowerCase();
+        Schema.SObjectField targetField = null;
+
         if (fieldMap.containsKey(lowerName)) {
-            record.put(fieldName, value);
+            targetField = fieldMap.get(lowerName);
+        } else {
+            for (String key : fieldMap.keySet()) {
+                if (key.endsWith('__' + lowerName)) {
+                    targetField = fieldMap.get(key);
+                    break;
+                }
+            }
         }
+
+        if (targetField == null) {
+            return;
+        }
+
+        Schema.DescribeFieldResult dfr = targetField.getDescribe();
+        if (dfr.isCalculated() || dfr.isAutoNumber()) {
+            return;
+        }
+
+        try {
+            record.put(dfr.getName(), value);
+        } catch (Exception e) {
+            System.debug('Could not set field ' + fieldName + ': ' + e.getMessage());
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    // loadRecalledInterview — reload all saved data for a recalled interview
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Loads all persisted data for a recalled Interview record so the LWC
+     * can pre-populate every field and allow the user to make corrections
+     * before re-submitting.
+     *
+     * Returns: interactionInput, answers (per InterviewAnswer__c), 
+     *          incomeBenefitsData, and selectedDiagnoses.
+     */
+    @AuraEnabled(cacheable=false)
+    public static RecalledInterviewResponse loadRecalledInterview(Id interviewId) {
+        if (interviewId == null) {
+            throw new System.StringException('Interview Id is required.');
+        }
+
+        RecalledInterviewResponse resp = new RecalledInterviewResponse();
+        resp.interactionInput  = new RecalledInteractionInput();
+        resp.answers           = new List<AnswerRestoreDTO>();
+        resp.incomeBenefitsData = new List<IncomeBenefitRestoreDTO>();
+        resp.selectedDiagnoses  = new List<DiagnosisInput>();
+        resp.selectedCptCodes   = new List<String>();
+        resp.carePlanConsent    = new CarePlanConsentDTO();
+
+        // 1 ── Load the Interview record itself
+        Map<String, Schema.SObjectField> ivFields =
+            Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+        String ivQuery = 'SELECT Id, Interaction_Summary__c, Case__c, Client__c, InterviewTemplateVersion__r.InterviewTemplate__c';
+        if (ivFields.containsKey('manager_approver__c')) ivQuery += ', Manager_Approver__c';
+        if (ivFields.containsKey('casemanager_signed_by__c')) ivQuery += ', CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name';
+        if (ivFields.containsKey('peersupport_signed_by__c')) ivQuery += ', PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name';
+        if (ivFields.containsKey('consent_participated__c')) ivQuery += ', Consent_Participated__c';
+        if (ivFields.containsKey('documentation_offered__c')) ivQuery += ', Documentation_Offered__c';
+        if (ivFields.containsKey('next_review_date__c')) ivQuery += ', Next_Review_Date__c';
+        if (ivFields.containsKey('expected_discharge_date__c')) ivQuery += ', Expected_Discharge_Date__c';
+        if (ivFields.containsKey('discharge_plan__c')) ivQuery += ', Discharge_Plan__c';
+        ivQuery += ' FROM Interview__c WHERE Id = :interviewId LIMIT 1';
+        List<SObject> interviews = Database.query(ivQuery);
+        if (interviews.isEmpty()) {
+            throw new System.StringException('Interview record not found: ' + interviewId);
+        }
+        // Carry forward the manager approver so the LWC can re-check the co-sign toggle
+        if (ivFields.containsKey('manager_approver__c')) {
+            resp.managerApproverId = (Id) interviews[0].get('Manager_Approver__c');
+        }
+        SObject iv = interviews[0];
+        if (ivFields.containsKey('casemanager_signed_by__c')) {
+            resp.caseManagerSignedById = (Id) iv.get('CaseManager_Signed_By__c');
+            resp.caseManagerSignedByName = (String) iv.getSObject('CaseManager_Signed_By__r')?.get('Name');
+        }
+        if (ivFields.containsKey('peersupport_signed_by__c')) {
+            resp.peerSupportSignedById = (Id) iv.get('PeerSupport_Signed_By__c');
+            resp.peerSupportSignedByName = (String) iv.getSObject('PeerSupport_Signed_By__r')?.get('Name');
+        }
+        if (ivFields.containsKey('consent_participated__c')) {
+            Object v = iv.get('Consent_Participated__c');
+            if (v != null) resp.carePlanConsent.consentParticipated = (Boolean) v;
+        }
+        if (ivFields.containsKey('documentation_offered__c')) {
+            Object v = iv.get('Documentation_Offered__c');
+            if (v != null) resp.carePlanConsent.consentOffered = (Boolean) v;
+        }
+        if (ivFields.containsKey('next_review_date__c')) {
+            resp.carePlanConsent.nextReviewDate = (Date) iv.get('Next_Review_Date__c');
+        }
+        if (ivFields.containsKey('expected_discharge_date__c')) {
+            resp.carePlanConsent.dischargeDate = (Date) iv.get('Expected_Discharge_Date__c');
+        }
+        if (ivFields.containsKey('discharge_plan__c')) {
+            resp.carePlanConsent.dischargePlan = (String) iv.get('Discharge_Plan__c');
+        }
+
+        Id interactionSummaryId = (Id) iv.get('Interaction_Summary__c');
+        Id caseId = (Id) iv.get('Case__c');
+        Id interviewTemplateId = (Id) iv.getSObject('InterviewTemplateVersion__r')?.get('InterviewTemplate__c');
+
+        // Backfill care-plan values from CarePlan if Interview snapshot fields are absent/empty.
+        // This avoids blank recall forms for older records created before Interview snapshot persistence.
+        Boolean hasInterviewCarePlanDatesOrText =
+            resp.carePlanConsent.nextReviewDate != null ||
+            resp.carePlanConsent.dischargeDate != null ||
+            !String.isBlank(resp.carePlanConsent.dischargePlan);
+
+        if (caseId != null && !hasInterviewCarePlanDatesOrText) {
+            try {
+                List<SObject> carePlans = [
+                    SELECT Id, CaseId, Care_Plan_Reviewed__c, Documentation_Offered__c,
+                           Next_Review_Date__c, Expected_Discharge_Date__c, Discharge_Plan__c
+                    FROM CarePlan
+                    WHERE CaseId = :caseId
+                    ORDER BY LastModifiedDate DESC
+                    LIMIT 1
+                ];
+                if (!carePlans.isEmpty()) {
+                    SObject cp = carePlans[0];
+                    Object reviewed = cp.get('Care_Plan_Reviewed__c');
+                    Object offered = cp.get('Documentation_Offered__c');
+                    if (reviewed != null && (resp.carePlanConsent.consentParticipated == null || resp.carePlanConsent.consentParticipated == false)) {
+                        resp.carePlanConsent.consentParticipated = (Boolean) reviewed;
+                    }
+                    if (offered != null && (resp.carePlanConsent.consentOffered == null || resp.carePlanConsent.consentOffered == false)) {
+                        resp.carePlanConsent.consentOffered = (Boolean) offered;
+                    }
+                    if (resp.carePlanConsent.nextReviewDate == null) {
+                        resp.carePlanConsent.nextReviewDate = (Date) cp.get('Next_Review_Date__c');
+                    }
+                    if (resp.carePlanConsent.dischargeDate == null) {
+                        resp.carePlanConsent.dischargeDate = (Date) cp.get('Expected_Discharge_Date__c');
+                    }
+                    if (String.isBlank(resp.carePlanConsent.dischargePlan)) {
+                        resp.carePlanConsent.dischargePlan = (String) cp.get('Discharge_Plan__c');
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('loadRecalledInterview – CarePlan fallback query error: ' + e.getMessage());
+            }
+        }
+
+        // Recover deferred CM/Peer assignee selections when the recalled Interview snapshot
+        // does not contain them (older rows, recall edge cases, or prior write races).
+        if (caseId != null && interviewTemplateId != null &&
+            (resp.caseManagerSignedById == null || resp.peerSupportSignedById == null)) {
+            try {
+                List<SObject> priorPlans = Database.query(
+                    'SELECT Id, CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, ' +
+                    'PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name ' +
+                    'FROM Interview__c ' +
+                    'WHERE Case__c = :caseId ' +
+                    'AND InterviewTemplateVersion__r.InterviewTemplate__c = :interviewTemplateId ' +
+                    'AND (CaseManager_Signed_By__c != null OR PeerSupport_Signed_By__c != null) ' +
+                    'ORDER BY LastModifiedDate DESC ' +
+                    'LIMIT 1'
+                );
+
+                if (!priorPlans.isEmpty()) {
+                    SObject prior = priorPlans[0];
+                    if (resp.caseManagerSignedById == null && prior.get('CaseManager_Signed_By__c') != null) {
+                        resp.caseManagerSignedById = (Id) prior.get('CaseManager_Signed_By__c');
+                        resp.caseManagerSignedByName = (String) prior.getSObject('CaseManager_Signed_By__r')?.get('Name');
+                    }
+                    if (resp.peerSupportSignedById == null && prior.get('PeerSupport_Signed_By__c') != null) {
+                        resp.peerSupportSignedById = (Id) prior.get('PeerSupport_Signed_By__c');
+                        resp.peerSupportSignedByName = (String) prior.getSObject('PeerSupport_Signed_By__r')?.get('Name');
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('loadRecalledInterview – signer fallback query error: ' + e.getMessage());
+            }
+        }
+
+        // 2 ── Load InteractionSummary (date / start-end time / notes / location)
+        if (interactionSummaryId != null) {
+            try {
+                List<SObject> summaries = Database.query(
+                    'SELECT Id, Date_of_Interaction__c, Start_Time__c, End_Time__c, ' +
+                    'MeetingNotes, POS__c, Interpreter_Used__c ' +
+                    'FROM InteractionSummary WHERE Id = :interactionSummaryId LIMIT 1'
+                );
+                if (!summaries.isEmpty()) {
+                    SObject s = summaries[0];
+
+                    Date intDate = (Date) s.get('Date_of_Interaction__c');
+                    if (intDate != null) {
+                        resp.interactionInput.interactionDate = String.valueOf(intDate);
+                    }
+
+                    Datetime startDT = (Datetime) s.get('Start_Time__c');
+                    if (startDT != null) {
+                        resp.interactionInput.startDateTime = startDT.format('yyyy-MM-dd\'T\'HH:mm');
+                    }
+
+                    Datetime endDT = (Datetime) s.get('End_Time__c');
+                    if (endDT != null) {
+                        resp.interactionInput.endDateTime = endDT.format('yyyy-MM-dd\'T\'HH:mm');
+                    }
+
+                    resp.interactionInput.meetingNotes = (String) s.get('MeetingNotes');
+                    resp.interactionInput.location = (String) s.get('POS__c');
+
+                    Object interpreterVal = s.get('Interpreter_Used__c');
+                    if (interpreterVal != null) {
+                        resp.interactionInput.interpreterUsed = (Boolean) interpreterVal;
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('loadRecalledInterview – InteractionSummary query error: ' + e.getMessage());
+            }
+        }
+
+        // 3 ── Load InterviewAnswer__c records
+        try {
+            Map<String, Schema.SObjectField> answerFieldMap =
+                Schema.getGlobalDescribe().get('InterviewAnswer__c').getDescribe().fields.getMap();
+
+            // Build the query including only value fields that actually exist in this org
+            List<String> queryFields = new List<String>{
+                'Id', 'InterviewQuestion__c', 'Question_API_Name__c', 'Section__c'
+            };
+            List<String> candidateValueFields = new List<String>{
+                'Response_Value__c', 'Response_Number__c', 'Response_Boolean__c',
+                'Response_Date__c', 'Response_Datetime__c', 'Response_Text__c',
+                'Response_Picklist__c', 'Response_JSON__c', 'Value__c', 'Answer_Value__c'
+            };
+            for (String f : candidateValueFields) {
+                if (answerFieldMap.containsKey(f.toLowerCase())) {
+                    queryFields.add(f);
+                }
+            }
+
+            String ansQ = 'SELECT ' + String.join(queryFields, ', ') +
+                ' FROM InterviewAnswer__c WHERE Interview__c = :interviewId';
+
+            for (SObject ar : Database.query(ansQ)) {
+                Id questionId = (Id) ar.get('InterviewQuestion__c');
+                if (questionId == null) continue;
+
+                AnswerRestoreDTO dto = new AnswerRestoreDTO();
+                dto.questionId = questionId;
+
+                // Determine value by field priority: number → date → datetime → text → boolean.
+                // This avoids recalled numeric/radio values being overwritten by stale boolean false.
+                Boolean hasBool  = answerFieldMap.containsKey('response_boolean__c');
+                Boolean hasNum   = answerFieldMap.containsKey('response_number__c');
+                Boolean hasDate  = answerFieldMap.containsKey('response_date__c');
+                Boolean hasDT    = answerFieldMap.containsKey('response_datetime__c');
+
+                Object boolVal = hasBool  ? ar.get('Response_Boolean__c') : null;
+                Object numVal  = hasNum   ? ar.get('Response_Number__c')  : null;
+                Object dateVal = hasDate  ? ar.get('Response_Date__c')    : null;
+                Object dtVal   = hasDT    ? ar.get('Response_Datetime__c') : null;
+
+                if (numVal != null) {
+                    dto.value = String.valueOf(numVal);
+                } else if (dateVal != null) {
+                    dto.value = String.valueOf(dateVal).substring(0, 10);
+                } else if (dtVal != null) {
+                    dto.value = ((Datetime) dtVal).format('yyyy-MM-dd\'T\'HH:mm');
+                } else {
+                    // Try text fields in priority order
+                    for (String tf : new List<String>{
+                            'Response_Picklist__c', 'Response_Value__c', 'Response_Text__c', 'Response_JSON__c',
+                            'Value__c', 'Answer_Value__c'}) {
+                        if (!answerFieldMap.containsKey(tf.toLowerCase())) continue;
+                        Object v = ar.get(tf);
+                        if (v != null && String.isNotBlank(String.valueOf(v))) {
+                            dto.value = String.valueOf(v);
+                            // Multi-picklist: semicolon-joined value → split into values list
+                            if (dto.value.contains(';')) {
+                                dto.values = dto.value.split(';');
+                            }
+                            break;
+                        }
+                    }
+
+                    // Use boolean only as final fallback when no other value field is populated.
+                    if (dto.value == null && boolVal != null) {
+                        dto.value = ((Boolean) boolVal) ? 'true' : 'false';
+                    }
+                }
+
+                if (dto.value != null || (dto.values != null && !dto.values.isEmpty())) {
+                    resp.answers.add(dto);
+                }
+            }
+        } catch (Exception e) {
+            System.debug('loadRecalledInterview – InterviewAnswer query error: ' + e.getMessage());
+        }
+
+        // 4 ── Load Income_Benefit__c records via the linked Assessment__c
+        try {
+            Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+            if (gd.containsKey('Assessment__c')) {
+                List<SObject> assessments = Database.query(
+                    'SELECT Id FROM Assessment__c WHERE Interview__c = :interviewId LIMIT 1'
+                );
+                if (!assessments.isEmpty()) {
+                    Id assessmentId = (Id) assessments[0].get('Id');
+
+                    if (gd.containsKey('Income_Benefit__c')) {
+                        Map<String, Schema.SObjectField> ibFieldMap =
+                            gd.get('Income_Benefit__c').getDescribe().fields.getMap();
+
+                        List<String> ibFields = new List<String>{ 'Id', 'Income_Type__c' };
+                        if (ibFieldMap.containsKey('stated_monthly_amount__c')) {
+                            ibFields.add('Stated_Monthly_Amount__c');
+                        }
+
+                        String ibQ = 'SELECT ' + String.join(ibFields, ', ') +
+                            ' FROM Income_Benefit__c WHERE Assessment__c = :assessmentId';
+
+                        for (SObject ib : Database.query(ibQ)) {
+                            IncomeBenefitRestoreDTO item = new IncomeBenefitRestoreDTO();
+                            item.label   = (String) ib.get('Income_Type__c');
+                            item.checked = true;
+                            if (ibFieldMap.containsKey('stated_monthly_amount__c')) {
+                                Object amt = ib.get('Stated_Monthly_Amount__c');
+                                if (amt != null) {
+                                    item.statedIncome = String.valueOf(amt);
+                                }
+                            }
+                            resp.incomeBenefitsData.add(item);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.debug('loadRecalledInterview – Income_Benefit query error: ' + e.getMessage());
+        }
+
+        // 5 ── Load Diagnoses linked to the InteractionSummary via Diagnosis_Note_Link__c
+        if (interactionSummaryId != null) {
+            try {
+                Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+                if (gd.containsKey('Diagnosis_Note_Link__c') && gd.containsKey('Diagnosis__c')) {
+                    Map<String, Schema.SObjectField> diagFieldMap =
+                        gd.get('Diagnosis__c').getDescribe().fields.getMap();
+
+                    // Build subquery fields that exist in this org
+                    List<String> diagFields = new List<String>{ 'Id', 'Status__c', 'Primary__c' };
+                    for (String f : new List<String>{
+                            'ICD10Code__c', 'Description__c', 'Type__c',
+                            'Onset_Date__c', 'Notes__c', 'Category__c'}) {
+                        if (diagFieldMap.containsKey(f.toLowerCase())) {
+                            diagFields.add(f);
+                        }
+                    }
+
+                    String diagQ = 'SELECT Diagnosis__r.' + String.join(diagFields, ', Diagnosis__r.') +
+                        ' FROM Diagnosis_Note_Link__c WHERE InteractionSummary__c = :interactionSummaryId';
+
+                    Integer linkedCount = 0;
+                    for (SObject link : Database.query(diagQ)) {
+                        linkedCount++;
+                        SObject diag = link.getSObject('Diagnosis__r');
+                        if (diag == null) continue;
+
+                        DiagnosisInput dDTO = new DiagnosisInput();
+                        dDTO.id = String.valueOf(diag.get('Id'));
+                        dDTO.status = (String) diag.get('Status__c');
+                        Object primaryVal = diag.get('Primary__c');
+                        dDTO.isPrimary = (primaryVal == true);
+
+                        if (diagFieldMap.containsKey('icd10code__c')) {
+                            dDTO.code = (String) diag.get('ICD10Code__c');
+                        }
+                        if (diagFieldMap.containsKey('description__c')) {
+                            dDTO.description = (String) diag.get('Description__c');
+                        }
+                        if (diagFieldMap.containsKey('type__c')) {
+                            dDTO.diagnosisType = (String) diag.get('Type__c');
+                        }
+                        if (diagFieldMap.containsKey('onset_date__c')) {
+                            Object od = diag.get('Onset_Date__c');
+                            if (od != null) {
+                                dDTO.onsetDate = String.valueOf(od).substring(0, 10);
+                            }
+                        }
+                        if (diagFieldMap.containsKey('notes__c')) {
+                            dDTO.notes = (String) diag.get('Notes__c');
+                        }
+                        if (diagFieldMap.containsKey('category__c')) {
+                            dDTO.category = (String) diag.get('Category__c');
+                        }
+
+                        resp.selectedDiagnoses.add(dDTO);
+                    }
+
+                    if (linkedCount == 0) {
+                        System.debug('loadRecalledInterview: no Diagnosis_Note_Link__c rows found for InteractionSummary ' + interactionSummaryId + ' (Interview ' + interviewId + ')');
+                    }
+
+                    // Legacy fallback: if no junction links exist, load diagnoses directly
+                    // from Diagnosis__c.Interaction_Summary__c when that field is present.
+                    if (resp.selectedDiagnoses.isEmpty() && diagFieldMap.containsKey('interaction_summary__c')) {
+                        List<String> directDiagFields = new List<String>{ 'Id', 'Status__c', 'Primary__c' };
+                        for (String f : new List<String>{
+                                'ICD10Code__c', 'Description__c', 'Type__c',
+                                'Onset_Date__c', 'Notes__c', 'Category__c'}) {
+                            if (diagFieldMap.containsKey(f.toLowerCase())) {
+                                directDiagFields.add(f);
+                            }
+                        }
+
+                        String directDiagQ = 'SELECT ' + String.join(directDiagFields, ', ') +
+                            ' FROM Diagnosis__c WHERE Interaction_Summary__c = :interactionSummaryId';
+
+                        for (SObject diag : Database.query(directDiagQ)) {
+                            DiagnosisInput dDTO = new DiagnosisInput();
+                            dDTO.id = String.valueOf(diag.get('Id'));
+                            dDTO.status = (String) diag.get('Status__c');
+                            Object primaryVal = diag.get('Primary__c');
+                            dDTO.isPrimary = (primaryVal == true);
+
+                            if (diagFieldMap.containsKey('icd10code__c')) {
+                                dDTO.code = (String) diag.get('ICD10Code__c');
+                            }
+                            if (diagFieldMap.containsKey('description__c')) {
+                                dDTO.description = (String) diag.get('Description__c');
+                            }
+                            if (diagFieldMap.containsKey('type__c')) {
+                                dDTO.diagnosisType = (String) diag.get('Type__c');
+                            }
+                            if (diagFieldMap.containsKey('onset_date__c')) {
+                                Object od = diag.get('Onset_Date__c');
+                                if (od != null) {
+                                    dDTO.onsetDate = String.valueOf(od).substring(0, 10);
+                                }
+                            }
+                            if (diagFieldMap.containsKey('notes__c')) {
+                                dDTO.notes = (String) diag.get('Notes__c');
+                            }
+                            if (diagFieldMap.containsKey('category__c')) {
+                                dDTO.category = (String) diag.get('Category__c');
+                            }
+
+                            resp.selectedDiagnoses.add(dDTO);
+                        }
+
+                        if (!resp.selectedDiagnoses.isEmpty()) {
+                            System.debug('loadRecalledInterview: loaded ' + resp.selectedDiagnoses.size() + ' diagnoses via legacy direct lookup fallback for InteractionSummary ' + interactionSummaryId);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.debug('loadRecalledInterview – Diagnosis query error: ' + e.getMessage());
+            }
+        }
+
+        // 6 ── Load selected CPT codes from Interaction_Service_Line__c
+        if (interactionSummaryId != null) {
+            try {
+                Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+                if (gd.containsKey('Interaction_Service_Line__c')) {
+                    Set<String> cptCodes = new Set<String>();
+                    List<SObject> lines = Database.query(
+                        'SELECT Service_Code__c ' +
+                        'FROM Interaction_Service_Line__c ' +
+                        'WHERE Interaction_Summary__c = :interactionSummaryId ' +
+                        'AND Service_Code__c != null'
+                    );
+                    for (SObject line : lines) {
+                        String code = (String) line.get('Service_Code__c');
+                        if (String.isNotBlank(code)) {
+                            cptCodes.add(code);
+                        }
+                    }
+                    resp.selectedCptCodes = new List<String>(cptCodes);
+                }
+            } catch (Exception e) {
+                System.debug('loadRecalledInterview – CPT query error: ' + e.getMessage());
+            }
+        }
+
+        return resp;
     }
 }

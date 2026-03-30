@@ -1,0 +1,30 @@
+{
+  "servers": {
+    "salesforce": {
+      "type": "stdio",
+      "command": "sf-mcp-server",
+      "args": [
+        "--orgs",
+        "benefits",
+        "--toolsets",
+        "data",
+        "--toolsets",
+        "orgs",
+        "--toolsets",
+        "metadata",
+        "--toolsets",
+        "testing",
+        "--toolsets",
+        "users",
+        "--toolsets",
+        "lwc-experts",
+        "--toolsets",
+        "code-analysis",
+        "--toolsets",
+        "scale-products",
+        "--no-telemetry"
+      ]
+    }
+  },
+  "inputs": []
+}

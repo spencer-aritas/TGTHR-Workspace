@@ -1,11 +1,14 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import hasWordDownload from '@salesforce/customPermission/Has_Word_Download';
 import getDocumentsForContext from '@salesforce/apex/InterviewDocumentController.getDocumentsForContext';
 import getDownloadUrl from '@salesforce/apex/InterviewDocumentController.getDownloadUrl';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import generateInterviewDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
+import recallDocument from '@salesforce/apex/InterviewDocumentController.recallDocument';
+import { formatDateTimeMountain, formatDateOnlyMountain, getMountainTimeZoneLabel } from 'c/dateTimeDisplay';
 
 export default class InterviewDocumentViewer extends NavigationMixin(LightningElement) {
     _recordId;
@@ -33,6 +36,13 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     hasInitialized = false; // Track if we've attempted to load data at least once
     isOpeningInFiles = false;
     lastLoggedDocumentId = null;
+    isRecalling = false;
+    showRecallConfirm = false;
+    showRecalledClinicalNoteModal = false;
+    showRecalledCaseNoteModal = false;
+    showRecalledPeerNoteModal = false;
+    recalledNoteInteractionId = null;
+    mountainTimeZoneLabel = getMountainTimeZoneLabel();
     
     // Wire to load documents based on context
     @wire(getDocumentsForContext, { recordId: '$_contextRecordId' })
@@ -110,34 +120,40 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
      * Format document data for display
      */
     formatDocuments(data) {
+        // A plan is only "Inactive" when we can confirm another plan IS the current active one.
+        // Without this guard, every treatment plan appears Inactive whenever Active_Treatment_Plan__c
+        // is null (e.g. stale wire cache, activation deferred, or first-ever plan pre-activation).
+        const hasActivePlan = data.some(doc => doc.isTreatmentPlan === true && doc.isActivePlan === true);
+
         return data.map(doc => {
             const completedDate = doc.completedDate ? new Date(doc.completedDate) : null;
             const startDate = doc.startDate ? new Date(doc.startDate) : null;
             const statusLabel = this.getDocumentStatusLabel(doc);
+            // displayDateFormatted: prefer IS start date/time (now in startDate),
+            // fall back to completedDate for documents without an IS link
+            const displayDate = startDate || completedDate;
+            const isActivePlan = doc.isTreatmentPlan === true && doc.isActivePlan === true;
             
             return {
                 ...doc,
+                isActivePlan,
+                displayName: doc.documentType === 'Note'
+                    ? (doc.interviewName || doc.templateName)
+                    : doc.templateName,
                 startDateFormatted: startDate ? 
-                    startDate.toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) : null,
+                    formatDateTimeMountain(startDate) : null,
                 completedDateFormatted: completedDate ? 
-                    completedDate.toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) : 'Draft',
+                    formatDateTimeMountain(completedDate) : 'Draft',
+                displayDateFormatted: displayDate ?
+                    formatDateTimeMountain(displayDate) : 'Draft',
                 signatureStatus: this.getSignatureStatus(doc),
                 itemClass: this.getDocumentItemClass(doc),
                 signatureClass: this.getSignatureClass(doc),
                 statusBadgeLabel: statusLabel,
-                statusBadgeClass: this.getStatusBadgeClass(statusLabel)
+                statusBadgeClass: this.getStatusBadgeClass(statusLabel),
+                showUnlockIcon: doc.canRecall === true,
+                showLockIcon: doc.canRecall === false,
+                isInactivePlan: hasActivePlan && doc.isTreatmentPlan === true && isActivePlan === false
             };
         });
     }
@@ -185,18 +201,17 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
 
     getDocumentStatusLabel(doc) {
         if (doc.documentType === 'Note') {
-            return doc.staffSigned ? 'Completed' : 'Pending Signature';
+            if (doc.status === 'Recalled') return 'Recalled – Pending Revision';
+            return 'Completed';
         }
-        const requiresClientSignature = this.requiresClientSignature(doc);
-        const requiresStaffSignature = this.requiresStaffSignature(doc);
-
-        if (!requiresClientSignature && requiresStaffSignature) {
-            return doc.staffSigned ? 'Completed' : 'Pending Signature';
+        if (doc.status === 'Recalled') return 'Recalled – Pending Revision';
+        // This component is gated by Completed_On__c != null in Apex.
+        // If the document is in this list at all, it is complete — full stop.
+        if (doc.completedDate) {
+            return 'Completed';
         }
-        if (!requiresStaffSignature && requiresClientSignature) {
-            return doc.clientSigned ? 'Completed' : 'Pending Signature';
-        }
-        if (!requiresClientSignature && !requiresStaffSignature) {
+        // Fallback for any edge case where completedDate wasn't mapped
+        if (doc.status === 'Completed' || doc.status === 'Signed') {
             return 'Completed';
         }
         if (doc.clientSigned && doc.staffSigned) {
@@ -212,7 +227,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         if (status === 'Completed') {
             return 'completed-badge completed-badge--success';
         }
-        if (status === 'Awaiting Signatures' || status === 'Pending Signature' || status === 'Pending Signatures') {
+        if (status === 'Recalled – Pending Revision' || status === 'Awaiting Signatures' || status === 'Pending Signature' || status === 'Pending Signatures') {
             return 'completed-badge completed-badge--warning';
         }
         return 'completed-badge';
@@ -236,19 +251,6 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         if (doc.documentType === 'Note') {
             return doc.staffSigned ? 'Signed' : 'Unsigned';
         }
-        const requiresClientSignature = this.requiresClientSignature(doc);
-        const requiresStaffSignature = this.requiresStaffSignature(doc);
-
-        if (!requiresClientSignature && requiresStaffSignature) {
-            return doc.staffSigned ? 'Signed by Staff' : 'Unsigned';
-        }
-        if (!requiresStaffSignature && requiresClientSignature) {
-            return doc.clientSigned ? 'Signed by Client' : 'Unsigned';
-        }
-        if (!requiresClientSignature && !requiresStaffSignature) {
-            return 'Signed';
-        }
-
         // Interviews require both signatures
         if (doc.clientSigned && doc.staffSigned) {
             return 'Signed by Client & Staff';
@@ -260,20 +262,6 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             return 'Signed by Staff';
         }
         return 'Unsigned';
-    }
-
-    requiresClientSignature(doc) {
-        if (!doc || !doc.clientSignaturePolicy) {
-            return false;
-        }
-        return doc.clientSignaturePolicy === 'Required';
-    }
-
-    requiresStaffSignature(doc) {
-        if (!doc || !doc.staffSignaturePolicy) {
-            return false;
-        }
-        return doc.staffSignaturePolicy === 'Required';
     }
     
     /**
@@ -344,11 +332,13 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
                         interactionSummaryId: this.selectedDocument.id 
                     });
                     
-                    // Update the document's contentDocumentId for future downloads
-                    this.selectedDocument.contentDocumentId = result.content_document_id;
+                    // Prefer PDF for primary download; keep DOCX as word source
+                    const pdfId = result.pdf_content_document_id || result.content_document_id;
+                    this.selectedDocument.contentDocumentId = pdfId;
+                    this.selectedDocument.wordContentDocumentId = result.content_document_id;
                     
-                    // Download the newly generated document
-                    const downloadUrl = `/sfc/servlet.shepherd/document/download/${result.content_document_id}`;
+                    // Download PDF
+                    const downloadUrl = `/sfc/servlet.shepherd/document/download/${pdfId}`;
                     window.open(downloadUrl, '_blank');
                     
                     this.showToast('Success', 'Document generated and downloaded', 'success');
@@ -370,6 +360,66 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         }
     }
     
+    get showWordDownload() {
+        if (!hasWordDownload || !this.selectedDocument) {
+            return false;
+        }
+
+        if (this.selectedDocument.documentType === 'Interview') {
+            return !!this.selectedDocument.interactionSummaryId;
+        }
+
+        return !!(this.selectedDocument.wordContentDocumentId || this.selectedDocument.id);
+    }
+
+    async handleDownloadWord() {
+        if (!this.selectedDocument) {
+            return;
+        }
+
+        this.logSelectedDocumentAccess('CompletedDocsDownload');
+
+        try {
+            let wordContentDocumentId = this.selectedDocument.wordContentDocumentId;
+
+            if (this.selectedDocument.documentType === 'Note') {
+                this.showToast('Info', 'Regenerating Word document...', 'info');
+                const result = await generateNoteDocument({
+                    interactionSummaryId: this.selectedDocument.id
+                });
+                wordContentDocumentId = result.content_document_id;
+                this.selectedDocument.wordContentDocumentId = wordContentDocumentId;
+                if (result.pdf_content_document_id || result.content_document_id) {
+                    this.selectedDocument.contentDocumentId = result.pdf_content_document_id || result.content_document_id;
+                }
+            } else {
+                const interactionSummaryId = this.selectedDocument.interactionSummaryId;
+                if (!interactionSummaryId) {
+                    this.showToast('Error', 'Interaction Summary not available for this interview.', 'error');
+                    return;
+                }
+
+                this.showToast('Info', 'Regenerating Word document...', 'info');
+                wordContentDocumentId = await generateInterviewDocument({ interactionSummaryId });
+                this.selectedDocument.wordContentDocumentId = wordContentDocumentId;
+            }
+
+            if (!wordContentDocumentId) {
+                this.showToast('Error', 'Word document is not available.', 'error');
+                return;
+            }
+
+            window.open(
+                `/sfc/servlet.shepherd/document/download/${wordContentDocumentId}`,
+                '_blank'
+            );
+            this.showToast('Success', 'Word document download started', 'success');
+        } catch (error) {
+            console.error('Error downloading Word document:', error);
+            this.showToast('Error', 'Failed to download Word document: ' + (error.body?.message || error.message), 'error');
+        }
+    }
+
     /**
      * Open document in Salesforce Files
      */
@@ -388,7 +438,9 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
                     const result = await generateNoteDocument({
                         interactionSummaryId: this.selectedDocument.id
                     });
-                    this.selectedDocument.contentDocumentId = result.content_document_id;
+                    const pdfId = result.pdf_content_document_id || result.content_document_id;
+                    this.selectedDocument.contentDocumentId = pdfId;
+                    this.selectedDocument.wordContentDocumentId = result.content_document_id;
                 } else {
                     const interactionSummaryId = this.selectedDocument.interactionSummaryId;
                     if (!interactionSummaryId) {
@@ -448,7 +500,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
      * Computed properties for document metadata display
      */
     get documentName() {
-        return this.selectedDocument?.templateName || 'Document';
+        return this.selectedDocument?.displayName || this.selectedDocument?.templateName || 'Document';
     }
     
     get documentCategory() {
@@ -463,7 +515,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         const status = this.selectedDocument?.status;
         if (status === 'Completed') {
             return 'slds-badge slds-theme_success';
-        } else if (status === 'Draft' || status === 'In Progress') {
+        } else if (status === 'Draft' || status === 'In Progress' || status === 'Recalled') {
             return 'slds-badge slds-theme_warning';
         }
         return 'slds-badge';
@@ -517,7 +569,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         const status = this.selectedDocument?.status;
         if (status === 'Completed') {
             return 'slds-badge slds-theme_success';
-        } else if (status === 'Draft' || status === 'In Progress') {
+        } else if (status === 'Draft' || status === 'In Progress' || status === 'Recalled') {
             return 'slds-badge slds-theme_warning';
         }
         return 'slds-badge';
@@ -577,34 +629,32 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     
     /**
      * Computed status based on signatures - document is complete when all required signatures are present
-     * Respects template signature policies to determine which signatures are actually required
+     * Notes only require staff signature, Interviews require both client and staff signatures
      */
     get computedStatus() {
         if (!this.selectedDocument) return 'Unknown';
         
-        // Notes only need staff signature to be complete
+        // Completed tab only shows completed artifacts. Notes in this view are complete unless recalled.
         if (this.isNote) {
-            return this.selectedDocument.staffSigned ? 'Completed' : 'Pending Signature';
+            if (this.selectedDocument.status === 'Recalled') {
+                return 'Recalled – Pending Revision';
+            }
+            return 'Completed';
         }
         
-        // Interviews: check signature policies to determine requirements
-        const requiresClientSignature = this.requiresClientSignature(this.selectedDocument);
-        const requiresStaffSignature = this.requiresStaffSignature(this.selectedDocument);
+        // This component is gated by Completed_On__c != null in Apex.
+        // If the document is in this list at all, it is complete — full stop.
+        if (this.selectedDocument.completedDate) {
+            return 'Completed';
+        }
 
-        if (!requiresClientSignature && requiresStaffSignature) {
-            return this.selectedDocument.staffSigned ? 'Completed' : 'Pending Signature';
-        }
-        if (!requiresStaffSignature && requiresClientSignature) {
-            return this.selectedDocument.clientSigned ? 'Completed' : 'Pending Signature';
-        }
-        if (!requiresClientSignature && !requiresStaffSignature) {
-            return 'Completed';
-        }
+        // Interviews need both signatures
+        const clientSigned = this.selectedDocument.clientSigned;
+        const staffSigned = this.selectedDocument.staffSigned;
         
-        // Both signatures required
-        if (this.selectedDocument.clientSigned && this.selectedDocument.staffSigned) {
+        if (clientSigned && staffSigned) {
             return 'Completed';
-        } else if (this.selectedDocument.clientSigned || this.selectedDocument.staffSigned) {
+        } else if (clientSigned || staffSigned) {
             return 'Awaiting Signatures';
         }
         return 'Pending Signatures';
@@ -621,11 +671,22 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     get submittedOnDisplay() {
         const date = this.selectedDocument?.staffSignedDate || this.selectedDocument?.completedDate;
         if (!date) return '—';
-        return new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        return formatDateOnlyMountain(date);
+    }
+
+    get interactionDateTimeDisplay() {
+        return this.selectedDocument?.displayDateFormatted || '—';
+    }
+
+    get startedOnDisplay() {
+        return this.selectedDocument?.startDateFormatted || '—';
+    }
+
+    get completedOnDisplay() {
+        if (!this.selectedDocument) {
+            return '—';
+        }
+        return this.selectedDocument.completedDateFormatted || '—';
     }
     
     get needsSignatures() {
@@ -681,11 +742,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     get clientSignedDateDisplay() {
         const date = this.selectedDocument?.clientSignedDate;
         if (!date) return '';
-        return new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        return formatDateOnlyMountain(date);
     }
     
     /**
@@ -694,11 +751,7 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     get staffSignedDateDisplay() {
         const date = this.selectedDocument?.staffSignedDate;
         if (!date) return '';
-        return new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        return formatDateOnlyMountain(date);
     }
     
     /**
@@ -707,13 +760,16 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     get managerSignedDateDisplay() {
         const date = this.selectedDocument?.managerSignedDate;
         if (!date) return '';
-        return new Date(date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        return formatDateOnlyMountain(date);
     }
     
+    /**
+     * True when the selected document is within the 72-hour recall window
+     */
+    get showRecallButton() {
+        return this.selectedDocument?.canRecall === true;
+    }
+
     /**
      * Open the interview to complete signatures
      */
@@ -736,6 +792,80 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
         });
     }
     
+    handleRecall() {
+        this.showRecallConfirm = true;
+    }
+
+    handleRecallCancel() {
+        this.showRecallConfirm = false;
+    }
+
+    closeRecalledNoteModal() {
+        this.showRecalledClinicalNoteModal = false;
+        this.showRecalledCaseNoteModal = false;
+        this.showRecalledPeerNoteModal = false;
+        this.recalledNoteInteractionId = null;
+        // Refresh the completed docs list so the recalled note disappears from the viewer
+        const savedId = this._contextRecordId;
+        this._contextRecordId = undefined;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => { this._contextRecordId = savedId; }, 0);
+    }
+
+    handleRecallConfirm() {
+        if (!this.selectedDocument?.id) return;
+        this.isRecalling = true;
+        const docId = this.selectedDocument.documentType === 'Interview'
+            ? this.selectedDocument.id          // InterviewDocument__c Id
+            : this.selectedDocument.id;          // InteractionSummary Id — same field, different type
+        recallDocument({ documentId: docId, documentType: this.selectedDocument.documentType })
+            .then(() => {
+                this.showToast('Document Recalled', 'The document has been returned to Pending Documentation.', 'success');
+                this.showRecallConfirm = false;
+
+                // Capture ids before clearing selection
+                const recalled = this.selectedDocument;
+                this.selectedDocumentId = null;
+                this.selectedDocument = null;
+
+                if (recalled.documentType === 'Interview' && recalled.caseId && recalled.templateVersionId) {
+                    // Navigate directly to the interview session so the user can make edits immediately.
+                    // Include interviewId so the session loads all previous answers pre-populated.
+                    this[NavigationMixin.Navigate]({
+                        type: 'standard__webPage',
+                        attributes: {
+                            url: `/apex/InterviewSession?caseId=${recalled.caseId}&templateVersionId=${recalled.templateVersionId}&interviewId=${recalled.interviewId}&startStep=interview`
+                        }
+                    });
+                } else if (recalled.documentType === 'Note') {
+                    // Open the appropriate note editor modal inline — no navigation needed
+                    this.recalledNoteInteractionId = recalled.id;
+                    const noteType = recalled.noteType || '';
+                    if (noteType === 'Case Note') {
+                        this.showRecalledCaseNoteModal = true;
+                    } else if (noteType === 'Peer Note') {
+                        this.showRecalledPeerNoteModal = true;
+                    } else {
+                        // Clinical Note (default)
+                        this.showRecalledClinicalNoteModal = true;
+                    }
+                } else {
+                    // Fallback: refresh the completed docs list
+                    const savedId = this._contextRecordId;
+                    this._contextRecordId = undefined;
+                    // eslint-disable-next-line @lwc/lwc/no-async-operation
+                    setTimeout(() => { this._contextRecordId = savedId; }, 0);
+                }
+            })
+            .catch(err => {
+                const msg = err?.body?.message || 'Failed to recall document. Please try again.';
+                this.showToast('Error', msg, 'error');
+            })
+            .finally(() => {
+                this.isRecalling = false;
+            });
+    }
+
     getDocumentItemClass(doc) {
         const baseClass = 'document-item slds-box slds-box_x-small slds-theme_shade';
         const selectedClass = doc.id === this.selectedDocumentId ? ' document-item-selected' : '';
@@ -749,7 +879,10 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
                 ? 'signature-status signature-signed' 
                 : 'signature-status signature-unsigned text-muted';
         }
-        // Interviews need both signatures
+        // Completed_On__c is the Apex gate — any interview in this view is definitively complete
+        if (doc.completedDate || doc.status === 'Completed' || doc.status === 'Signed') {
+            return 'signature-status signature-signed';
+        }
         if (doc.clientSigned && doc.staffSigned) {
             return 'signature-status signature-signed';
         }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Allow_Carry_Forward__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, downstream template questions copied from this library entry should be configured for carry-forward resolution.</description>
+    <externalId>false</externalId>
+    <label>Allow Carry Forward</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

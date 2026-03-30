@@ -99,9 +99,12 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
     // Manager Approval support
     @track requestManagerCoSign = false;
     @track managerInfo = null;
+    @track signingAuthorityOptions = [];
     @track isReapprovalScenario = false;
     @track reapprovalManagerName = '';
+    @track isResubmissionScenario = false;
     @track _clearSignatureOnRender = false;
+    existingNote = null;
 
     originalFormState;
 
@@ -215,12 +218,87 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         return 'Request Approval/Co-Signature';
     }
 
+    get serviceDateTimeForManagerApproval() {
+        const interactionDate = this.form?.interactionDate;
+        if (!interactionDate) {
+            return null;
+        }
+
+        const startTime = this.form?.startTime || '12:00';
+        const parsed = new Date(`${interactionDate}T${startTime}`);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    get isLateEntryManagerApprovalRequired() {
+        const serviceDateTime = this.serviceDateTimeForManagerApproval;
+        if (!serviceDateTime) {
+            return false;
+        }
+
+        return (Date.now() - serviceDateTime.getTime()) > (72 * 60 * 60 * 1000);
+    }
+
+    get managerApprovalChecked() {
+        return this.isLateEntryManagerApprovalRequired || this.requestManagerCoSign;
+    }
+
     get isManagerApprovalDisabled() {
-        return this.managerMissing || this.isReapprovalScenario;
+        return this.managerMissing || this.isReapprovalScenario || this.isLateEntryManagerApprovalRequired;
+    }
+
+    get managerApprovalHelpText() {
+        if (this.isReapprovalScenario) {
+            return `This recalled or rejected note will return to ${this.reapprovalManagerName || this.managerName} under the original signing policy.`;
+        }
+
+        if (this.isLateEntryManagerApprovalRequired) {
+            return 'This note date is outside the 72-hour reporting window. Select a Signing Authority approver to route the required manager co-sign.';
+        }
+
+        return `${this.managerName} will be notified to co-sign this note after you save.`;
+    }
+
+    get saveAndSubmitBannerMessage() {
+        if (this.isReapprovalScenario && this.isLateEntryManagerApprovalRequired) {
+            return 'Save & Submit will preserve the original manager routing for this recalled or rejected note, and it remains in Manager Co-Sign because the note date is outside the 72-hour reporting window.';
+        }
+
+        if (this.isReapprovalScenario) {
+            return 'Save & Submit will preserve the original manager routing for this recalled or rejected note and return it to the assigned approver.';
+        }
+
+        if (this.isLateEntryManagerApprovalRequired) {
+            return 'Save & Submit will route this note into Manager Co-Sign because the note date is outside the 72-hour reporting window.';
+        }
+
+        return null;
+    }
+
+    get effectiveManagerApproverId() {
+        if (this.isReapprovalScenario && this.existingNote?.managerApproverId) {
+            return this.existingNote.managerApproverId;
+        }
+
+        return this.selectedApproverId;
     }
 
     handleApproverChange(event) {
         this.selectedApproverId = event.detail.value;
+    }
+
+    validateManagerApprovalRequirement() {
+        if (this.managerApprovalChecked && this.hasManager && !this.effectiveManagerApproverId) {
+            this._showToast(
+                'Approver Required',
+                this.isLateEntryManagerApprovalRequired
+                    ? 'This note was entered outside the 72-hour reporting window. Select a Signing Authority approver before saving.'
+                    : 'Please select an approver from the Signing Authority list before saving.',
+                'error'
+            );
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -437,6 +515,11 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
         // Check for existing note data (Amendment flow)
         if (existingNote) {
             console.log('Pre-filling form with existing note data');
+            this.existingNote = existingNote;
+            const existingStatus = (existingNote.status || '').toLowerCase();
+            const isRejectedNote = existingNote.wasRejected === true;
+            const isRecalledNote = existingStatus === 'recalled';
+            this.isResubmissionScenario = isRejectedNote || isRecalledNote;
             this.form = {
                 ...this.form,
                 interactionDate: existingNote.interactionDate || this.form.interactionDate,
@@ -456,7 +539,11 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             }
             
             // Set manager approval info if already requested (e.g., after rejection)
-            if (existingNote.requiresManagerApproval === true || existingNote.wasRejected === true) {
+            if (
+                existingNote.requiresManagerApproval === true ||
+                isRejectedNote ||
+                (isRecalledNote && !!existingNote.managerApproverId)
+            ) {
                 this.requestManagerCoSign = true;
                 this.isReapprovalScenario = true; // Disable checkbox, show message
                 this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
@@ -466,7 +553,7 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             }
             
             // If note was rejected, clear the signature so staff must re-sign
-            if (existingNote.wasRejected === true) {
+            if (isRejectedNote === true) {
                 // Signature will be cleared after template renders
                 this._clearSignatureOnRender = true;
             }
@@ -901,6 +988,11 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             return;
         }
 
+        if (!this.validateManagerApprovalRequirement()) {
+            this.isSaving = false;
+            return;
+        }
+
         const signaturePad = this.template.querySelector('c-signature-pad');
         const signatureIsPresent = signaturePad && typeof signaturePad.hasSignature === 'function'
             ? signaturePad.hasSignature()
@@ -972,7 +1064,10 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 benefitIds: this.form.benefitIds,
                 ssrsAssessmentId: ssrsAssessmentId,
                 noteType: this.noteType,
-                selectedCptCodes: this.selectedCptCodes
+                selectedCptCodes: this.selectedCptCodes,
+                requestManagerCoSign: this.managerApprovalChecked && this.hasManager,
+                managerApproverId: this.effectiveManagerApproverId,
+                markCompleted: !(this.managerApprovalChecked && this.hasManager)
             };
 
             const result = await saveClinicalNoteRequest({
@@ -996,21 +1091,17 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
                 }
             }
 
-            // Request manager approval if toggled
-            if (this.requestManagerCoSign && this.hasManager) {
-                try {
-                    // Handle manager approval - Force correct approver in re-approval scenarios
-                    let managerApproverId = this.selectedApproverId;
-                    if (this.requestManagerCoSign && this.isReapprovalScenario && this.existingNote?.managerApproverId) {
-                        // FORCE the original approver when in correction mode
-                        managerApproverId = this.existingNote.managerApproverId;
-                        console.log('Correction Mode: Forcing original manager approver:', managerApproverId);
-                    }
+            const requiresManagerApproval = result?.requiresManagerApproval === true;
+            const managerApprovalForced = result?.managerApprovalForced === true;
 
+            // Request manager approval for new routing scenarios.
+            // Recalled/rejected resubmissions preserve and notify from the server-side save path.
+            if (requiresManagerApproval && !this.isResubmissionScenario) {
+                try {
                     await requestManagerApproval({ 
                         recordId: this.interactionId, 
                         recordType: 'Interaction',
-                        approverId: managerApproverId
+                        approverId: this.effectiveManagerApproverId
                     });
                     console.log('Manager approval requested successfully');
                 } catch (approvalErr) {
@@ -1035,8 +1126,12 @@ export default class PeerNote extends NavigationMixin(LightningElement) {
             // Generate document via docgen service (attaches to InteractionSummary)
             await this._generateNoteDocument(this.interactionId);
 
-            const successMsg = this.requestManagerCoSign && this.hasManager 
-                ? `Peer note saved. Manager approval requested from ${this.managerName}.`
+            const successMsg = requiresManagerApproval
+                ? this.isResubmissionScenario
+                    ? 'Peer note saved. Original manager co-sign routing has been preserved for re-submission.'
+                    : managerApprovalForced
+                        ? 'Peer note saved. Late entry requires manager approval and has been routed for co-sign.'
+                        : `Peer note saved. Manager approval requested from ${this.managerName}.`
                 : 'Peer note saved successfully.';
             this._showToast('Success', successMsg, 'success');
             this._navigateToRecord(this.recordId);

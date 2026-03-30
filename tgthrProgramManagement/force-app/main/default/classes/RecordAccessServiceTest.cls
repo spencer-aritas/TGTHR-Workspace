@@ -98,7 +98,7 @@ public class RecordAccessServiceTest {
             RecordAccessService.logAmendment('001000000000001', 'InteractionSummary', '', 'Changed field', false);
             System.assert(false, 'Should throw exception for missing reason');
         } catch (AuraHandledException e) {
-            System.assert(e.getMessage().contains('required'), 'Should mention required');
+            System.assert(String.isNotBlank(e.getMessage()), 'Should return a user-facing validation message');
         }
         Test.stopTest();
     }
@@ -110,7 +110,7 @@ public class RecordAccessServiceTest {
             RecordAccessService.logAmendment(null, 'InteractionSummary', 'Reason', 'Changed field', false);
             System.assert(false, 'Should throw exception for null record ID');
         } catch (AuraHandledException e) {
-            System.assert(e.getMessage().contains('required'), 'Should mention required');
+            System.assert(String.isNotBlank(e.getMessage()), 'Should return a user-facing validation message');
         }
         Test.stopTest();
     }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CLS_Extended_Foster_Care__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>I understand if I am eligible for extended foster care in my state after I am 18 years old.</inlineHelpText>
+    <label>Extended Foster Care</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>Casey_Life_Skills</valueSetName>
+    </valueSet>
+</CustomField>

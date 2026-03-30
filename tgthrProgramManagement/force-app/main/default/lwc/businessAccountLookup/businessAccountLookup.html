@@ -1,0 +1,85 @@
+<template>
+    <div class="slds-form-element">
+        <label class="slds-form-element__label" for={inputId}>{label}</label>
+        <div class="slds-form-element__control">
+            <div class="slds-combobox_container">
+                <div class={comboboxClass} aria-expanded={dropdownOpen} aria-haspopup="listbox" role="combobox">
+                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                        <input
+                            type="text"
+                            class="slds-input slds-combobox__input"
+                            id={inputId}
+                            aria-autocomplete="list"
+                            aria-controls={listboxId}
+                            placeholder={placeholder}
+                            value={searchTerm}
+                            oninput={handleSearchInput}
+                            onfocus={handleFocus}
+                            onblur={handleBlur}
+                            disabled={disabled}
+                        />
+                        <template if:true={selectedAccount}>
+                            <button
+                                class="slds-button slds-button_icon slds-input__icon slds-input__icon_right"
+                                title="Clear Selection"
+                                onclick={handleClear}
+                                disabled={disabled}>
+                                <lightning-icon icon-name="utility:close" alternative-text="Clear" size="x-small"></lightning-icon>
+                            </button>
+                        </template>
+                    </div>
+                    <template if:true={showDropdown}>
+                        <div id={listboxId} class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+                            <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                <template if:true={hasResults}>
+                                    <template for:each={accounts} for:item="account">
+                                        <li key={account.Id} role="presentation" class="slds-listbox__item">
+                                            <div
+                                                class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                                                role="option"
+                                                data-account-id={account.Id}
+                                                onmousedown={handleOptionMouseDown}
+                                                onclick={handleSelectAccount}>
+                                                <span class="slds-media__body">
+                                                    <span class="slds-listbox__option-text slds-listbox__option-text_entity">
+                                                        {account.Name}
+                                                    </span>
+                                                    <template if:true={account.AccountNumber}>
+                                                        <span class="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                                                            Account #: {account.AccountNumber}
+                                                        </span>
+                                                    </template>
+                                                    <template if:true={account.Type}>
+                                                        <span class="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                                                            {account.Type}
+                                                        </span>
+                                                    </template>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </template>
+                                <template if:false={hasResults}>
+                                    <li role="presentation" class="slds-listbox__item">
+                                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="option">
+                                            <span class="slds-media__body">
+                                                <span class="slds-listbox__option-text">No business accounts found</span>
+                                            </span>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            <template if:true={selectedAccount}>
+                <div class="slds-m-top_x-small">
+                    <span class="slds-text-body_small">
+                        Selected: <strong>{selectedAccount.Name}</strong>
+                    </span>
+                </div>
+            </template>
+        </div>
+    </div>
+</template>

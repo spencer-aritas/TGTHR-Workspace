@@ -1,0 +1,167 @@
+diff --git a/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls b/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls
+index 803485b..0000000 100644
+--- a/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls
++++ b/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls
+@@
+     @AuraEnabled(cacheable=true)
+     public static List<Map<String, Object>> getRecentDocumentation(Id accountId) {
+         List<Map<String, Object>> result = new List<Map<String, Object>>();
+         try {
+-            List<SObject> docs = Database.query(
+-                'SELECT Id, Name, Document_Status__c, CreatedDate, ' +
+-                'Interview__r.Status__c, Interview__r.Completed_On__c, ' +
+-                'Interview__r.InterviewTemplate__r.Name ' +
+-                'FROM InterviewDocument__c ' +
+-                'WHERE Interview__r.Client__c = :accountId ' +
+-                'ORDER BY CreatedDate DESC LIMIT 10'
+-            );
+-            for (SObject d : docs) {
+-                SObject interview = d.getSObject('Interview__r');
+-                SObject tmpl = interview != null ? interview.getSObject('InterviewTemplate__r') : null;
+-                result.add(new Map<String, Object>{
+-                    'id'               => d.get('Id'),
+-                    'name'             => d.get('Name'),
+-                    'status'           => d.get('Document_Status__c'),
+-                    'createdDate'      => d.get('CreatedDate'),
+-                    'templateName'     => tmpl != null ? (String)tmpl.get('Name') : '',
+-                    'completedDate'    => interview != null ? interview.get('Completed_On__c') : null,
+-                    'interviewStatus'  => interview != null ? (String)interview.get('Status__c') : ''
+-                });
+-            }
++            Map<String, Schema.SObjectField> interviewFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
++            List<SObject> docs = Database.query(
++                'SELECT Id, Name, Status__c, Completed_On__c, PDF_File_Id__c, ' +
++                'Staff_Signed__c, Clinician_Signed__c, Requires_Manager_Approval__c, Manager_Signed__c, ' +
++                'CaseManager_Signed_By__c, CaseManager_Signed__c, PeerSupport_Signed_By__c, PeerSupport_Signed__c ' +
++                'FROM Interview__c ' +
++                'WHERE Client__c = :accountId ' +
++                'ORDER BY Completed_On__c DESC NULLS LAST LIMIT 8'
++            );
++            for (SObject d : docs) {
++                Object rawDate = d.get('Completed_On__c');
++                String dCdId = (String)d.get('PDF_File_Id__c');
++                String documentationStatus = deriveInterviewDocumentationStatus(d, interviewFields);
++                result.add(new Map<String, Object>{
++                    'id'                => d.get('Id'),
++                    'openId'            => d.get('Id'),
++                    'recordType'        => 'Interview',
++                    'displayTitle'      => InterviewTemplateLabelService.normalizeDisplayLabel((String)d.get('Name')),
++                    'displayMeta'       => documentationStatus,
++                    'date'              => rawDate,
++                    'status'            => documentationStatus,
++                    'sortDate'          => rawDate != null ? String.valueOf(rawDate) : '',
++                    'contentDocumentId' => dCdId
++                });
++            }
++            List<SObject> notes = Database.query(
++                'SELECT Id, InteractionPurpose, Date_of_Interaction__c, Status, CreatedBy.Name, PDF_File_Id__c ' +
++                'FROM InteractionSummary ' +
++                'WHERE AccountId = :accountId ' +
++                'AND InteractionPurpose IN :DOCUMENTATION_PURPOSES ' +
++                'ORDER BY Date_of_Interaction__c DESC LIMIT 8'
++            );
++            for (SObject n : notes) {
++                SObject createdBy = n.getSObject('CreatedBy');
++                Object rawDate = n.get('Date_of_Interaction__c');
++                String nCdId = (String)n.get('PDF_File_Id__c');
++                result.add(new Map<String, Object>{
++                    'id'                => n.get('Id'),
++                    'openId'            => n.get('Id'),
++                    'recordType'        => 'Note',
++                    'displayTitle'      => (String)n.get('InteractionPurpose'),
++                    'displayMeta'       => createdBy != null ? 'by ' + (String)createdBy.get('Name') : '',
++                    'date'              => rawDate,
++                    'status'            => (String)n.get('Status'),
++                    'sortDate'          => rawDate != null ? String.valueOf(rawDate) : '',
++                    'contentDocumentId' => nCdId
++                });
++            }
++            populateMissingContentDocumentIds(result, 'id', 'contentDocumentId');
+         } catch (Exception e) {
+             System.debug('CaseManagerHome: documentation failed — ' + e.getMessage());
+         }
++        for (Integer i = 1; i < result.size(); i++) {
++            Map<String, Object> cur = result[i];
++            String curDate = (String)cur.get('sortDate');
++            Integer j = i - 1;
++            while (j >= 0 && String.valueOf(result[j].get('sortDate')) < curDate) {
++                result[j + 1] = result[j];
++                j--;
++            }
++            result[j + 1] = cur;
++        }
++        if (result.size() > 15) {
++            while (result.size() > 15) {
++                result.remove(result.size() - 1);
++            }
++        }
+         return result;
+     }
++
++    private static String deriveInterviewDocumentationStatus(
++        SObject interview,
++        Map<String, Schema.SObjectField> interviewFields
++    ) {
++        if (interview == null) {
++            return 'Unknown';
++        }
++
++        String rawStatus = (String)interview.get('Status__c');
++        if (isInterviewDocumentationCompleted(interview, interviewFields)) {
++            return 'Completed';
++        }
++
++        return String.isBlank(rawStatus) ? 'Unknown' : rawStatus;
++    }
++
++    private static Boolean isInterviewDocumentationCompleted(
++        SObject interview,
++        Map<String, Schema.SObjectField> interviewFields
++    ) {
++        if (hasField(interviewFields, 'Completed_On__c') && interview.get('Completed_On__c') == null) {
++            return false;
++        }
++
++        Boolean authorSigned = false;
++        if (hasField(interviewFields, 'Staff_Signed__c') && interview.get('Staff_Signed__c') != null && (Boolean)interview.get('Staff_Signed__c') == true) {
++            authorSigned = true;
++        }
++        if (hasField(interviewFields, 'Clinician_Signed__c') && interview.get('Clinician_Signed__c') != null && (Boolean)interview.get('Clinician_Signed__c') == true) {
++            authorSigned = true;
++        }
++        if (!authorSigned) {
++            return false;
++        }
++
++        if (hasField(interviewFields, 'Requires_Manager_Approval__c') && hasField(interviewFields, 'Manager_Signed__c')) {
++            Boolean requiresManager = interview.get('Requires_Manager_Approval__c') != null && (Boolean)interview.get('Requires_Manager_Approval__c') == true;
++            if (requiresManager && (interview.get('Manager_Signed__c') == null || (Boolean)interview.get('Manager_Signed__c') != true)) {
++                return false;
++            }
++        }
++
++        if (hasField(interviewFields, 'CaseManager_Signed_By__c') && hasField(interviewFields, 'CaseManager_Signed__c')) {
++            Boolean caseManagerPending = interview.get('CaseManager_Signed_By__c') != null
++                && (interview.get('CaseManager_Signed__c') == null || (Boolean)interview.get('CaseManager_Signed__c') != true);
++            if (caseManagerPending) {
++                return false;
++            }
++        }
++
++        if (hasField(interviewFields, 'PeerSupport_Signed_By__c') && hasField(interviewFields, 'PeerSupport_Signed__c')) {
++            Boolean peerSupportPending = interview.get('PeerSupport_Signed_By__c') != null
++                && (interview.get('PeerSupport_Signed__c') == null || (Boolean)interview.get('PeerSupport_Signed__c') != true);
++            if (peerSupportPending) {
++                return false;
++            }
++        }
++
++        return true;
++    }
++
++    private static Boolean hasField(Map<String, Schema.SObjectField> fieldMap, String fieldName) {
++        return fieldMap != null && fieldMap.containsKey(fieldName);
++    }
+ 
+     @AuraEnabled(cacheable=true)
+     public static List<Map<String, Object>> getRecentIncidents(Id accountId) {

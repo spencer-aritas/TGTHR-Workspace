@@ -70,6 +70,7 @@
                 </template>
 
                 <!-- New Diagnoses Section -->
+                <template if:true={showNewDiagnosisSection}>
                 <div class="slds-section slds-is-open">
                     <h3 class="slds-section__title slds-theme_shade">
                         <span class="slds-truncate slds-p-horizontal_small" title="Add New Diagnosis">
@@ -101,10 +102,10 @@
                                 </div>
                                 <ul class="slds-has-dividers_bottom-space">
                                     <template for:each={newDiagnoses} for:item="diagnosis" for:index="index">
-                                        <li key={diagnosis.icd10Code} class="slds-item slds-p-vertical_x-small">
+                                        <li key={diagnosis.code} class="slds-item slds-p-vertical_x-small">
                                             <div class="slds-grid slds-grid_vertical-align-center">
                                                 <div class="slds-col slds-grow">
-                                                    <strong>{diagnosis.icd10Code}</strong> - {diagnosis.description}
+                                                    <strong>{diagnosis.code}</strong> - {diagnosis.description}
                                                     <template if:true={diagnosis.onsetDate}>
                                                         <br/>
                                                         <span class="slds-text-color_weak slds-text-body_small">
@@ -130,6 +131,7 @@
                         </template>
                     </div>
                 </div>
+                </template>
             </template>
         </div>
     </lightning-card>

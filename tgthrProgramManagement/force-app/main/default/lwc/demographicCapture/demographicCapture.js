@@ -1,7 +1,81 @@
-import { LightningElement, api, track } from 'lwc';
+import { LightningElement, api, track, wire } from 'lwc';
+import getDemographicFieldOptions from '@salesforce/apex/CaseManagerHomeController.getDemographicFieldOptions';
+
+const TRANSLATION_OPTIONS = [
+    { label: 'Yes', value: 'Yes' },
+    { label: 'No', value: 'No' }
+];
+
+const FALLBACK_GENDER_IDENTITY_OPTIONS = [
+    { label: 'Man (Boy, if child)', value: 'Male' },
+    { label: 'Woman (Girl, if child)', value: 'Female' },
+    { label: 'Transgender', value: 'Transgender' },
+    { label: 'Non-Binary', value: 'Non-Binary' },
+    { label: 'Culturally Specific Identity (e.g., TwoSpirit)', value: 'Culturally Specific Identity (e.g., TwoSpirit)' },
+    { label: 'Questioning', value: 'Questioning' },
+    { label: 'Different Identity', value: 'Different Identity' },
+    { label: "Doesn't know", value: "Doesn't know" },
+    { label: 'Prefers not to answer', value: 'Prefers not to answer' },
+    { label: 'Data Not Collected', value: 'Data Not Collected' }
+];
+
+const FALLBACK_PRONOUN_OPTIONS = [
+    { label: 'He, Him, His', value: 'He, Him, His' },
+    { label: 'She, Her, Hers', value: 'She, Her, Hers' },
+    { label: 'They, Them, Theirs', value: 'They, Them, Theirs' },
+    { label: 'He, They', value: 'He, They' },
+    { label: 'She, They', value: 'She, They' },
+    { label: 'Other', value: 'Other' },
+    { label: 'No Response', value: 'No Response' }
+];
+
+const FALLBACK_RACE_ETHNICITY_OPTIONS = [
+    { label: 'Hispanic/Latina/e/o', value: 'Hispanic/Latina/e/o' },
+    { label: 'White', value: 'White' },
+    { label: 'Black, African American, or African', value: 'Black, African American, or African' },
+    { label: 'Asian or Asian American', value: 'Asian or Asian American' },
+    { label: 'Middle Eastern or North African', value: 'Middle Eastern or North African' },
+    { label: 'Native Hawaiian or Pacific Islander', value: 'Native Hawaiian or Pacific Islander' },
+    { label: 'American Indian, Alaska Native, or Indigenous', value: 'American Indian, Alaska Native, or Indigenous' },
+    { label: 'Other', value: 'Other' },
+    { label: "Doesn't know", value: "Doesn't know" },
+    { label: 'Prefers not to answer', value: 'Prefers not to answer' },
+    { label: 'Data Not Collected', value: 'Data Not Collected' }
+];
+
+const FALLBACK_SEXUAL_ORIENTATION_OPTIONS = [
+    { label: 'Heterosexual', value: 'Heterosexual' },
+    { label: 'Gay', value: 'Gay' },
+    { label: 'Lesbian', value: 'Lesbian' },
+    { label: 'Bisexual', value: 'Bisexual' },
+    { label: 'Pansexual', value: 'Pansexual' },
+    { label: 'Asexual', value: 'Asexual' },
+    { label: 'Questioning/Unsure', value: 'Questioning/Unsure' },
+    { label: 'Other', value: 'Other' },
+    { label: "Doesn't Know", value: "Doesn't Know" },
+    { label: 'Prefers not to answer', value: 'Prefers not to answer' },
+    { label: 'Data Not Collected', value: 'Data Not Collected' }
+];
+
+const FALLBACK_VETERAN_OPTIONS = [
+    { label: 'Yes', value: 'Yes' },
+    { label: 'No', value: 'No' },
+    { label: "Don't Know", value: "Don't Know" },
+    { label: 'Prefers not to answer', value: 'Prefers not to answer' }
+];
+
+const FALLBACK_MEDICATION_OPTIONS = [
+    { label: 'Yes', value: 'Yes' },
+    { label: 'No', value: 'No' },
+    { label: "Client doesn't know", value: "Client doesn't know" },
+    { label: 'Client prefers not to answer', value: 'Client refused' }
+];
 
 export default class DemographicCapture extends LightningElement {
-    @api accountData = {};
+    @api allowEditingExistingData = false;
+    _accountData = {};
+    @track referralSourceName = '';
+    @track picklistOptionsByField = {};
     
     // Using actual Account field API names (Person Account fields use __pc suffix)
     @track demographics = {
@@ -15,6 +89,7 @@ export default class DemographicCapture extends LightningElement {
         MEDICAID_Number__pc: '',
         Translator_Needed__pc: '',
         Referral_Source__c: '',
+        Referral_Source_Name: '',
         Gender_Identity__pc: '',               // Was Gender_Identity__c
         Gender_Identity_Other_Description__pc: '',  // Was Gender_Identity_Other__c
         PersonPronouns: '',                    // Was Preferred_Pronouns__c (standard field)
@@ -36,77 +111,56 @@ export default class DemographicCapture extends LightningElement {
         Medication_Notes__c: ''
     };
 
-    // Options for picklists
-    translationOptions = [
-        { label: 'Yes', value: 'Yes' },
-        { label: 'No', value: 'No' },
-        { label: "Client doesn't know", value: "Client doesn't know" },
-        { label: 'Prefers not to answer', value: 'Prefers not to answer' },
-        { label: 'Data not collected', value: 'Data not collected' }
-    ];
+    @api
+    get accountData() {
+        return this._accountData;
+    }
 
-    referralSourceOptions = [
-        { label: 'Boulder County', value: 'Boulder County' },
-        { label: 'OneHome', value: 'OneHome' }
-    ];
+    set accountData(value) {
+        this._accountData = value ? { ...value } : {};
+        this.initializeDemographics();
+    }
 
-    genderIdentityOptions = [
-        { label: 'Man', value: 'Man' },
-        { label: 'Woman', value: 'Woman' },
-        { label: 'Transgender - Woman', value: 'Transgender - Woman' },
-        { label: 'Transgender - Male', value: 'Transgender - Male' },
-        { label: 'Non-binary', value: 'Non-binary' },
-        { label: 'Culturally Specific Identity (e.g. Twospirit)', value: 'Culturally Specific Identity' },
-        { label: 'Questioning', value: 'Questioning' },
-        { label: 'Different Identity', value: 'Different Identity' },
-        { label: "Client doesn't know", value: "Client doesn't know" },
-        { label: 'Prefers not to answer', value: 'Prefers not to answer' },
-        { label: 'Data not collected', value: 'Data not collected' }
-    ];
+    @wire(getDemographicFieldOptions)
+    wiredDemographicFieldOptions({ data, error }) {
+        if (data) {
+            this.picklistOptionsByField = data;
+        } else if (error) {
+            this.picklistOptionsByField = {};
+        }
+    }
 
-    pronounOptions = [
-        { label: 'She/Her/Hers', value: 'She/Her/Hers' },
-        { label: 'He/Him/His', value: 'He/Him/His' },
-        { label: 'They/Them/Theirs', value: 'They/Them/Theirs' },
-        { label: 'Other', value: 'Other' },
-        { label: "Client doesn't know", value: "Client doesn't know" },
-        { label: 'Prefers not to answer', value: 'Prefers not to answer' },
-        { label: 'Data not collected', value: 'Data not collected' }
-    ];
+    get translationOptions() {
+        return this.getPicklistOptions('Translator_Needed__pc', TRANSLATION_OPTIONS);
+    }
 
-    raceEthnicityOptions = [
-        { label: 'Latina/o/e or Hispanic', value: 'Latina/o/e or Hispanic' },
-        { label: 'Non-Latino/Hispanic', value: 'Non-Latino/Hispanic' },
-        { label: 'Middle Eastern/North African', value: 'Middle Eastern/North African' },
-        { label: 'White', value: 'White' },
-        { label: 'Black, African, or African-American', value: 'Black, African, or African-American' },
-        { label: 'Asian or Asian American', value: 'Asian or Asian American' },
-        { label: 'American Indian or Alaska Native, Indigenous', value: 'American Indian or Alaska Native, Indigenous' },
-        { label: 'Native Hawaiian or Other Pacific Islander', value: 'Native Hawaiian or Other Pacific Islander' },
-        { label: "Client doesn't know", value: "Client doesn't know" },
-        { label: 'Prefers not to answer', value: 'Prefers not to answer' },
-        { label: 'Data not collected', value: 'Data not collected' }
-    ];
+    get genderIdentityOptions() {
+        return this.getPicklistOptions('Gender_Identity__pc', FALLBACK_GENDER_IDENTITY_OPTIONS);
+    }
 
-    sexualOrientationOptions = [
-        { label: 'Heterosexual', value: 'Heterosexual' },
-        { label: 'Gay', value: 'Gay' },
-        { label: 'Lesbian', value: 'Lesbian' },
-        { label: 'Bisexual', value: 'Bisexual' },
-        { label: 'Questioning/Unsure', value: 'Questioning/Unsure' },
-        { label: 'Other', value: 'Other' },
-        { label: "Client doesn't know", value: "Client doesn't know" },
-        { label: 'Prefers not to answer', value: 'Prefers not to answer' },
-        { label: 'Data not collected', value: 'Data not collected' }
-    ];
+    get pronounOptions() {
+        return this.getPicklistOptions('PersonPronouns', FALLBACK_PRONOUN_OPTIONS);
+    }
 
-    yesNoOptions = [
-        { label: 'Yes', value: 'Yes' },
-        { label: 'No', value: 'No' },
-        { label: "Client doesn't know", value: "Client doesn't know" },
-        { label: 'Prefers not to answer', value: 'Prefers not to answer' },
-        { label: 'Data not collected', value: 'Data not collected' }
-    ];
+    get raceEthnicityOptions() {
+        return this.getPicklistOptions('Race_and_Ethnicity__pc', FALLBACK_RACE_ETHNICITY_OPTIONS);
+    }
+
+    get sexualOrientationOptions() {
+        return this.getPicklistOptions('Sexual_Orientation__pc', FALLBACK_SEXUAL_ORIENTATION_OPTIONS);
+    }
+
+    get veteranOptions() {
+        return this.getPicklistOptions('Veteran_Service__pc', FALLBACK_VETERAN_OPTIONS);
+    }
+
+    get medicationOptions() {
+        return this.getPicklistOptions('Currently_Taking_Medications__c', FALLBACK_MEDICATION_OPTIONS);
+    }
+
+    get refillMedicationOptions() {
+        return this.getPicklistOptions('Need_Help_Refilling_Medications__c', FALLBACK_MEDICATION_OPTIONS);
+    }
 
     connectedCallback() {
         this.initializeDemographics();
@@ -119,19 +173,108 @@ export default class DemographicCapture extends LightningElement {
     }
 
     initializeDemographics() {
+        const nextDemographics = {
+            FirstName: '',
+            MiddleName: '',
+            LastName: '',
+            Preferred_Name__pc: '',
+            PersonBirthdate: null,
+            Age__pc: null,
+            Social_Security_Number__pc: '',
+            MEDICAID_Number__pc: '',
+            Translator_Needed__pc: '',
+            Referral_Source__c: '',
+            Referral_Source_Name: '',
+            Gender_Identity__pc: '',
+            Gender_Identity_Other_Description__pc: '',
+            PersonPronouns: '',
+            Pronouns_Other_Description__pc: '',
+            Race_and_Ethnicity__pc: [],
+            Race_Ethnicity_Detail__c: '',
+            Sexual_Orientation__pc: '',
+            Sexual_Orientation_Other_Description__pc: '',
+            PersonMobilePhone: '',
+            PersonEmail: '',
+            Emergency_Contact_Name__c: '',
+            Emergency_Contact_Relationship__c: '',
+            Place_of_Birth_City_County__pc: '',
+            Veteran_Service__pc: '',
+            Known_Allergies__c: '',
+            Primary_Diagnosis__c: '',
+            Currently_Taking_Medications__c: '',
+            Need_Help_Refilling_Medications__c: '',
+            Medication_Notes__c: ''
+        };
+
         if (this.accountData) {
-            // Map Account fields to demographics
-            Object.keys(this.demographics).forEach(key => {
-                if (this.accountData[key] !== undefined && this.accountData[key] !== null) {
-                    this.demographics[key] = this.accountData[key];
+            Object.keys(nextDemographics).forEach(key => {
+                const accountValue = this.getAccountFieldValue(key);
+                if (accountValue !== undefined && accountValue !== null) {
+                    nextDemographics[key] = this.normalizeInboundValue(key, accountValue);
                 }
             });
 
-            // Handle multi-select picklist (Race_and_Ethnicity__pc)
-            if (this.accountData.Race_and_Ethnicity__pc) {
-                this.demographics.Race_and_Ethnicity__pc = this.accountData.Race_and_Ethnicity__pc.split(';');
+            this.referralSourceName = this.getAccountFieldValue('Referral_Source_Name') || '';
+            nextDemographics.Referral_Source_Name = this.referralSourceName;
+
+            if (nextDemographics.PersonBirthdate) {
+                this.calculateAge(nextDemographics.PersonBirthdate, nextDemographics);
+            }
+        } else {
+            this.referralSourceName = '';
+        }
+
+        this.demographics = nextDemographics;
+    }
+
+    normalizeInboundValue(fieldName, value) {
+        if (fieldName === 'Race_and_Ethnicity__pc') {
+            if (Array.isArray(value)) {
+                return [...value];
+            }
+            return typeof value === 'string' && value
+                ? value.split(';').filter(Boolean)
+                : [];
+        }
+
+        if (fieldName === 'PersonBirthdate' && typeof value === 'string') {
+            return value.includes('T') ? value.substring(0, 10) : value;
+        }
+
+        if (fieldName === 'Translator_Needed__pc') {
+            if (value === true || value === 'true' || value === '1') {
+                return 'Yes';
+            }
+            if (value === false || value === 'false' || value === '0') {
+                return 'No';
             }
         }
+
+        return value;
+    }
+
+    getAccountFieldValue(fieldName) {
+        if (!this.accountData || !fieldName) {
+            return undefined;
+        }
+
+        if (this.accountData[fieldName] !== undefined) {
+            return this.accountData[fieldName];
+        }
+
+        const lowerFieldName = fieldName.toLowerCase();
+        for (const key of Object.keys(this.accountData)) {
+            if (key && key.toLowerCase() === lowerFieldName) {
+                return this.accountData[key];
+            }
+        }
+
+        return undefined;
+    }
+
+    getPicklistOptions(fieldName, fallbackOptions) {
+        const options = this.picklistOptionsByField?.[fieldName];
+        return Array.isArray(options) && options.length > 0 ? options : fallbackOptions;
     }
 
     get showGenderOther() {
@@ -148,7 +291,10 @@ export default class DemographicCapture extends LightningElement {
 
     // Helper to check if a field has existing data
     _isFieldDisabled(fieldName) {
-        const value = this.accountData?.[fieldName];
+        if (this.allowEditingExistingData) {
+            return false;
+        }
+        const value = this.getAccountFieldValue(fieldName);
         return value !== undefined && value !== null && value !== '';
     }
 
@@ -157,7 +303,13 @@ export default class DemographicCapture extends LightningElement {
     get middleNameDisabled() { return this._isFieldDisabled('MiddleName'); }
     get lastNameDisabled() { return this._isFieldDisabled('LastName'); }
     get preferredNameDisabled() { return this._isFieldDisabled('Preferred_Name__pc'); }
-    get birthdateDisabled() { return this.accountData?.PersonBirthdate !== undefined && this.accountData?.PersonBirthdate !== null; }
+    get birthdateDisabled() {
+        if (this.allowEditingExistingData) {
+            return false;
+        }
+        const birthdateValue = this.getAccountFieldValue('PersonBirthdate');
+        return birthdateValue !== undefined && birthdateValue !== null;
+    }
     get ssnDisabled() { return this._isFieldDisabled('Social_Security_Number__pc'); }
     get medicaidDisabled() { return this._isFieldDisabled('MEDICAID_Number__pc'); }
 
@@ -173,7 +325,10 @@ export default class DemographicCapture extends LightningElement {
 
     // Race & Ethnicity fields
     get raceEthnicityDisabled() { 
-        const value = this.accountData?.Race_and_Ethnicity__pc;
+        if (this.allowEditingExistingData) {
+            return false;
+        }
+        const value = this.getAccountFieldValue('Race_and_Ethnicity__pc');
         return value !== undefined && value !== null && value !== '' && 
                (Array.isArray(value) ? value.length > 0 : true);
     }
@@ -217,9 +372,19 @@ export default class DemographicCapture extends LightningElement {
         this.notifyParent();
     }
 
-    calculateAge(birthdate) {
+    handleReferralSourceSelected(event) {
+        this.referralSourceName = event.detail.accountName || '';
+        this.demographics = {
+            ...this.demographics,
+            Referral_Source__c: event.detail.accountId || null,
+            Referral_Source_Name: this.referralSourceName
+        };
+        this.notifyParent();
+    }
+
+    calculateAge(birthdate, targetDemographics = this.demographics) {
         if (!birthdate) {
-            this.demographics.Age__pc = null;
+            targetDemographics.Age__pc = null;
             return;
         }
         const birth = new Date(birthdate);
@@ -230,10 +395,39 @@ export default class DemographicCapture extends LightningElement {
             age--;
         }
         // Set local calculated age for display (this is a formula field on Account, so won't be saved)
-        this.demographics.Age__pc = age;
+        targetDemographics.Age__pc = age;
+    }
+
+    syncReferralSourceFromLookup() {
+        const referralLookup = this.template?.querySelector('c-business-account-lookup');
+        if (!referralLookup) {
+            return;
+        }
+
+        const selectedAccountId = referralLookup.selectedAccountId || null;
+        const selectedAccountName = referralLookup.selectedAccountName || '';
+
+        const shouldClearSelection = !selectedAccountId &&
+            !selectedAccountName &&
+            !referralLookup.searchTerm;
+
+        const shouldApplyLookupState = Boolean(selectedAccountId) || Boolean(selectedAccountName) || shouldClearSelection;
+
+        if (!shouldApplyLookupState) {
+            return;
+        }
+
+        this.referralSourceName = selectedAccountName;
+        this.demographics = {
+            ...this.demographics,
+            Referral_Source__c: selectedAccountId,
+            Referral_Source_Name: selectedAccountName
+        };
     }
 
     notifyParent() {
+        this.syncReferralSourceFromLookup();
+
         // Send updated demographics to parent
         const event = new CustomEvent('demographicschange', {
             detail: { ...this.demographics }
@@ -254,6 +448,9 @@ export default class DemographicCapture extends LightningElement {
 
     @api
     getData() {
+        if (!this.demographics.Referral_Source__c && !this.demographics.Referral_Source_Name) {
+            this.syncReferralSourceFromLookup();
+        }
         return { ...this.demographics };
     }
 }

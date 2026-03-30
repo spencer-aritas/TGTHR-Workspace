@@ -63,21 +63,6 @@ const goalStatusClass = (status) => {
     return map[status] || 'cmh-goal__status';
 };
 
-const normalizeDocumentationStatus = (status) => {
-    const normalized = (status || '').toString().trim();
-    if (!normalized) return 'Unknown';
-    const lower = normalized.toLowerCase();
-    if (lower.includes('amend')) return normalized;
-    if (lower === 'signed') return 'Completed';
-    if (lower === 'completed') return 'Completed';
-    if (lower === 'submitted') return 'Submitted';
-    if (lower.includes('progress')) return 'In Progress';
-    if (lower.includes('draft')) return 'Draft';
-    if (lower.includes('pending')) return normalized;
-    if (lower.includes('recalled')) return normalized;
-    return normalized;
-};
-
 export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     _pageReference;
     _didAutoSelectFromState = false;
@@ -316,11 +301,11 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     loadDocumentation() {
         if (!this.selectedClient || this.docsLoaded) return;
         this.isLoadingDocs = true;
-        getRecentDocumentation({ accountId: this.selectedClient.accountId })
+        getRecentDocumentation({ caseId: this.selectedClient.caseId, accountId: this.selectedClient.accountId })
             .then(data => {
                 this.documentation = (data || []).map(d => ({
                     ...d,
-                    status: normalizeDocumentationStatus(d.status),
+                    status: d.status || 'Unknown',
                     formattedDate: formatDateShort(d.date)
                 }));
                 this.docsLoaded = true;

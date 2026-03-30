@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Treatment_Plan__c</fullName>
+    <label>Active Treatment Plan</label>
+    <type>Lookup</type>
+    <referenceTo>Interview__c</referenceTo>
+    <relationshipLabel>Cases (Active Treatment Plan)</relationshipLabel>
+    <relationshipName>Active_Treatment_Plan_Cases</relationshipName>
+    <required>false</required>
+    <description>Points to the currently active Treatment Plan Interview for this Case. Set automatically when a Treatment Plan is fully signed and activated. Cleared when a plan is superseded.</description>
+    <inlineHelpText>The Treatment Plan currently in effect for this participant.</inlineHelpText>
+    <trackHistory>true</trackHistory>
+</CustomField>

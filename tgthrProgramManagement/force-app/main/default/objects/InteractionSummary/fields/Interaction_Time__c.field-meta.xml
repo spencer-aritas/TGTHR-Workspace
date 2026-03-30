@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Interaction_Time__c</fullName>
+    <label>Interaction Time</label>
+    <type>Time</type>
+    <description>Time of the interaction, captured from the home-screen quick-entry card.</description>
+</CustomField>

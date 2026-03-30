@@ -5,6 +5,42 @@
  * Uses dynamic SOQL to handle orgs where Diagnosis__c may not exist.
  */
 public with sharing class DiagnosisSummaryController {
+
+    private static String normalizeDiagnosisCode(String code) {
+        return String.isBlank(code) ? null : code.trim();
+    }
+
+    private static String normalizeDiagnosisDescription(String code, String description) {
+        String cleanDescription = String.isBlank(description) ? null : description.trim();
+        String cleanCode = normalizeDiagnosisCode(code);
+
+        if (String.isBlank(cleanDescription)) {
+            return cleanDescription;
+        }
+
+        if (String.isNotBlank(cleanCode)) {
+            String codeLower = cleanCode.toLowerCase();
+            String descLower = cleanDescription.toLowerCase();
+
+            String leadingToken = codeLower + ' - ';
+            if (descLower.startsWith(leadingToken) && cleanDescription.length() > leadingToken.length()) {
+                cleanDescription = cleanDescription.substring(leadingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            String trailingToken = ' - ' + codeLower;
+            if (descLower.endsWith(trailingToken) && cleanDescription.length() > trailingToken.length()) {
+                cleanDescription = cleanDescription.substring(0, cleanDescription.length() - trailingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            if (descLower == codeLower) {
+                return null;
+            }
+        }
+
+        return cleanDescription.replaceAll('\\s+', ' ');
+    }
     
     /**
      * DTO for diagnosis display.
@@ -232,11 +268,11 @@ public with sharing class DiagnosisSummaryController {
         String codeText = getStringField(rec, 'Code__c');
         String icd10Code = getStringField(rec, 'ICD10Code__c');
         
-        dto.code = String.isNotBlank(icd10Code) ? icd10Code : codeText;
+        dto.code = normalizeDiagnosisCode(String.isNotBlank(icd10Code) ? icd10Code : codeText);
         dto.codeNumber = dto.code;
         
         // Description - get from Description__c text field (direct storage)
-        dto.description = getStringField(rec, 'Description__c');
+        dto.description = normalizeDiagnosisDescription(dto.code, getStringField(rec, 'Description__c'));
 
         // Try to get additional code details from Code_Name__r relationship if available
         // ONLY if Description__c is not populated
@@ -253,7 +289,7 @@ public with sharing class DiagnosisSummaryController {
                     }
                     // Also capture the description from the related Code record if not already set
                     if (String.isNotBlank(descFromRel)) {
-                        dto.description = descFromRel;
+                        dto.description = normalizeDiagnosisDescription(dto.code, descFromRel);
                     }
                 }
             } catch (Exception e) {
@@ -381,7 +417,7 @@ public with sharing class DiagnosisSummaryController {
             for (DiagnosisDTO dto : diagnoses) {
                 if ((String.isBlank(dto.description) || dto.description == dto.code) 
                     && codeToDescription.containsKey(dto.code)) {
-                    dto.description = codeToDescription.get(dto.code);
+                    dto.description = normalizeDiagnosisDescription(dto.code, codeToDescription.get(dto.code));
                 }
             }
         } catch (Exception e) {

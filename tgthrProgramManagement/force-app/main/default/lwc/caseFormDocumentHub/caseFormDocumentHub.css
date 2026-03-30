@@ -1,0 +1,13 @@
+.file-uploaded {
+    color: #027e46;
+    font-weight: 600;
+}
+
+.upload-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.modal-backdrop-click-target {
+    cursor: default;
+}

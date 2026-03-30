@@ -11,3 +11,71 @@
 .care-plan-details .discharge-plan-box {
     width: 100%;
 }
+
+.services-provided-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.services-provided-summary {
+    margin-bottom: 0.25rem;
+}
+
+.services-provided-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.services-provided-card {
+    border: 1px solid #d8dde6;
+    border-radius: 0.5rem;
+    background: #fbfbfa;
+    padding: 0.875rem;
+}
+
+.services-provided-card__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.services-provided-card__title {
+    font-weight: 600;
+}
+
+.services-provided-card__status {
+    border-radius: 999px;
+    background: #eef4ff;
+    color: #16325c;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    padding: 0.2rem 0.55rem;
+    white-space: nowrap;
+}
+
+.services-provided-card__meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.services-provided-card__meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.services-provided-card__label {
+    color: #706e6b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.services-provided-card__value {
+    color: #181818;
+    font-size: 0.9rem;
+}

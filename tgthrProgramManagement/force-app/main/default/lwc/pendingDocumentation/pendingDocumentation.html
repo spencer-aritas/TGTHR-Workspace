@@ -22,8 +22,16 @@
                                                     <div class="slds-text-heading_small slds-truncate">{item.title}</div>
                                                     <div class="slds-text-body_small text-muted">{item.subtitle}</div>
                                                     <div class="slds-text-body_small text-muted">Owner: {item.ownerDisplay}</div>
+                                                    <template if:true={item.referenceNumber}>
+                                                        <div class="slds-text-body_small text-muted">{item.referenceNumber}</div>
+                                                    </template>
                                                     <template if:true={item.pendingReason}>
                                                         <div class="slds-text-body_small"><strong>Reason:</strong> {item.pendingReason}</div>
+                                                    </template>
+                                                    <template if:true={item.lateEntryManagerApprovalRequired}>
+                                                        <div class="slds-m-top_xx-small">
+                                                            <span class="pending-badge pending-badge--late-entry">Late Entry Manager Co-Sign</span>
+                                                        </div>
                                                     </template>
                                                 </div>
                                                 <div class="slds-col slds-no-flex">
@@ -63,12 +71,35 @@
                                     <template if:true={selectedPendingItem.actionBadgeLabel}>
                                         <span class={selectedPendingItem.actionBadgeClass}>{selectedPendingItem.actionBadgeLabel}</span>
                                     </template>
+                                    <template if:true={selectedPendingItem.lateEntryManagerApprovalRequired}>
+                                        <span class="pending-badge pending-badge--late-entry slds-m-left_xx-small">Late Entry Manager Co-Sign</span>
+                                    </template>
                                 </div>
                                 <div class="slds-text-body_small text-muted slds-m-top_xx-small">
                                     Owner: {selectedPendingItem.ownerDisplay} • Submitted By: {selectedPendingItem.ownerDisplay} • Submitted On: {selectedPendingItem.subtitle}
                                 </div>
                             </div>
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right slds-m-top_small slds-medium-m-top_none">
+                                <template if:true={isSelectedInterview}>
+                                    <template if:true={selectedInterviewHasDocument}>
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="Download PDF"
+                                            icon-name="utility:download"
+                                            class="slds-m-right_x-small"
+                                            onclick={handleDownloadSelectedInterview}>
+                                        </lightning-button>
+                                    </template>
+                                    <template if:true={showWordDownloadForSelected}>
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="Download in Word"
+                                            icon-name="utility:file"
+                                            class="slds-m-right_x-small"
+                                            onclick={handleDownloadSelectedInterviewWord}>
+                                        </lightning-button>
+                                    </template>
+                                </template>
                                 <lightning-button
                                     variant="brand"
                                     label="Open"
@@ -81,6 +112,12 @@
                             <div class="slds-box slds-theme_default">
                                 <div class="slds-text-title_caps text-muted slds-m-bottom_x-small">Draft Details</div>
                                 <p class="slds-text-body_small">This draft has not been submitted.</p>
+                            </div>
+                        </template>
+
+                        <template if:true={selectedPendingItem.lateEntryManagerApprovalRequired}>
+                            <div class="pending-late-entry-banner slds-m-bottom_medium">
+                                This record was entered outside the 72-hour reporting window and is routed through Manager Co-Sign.
                             </div>
                         </template>
 
@@ -319,6 +356,18 @@
     <c-note-signature-modal 
         onsigned={handleSignatureComplete}>
     </c-note-signature-modal>
+    
+    <!-- Interview Multi-Signature Modal (for Treatment Plans) -->
+    <c-interview-multi-signature-modal
+        onsignaturecomplete={handleSignatureComplete}
+        ontreatmentplanconflict={handleTreatmentPlanConflict}>
+    </c-interview-multi-signature-modal>
+
+    <!-- Treatment Plan Conflict Modal (opened when activation conflicts with an existing active plan) -->
+    <c-treatment-plan-conflict-modal
+        ontreatmentplanactivated={handlePlanActivated}
+        onconflictcancelled={handleConflictCancelled}>
+    </c-treatment-plan-conflict-modal>
     
     <!-- Reassign Interview Modal -->
     <template if:true={showReassignModal}>

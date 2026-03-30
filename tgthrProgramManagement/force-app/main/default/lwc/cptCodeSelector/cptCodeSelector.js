@@ -3,9 +3,30 @@ import getAvailableCptCodes from '@salesforce/apex/ClinicalNoteController.getAva
 
 export default class CptCodeSelector extends LightningElement {
     @api noteType; // 'Clinical', 'Peer', 'Case Management', 'Comp Assess'
+    rawCptConfigs = [];
+    allowedCodesInternal = '';
     
     // Internal tracked property for selected codes
     @track selectedCodesInternal = [];
+
+    @api
+    get selectedCodes() {
+        return this.selectedCodesInternal;
+    }
+    set selectedCodes(value) {
+        const next = Array.isArray(value) && value.length > 0 ? [value[0]] : [];
+        this.selectedCodesInternal = next;
+        this.refreshCptCodeOptions();
+    }
+
+    @api
+    get allowedCodes() {
+        return this.allowedCodesInternal;
+    }
+    set allowedCodes(value) {
+        this.allowedCodesInternal = value;
+        this.refreshCptCodeOptions();
+    }
 
     cptCodeOptions = [];
     isLoading = true;
@@ -16,26 +37,13 @@ export default class CptCodeSelector extends LightningElement {
     wiredCptCodes({ error, data }) {
         this.isLoading = true;
         if (data) {
-            this.cptCodeOptions = data.map(config => {
-                const modifiers = [];
-                if (config.modifier1) modifiers.push(config.modifier1);
-                if (config.modifier2) modifiers.push(config.modifier2);
-
-                return {
-                    code: config.code,
-                    description: config.description,
-                    modifier1: config.modifier1,
-                    modifier2: config.modifier2,
-                    displayLabel: `${config.code} - ${config.description}`,
-                    modifierDisplay: modifiers.join(', '),
-                    hasModifiers: modifiers.length > 0,
-                    isSelected: this.selectedCodesInternal.includes(config.code)
-                };
-            });
+            this.rawCptConfigs = data;
+            this.refreshCptCodeOptions();
             this.error = undefined;
             this.isLoading = false;
         } else if (error) {
             this.error = 'Error loading CPT codes: ' + (error.body?.message || error.message);
+            this.rawCptConfigs = [];
             this.cptCodeOptions = [];
             this.isLoading = false;
         }
@@ -79,11 +87,46 @@ export default class CptCodeSelector extends LightningElement {
     setSelectedCodes(codes) {
         const next = Array.isArray(codes) && codes.length > 0 ? [codes[0]] : [];
         this.selectedCodesInternal = next;
-        // Update checkboxes
-        this.cptCodeOptions = this.cptCodeOptions.map(option => ({
-            ...option,
-            isSelected: this.selectedCodesInternal.includes(option.code)
-        }));
+        this.refreshCptCodeOptions();
+    }
+
+    refreshCptCodeOptions() {
+        const allowedCodes = this.parseAllowedCodes(this.allowedCodesInternal);
+        const filteredConfigs = this.rawCptConfigs.filter(config => {
+            if (allowedCodes.size === 0) {
+                return true;
+            }
+            return allowedCodes.has(String(config.code || '').trim().toUpperCase());
+        });
+
+        this.cptCodeOptions = filteredConfigs.map(config => {
+            const modifiers = [];
+            if (config.modifier1) modifiers.push(config.modifier1);
+            if (config.modifier2) modifiers.push(config.modifier2);
+
+            return {
+                code: config.code,
+                description: config.description,
+                modifier1: config.modifier1,
+                modifier2: config.modifier2,
+                displayLabel: `${config.code} - ${config.description}`,
+                modifierDisplay: modifiers.join(', '),
+                hasModifiers: modifiers.length > 0,
+                isSelected: this.selectedCodesInternal.includes(config.code)
+            };
+        });
+    }
+
+    parseAllowedCodes(value) {
+        const tokens = Array.isArray(value)
+            ? value
+            : String(value || '').split(/[\s,;]+/);
+
+        return new Set(
+            tokens
+                .map(token => String(token || '').trim().toUpperCase())
+                .filter(token => token)
+        );
     }
 
     // Computed properties
@@ -92,7 +135,7 @@ export default class CptCodeSelector extends LightningElement {
             'Clinical': 'Clinical Note',
             'Peer': 'Peer Note',
             'Case Management': 'Case Management Note',
-            'Comp Assess': 'Comprehensive Assessment'
+            'Comp Assess': 'Comprehensive Clinical Assessment'
         };
         return typeLabels[this.noteType] || 'note';
     }
@@ -102,10 +145,10 @@ export default class CptCodeSelector extends LightningElement {
     }
 
     get hasSelectedCodes() {
-        return this.selectedCodes && this.selectedCodes.length > 0;
+        return this.selectedCodesInternal && this.selectedCodesInternal.length > 0;
     }
 
     get selectedCount() {
-        return this.selectedCodes ? this.selectedCodes.length : 0;
+        return this.selectedCodesInternal ? this.selectedCodesInternal.length : 0;
     }
 }

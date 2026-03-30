@@ -242,6 +242,30 @@ private static void putIfFieldExists(SObject record, Map<String, Schema.SObjectF
 }
 ```
 
+## Permission Sets
+
+**`Python_API_Access` is the baseline gold-star permission set.** Every user who interacts with the system — including System Administrators — must have it assigned. It is the single authoritative source for field-level permissions.
+
+### Rules
+- **All new custom fields must be added to `Python_API_Access` first**, before any profile entry.
+- Also add to `TGTHR Base Profile` as a redundant safety net.
+- **Never create or deploy `System Administrator.profile-meta.xml`.** Salesforce profile deploys are destructive for unlisted fields (sets them to `readable: false / editable: false`). A minimal profile file will strip every field not explicitly listed, and can create a duplicate profile that must be manually deleted. The permission set is the correct durable mechanism — perm set deploys are always additive.
+- The `TGTHR Base Profile` XML is safe to deploy because it is a complete export; do not add partial profile files for any other profile.
+
+### Adding a New Custom Field — Checklist
+1. Create the `.field-meta.xml` under `force-app/main/default/objects/<Object>/fields/`
+2. Add `<fieldPermissions>` block (`editable: true`, `readable: true`) to:
+   - `force-app/main/default/permissionsets/Python_API_Access.permissionset-meta.xml`
+   - `force-app/main/default/profiles/TGTHR Base Profile.profile-meta.xml`
+3. Deploy fields + perm set + profile together:
+   ```bash
+   sf project deploy start \
+     -d force-app/main/default/objects/<Object>/fields/<Field>.field-meta.xml \
+     -d force-app/main/default/permissionsets/Python_API_Access.permissionset-meta.xml \
+     -d "force-app/main/default/profiles/TGTHR Base Profile.profile-meta.xml" \
+     -o benefits-sandbox
+   ```
+
 ## Key Files Reference
 
 | File | Purpose |

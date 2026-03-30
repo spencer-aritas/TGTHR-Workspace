@@ -120,12 +120,10 @@ public with sharing class PendingDocNotificationService {
             Messaging.CustomNotification notification = new Messaging.CustomNotification();
             notification.setTitle('Co-Signature Requested');
             String body = currentUserName + ' has requested your co-signature on: ' + noteName;
-            if (String.isNotBlank(recordType)) {
-                body += ' (' + recordType + ')';
-            }
             notification.setBody(body);
             notification.setNotificationTypeId(notificationType.Id);
-            // Target Interview records directly; otherwise fall back to Case for notes
+            // Always target Case so users land on Pending Documentation context first.
+            // The PendingDocOpenRequest created below still preserves the exact record to open.
             Id targetId;
             targetId = caseId;
             notification.setTargetId(targetId);
@@ -203,6 +201,32 @@ public with sharing class PendingDocNotificationService {
             
         } catch (Exception e) {
             System.debug('Error sending action item notification: ' + e.getMessage());
+        }
+    }
+
+    public static void notifyDocumentationDeadline(Id userId, Id caseId, String title, String body, Id recordId, String recordType) {
+        if (userId == null || caseId == null || String.isBlank(title) || String.isBlank(body)) {
+            return;
+        }
+
+        try {
+            CustomNotificationType notificationType = [
+                SELECT Id
+                FROM CustomNotificationType
+                WHERE DeveloperName = :NOTIFICATION_TYPE_NAME
+                LIMIT 1
+            ];
+
+            Messaging.CustomNotification notification = new Messaging.CustomNotification();
+            notification.setTitle(title);
+            notification.setBody(body);
+            notification.setNotificationTypeId(notificationType.Id);
+            notification.setTargetId(caseId);
+            notification.send(new Set<String>{ userId });
+
+            createOpenRequest(userId, caseId, recordId, recordType, 'deadline');
+        } catch (Exception e) {
+            System.debug('Error sending documentation deadline notification: ' + e.getMessage());
         }
     }
     

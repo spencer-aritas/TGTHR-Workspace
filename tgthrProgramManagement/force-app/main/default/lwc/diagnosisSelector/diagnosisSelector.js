@@ -3,8 +3,38 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getExistingDiagnoses from '@salesforce/apex/ClinicalNoteController.getExistingDiagnoses';
 
 export default class DiagnosisSelector extends LightningElement {
-    @api caseId;
-    @api accountId;
+    _caseId;
+    _accountId;
+    _allowNewDiagnoses = true;
+
+    @api
+    get allowNewDiagnoses() {
+        return this._allowNewDiagnoses;
+    }
+
+    set allowNewDiagnoses(value) {
+        this._allowNewDiagnoses = value !== false && value !== 'false';
+    }
+
+    @api
+    get caseId() {
+        return this._caseId;
+    }
+
+    set caseId(value) {
+        this._caseId = value;
+        this.handleInputStateChange();
+    }
+
+    @api
+    get accountId() {
+        return this._accountId;
+    }
+
+    set accountId(value) {
+        this._accountId = value;
+        this.handleInputStateChange();
+    }
     
     _selectedDiagnoses = [];
     @api 
@@ -13,14 +43,16 @@ export default class DiagnosisSelector extends LightningElement {
     }
     set selectedDiagnoses(value) {
         this._selectedDiagnoses = value || [];
-        // When parent updates the selection, parse IDs and update UI state
-        if (this._selectedDiagnoses.length > 0) {
-            this.selectedExistingIds = new Set(this._selectedDiagnoses.map(d => d.Id).filter(id => id));
-            
-            // If list is already loaded, refresh the selection checkmarks
-            if (this.existingDiagnoses.length > 0) {
-                this.refreshSelectionState();
-            }
+        // When parent updates the selection, parse IDs and update UI state.
+        this.selectedExistingIds = new Set(
+            this._selectedDiagnoses
+                .map(d => d.Id || d.id)
+                .filter(id => id)
+        );
+
+        // If list is already loaded, refresh the selection checkmarks.
+        if (this.existingDiagnoses.length > 0) {
+            this.refreshSelectionState();
         }
     }
 
@@ -29,13 +61,10 @@ export default class DiagnosisSelector extends LightningElement {
     newDiagnoses = [];
     isLoading = true;
     error;
+    lastLoadedKey = null;
 
     connectedCallback() {
-        // Initial load happens via renderedCallback or loadExistingDiagnoses
-        // Check if we need to load now
-        if (this.caseId && this.accountId) {
-            this.loadExistingDiagnoses();
-        }
+        this.handleInputStateChange();
     }
     
     refreshSelectionState() {
@@ -47,14 +76,50 @@ export default class DiagnosisSelector extends LightningElement {
 
     // Use @api to detect when caseId or accountId change
     renderedCallback() {
-        // Only load once when we have both IDs and haven't loaded yet
-        if (this.caseId && this.accountId && this.isLoading && !this.hasAttemptedLoad) {
-            this.hasAttemptedLoad = true;
-            this.loadExistingDiagnoses();
-        }
+        this.handleInputStateChange();
     }
 
     hasAttemptedLoad = false;
+
+    handleInputStateChange() {
+        if (!this.caseId || !this.accountId) {
+            this.isLoading = false;
+            this.hasAttemptedLoad = false;
+            this.lastLoadedKey = null;
+            return;
+        }
+
+        const loadKey = `${this.caseId}:${this.accountId}`;
+        if (this.hasAttemptedLoad && this.lastLoadedKey === loadKey) {
+            return;
+        }
+
+        this.hasAttemptedLoad = true;
+        this.lastLoadedKey = loadKey;
+        this.loadExistingDiagnoses();
+    }
+
+    cleanDiagnosisDescription(code, description) {
+        const cleanCode = (code || '').toString().trim();
+        let cleanDescription = (description || '').toString().trim();
+
+        if (!cleanDescription || !cleanCode) {
+            return cleanDescription;
+        }
+
+        const escapedCode = cleanCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const leadingCodePattern = new RegExp(`^${escapedCode}\\s*-\\s*`, 'i');
+        const trailingCodePattern = new RegExp(`\\s*-\\s*${escapedCode}$`, 'i');
+
+        cleanDescription = cleanDescription.replace(leadingCodePattern, '').trim();
+        cleanDescription = cleanDescription.replace(trailingCodePattern, '').trim();
+
+        if (cleanDescription.toLowerCase() === cleanCode.toLowerCase()) {
+            return '';
+        }
+
+        return cleanDescription.replace(/\s{2,}/g, ' ');
+    }
 
     async loadExistingDiagnoses() {
         console.log('[DiagnosisSelector] loadExistingDiagnoses - caseId:', this.caseId);
@@ -89,14 +154,16 @@ export default class DiagnosisSelector extends LightningElement {
             }
 
             this.existingDiagnoses = result.map(d => {
+                const cleanDescription = this.cleanDiagnosisDescription(d.ICD10Code__c, d.description);
                 const displayLabel = d.description 
-                    ? `${d.ICD10Code__c} - ${d.description}`
+                    ? `${d.ICD10Code__c} - ${cleanDescription}`
                     : d.ICD10Code__c;
                 
                 console.log('[DiagnosisSelector] Building display for:', d.Id, 'displayLabel:', displayLabel);
                 
                 return {
                     ...d,
+                    description: cleanDescription,
                     displayLabel,
                     isSelected: this.selectedExistingIds.has(d.Id)
                 };
@@ -160,7 +227,11 @@ export default class DiagnosisSelector extends LightningElement {
         }
 
         // Add to new diagnoses list - ensure consistent code property
-        const normalizedDiagnosis = { ...newDiagnosis, code: newCode };
+        const normalizedDiagnosis = {
+            ...newDiagnosis,
+            code: newCode,
+            icd10Code: newCode
+        };
         this.newDiagnoses = [...this.newDiagnoses, normalizedDiagnosis];
         
         // Notify parent of changes
@@ -227,6 +298,10 @@ export default class DiagnosisSelector extends LightningElement {
 
     get hasNewDiagnoses() {
         return this.newDiagnoses && this.newDiagnoses.length > 0;
+    }
+
+    get showNewDiagnosisSection() {
+        return this.allowNewDiagnoses;
     }
 
     get hasAnyDiagnoses() {

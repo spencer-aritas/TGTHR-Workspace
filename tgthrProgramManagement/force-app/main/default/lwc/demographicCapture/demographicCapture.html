@@ -107,14 +107,13 @@
                             </lightning-combobox>
                         </div>
                         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
-                            <lightning-combobox
+                            <c-business-account-lookup
                                 label="Referral Source"
-                                value={demographics.Referral_Source__c}
-                                options={referralSourceOptions}
-                                data-field="Referral_Source__c"
-                                onchange={handleInputChange}
+                                selected-account-id={demographics.Referral_Source__c}
+                                selected-account-name={referralSourceName}
+                                onaccountselected={handleReferralSourceSelected}
                                 disabled={referralSourceDisabled}>
-                            </lightning-combobox>
+                            </c-business-account-lookup>
                         </div>
                     </div>
                 </div>
@@ -306,7 +305,7 @@
                             <lightning-combobox
                                 label="Are you a veteran?"
                                 value={demographics.Veteran_Service__pc}
-                                options={yesNoOptions}
+                                options={veteranOptions}
                                 data-field="Veteran_Service__pc"
                                 onchange={handleInputChange}
                                 disabled={isVeteranDisabled}>
@@ -334,7 +333,7 @@
                             <lightning-combobox
                                 label="Are you currently taking any medications?"
                                 value={demographics.Currently_Taking_Medications__c}
-                                options={yesNoOptions}
+                                options={medicationOptions}
                                 data-field="Currently_Taking_Medications__c"
                                 onchange={handleInputChange}
                                 disabled={takingMedicationsDisabled}>
@@ -344,7 +343,7 @@
                             <lightning-combobox
                                 label="Do you need help refilling those medications?"
                                 value={demographics.Need_Help_Refilling_Medications__c}
-                                options={yesNoOptions}
+                                options={refillMedicationOptions}
                                 data-field="Need_Help_Refilling_Medications__c"
                                 onchange={handleInputChange}
                                 disabled={needsMedicationRefillHelpDisabled}>

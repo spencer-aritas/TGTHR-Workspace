@@ -17,6 +17,15 @@ public with sharing class GoalAssignmentController {
 
     @AuraEnabled(cacheable=true)
     public static List<GoalAssignmentDTO> getGoalAssignments(Id caseId, Id accountId) {
+        return queryGoalAssignments(caseId, accountId);
+    }
+
+    @AuraEnabled
+    public static List<GoalAssignmentDTO> getGoalAssignmentsLive(Id caseId, Id accountId) {
+        return queryGoalAssignments(caseId, accountId);
+    }
+
+    private static List<GoalAssignmentDTO> queryGoalAssignments(Id caseId, Id accountId) {
         List<GoalAssignmentDTO> results = new List<GoalAssignmentDTO>();
         
         String query = 'SELECT Id, CustomGoalName, Description, Service_Modality__c, Goal_Notes__c, StartDate, TargetCompletionDate, Frequency__c, Priority, Status, GoalAssigneeId, Case__c FROM GoalAssignment WHERE ';

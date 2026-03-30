@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>allowed_cpt_codes__c</fullName>
+    <description>Optional explicit CPT code allowlist for this interview template. Enter one or more CPT codes separated by commas, semicolons, spaces, or new lines.</description>
+    <externalId>false</externalId>
+    <label>Allowed CPT Codes</label>
+    <length>32768</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>4</visibleLines>
+</CustomField>

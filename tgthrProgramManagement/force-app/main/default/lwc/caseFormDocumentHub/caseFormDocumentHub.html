@@ -1,0 +1,141 @@
+<template>
+    <lightning-card title="Form Documents" icon-name="standard:file">
+        <div class="slds-p-around_medium">
+            <template lwc:if={loading}>
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </template>
+
+            <lightning-tabset active-tab-value={activeTab}>
+                <lightning-tab label="ROIs" value="ROI" onactive={handleTabActive}></lightning-tab>
+                <lightning-tab label="Consents" value="Consent Form" onactive={handleTabActive}></lightning-tab>
+                <lightning-tab label="Mandatory Disclosure" value="Disclosure Form" onactive={handleTabActive}></lightning-tab>
+            </lightning-tabset>
+
+            <template lwc:if={activeTabDocuments.length}>
+                <lightning-datatable
+                    key-field="id"
+                    data={activeTabDocuments}
+                    columns={columns}
+                    hide-checkbox-column
+                    onrowaction={handleRowAction}>
+                </lightning-datatable>
+            </template>
+            <template lwc:else>
+                <template lwc:if={loaded}>
+                    <p class="slds-text-body_regular slds-text-color_weak">No {activeTabLabel} documents found.</p>
+                </template>
+            </template>
+
+            <div class="upload-actions slds-m-top_medium">
+                <lightning-button
+                    label="Upload Document"
+                    variant="brand"
+                    onclick={handleOpenModal}>
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+
+    <template lwc:if={isModalOpen}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-label="Upload Document"
+            class="slds-modal slds-fade-in-open modal-backdrop-click-target"
+            onclick={handleModalBackdropClick}>
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        variant="bare-inverse"
+                        alternative-text="Close"
+                        class="slds-modal__close"
+                        onclick={handleCloseModal}>
+                    </lightning-button-icon>
+                    <h2 class="slds-modal__title slds-hyphenate">Upload Form Document</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+                    <div class="slds-grid slds-wrap slds-gutters_small">
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-combobox
+                                label="Type"
+                                value={formType}
+                                options={formTypeOptions}
+                                onchange={handleFormTypeChange}>
+                            </lightning-combobox>
+                        </div>
+
+                        <template lwc:if={showSubtypeText}>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-input
+                                    type="text"
+                                    label="Type of ROI"
+                                    value={subType}
+                                    required
+                                    maxlength="252"
+                                    onchange={handleSubtypeChange}>
+                                </lightning-input>
+                            </div>
+                        </template>
+
+                        <template lwc:if={showSubtypePicklist}>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-combobox
+                                    label="Type"
+                                    value={subType}
+                                    required
+                                    options={consentSubtypeOptions}
+                                    onchange={handleSubtypeChange}>
+                                </lightning-combobox>
+                            </div>
+                        </template>
+
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-input
+                                type="date"
+                                label="Date"
+                                value={documentDate}
+                                required
+                                onchange={handleDateChange}>
+                            </lightning-input>
+                        </div>
+
+                        <div class="slds-col slds-size_1-of-1">
+                            <lightning-file-upload
+                                label="Document File"
+                                name="singleUpload"
+                                accept={acceptedFormats}
+                                record-id={recordId}
+                                onuploadfinished={handleUploadFinished}
+                                multiple="false">
+                            </lightning-file-upload>
+                            <template lwc:if={uploadedFileName}>
+                                <p class="slds-text-body_small slds-m-top_xx-small file-uploaded">
+                                    &#10003; {uploadedFileName}
+                                </p>
+                            </template>
+                        </div>
+                    </div>
+
+                    <template lwc:if={saveError}>
+                        <p class="slds-text-color_error slds-m-top_small">{saveError}</p>
+                    </template>
+                </div>
+
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" variant="neutral" onclick={handleCloseModal}></lightning-button>
+                    <lightning-button
+                        class="slds-m-left_small"
+                        label={saveButtonLabel}
+                        variant="brand"
+                        disabled={isSaveDisabled}
+                        onclick={handleSaveDocument}>
+                    </lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

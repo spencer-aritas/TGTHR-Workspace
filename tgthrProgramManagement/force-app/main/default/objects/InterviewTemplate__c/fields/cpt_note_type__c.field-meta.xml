@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>cpt_note_type__c</fullName>
+    <description>Policy bucket for which CPT catalog this interview template should expose. Valid values match the approved billing policy buckets: Clinical Note, Comp Assess, Peer Note, and Case Management Note. If Has CPT Codes is checked and this field is blank, the interview defaults to Comp Assess.</description>
+    <externalId>false</externalId>
+    <label>CPT Note Type</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Clinical Note</fullName>
+                <default>false</default>
+                <label>Clinical Note</label>
+            </value>
+            <value>
+                <fullName>Comp Assess</fullName>
+                <default>false</default>
+                <label>Comp Assess</label>
+            </value>
+            <value>
+                <fullName>Peer Note</fullName>
+                <default>false</default>
+                <label>Peer Note</label>
+            </value>
+            <value>
+                <fullName>Case Management Note</fullName>
+                <default>false</default>
+                <label>Case Management Note</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

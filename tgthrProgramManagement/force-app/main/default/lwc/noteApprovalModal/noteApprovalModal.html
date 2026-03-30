@@ -23,6 +23,52 @@
                     </template>
 
                     <template if:false={isLoading}>
+                        <!-- Identity Banner - who/what is being reviewed -->
+                        <template if:true={noteData}>
+                            <div class="slds-box slds-theme_shade slds-m-bottom_medium slds-p-around_small">
+                                <div class="slds-grid slds-wrap slds-gutters_x-small">
+                                    <div class="slds-col slds-size_1-of-1 slds-m-bottom_xx-small">
+                                        <span class="slds-text-heading_small">{noteData.clientName}</span>
+                                        <template if:true={noteData.clientPronouns}>
+                                            <span class="slds-text-body_small slds-m-left_xx-small text-muted">({noteData.clientPronouns})</span>
+                                        </template>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <span class="slds-text-body_small slds-text-color_weak">Case # </span>
+                                        <span class="slds-text-body_small">{noteData.caseNumber}</span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <span class="slds-text-body_small slds-text-color_weak">Date ({mountainTimeZoneLabel}) </span>
+                                        <span class="slds-text-body_small">{formattedDate}</span>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-2">
+                                        <span class="slds-text-body_small slds-text-color_weak">Document </span>
+                                        <span class="slds-text-body_small">{noteData.name}</span>
+                                    </div>
+                                    <template if:true={noteData.referenceNumber}>
+                                        <div class="slds-col slds-size_1-of-2">
+                                            <span class="slds-text-body_small slds-text-color_weak">Ref # </span>
+                                            <span class="slds-badge slds-badge_lightest">{noteData.referenceNumber}</span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template if:true={isLateEntryManagerApprovalRequired}>
+                            <div class="late-entry-banner slds-m-bottom_medium">
+                                <div class="slds-grid slds-grid_vertical-align-start slds-gutters_x-small">
+                                    <div class="slds-col slds-no-flex">
+                                        <lightning-icon icon-name="utility:warning" size="x-small" alternative-text="Late entry"></lightning-icon>
+                                    </div>
+                                    <div class="slds-col">
+                                        <div class="late-entry-banner__title">Late Entry Manager Co-Sign</div>
+                                        <p class="slds-m-top_xx-small">{lateEntryApprovalMessage}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
                         <!-- Document Available -->
                         <template if:true={noteData.documentId}>
                             <div class="slds-m-bottom_medium">
