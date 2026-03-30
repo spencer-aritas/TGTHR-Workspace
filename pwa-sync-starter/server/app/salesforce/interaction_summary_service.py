@@ -200,6 +200,7 @@ class InteractionSummaryService:
             services = self._fetch_services(interaction_id)
             diagnoses = self._fetch_diagnoses(interaction_id)
             assessments = self._fetch_assessments(interaction_id)
+            service_lines = self._fetch_service_lines(interaction_id)
 
             detail = {
                 'summary': {
@@ -248,6 +249,7 @@ class InteractionSummaryService:
                     'services': services,
                     'diagnoses': diagnoses,
                     'assessments': assessments,
+                    'serviceLines': service_lines,
                 },
                 'interviewAnswers': interview_answers,
             }
@@ -379,6 +381,34 @@ class InteractionSummaryService:
             ]
         except Exception as e:
             logger.warning(f"Could not fetch diagnoses for interaction {interaction_id}: {e}")
+            return []
+
+    def _fetch_service_lines(self, interaction_id: str) -> List[Dict[str, Any]]:
+        """Fetch Interaction_Service_Line__c (CPT codes / service lines) linked to this InteractionSummary."""
+        try:
+            result = self.sf_client.query(
+                "SELECT Id, Name, Service_Code__c, Modifier_1__c, Modifier_2__c, "
+                "Duration_Minutes__c, Units__c, Billing_Status__c "
+                "FROM Interaction_Service_Line__c "
+                "WHERE Interaction_Summary__c = :interactionId "
+                "ORDER BY CreatedDate DESC LIMIT 20",
+                {"interactionId": interaction_id}
+            )
+            return [
+                {
+                    'id': r.get('Id'),
+                    'name': r.get('Name'),
+                    'serviceCode': r.get('Service_Code__c'),
+                    'modifier1': r.get('Modifier_1__c'),
+                    'modifier2': r.get('Modifier_2__c'),
+                    'durationMinutes': r.get('Duration_Minutes__c'),
+                    'units': r.get('Units__c'),
+                    'billingStatus': r.get('Billing_Status__c'),
+                }
+                for r in result.get('records', [])
+            ]
+        except Exception as e:
+            logger.warning(f"Could not fetch service lines for interaction {interaction_id}: {e}")
             return []
 
     def _fetch_assessments(self, interaction_id: str) -> List[Dict[str, Any]]:
