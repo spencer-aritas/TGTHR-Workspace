@@ -17,6 +17,7 @@ export interface InteractionTimelineRow {
   CreatedDate?: string;
   LastModifiedDate?: string;
   InterviewId?: string;
+  InterviewTemplateName?: string;
   ActionRequired?: string;
   ActionAssignedTo?: string;
   RequiresManagerApproval?: boolean;
