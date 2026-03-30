@@ -143,16 +143,31 @@ export function InteractionDetailPanel({ interactionId, onBack, onQuickNote }: I
         {relatedRecords.goals.length > 0 && (
           <Section title={`Goals (${relatedRecords.goals.length})`}>
             {relatedRecords.goals.map((g) => (
-              <RelatedRow key={g.id} primary={g.name || g.id} secondary={g.status} detail={g.description} />
+              <div key={g.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span className="slds-text-body_regular" style={{ fontWeight: 600 }}>{g.name || g.id}</span>
+                  {g.status && <Badge color="#e8f5e9" text={g.status} />}
+                </div>
+                {g.narrative && <p className="slds-text-body_small" style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap' }}>{g.narrative}</p>}
+                {(g.progressBefore != null || g.progressAfter != null) && (
+                  <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                    Progress: {g.progressBefore ?? '—'} → {g.progressAfter ?? '—'}
+                    {g.timeSpentMinutes != null && ` · ${g.timeSpentMinutes} min`}
+                  </p>
+                )}
+              </div>
             ))}
           </Section>
         )}
 
-        {/* Related Records: Benefits */}
-        {relatedRecords.benefits.length > 0 && (
-          <Section title={`Benefits (${relatedRecords.benefits.length})`}>
-            {relatedRecords.benefits.map((b) => (
-              <RelatedRow key={b.id} primary={b.name || b.id} secondary={b.status} detail={b.amount != null ? `$${b.amount}` : undefined} />
+        {/* Related Records: Services Provided */}
+        {relatedRecords.services.length > 0 && (
+          <Section title={`Services Provided (${relatedRecords.services.length})`}>
+            {relatedRecords.services.map((s) => (
+              <RelatedRow key={s.id} primary={s.name || s.id} secondary={s.status} detail={[
+                s.amount != null ? `$${s.amount}` : null,
+                s.date ? new Date(s.date).toLocaleDateString() : null,
+              ].filter(Boolean).join(' · ') || undefined} />
             ))}
           </Section>
         )}
@@ -161,16 +176,50 @@ export function InteractionDetailPanel({ interactionId, onBack, onQuickNote }: I
         {relatedRecords.diagnoses.length > 0 && (
           <Section title={`Diagnoses (${relatedRecords.diagnoses.length})`}>
             {relatedRecords.diagnoses.map((d) => (
-              <RelatedRow key={d.id} primary={d.name || d.code || d.id} secondary={d.code} detail={d.description} />
+              <div key={d.id} style={{ padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span className="slds-text-body_regular" style={{ fontWeight: 500 }}>
+                    {d.code ? `${d.code} — ${d.name || ''}` : d.name || d.id}
+                  </span>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {d.primary && <Badge color="#e3f2fd" text="Primary" />}
+                    {d.status && <Badge color="#e8f5e9" text={d.status} />}
+                  </div>
+                </div>
+                {d.description && <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>{d.description}</p>}
+                {(d.category || d.onsetDate) && (
+                  <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                    {[d.category, d.onsetDate ? `Onset: ${new Date(d.onsetDate).toLocaleDateString()}` : null].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </div>
             ))}
           </Section>
         )}
 
-        {/* Related Records: CPT Codes */}
-        {relatedRecords.cptCodes.length > 0 && (
-          <Section title={`CPT Codes (${relatedRecords.cptCodes.length})`}>
-            {relatedRecords.cptCodes.map((c) => (
-              <RelatedRow key={c.id} primary={c.code || c.id} detail={c.description} />
+        {/* Related Records: Assessments (SSRS etc.) */}
+        {relatedRecords.assessments.length > 0 && (
+          <Section title={`Assessments (${relatedRecords.assessments.length})`}>
+            {relatedRecords.assessments.map((a) => (
+              <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span className="slds-text-body_regular" style={{ fontWeight: 600 }}>{a.type || a.name || 'Assessment'}</span>
+                  {a.riskLevel && (
+                    <Badge
+                      color={a.riskLevel === 'High' || a.riskLevel === 'Imminent' ? '#fce4ec' : a.riskLevel === 'Moderate' ? '#fff3e0' : '#e8f5e9'}
+                      text={`Risk: ${a.riskLevel}`}
+                    />
+                  )}
+                </div>
+                <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                  {[
+                    a.totalScore != null ? `Score: ${a.totalScore}` : null,
+                    a.assessedBy ? `By: ${a.assessedBy}` : null,
+                    a.date ? new Date(a.date).toLocaleDateString() : null,
+                    a.status,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              </div>
             ))}
           </Section>
         )}

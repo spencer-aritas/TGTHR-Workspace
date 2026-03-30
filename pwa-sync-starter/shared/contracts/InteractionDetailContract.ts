@@ -54,13 +54,19 @@ export interface InteractionDetailGoal {
   name?: string;
   status?: string;
   description?: string;
+  priority?: string;
+  narrative?: string;
+  progressBefore?: number;
+  progressAfter?: number;
+  timeSpentMinutes?: number;
 }
 
-export interface InteractionDetailBenefit {
+export interface InteractionDetailService {
   id: string;
   name?: string;
   status?: string;
   amount?: number;
+  date?: string;
 }
 
 export interface InteractionDetailDiagnosis {
@@ -68,19 +74,28 @@ export interface InteractionDetailDiagnosis {
   name?: string;
   code?: string;
   description?: string;
+  status?: string;
+  primary?: boolean;
+  category?: string;
+  onsetDate?: string;
 }
 
-export interface InteractionDetailCPTCode {
+export interface InteractionDetailAssessment {
   id: string;
-  code?: string;
-  description?: string;
+  name?: string;
+  type?: string;
+  date?: string;
+  status?: string;
+  riskLevel?: string;
+  totalScore?: number;
+  assessedBy?: string;
 }
 
 export interface InteractionDetailRelatedRecords {
   goals: InteractionDetailGoal[];
-  benefits: InteractionDetailBenefit[];
+  services: InteractionDetailService[];
   diagnoses: InteractionDetailDiagnosis[];
-  cptCodes: InteractionDetailCPTCode[];
+  assessments: InteractionDetailAssessment[];
 }
 
 export interface InteractionDetailInterviewAnswer {

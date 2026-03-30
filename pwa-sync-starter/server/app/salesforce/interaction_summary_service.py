@@ -194,16 +194,12 @@ class InteractionSummaryService:
             if interview_id:
                 interview_answers = self._fetch_interview_answers(interview_id)
 
-            # Hydrate related records from the Case
-            goals = []
-            benefits = []
-            diagnoses = []
-            cpt_codes = []
-            if case_id:
-                goals = self._fetch_goals(case_id)
-                benefits = self._fetch_benefits(case_id)
-                diagnoses = self._fetch_diagnoses(case_id)
-                cpt_codes = self._fetch_cpt_codes(case_id)
+            # Hydrate related records from the InteractionSummary
+            interaction_id = rec.get('Id')
+            goals = self._fetch_goals(interaction_id)
+            services = self._fetch_services(interaction_id)
+            diagnoses = self._fetch_diagnoses(interaction_id)
+            assessments = self._fetch_assessments(interaction_id)
 
             detail = {
                 'summary': {
@@ -249,9 +245,9 @@ class InteractionSummaryService:
                 },
                 'relatedRecords': {
                     'goals': goals,
-                    'benefits': benefits,
+                    'services': services,
                     'diagnoses': diagnoses,
-                    'cptCodes': cpt_codes,
+                    'assessments': assessments,
                 },
                 'interviewAnswers': interview_answers,
             }
@@ -301,66 +297,115 @@ class InteractionSummaryService:
             logger.warning(f"Could not fetch interview answers for {interview_id}: {e}")
             return []
 
-    def _fetch_goals(self, case_id: str) -> List[Dict[str, Any]]:
+    def _fetch_goals(self, interaction_id: str) -> List[Dict[str, Any]]:
+        """Fetch GoalAssignmentDetails linked to this InteractionSummary."""
         try:
             result = self.sf_client.query(
-                "SELECT Id, Name, Status__c, Description__c "
-                "FROM Goal__c WHERE Case__c = :caseId ORDER BY Name ASC LIMIT 50",
-                {"caseId": case_id}
+                "SELECT Id, GoalAssignmentId, "
+                "GoalAssignment.Goal_Name__c, GoalAssignment.Status, "
+                "GoalAssignment.Description, GoalAssignment.Priority, "
+                "Narrative__c, ProgressBefore__c, ProgressAfter__c, TimeSpentMinutes__c "
+                "FROM GoalAssignmentDetail "
+                "WHERE InteractionSummary__c = :interactionId "
+                "ORDER BY CreatedDate ASC LIMIT 50",
+                {"interactionId": interaction_id}
             )
             return [
-                {'id': r.get('Id'), 'name': r.get('Name'),
-                 'status': r.get('Status__c'), 'description': r.get('Description__c')}
+                {
+                    'id': r.get('Id'),
+                    'name': (r.get('GoalAssignment') or {}).get('Goal_Name__c') or r.get('GoalAssignmentId'),
+                    'status': (r.get('GoalAssignment') or {}).get('Status'),
+                    'description': (r.get('GoalAssignment') or {}).get('Description'),
+                    'priority': (r.get('GoalAssignment') or {}).get('Priority'),
+                    'narrative': r.get('Narrative__c'),
+                    'progressBefore': r.get('ProgressBefore__c'),
+                    'progressAfter': r.get('ProgressAfter__c'),
+                    'timeSpentMinutes': r.get('TimeSpentMinutes__c'),
+                }
                 for r in result.get('records', [])
             ]
         except Exception as e:
-            logger.warning(f"Could not fetch goals for case {case_id}: {e}")
+            logger.warning(f"Could not fetch goals for interaction {interaction_id}: {e}")
             return []
 
-    def _fetch_benefits(self, case_id: str) -> List[Dict[str, Any]]:
+    def _fetch_services(self, interaction_id: str) -> List[Dict[str, Any]]:
+        """Fetch BenefitDisbursement (Services Provided) linked to this InteractionSummary."""
         try:
             result = self.sf_client.query(
-                "SELECT Id, Name, Status__c, Amount__c "
-                "FROM Benefit__c WHERE Case__c = :caseId ORDER BY Name ASC LIMIT 50",
-                {"caseId": case_id}
+                "SELECT Id, Name, Amount, Status, DisbursementDate, "
+                "BenefitAssignment.Benefit.Name "
+                "FROM BenefitDisbursement "
+                "WHERE InteractionSummary__c = :interactionId "
+                "ORDER BY CreatedDate ASC LIMIT 50",
+                {"interactionId": interaction_id}
             )
             return [
-                {'id': r.get('Id'), 'name': r.get('Name'),
-                 'status': r.get('Status__c'), 'amount': r.get('Amount__c')}
+                {
+                    'id': r.get('Id'),
+                    'name': ((r.get('BenefitAssignment') or {}).get('Benefit') or {}).get('Name') or r.get('Name'),
+                    'status': r.get('Status'),
+                    'amount': r.get('Amount'),
+                    'date': r.get('DisbursementDate'),
+                }
                 for r in result.get('records', [])
             ]
         except Exception as e:
-            logger.warning(f"Could not fetch benefits for case {case_id}: {e}")
+            logger.warning(f"Could not fetch services for interaction {interaction_id}: {e}")
             return []
 
-    def _fetch_diagnoses(self, case_id: str) -> List[Dict[str, Any]]:
+    def _fetch_diagnoses(self, interaction_id: str) -> List[Dict[str, Any]]:
+        """Fetch Diagnosis__c records linked to this InteractionSummary."""
         try:
             result = self.sf_client.query(
-                "SELECT Id, Name, Code__c, Description__c "
-                "FROM Diagnosis__c WHERE Case__c = :caseId ORDER BY Name ASC LIMIT 50",
-                {"caseId": case_id}
+                "SELECT Id, Name, ICD10Code__c, Description__c, Status__c, "
+                "Primary__c, Category__c, Onset_Date__c "
+                "FROM Diagnosis__c "
+                "WHERE Interaction_Summary__c = :interactionId "
+                "ORDER BY Primary__c DESC, Name ASC LIMIT 50",
+                {"interactionId": interaction_id}
             )
             return [
-                {'id': r.get('Id'), 'name': r.get('Name'),
-                 'code': r.get('Code__c'), 'description': r.get('Description__c')}
+                {
+                    'id': r.get('Id'),
+                    'name': r.get('Name'),
+                    'code': r.get('ICD10Code__c'),
+                    'description': r.get('Description__c'),
+                    'status': r.get('Status__c'),
+                    'primary': r.get('Primary__c'),
+                    'category': r.get('Category__c'),
+                    'onsetDate': r.get('Onset_Date__c'),
+                }
                 for r in result.get('records', [])
             ]
         except Exception as e:
-            logger.warning(f"Could not fetch diagnoses for case {case_id}: {e}")
+            logger.warning(f"Could not fetch diagnoses for interaction {interaction_id}: {e}")
             return []
 
-    def _fetch_cpt_codes(self, case_id: str) -> List[Dict[str, Any]]:
+    def _fetch_assessments(self, interaction_id: str) -> List[Dict[str, Any]]:
+        """Fetch Assessment__c (SSRS etc.) linked to this InteractionSummary."""
         try:
             result = self.sf_client.query(
-                "SELECT Id, Code__c, Description__c "
-                "FROM CPT_Code__c WHERE Case__c = :caseId ORDER BY Code__c ASC LIMIT 50",
-                {"caseId": case_id}
+                "SELECT Id, Name, Assessment_Type__c, Assessment_Date__c, "
+                "Status__c, Risk_Level__c, Total_Score__c, "
+                "Assessed_By__r.Name "
+                "FROM Assessment__c "
+                "WHERE Interaction_Summary__c = :interactionId "
+                "ORDER BY CreatedDate DESC LIMIT 10",
+                {"interactionId": interaction_id}
             )
             return [
-                {'id': r.get('Id'), 'code': r.get('Code__c'),
-                 'description': r.get('Description__c')}
+                {
+                    'id': r.get('Id'),
+                    'name': r.get('Name'),
+                    'type': r.get('Assessment_Type__c'),
+                    'date': r.get('Assessment_Date__c'),
+                    'status': r.get('Status__c'),
+                    'riskLevel': r.get('Risk_Level__c'),
+                    'totalScore': r.get('Total_Score__c'),
+                    'assessedBy': (r.get('Assessed_By__r') or {}).get('Name'),
+                }
                 for r in result.get('records', [])
             ]
         except Exception as e:
-            logger.warning(f"Could not fetch CPT codes for case {case_id}: {e}")
+            logger.warning(f"Could not fetch assessments for interaction {interaction_id}: {e}")
             return []
