@@ -224,6 +224,33 @@ export function InteractionDetailPanel({ interactionId, onBack, onQuickNote }: I
           </Section>
         )}
 
+        {/* Related Records: CPT / Service Lines */}
+        {relatedRecords.serviceLines && relatedRecords.serviceLines.length > 0 && (
+          <Section title={`Service Lines / CPT Codes (${relatedRecords.serviceLines.length})`}>
+            {relatedRecords.serviceLines.map((sl) => (
+              <div key={sl.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span className="slds-text-body_regular" style={{ fontWeight: 600 }}>
+                    {sl.serviceCode || sl.name || sl.id}
+                    {(sl.modifier1 || sl.modifier2) && (
+                      <span style={{ fontWeight: 400, color: '#666' }}>
+                        {' '}({[sl.modifier1, sl.modifier2].filter(Boolean).join(', ')})
+                      </span>
+                    )}
+                  </span>
+                  {sl.billingStatus && <Badge color={sl.billingStatus === 'Billed' ? '#e8f5e9' : '#fff3e0'} text={sl.billingStatus} />}
+                </div>
+                <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                  {[
+                    sl.durationMinutes != null ? `${sl.durationMinutes} min` : null,
+                    sl.units != null ? `${sl.units} unit${sl.units !== 1 ? 's' : ''}` : null,
+                  ].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+            ))}
+          </Section>
+        )}
+
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '8px' }}>
           {actions.canAddQuickNote && (

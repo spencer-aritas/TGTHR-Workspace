@@ -91,11 +91,23 @@ export interface InteractionDetailAssessment {
   assessedBy?: string;
 }
 
+export interface InteractionDetailServiceLine {
+  id: string;
+  name?: string;
+  serviceCode?: string;
+  modifier1?: string;
+  modifier2?: string;
+  durationMinutes?: number;
+  units?: number;
+  billingStatus?: string;
+}
+
 export interface InteractionDetailRelatedRecords {
   goals: InteractionDetailGoal[];
   services: InteractionDetailService[];
   diagnoses: InteractionDetailDiagnosis[];
   assessments: InteractionDetailAssessment[];
+  serviceLines: InteractionDetailServiceLine[];
 }
 
 export interface InteractionDetailInterviewAnswer {
