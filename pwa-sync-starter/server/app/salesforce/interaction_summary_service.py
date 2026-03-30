@@ -129,7 +129,7 @@ class InteractionSummaryService:
             return 'Case Note'
         return 'Communication Log'
 
-    def get_interaction_detail(self, interaction_id: str) -> Dict[str, Any]:
+    def get_interaction_detail(self, interaction_id: str, current_user_id: str = None) -> Dict[str, Any]:
         """Fetch a single InteractionSummary with hydrated related records."""
         try:
             logger.info(f"Fetching interaction detail: {interaction_id}")
@@ -238,11 +238,16 @@ class InteractionSummaryService:
                     'managerSigned': rec.get('Manager_Signed__c', False),
                     'managerRejected': rec.get('Manager_Rejected__c', False),
                     'signatureState': sig_state,
+                    'managerApproverId': rec.get('Manager_Approver__c'),
                 },
                 'actions': {
                     'canOpenInterview': interview_id is not None,
                     'canAddQuickNote': True,
-                    'canRequestSignature': sig_state in ('none', 'pending'),
+                    'canApproveAsManager': (
+                        sig_state == 'pending'
+                        and current_user_id is not None
+                        and rec.get('Manager_Approver__c') == current_user_id
+                    ),
                 },
                 'relatedRecords': {
                     'goals': goals,
@@ -356,26 +361,28 @@ class InteractionSummaryService:
             return []
 
     def _fetch_diagnoses(self, interaction_id: str) -> List[Dict[str, Any]]:
-        """Fetch Diagnosis__c records linked to this InteractionSummary."""
+        """Fetch Diagnoses via the Diagnosis_Note_Link__c junction table."""
         try:
             result = self.sf_client.query(
-                "SELECT Id, Name, ICD10Code__c, Description__c, Status__c, "
-                "Primary__c, Category__c, Onset_Date__c "
-                "FROM Diagnosis__c "
-                "WHERE Interaction_Summary__c = :interactionId "
-                "ORDER BY Primary__c DESC, Name ASC LIMIT 50",
+                "SELECT Id, Diagnosis__c, Diagnosis__r.Id, Diagnosis__r.Name, "
+                "Diagnosis__r.ICD10Code__c, Diagnosis__r.Description__c, "
+                "Diagnosis__r.Status__c, Diagnosis__r.Primary__c, "
+                "Diagnosis__r.Category__c, Diagnosis__r.Onset_Date__c "
+                "FROM Diagnosis_Note_Link__c "
+                "WHERE InteractionSummary__c = :interactionId "
+                "ORDER BY Diagnosis__r.Primary__c DESC, Diagnosis__r.Name ASC LIMIT 50",
                 {"interactionId": interaction_id}
             )
             return [
                 {
-                    'id': r.get('Id'),
-                    'name': r.get('Name'),
-                    'code': r.get('ICD10Code__c'),
-                    'description': r.get('Description__c'),
-                    'status': r.get('Status__c'),
-                    'primary': r.get('Primary__c'),
-                    'category': r.get('Category__c'),
-                    'onsetDate': r.get('Onset_Date__c'),
+                    'id': (r.get('Diagnosis__r') or {}).get('Id') or r.get('Diagnosis__c'),
+                    'name': (r.get('Diagnosis__r') or {}).get('Name'),
+                    'code': (r.get('Diagnosis__r') or {}).get('ICD10Code__c'),
+                    'description': (r.get('Diagnosis__r') or {}).get('Description__c'),
+                    'status': (r.get('Diagnosis__r') or {}).get('Status__c'),
+                    'primary': (r.get('Diagnosis__r') or {}).get('Primary__c'),
+                    'category': (r.get('Diagnosis__r') or {}).get('Category__c'),
+                    'onsetDate': (r.get('Diagnosis__r') or {}).get('Onset_Date__c'),
                 }
                 for r in result.get('records', [])
             ]
@@ -439,3 +446,91 @@ class InteractionSummaryService:
         except Exception as e:
             logger.warning(f"Could not fetch assessments for interaction {interaction_id}: {e}")
             return []
+
+    # ── Manager approval ──────────────────────────────────────────────
+
+    def manager_approve(self, interaction_id: str, user_id: str, signature_data_url: str = None) -> Dict[str, Any]:
+        """Complete manager approval on an InteractionSummary from the PWA."""
+        try:
+            # Verify the user is the designated manager approver
+            rec = self.sf_client.query(
+                "SELECT Id, Manager_Approver__c, Manager_Signed__c, "
+                "Requires_Manager_Approval__c, Interview__c "
+                "FROM InteractionSummary WHERE Id = :interactionId LIMIT 1",
+                {"interactionId": interaction_id}
+            ).get('records', [])
+
+            if not rec:
+                raise ValueError("Interaction not found")
+            rec = rec[0]
+
+            if rec.get('Manager_Approver__c') != user_id:
+                raise PermissionError("User is not the assigned manager approver")
+            if rec.get('Manager_Signed__c'):
+                return {'success': True, 'message': 'Already signed'}
+
+            # Update the InteractionSummary
+            update_data = {
+                'Manager_Signed__c': True,
+                'Manager_Signed_Date__c': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000+0000'),
+            }
+            self.sf_client.update('InteractionSummary', interaction_id, update_data)
+
+            # If there's a linked Interview, sign that too
+            interview_id = rec.get('Interview__c')
+            if interview_id:
+                try:
+                    self.sf_client.update('Interview__c', interview_id, {
+                        'Manager_Signed__c': True,
+                        'Manager_Signed_Date__c': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000+0000'),
+                    })
+                except Exception as e:
+                    logger.warning(f"Could not update Interview__c {interview_id} manager signature: {e}")
+
+            # Upload signature image if provided
+            if signature_data_url:
+                try:
+                    self._upload_signature_content(interaction_id, user_id, signature_data_url)
+                except Exception as e:
+                    logger.warning(f"Could not upload signature image: {e}")
+
+            logger.info(f"Manager {user_id} approved interaction {interaction_id}")
+            return {'success': True, 'message': 'Manager approval recorded'}
+
+        except (ValueError, PermissionError) as e:
+            raise
+        except Exception as e:
+            logger.error(f"Manager approve failed for {interaction_id}: {e}", exc_info=True)
+            raise
+
+    def _upload_signature_content(self, record_id: str, user_id: str, data_url: str):
+        """Upload a signature data URL as a ContentVersion linked to the record."""
+        import base64
+        # Parse data URL: data:image/png;base64,iVBOR...
+        if ',' in data_url:
+            body_b64 = data_url.split(',', 1)[1]
+        else:
+            body_b64 = data_url
+
+        content_version = {
+            'Title': f'Manager_Signature_{record_id}',
+            'PathOnClient': 'manager_signature.png',
+            'VersionData': body_b64,
+            'Description': f'Manager signature by {user_id}',
+        }
+        cv_result = self.sf_client.create('ContentVersion', content_version)
+        cv_id = cv_result.get('id')
+        if cv_id:
+            # Query back the ContentDocumentId and link it
+            doc_result = self.sf_client.query(
+                "SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cvId LIMIT 1",
+                {"cvId": cv_id}
+            )
+            doc_records = doc_result.get('records', [])
+            if doc_records:
+                doc_id = doc_records[0].get('ContentDocumentId')
+                self.sf_client.create('ContentDocumentLink', {
+                    'ContentDocumentId': doc_id,
+                    'LinkedEntityId': record_id,
+                    'ShareType': 'V',
+                })
