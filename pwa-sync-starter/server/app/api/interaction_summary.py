@@ -87,7 +87,7 @@ async def create_interaction_summary(request: InteractionSummaryRequest):
 
 
 @router.get("/interaction-summary/{interactionId}")
-async def get_interaction_detail(interactionId: str):
+async def get_interaction_detail(interactionId: str, currentUserId: Optional[str] = Query(None)):
     """Get a single interaction summary with full detail and related records"""
     try:
         logger.info(f"API request: Fetching interaction detail for: {interactionId}")
@@ -95,7 +95,7 @@ async def get_interaction_detail(interactionId: str):
         from ..salesforce.interaction_summary_service import InteractionSummaryService
 
         service = InteractionSummaryService()
-        detail = service.get_interaction_detail(interactionId)
+        detail = service.get_interaction_detail(interactionId, current_user_id=currentUserId)
 
         if detail is None:
             raise HTTPException(status_code=404, detail="Interaction not found")
@@ -107,3 +107,25 @@ async def get_interaction_detail(interactionId: str):
     except Exception as e:
         logger.error(f"Failed to fetch interaction detail {interactionId}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to fetch interaction detail: {str(e)}")
+
+
+class ManagerApproveRequest(BaseModel):
+    userId: str
+    signatureDataUrl: Optional[str] = None
+
+
+@router.post("/interaction-summary/{interactionId}/manager-approve")
+async def manager_approve_interaction(interactionId: str, request: ManagerApproveRequest):
+    """Manager approves/signs an interaction summary from the PWA"""
+    try:
+        logger.info(f"Manager approve request for interaction {interactionId} by user {request.userId}")
+
+        from ..salesforce.interaction_summary_service import InteractionSummaryService
+
+        service = InteractionSummaryService()
+        result = service.manager_approve(interactionId, request.userId, request.signatureDataUrl)
+        return result
+
+    except Exception as e:
+        logger.error(f"Manager approve failed for {interactionId}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Manager approve failed: {str(e)}")

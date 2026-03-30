@@ -41,12 +41,13 @@ export interface InteractionDetailSignature {
   managerSigned?: boolean;
   managerRejected?: boolean;
   signatureState?: 'none' | 'pending' | 'signed' | 'rejected';
+  managerApproverId?: string;
 }
 
 export interface InteractionDetailActions {
   canOpenInterview: boolean;
   canAddQuickNote: boolean;
-  canRequestSignature: boolean;
+  canApproveAsManager: boolean;
 }
 
 export interface InteractionDetailGoal {

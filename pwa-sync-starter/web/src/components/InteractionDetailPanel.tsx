@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { interactionSummaryService } from '../services/interactionSummaryService';
 import type { InteractionDetailResponse, InteractionDetailInterviewAnswer } from '@shared/contracts/index.ts';
 
@@ -258,12 +258,15 @@ export function InteractionDetailPanel({ interactionId, onBack, onQuickNote }: I
               + Add Quick Note
             </button>
           )}
-          {actions.canRequestSignature && (
-            <button className="slds-button slds-button_brand" disabled>
-              Request Signature
-            </button>
-          )}
         </div>
+
+        {/* Manager Approval */}
+        {actions.canApproveAsManager && (
+          <ManagerApprovalSection interactionId={interactionId} onApproved={() => {
+            // Reload detail after approval
+            interactionSummaryService.getInteractionDetail(interactionId).then(setDetail);
+          }} />
+        )}
       </div>
     </div>
   );
@@ -343,5 +346,141 @@ function InterviewAnswersSection({ answers }: { answers: InteractionDetailInterv
         </Section>
       ))}
     </>
+  );
+}
+
+/* ── Manager Approval with inline signature ──────────────────────── */
+
+function ManagerApprovalSection({ interactionId, onApproved }: { interactionId: string; onApproved: () => void }) {
+  const [attested, setAttested] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isDrawingRef = useRef(false);
+
+  function clearCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  function startDraw(e: React.PointerEvent) {
+    isDrawingRef.current = true;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  }
+
+  function draw(e: React.PointerEvent) {
+    if (!isDrawingRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+  }
+
+  function endDraw() {
+    isDrawingRef.current = false;
+  }
+
+  async function handleApprove() {
+    setError('');
+    setSubmitting(true);
+    try {
+      const canvas = canvasRef.current;
+      const signatureDataUrl = canvas ? canvas.toDataURL('image/png') : undefined;
+      await interactionSummaryService.managerApprove(interactionId, signatureDataUrl);
+      setSuccess(true);
+      onApproved();
+    } catch (err: any) {
+      setError(err.message || 'Approval failed');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (success) {
+    return (
+      <Section title="Manager Approval">
+        <div style={{ textAlign: 'center', padding: '16px' }}>
+          <Badge color="#e8f5e9" text="Approved" />
+          <p className="slds-text-body_regular" style={{ marginTop: '8px' }}>Document has been signed and approved.</p>
+        </div>
+      </Section>
+    );
+  }
+
+  return (
+    <Section title="Manager Approval Required">
+      <p className="slds-text-body_regular" style={{ marginBottom: '12px' }}>
+        This document is pending your signature as the manager approver.
+      </p>
+
+      {/* Attestation */}
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '12px', cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={attested}
+          onChange={(e) => { setAttested(e.target.checked); if (e.target.checked) setSigning(true); }}
+          style={{ marginTop: '3px' }}
+        />
+        <span className="slds-text-body_small">
+          I attest that I have reviewed this documentation and approve its content as the supervising manager.
+        </span>
+      </label>
+
+      {/* Signature pad */}
+      {signing && (
+        <div style={{ marginBottom: '12px' }}>
+          <p className="slds-text-body_small" style={{ fontWeight: 600, marginBottom: '4px' }}>Signature</p>
+          <canvas
+            ref={canvasRef}
+            width={320}
+            height={120}
+            onPointerDown={startDraw}
+            onPointerMove={draw}
+            onPointerUp={endDraw}
+            onPointerLeave={endDraw}
+            style={{
+              border: '1px solid #d8dde6',
+              borderRadius: '8px',
+              backgroundColor: '#fff',
+              touchAction: 'none',
+              width: '100%',
+              maxWidth: '320px',
+            }}
+          />
+          <button className="slds-button slds-button_neutral slds-m-top_x-small" onClick={clearCanvas} style={{ fontSize: '0.75rem' }}>
+            Clear
+          </button>
+        </div>
+      )}
+
+      {error && <p className="slds-text-color_error slds-m-bottom_small">{error}</p>}
+
+      <button
+        className="slds-button slds-button_brand"
+        disabled={!attested || submitting}
+        onClick={handleApprove}
+        style={{ width: '100%' }}
+      >
+        {submitting ? 'Submitting…' : 'Sign & Approve'}
+      </button>
+    </Section>
   );
 }
