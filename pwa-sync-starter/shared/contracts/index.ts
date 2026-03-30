@@ -19,6 +19,7 @@ export * from './PwaEncounterContract';
 export * from './InteractionTimelineContract';
 export * from './InteractionDetailContract';
 export * from './SigningRequestContract';
+export * from './PendingSignatureContract';
 
 // Common types used across contracts
 export interface BaseResponse {
