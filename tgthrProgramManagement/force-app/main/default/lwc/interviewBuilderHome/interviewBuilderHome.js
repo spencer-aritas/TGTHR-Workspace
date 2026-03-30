@@ -1918,7 +1918,7 @@ export default class InterviewBuilderHome extends LightningElement {
     normalizeQuestionForPayload(question) {
         const base = {
             uuid: question.uuid || this.generateKey(),
-            name: question.label,
+            name: this.generateQuestionName(question),
             apiName: question.apiName,
             label: question.label,
             section: question.section,
@@ -1976,6 +1976,28 @@ export default class InterviewBuilderHome extends LightningElement {
             return sanitized;
         }
         return `question_${Math.floor(Math.random() * 10000)}`;
+    }
+
+    generateQuestionName(question) {
+        const candidates = [
+            question?.apiName,
+            question?.name,
+            question?.label
+        ];
+
+        for (const candidate of candidates) {
+            const normalized = String(candidate || '')
+                .replace(/__c$/i, '')
+                .replace(/_+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            if (normalized) {
+                return normalized.slice(0, 80).trim();
+            }
+        }
+
+        return 'Interview Question';
     }
 
     normalizeError(error) {

@@ -18,18 +18,32 @@ class InteractionSummaryRequest(BaseModel):
     CreatedBy: str
     CreatedByEmail: str
 
-class InteractionSummaryResponse(BaseModel):
+class InteractionTimelineRow(BaseModel):
     Id: str
-    RelatedRecordId: str
+    Name: Optional[str] = None
+    RelatedRecordId: Optional[str] = None
     AccountId: Optional[str] = None
-    InteractionDate: str
+    InteractionPurpose: Optional[str] = None
+    Status: Optional[str] = None
+    InteractionDate: Optional[str] = None
     StartTime: Optional[str] = None
     EndTime: Optional[str] = None
-    Notes: str
+    Notes: Optional[str] = None
     NoteType: Optional[str] = None
     SSRSAssessmentId: Optional[str] = None
     CreatedByName: Optional[str] = None
-    CreatedDate: str
+    CreatedDate: Optional[str] = None
+    LastModifiedDate: Optional[str] = None
+    InterviewId: Optional[str] = None
+    ActionRequired: Optional[str] = None
+    ActionAssignedTo: Optional[str] = None
+    RequiresManagerApproval: Optional[bool] = None
+    ManagerSigned: Optional[bool] = None
+    ManagerRejected: Optional[bool] = None
+    ManagerApprover: Optional[str] = None
+
+# Keep old name as alias for backward compatibility
+InteractionSummaryResponse = InteractionTimelineRow
 
 @router.get("/interaction-summary/test")
 async def test_interaction_summary():
@@ -70,3 +84,26 @@ async def create_interaction_summary(request: InteractionSummaryRequest):
     except Exception as e:
         logger.error(f"Failed to create interaction summary: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to create interaction summary: {str(e)}")
+
+
+@router.get("/interaction-summary/{interactionId}")
+async def get_interaction_detail(interactionId: str):
+    """Get a single interaction summary with full detail and related records"""
+    try:
+        logger.info(f"API request: Fetching interaction detail for: {interactionId}")
+
+        from ..salesforce.interaction_summary_service import InteractionSummaryService
+
+        service = InteractionSummaryService()
+        detail = service.get_interaction_detail(interactionId)
+
+        if detail is None:
+            raise HTTPException(status_code=404, detail="Interaction not found")
+
+        return detail
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to fetch interaction detail {interactionId}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch interaction detail: {str(e)}")

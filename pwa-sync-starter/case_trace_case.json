@@ -1,0 +1,21 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "Case",
+          "url": "/services/data/v66.0/sobjects/Case/500RT00000U4TTZYA3"
+        },
+        "Id": "500RT00000U4TTZYA3",
+        "CaseNumber": "00004183",
+        "Subject": "Peyton Manning 00004183",
+        "Status": "New",
+        "AccountId": "001RT00000kJeiPYAS"
+      }
+    ],
+    "totalSize": 1,
+    "done": true
+  },
+  "warnings": []
+}

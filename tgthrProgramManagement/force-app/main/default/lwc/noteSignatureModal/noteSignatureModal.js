@@ -1,8 +1,10 @@
 import { LightningElement, api, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
+import hasWordDownload from '@salesforce/customPermission/Has_Word_Download';
 import getNoteForApproval from '@salesforce/apex/PendingDocumentationController.getNoteForApproval';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
+import { formatDateOnlyMountain, formatDateTimeMountain, getMountainTimeZoneLabel } from 'c/dateTimeDisplay';
 
 /**
  * Modal for reviewing and signing an InteractionSummary note.
@@ -17,6 +19,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
     recordId = null;
     recordType = null;
     _lastLoggedRecordId;
+    mountainTimeZoneLabel = getMountainTimeZoneLabel();
 
     @api
     open(recordId, recordType = 'Interaction') {
@@ -54,7 +57,7 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
 
     get formattedDate() {
         if (!this.noteData.dateOfInteraction) return 'N/A';
-        return new Date(this.noteData.dateOfInteraction).toLocaleDateString('en-US', {
+        return formatDateOnlyMountain(this.noteData.dateOfInteraction, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -64,18 +67,12 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
 
     get formattedCreatedDate() {
         if (!this.noteData.createdDate) return 'N/A';
-        return new Date(this.noteData.createdDate).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        return formatDateTimeMountain(this.noteData.createdDate);
     }
 
     get formattedDob() {
         if (!this.noteData.clientDob) return 'N/A';
-        return new Date(this.noteData.clientDob).toLocaleDateString('en-US', {
+        return formatDateOnlyMountain(this.noteData.clientDob, {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -127,10 +124,26 @@ export default class NoteSignatureModal extends NavigationMixin(LightningElement
     }
 
     handleDownloadDocument() {
-        if (this.noteData.documentId) {
+        if (this.noteData.contentVersionId) {
             this.logAccess('PendingSignatureDownload');
-            const downloadUrl = `/sfc/servlet.shepherd/version/download/${this.noteData.documentId}`;
-            window.open(downloadUrl, '_blank');
+            window.open(`/sfc/servlet.shepherd/version/download/${this.noteData.contentVersionId}`, '_blank');
+        } else if (this.noteData.documentId) {
+            this.logAccess('PendingSignatureDownload');
+            window.open(`/sfc/servlet.shepherd/document/download/${this.noteData.documentId}`, '_blank');
+        }
+    }
+
+    get showWordDownload() {
+        return hasWordDownload && !!(this.noteData.wordContentVersionId || this.noteData.wordDocumentId);
+    }
+
+    handleDownloadWordDocument() {
+        if (this.noteData.wordContentVersionId) {
+            this.logAccess('PendingSignatureDownload');
+            window.open(`/sfc/servlet.shepherd/version/download/${this.noteData.wordContentVersionId}`, '_blank');
+        } else if (this.noteData.wordDocumentId) {
+            this.logAccess('PendingSignatureDownload');
+            window.open(`/sfc/servlet.shepherd/document/download/${this.noteData.wordDocumentId}`, '_blank');
         }
     }
 

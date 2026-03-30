@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Consent_Participated__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Participant acknowledged they reviewed and participated in developing this treatment plan.</description>
+    <label>Consent Participated</label>
+    <type>Checkbox</type>
+</CustomField>

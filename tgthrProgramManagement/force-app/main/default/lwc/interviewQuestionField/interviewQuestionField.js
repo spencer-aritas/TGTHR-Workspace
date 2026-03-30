@@ -5,13 +5,32 @@ export default class InterviewQuestionField extends LightningElement {
     yesNoRadioApiNames = new Set([
         'Advanced_Directives__c',
         'Military_Service__c',
-        'Mental_Health_History__c'
+        'Mental_Health_History__c',
+        'Currently_Employed__c'
     ]);
 
     get normalizedResponseType() {
         return this.question && this.question.responseType 
             ? this.question.responseType.toLowerCase() 
             : '';
+    }
+
+    get carryForward() {
+        return this.question?.carryForward || null;
+    }
+
+    get hasCarryForwardPrompt() {
+        return this.carryForward?.hasCandidate === true;
+    }
+
+    get hasCarryForwardCandidate() {
+        return this.carryForward?.hasCandidate === true;
+    }
+
+    get questionFieldClass() {
+        return this.hasCarryForwardCandidate
+            ? 'question-field question-field_carry-forward'
+            : 'question-field';
     }
 
     get isText() {
@@ -151,5 +170,48 @@ export default class InterviewQuestionField extends LightningElement {
             bubbles: true,
             composed: true
         }));
+    }
+
+    dispatchCarryForwardAction(action) {
+        if (!action || !this.question?.questionId) {
+            return;
+        }
+
+        this.dispatchEvent(new CustomEvent('answerchange', {
+            detail: {
+                questionId: this.question.questionId,
+                responseType: this.question.responseType,
+                carryForwardAction: action
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    handleConfirmCarryForward() {
+        this.dispatchCarryForwardAction('confirm');
+    }
+
+    handleEditCarryForward() {
+        this.dispatchCarryForwardAction('edit');
+    }
+
+    handleIgnoreCarryForward() {
+        this.dispatchCarryForwardAction('ignore');
+    }
+
+    @api
+    focusCarryForwardPrompt() {
+        const actionButton = this.template.querySelector('[data-carry-forward-action="confirm"]')
+            || this.template.querySelector('[data-carry-forward-action="edit"]')
+            || this.template.querySelector('[data-carry-forward-action="ignore"]');
+        actionButton?.focus();
+    }
+
+    @api
+    focusInput() {
+        const inputControl = this.template.querySelector('[data-input-control]')
+            || this.template.querySelector('lightning-input, lightning-textarea, lightning-combobox, lightning-radio-group, lightning-input-rich-text');
+        inputControl?.focus?.();
     }
 }

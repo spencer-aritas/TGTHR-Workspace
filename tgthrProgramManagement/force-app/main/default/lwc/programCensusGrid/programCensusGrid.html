@@ -488,16 +488,15 @@
               </thead>
               <tbody>
                 <template for:each={awaitingIntakeRows} for:item="enrollment">
-                  <tr
-                    key={enrollment.accountId}
-                    onclick={handleEnrollmentClick}
-                    data-id={enrollment.enrollmentId}
-                  >
+                  <tr key={enrollment.enrollmentId}>
                     <td>
                       <div class="slds-truncate">
                         <a
                           href={enrollment.residentLink}
-                          target="_blank"
+                          onclick={handleEnrollmentClick}
+                          data-enrollment-id={enrollment.enrollmentId}
+                          data-account-id={enrollment.accountId}
+                          data-case-id={enrollment.caseId}
                           >{enrollment.residentName}</a
                         >
                       </div>
@@ -555,6 +554,8 @@
                         <a
                           onclick={handleEnrollmentClick}
                           data-id={enrollment.accountId}
+                          data-enrollment-id={enrollment.enrollmentId}
+                          data-account-id={enrollment.accountId}
                           >{enrollment.residentName}</a
                         >
                       </div>

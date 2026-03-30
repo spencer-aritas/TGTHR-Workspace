@@ -16,6 +16,9 @@ export * from './InterviewTemplateDocumentContract';
 export * from './InterviewQuestionLibraryContract';
 export * from './TaskContract';
 export * from './PwaEncounterContract';
+export * from './InteractionTimelineContract';
+export * from './InteractionDetailContract';
+export * from './SigningRequestContract';
 
 // Common types used across contracts
 export interface BaseResponse {

@@ -8,6 +8,8 @@
  * @date 2025-12-16
  */
 public with sharing class PendingDocumentationController {
+    private static final String MOUNTAIN_TIMEZONE = 'America/Denver';
+
     
     /**
      * DTO for unsigned interaction data
@@ -69,8 +71,12 @@ public with sharing class PendingDocumentationController {
         // Edit lock fields - 72-hour lock after completion
         @AuraEnabled public Datetime completedDate;
         @AuraEnabled public Boolean isEditLocked; // True if 72 hours have passed since completion
+        @AuraEnabled public Boolean isOverdue; // True once the 48-hour threshold is reached
         @AuraEnabled public Boolean canAmend; // True if locked but user has permission to create amendment
         @AuraEnabled public String editLockReason; // Human-readable reason for lock
+        @AuraEnabled public Boolean lateEntryManagerApprovalRequired;
+        // Reference number for traceability
+        @AuraEnabled public String referenceNumber; // IDOC-XXXX from InterviewDocument__c.Name
     }
     
     /**
@@ -90,10 +96,15 @@ public with sharing class PendingDocumentationController {
         Id currentUserId = UserInfo.getUserId();
         
         try {
-            // Build query for InteractionSummary records
-            // Show ALL notes for the Case that are pending (visible to entire team)
-            // Per requirement: everyone should see all pending forms
-            String query = 'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, Interview__c, ' +
+            Map<String, Schema.SObjectField> noteFields = Schema.getGlobalDescribe()
+                .get('InteractionSummary').getDescribe().fields.getMap();
+            // Build query for documentation-purpose InteractionSummary records only.
+            // Standalone interactions must stay in the Interactions tab flow.
+            // Include Interview wrappers (Interview__c != null) so template-driven docs
+            // like Treatment Plans / Intake interviews remain visible in pending docs.
+            String query = 'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, Interview__c' +
+                          buildInteractionSummaryOptionalSelectClause(new List<String>{ 'Start_Time__c', 'Completed_On__c', 'Signed_Date__c' }) +
+                          ', CreatedDate, ' +
                           'CreatedById, CreatedBy.Name, ' +
                           'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, ' +
                           'Manager_Signed__c, Manager_Signed_Date__c, Manager_Rejected__c, Manager_Rejection_Reason__c, ' +
@@ -101,19 +112,50 @@ public with sharing class PendingDocumentationController {
                           'Action_Escalated_By__c, Action_Escalated_By__r.Name, Action_Notes__c ' +
                           'FROM InteractionSummary ' +
                           'WHERE RelatedRecordId = :caseId ' +
-                          'AND Requires_Manager_Approval__c = true ' +
-                          'AND (Manager_Signed__c = false OR Manager_Signed__c = null) ' +
+                          'AND (InteractionPurpose IN (\'Clinical Note\', \'Case Note\', \'Case Notes\', \'Peer Note\') ' +
+                          'OR (InteractionPurpose = \'Interview\' AND Interview__c != null)) ' +
                           'AND (Status = \'Published\' OR Status = null) ' +
-                          'AND Interview__c = null ' +
                           'ORDER BY CreatedDate DESC ' +
                           'LIMIT 50';
             
             List<SObject> interactions = Database.query(query);
+
+            Set<Id> summaryIds = new Set<Id>();
+            for (SObject i : interactions) {
+                summaryIds.add((Id)i.get('Id'));
+            }
+            Map<Id, SObject> linkedInterviewBySummaryId = getLinkedInterviewsBySummaryIds(summaryIds, caseId);
+            Map<Id, String> referenceBySummaryId = getReferenceNumbersBySummaryIds(summaryIds);
+            Map<String, Schema.SObjectField> interviewFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
             
             for (SObject interaction : interactions) {
+                Id summaryId = (Id)interaction.get('Id');
+                SObject linkedInterview = linkedInterviewBySummaryId.get(summaryId);
+
+                Boolean isPending;
+                if (linkedInterview != null) {
+                    isPending = isLinkedInterviewPendingRequiredSignatures(linkedInterview, interviewFields);
+                } else {
+                    // Legacy fallback when no linked Interview exists.
+                    isPending = NoteSignatureLifecycleService.isPendingRequiredSignatures(interaction, noteFields);
+                }
+                if (!isPending) {
+                    continue;
+                }
+
                 UnsignedInteractionDTO dto = buildInteractionDTO(interaction, currentUserId);
+                if (linkedInterview != null) {
+                    dto.requiresManagerApproval = linkedInterview.get('Requires_Manager_Approval__c') != null && (Boolean)linkedInterview.get('Requires_Manager_Approval__c') == true;
+                    dto.managerSigned = linkedInterview.get('Manager_Signed__c') != null && (Boolean)linkedInterview.get('Manager_Signed__c') == true;
+                    dto.managerApproverId = (Id)linkedInterview.get('Manager_Approver__c');
+                    SObject mgr = linkedInterview.getSObject('Manager_Approver__r');
+                    if (mgr != null) {
+                        dto.managerApproverName = (String)mgr.get('Name');
+                    }
+                }
                 dto.recordType = 'Interaction';
                 dto.sourceRecordId = (Id)interaction.get('Id');
+                dto.referenceNumber = referenceBySummaryId.get(summaryId);
                 results.add(dto);
             }
             
@@ -123,6 +165,163 @@ public with sharing class PendingDocumentationController {
         }
         
         return results;
+    }
+
+    private static Map<Id, SObject> getLinkedInterviewsBySummaryIds(Set<Id> summaryIds, Id caseId) {
+        Map<Id, SObject> mapBySummaryId = new Map<Id, SObject>();
+        if (summaryIds == null || summaryIds.isEmpty()) {
+            return mapBySummaryId;
+        }
+
+        Map<String, Schema.SObjectField> interviewFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+        String q = 'SELECT Id, Interaction_Summary__c, Status__c';
+        if (hasField(interviewFields, 'Staff_Signed__c')) q += ', Staff_Signed__c';
+        if (hasField(interviewFields, 'Clinician_Signed__c')) q += ', Clinician_Signed__c';
+        if (hasField(interviewFields, 'Client_Signed__c')) q += ', Client_Signed__c';
+        if (hasField(interviewFields, 'Requires_Manager_Approval__c')) q += ', Requires_Manager_Approval__c';
+        if (hasField(interviewFields, 'Manager_Signed__c')) q += ', Manager_Signed__c';
+        if (hasField(interviewFields, 'Manager_Approver__c')) q += ', Manager_Approver__c, Manager_Approver__r.Name';
+        if (hasField(interviewFields, 'CaseManager_Signed_By__c')) q += ', CaseManager_Signed_By__c';
+        if (hasField(interviewFields, 'CaseManager_Signed__c')) q += ', CaseManager_Signed__c';
+        if (hasField(interviewFields, 'PeerSupport_Signed_By__c')) q += ', PeerSupport_Signed_By__c';
+        if (hasField(interviewFields, 'PeerSupport_Signed__c')) q += ', PeerSupport_Signed__c';
+        q += ' FROM Interview__c WHERE Interaction_Summary__c IN :summaryIds';
+        if (caseId != null && hasField(interviewFields, 'Case__c')) {
+            q += ' AND Case__c = :caseId';
+        }
+        q += ' ORDER BY LastModifiedDate DESC';
+
+        for (SObject i : Database.query(q)) {
+            Id sid = (Id)i.get('Interaction_Summary__c');
+            if (sid != null && !mapBySummaryId.containsKey(sid)) {
+                mapBySummaryId.put(sid, i);
+            }
+        }
+        return mapBySummaryId;
+    }
+
+    private static Boolean isLinkedInterviewPendingRequiredSignatures(SObject interview, Map<String, Schema.SObjectField> interviewFields) {
+        if (interview == null) {
+            return false;
+        }
+
+        String status = (String)interview.get('Status__c');
+        if (status == DocumentStatus.INTERVIEW_SIGNED || status == DocumentStatus.INTERVIEW_VOIDED) {
+            return false;
+        }
+
+        Boolean authorSigned = false;
+        if (hasField(interviewFields, 'Staff_Signed__c') && interview.get('Staff_Signed__c') != null && (Boolean)interview.get('Staff_Signed__c') == true) {
+            authorSigned = true;
+        }
+        if (hasField(interviewFields, 'Clinician_Signed__c') && interview.get('Clinician_Signed__c') != null && (Boolean)interview.get('Clinician_Signed__c') == true) {
+            authorSigned = true;
+        }
+
+        Boolean clientSigned = true;
+        if (hasField(interviewFields, 'Client_Signed__c')) {
+            clientSigned = interview.get('Client_Signed__c') != null && (Boolean)interview.get('Client_Signed__c') == true;
+        }
+
+        if (status != DocumentStatus.INTERVIEW_SUBMITTED && (!authorSigned || !clientSigned)) {
+            return true;
+        }
+
+        if (hasField(interviewFields, 'CaseManager_Signed_By__c') && hasField(interviewFields, 'CaseManager_Signed__c')) {
+            Boolean caseManagerPending = interview.get('CaseManager_Signed_By__c') != null &&
+                (interview.get('CaseManager_Signed__c') == null || (Boolean)interview.get('CaseManager_Signed__c') != true);
+            if (caseManagerPending) {
+                return true;
+            }
+        }
+
+        if (hasField(interviewFields, 'PeerSupport_Signed_By__c') && hasField(interviewFields, 'PeerSupport_Signed__c')) {
+            Boolean peerSupportPending = interview.get('PeerSupport_Signed_By__c') != null &&
+                (interview.get('PeerSupport_Signed__c') == null || (Boolean)interview.get('PeerSupport_Signed__c') != true);
+            if (peerSupportPending) {
+                return true;
+            }
+        }
+
+        if (hasField(interviewFields, 'Requires_Manager_Approval__c') && hasField(interviewFields, 'Manager_Signed__c')) {
+            Boolean requiresManager = interview.get('Requires_Manager_Approval__c') != null && (Boolean)interview.get('Requires_Manager_Approval__c') == true;
+            if (requiresManager && (interview.get('Manager_Signed__c') == null || (Boolean)interview.get('Manager_Signed__c') == false)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Boolean hasField(Map<String, Schema.SObjectField> fieldMap, String fieldApiName) {
+        if (fieldMap == null || String.isBlank(fieldApiName)) {
+            return false;
+        }
+        for (String key : fieldMap.keySet()) {
+            if (key != null && key.equalsIgnoreCase(fieldApiName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String resolveFieldApiName(Map<String, Schema.SObjectField> fieldMap, List<String> candidateFieldApiNames) {
+        if (fieldMap == null || candidateFieldApiNames == null || candidateFieldApiNames.isEmpty()) {
+            return null;
+        }
+
+        for (String candidate : candidateFieldApiNames) {
+            if (String.isBlank(candidate)) {
+                continue;
+            }
+            for (String existingField : fieldMap.keySet()) {
+                if (existingField != null && existingField.equalsIgnoreCase(candidate)) {
+                    return existingField;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static String buildInteractionSummaryOptionalSelectClause(List<String> candidateFieldApiNames) {
+        Map<String, Schema.SObjectField> fieldMap = Schema.getGlobalDescribe()
+            .get('InteractionSummary').getDescribe().fields.getMap();
+        List<String> existingFields = new List<String>();
+
+        if (candidateFieldApiNames != null) {
+            for (String candidateFieldApiName : candidateFieldApiNames) {
+                String resolvedFieldApiName = resolveFieldApiName(fieldMap, new List<String>{ candidateFieldApiName });
+                if (resolvedFieldApiName != null) {
+                    existingFields.add(resolvedFieldApiName);
+                }
+            }
+        }
+
+        return existingFields.isEmpty() ? '' : ', ' + String.join(existingFields, ', ');
+    }
+
+    private static Map<Id, String> getReferenceNumbersBySummaryIds(Set<Id> summaryIds) {
+        Map<Id, String> referenceBySummaryId = new Map<Id, String>();
+        if (summaryIds == null || summaryIds.isEmpty()) {
+            return referenceBySummaryId;
+        }
+
+        try {
+            for (SObject doc : Database.query(
+                'SELECT Name, Interaction_Summary__c FROM InterviewDocument__c ' +
+                'WHERE Interaction_Summary__c IN :summaryIds ORDER BY LastModifiedDate DESC'
+            )) {
+                Id sid = (Id)doc.get('Interaction_Summary__c');
+                if (sid != null && !referenceBySummaryId.containsKey(sid)) {
+                    referenceBySummaryId.put(sid, (String)doc.get('Name'));
+                }
+            }
+        } catch (Exception e) {
+            System.debug('Could not fetch InteractionSummary reference numbers: ' + e.getMessage());
+        }
+
+        return referenceBySummaryId;
     }
     
     /**
@@ -154,7 +353,7 @@ public with sharing class PendingDocumentationController {
         dto.managerApproverName = (String)interaction.getSObject('Manager_Approver__r')?.get('Name');
         Object managerSigned = interaction.get('Manager_Signed__c');
         dto.managerSigned = managerSigned != null && (Boolean)managerSigned == true;
-        dto.managerSignedDate = (Date)interaction.get('Manager_Signed_Date__c');
+        dto.managerSignedDate = toDateFromTemporal(interaction.get('Manager_Signed_Date__c'));
         Object managerRejected = interaction.get('Manager_Rejected__c');
         dto.managerRejected = managerRejected != null && (Boolean)managerRejected == true;
         dto.managerRejectionReason = (String)interaction.get('Manager_Rejection_Reason__c');
@@ -185,12 +384,9 @@ public with sharing class PendingDocumentationController {
         dto.ownerId = (Id)interaction.get('CreatedById');
         dto.ownerName = (String)interaction.getSObject('CreatedBy')?.get('Name');
         dto.isCurrentUserOwner = dto.ownerId == currentUserId;
+        dto.lateEntryManagerApprovalRequired = isLateEntryManagerApprovalRequired(interaction, false);
         
-        // Edit lock fields - InteractionSummary doesn't track completion date the same way
-        // For now, interactions are not locked (they're notes, not interviews)
-        dto.isEditLocked = false;
-        dto.canAmend = false;
-        dto.editLockReason = null;
+        applyEditLockRules(dto, interaction, false);
         
         return dto;
     }
@@ -202,20 +398,15 @@ public with sharing class PendingDocumentationController {
      * @param caseId The Case record ID
      * @return List of UnsignedInteractionDTO (repurposed for interviews)
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=false)
     public static List<UnsignedInteractionDTO> getUnsignedInterviews(Id caseId) {
         List<UnsignedInteractionDTO> results = new List<UnsignedInteractionDTO>();
-        
-        if (caseId == null) {
-            return results;
-        }
-        
         Id currentUserId = UserInfo.getUserId();
         
         try {
             // Query ALL pending interviews for the Case (visible to entire team)
             // Include Owner info and completion date for edit lock calculation
-            String query = 'SELECT Id, Interview__c, Interview__r.Name, Interview__r.Started_On__c, ' +
+            String query = 'SELECT Id, Name, Interview__c, Interview__r.Name, Interview__r.Started_On__c, ' +
                           'Interview__r.Status__c, Interview__r.Staff_Signed__c, Interview__r.Client_Signed__c, ' +
                           'Interview__r.Date_Staff_Signed__c, Interview__r.Date_Client_Signed__c, ' +
                           'Interview__r.CaseManager_Signed__c, Interview__r.CaseManager_Signed_By__c, ' +
@@ -229,15 +420,18 @@ public with sharing class PendingDocumentationController {
                           'Interview__r.Action_Escalated_By__c, Interview__r.Action_Escalated_By__r.Name, ' +
                           'Interview__r.Action_Notes__c, ' +
                           'Interview__r.OwnerId, Interview__r.Owner.Name, ' +
-                          'Interview__r.Completed_On__c, ' +
+                          'Interview__r.Completed_On__c, Interview__r.CreatedDate, Interview__r.Is_Locked__c, ' +
+                          'Interview__r.Interaction_Summary__r.Date_of_Interaction__c, Interview__r.Interaction_Summary__r.Start_Time__c, ' +
                           'Interview__r.InterviewTemplateVersion__c, Interview__r.Case__c, Interview__r.Case__r.CaseNumber, ' +
                           'InterviewTemplate__r.Name ' +
                           'FROM InterviewDocument__c ' +
                           'WHERE Case__c = :caseId ' +
-                          'AND Interview__r.Status__c != \'Voided\' ' +
+                          'AND Interview__r.Status__c NOT IN (\'Voided\', \'Signed\') ' +
+                          'AND (Interview__r.Action_Required__c = false OR Interview__r.Action_Required__c = null) ' +
                           'AND ((' +
+                          'Interview__r.Status__c != \'Submitted\' AND (' +
                           'Interview__r.Staff_Signed__c = false OR Interview__r.Client_Signed__c = false' +
-                          ') OR (' +
+                          ')) OR (' +
                           'Interview__r.CaseManager_Signed_By__c != null AND (Interview__r.CaseManager_Signed__c = false OR Interview__r.CaseManager_Signed__c = null)' +
                           ') OR (' +
                           'Interview__r.PeerSupport_Signed_By__c != null AND (Interview__r.PeerSupport_Signed__c = false OR Interview__r.PeerSupport_Signed__c = null)' +
@@ -250,16 +444,19 @@ public with sharing class PendingDocumentationController {
             
             List<SObject> docs = Database.query(query);
             
+            Set<Id> seenInterviewIds = new Set<Id>();
             for (SObject doc : docs) {
                 SObject interview = doc.getSObject('Interview__r');
                 if (interview == null) continue;
-                
+                Id ivId = (Id)interview.get('Id');
+                if (seenInterviewIds.contains(ivId)) continue; // skip duplicate docs for same interview
+                seenInterviewIds.add(ivId);
                 UnsignedInteractionDTO dto = buildInterviewDTO(doc, interview, currentUserId);
                 results.add(dto);
             }
 
             // Fallback: include pending interviews even if InterviewDocument__c is missing
-            String interviewOnlyQuery = 'SELECT Id, Name, Started_On__c, Completed_On__c, Status__c, ' +
+            String interviewOnlyQuery = 'SELECT Id, Name, Started_On__c, Completed_On__c, CreatedDate, Is_Locked__c, Status__c, ' +
                           'Staff_Signed__c, Client_Signed__c, Date_Staff_Signed__c, Date_Client_Signed__c, ' +
                           'CaseManager_Signed__c, CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, Date_CaseManager_Signed__c, ' +
                           'PeerSupport_Signed__c, PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name, Date_PeerSupport_Signed__c, ' +
@@ -267,14 +464,17 @@ public with sharing class PendingDocumentationController {
                           'Manager_Signed__c, Manager_Signed_Date__c, Action_Required__c, ' +
                           'Action_Assigned_To__c, Action_Assigned_To__r.Name, Action_Escalated_By__c, ' +
                           'Action_Escalated_By__r.Name, Action_Notes__c, OwnerId, Owner.Name, ' +
+                          'Interaction_Summary__r.Date_of_Interaction__c, Interaction_Summary__r.Start_Time__c, ' +
                           'InterviewTemplateVersion__c, InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
                           'Case__c, Case__r.CaseNumber ' +
                           'FROM Interview__c ' +
                           'WHERE Case__c = :caseId ' +
-                          'AND Status__c != \'Voided\' ' +
+                          'AND Status__c NOT IN (\'Voided\', \'Signed\') ' +
+                          'AND (Action_Required__c = false OR Action_Required__c = null) ' +
                           'AND ((' +
+                          'Status__c != \'Submitted\' AND (' +
                           'Staff_Signed__c = false OR Client_Signed__c = false' +
-                          ') OR (' +
+                          ')) OR (' +
                           'CaseManager_Signed_By__c != null AND (CaseManager_Signed__c = false OR CaseManager_Signed__c = null)' +
                           ') OR (' +
                           'PeerSupport_Signed_By__c != null AND (PeerSupport_Signed__c = false OR PeerSupport_Signed__c = null)' +
@@ -287,6 +487,8 @@ public with sharing class PendingDocumentationController {
 
             List<SObject> interviews = Database.query(interviewOnlyQuery);
             for (SObject interview : interviews) {
+                Id ivId = (Id)interview.get('Id');
+                if (seenInterviewIds.contains(ivId)) continue;
                 UnsignedInteractionDTO dto = buildInterviewDTOFromInterview(interview, currentUserId);
                 results.add(dto);
             }
@@ -309,14 +511,16 @@ public with sharing class PendingDocumentationController {
         dto.approvalRecordId = dto.sourceRecordId;
         dto.approvalRecordType = 'Interview';
         dto.templateVersionId = (Id)interview.get('InterviewTemplateVersion__c'); // Needed for navigation
-        dto.name = (String)doc.getSObject('InterviewTemplate__r')?.get('Name');
+        // Use Interview__c.Name as primary — it already contains template name + participant name + date
+        dto.name = InterviewTemplateLabelService.normalizeDisplayLabel((String)interview.get('Name'));
         if (String.isBlank(dto.name)) {
-            dto.name = (String)interview.get('Name');
+            dto.name = InterviewTemplateLabelService.normalizeDisplayLabel((String)doc.getSObject('InterviewTemplate__r')?.get('Name'));
         }
         
         Datetime startedOn = (Datetime)interview.get('Started_On__c');
         dto.dateOfInteraction = startedOn != null ? startedOn.date() : null;
         dto.purpose = 'Interview';
+        dto.referenceNumber = (String)doc.get('Name'); // IDOC-XXXX auto-number
         
         // Case info - get from Interview__r.Case__c which we added to query
         dto.caseId = (Id)interview.get('Case__c');
@@ -327,18 +531,21 @@ public with sharing class PendingDocumentationController {
         
         Object staffSigned = interview.get('Staff_Signed__c');
         dto.staffSigned = staffSigned != null && (Boolean)staffSigned == true;
-        dto.staffSignedDate = (Date)interview.get('Date_Staff_Signed__c');
+        Datetime staffSignedDt = (Datetime)interview.get('Date_Staff_Signed__c');
+        dto.staffSignedDate = staffSignedDt != null ? staffSignedDt.date() : null;
         
         Object clientSigned = interview.get('Client_Signed__c');
         dto.clientSigned = clientSigned != null && (Boolean)clientSigned == true;
-        dto.clientSignedDate = (Date)interview.get('Date_Client_Signed__c');
+        Datetime clientSignedDt = (Datetime)interview.get('Date_Client_Signed__c');
+        dto.clientSignedDate = clientSignedDt != null ? clientSignedDt.date() : null;
         
         // Multi-signature fields (Case Manager)
         Object caseManagerSigned = interview.get('CaseManager_Signed__c');
         dto.caseManagerSigned = caseManagerSigned != null && (Boolean)caseManagerSigned == true;
         dto.caseManagerAssignedToId = (Id)interview.get('CaseManager_Signed_By__c');
         dto.caseManagerAssignedToName = (String)interview.getSObject('CaseManager_Signed_By__r')?.get('Name');
-        dto.caseManagerSignedDate = (Date)interview.get('Date_CaseManager_Signed__c');
+        Datetime cmSignedDt = (Datetime)interview.get('Date_CaseManager_Signed__c');
+        dto.caseManagerSignedDate = cmSignedDt != null ? cmSignedDt.date() : null;
         dto.canSignAsCaseManager = dto.caseManagerAssignedToId != null && dto.caseManagerAssignedToId == currentUserId && !dto.caseManagerSigned;
         
         // Multi-signature fields (Peer Support)
@@ -346,7 +553,8 @@ public with sharing class PendingDocumentationController {
         dto.peerSupportSigned = peerSupportSigned != null && (Boolean)peerSupportSigned == true;
         dto.peerSupportAssignedToId = (Id)interview.get('PeerSupport_Signed_By__c');
         dto.peerSupportAssignedToName = (String)interview.getSObject('PeerSupport_Signed_By__r')?.get('Name');
-        dto.peerSupportSignedDate = (Date)interview.get('Date_PeerSupport_Signed__c');
+        Datetime psSignedDt = (Datetime)interview.get('Date_PeerSupport_Signed__c');
+        dto.peerSupportSignedDate = psSignedDt != null ? psSignedDt.date() : null;
         dto.canSignAsPeerSupport = dto.peerSupportAssignedToId != null && dto.peerSupportAssignedToId == currentUserId && !dto.peerSupportSigned;
         
         // Manager Approval fields from Interview__c
@@ -356,7 +564,8 @@ public with sharing class PendingDocumentationController {
         dto.managerApproverName = (String)interview.getSObject('Manager_Approver__r')?.get('Name');
         Object managerSigned = interview.get('Manager_Signed__c');
         dto.managerSigned = managerSigned != null && (Boolean)managerSigned == true;
-        dto.managerSignedDate = (Date)interview.get('Manager_Signed_Date__c');
+        Datetime managerSignedDt2 = (Datetime)interview.get('Manager_Signed_Date__c');
+        dto.managerSignedDate = managerSignedDt2 != null ? managerSignedDt2.date() : null;
         
         // Action Required fields from Interview__c
         Object actionRequired = interview.get('Action_Required__c');
@@ -384,10 +593,9 @@ public with sharing class PendingDocumentationController {
         dto.ownerId = (Id)interview.get('OwnerId');
         dto.ownerName = (String)interview.getSObject('Owner')?.get('Name');
         dto.isCurrentUserOwner = dto.ownerId == currentUserId;
+        dto.lateEntryManagerApprovalRequired = isLateEntryManagerApprovalRequired(interview, true);
         
-        // Edit lock calculation - 72 hours after completion
-        dto.completedDate = (Datetime)interview.get('Completed_On__c');
-        calculateEditLock(dto);
+        applyEditLockRules(dto, interview, true);
         
         return dto;
     }
@@ -403,9 +611,10 @@ public with sharing class PendingDocumentationController {
         dto.approvalRecordId = dto.sourceRecordId;
         dto.approvalRecordType = 'Interview';
         dto.templateVersionId = (Id)interview.get('InterviewTemplateVersion__c');
-        dto.name = (String)interview.getSObject('InterviewTemplateVersion__r')?.getSObject('InterviewTemplate__r')?.get('Name');
+        // Use Interview__c.Name as primary — it already contains template name + participant name + date
+        dto.name = InterviewTemplateLabelService.normalizeDisplayLabel((String)interview.get('Name'));
         if (String.isBlank(dto.name)) {
-            dto.name = (String)interview.get('Name');
+            dto.name = InterviewTemplateLabelService.normalizeDisplayLabel((String)interview.getSObject('InterviewTemplateVersion__r')?.getSObject('InterviewTemplate__r')?.get('Name'));
         }
 
         Datetime startedOn = (Datetime)interview.get('Started_On__c');
@@ -428,7 +637,8 @@ public with sharing class PendingDocumentationController {
         dto.caseManagerSigned = caseManagerSigned != null && (Boolean)caseManagerSigned == true;
         dto.caseManagerAssignedToId = (Id)interview.get('CaseManager_Signed_By__c');
         dto.caseManagerAssignedToName = (String)interview.getSObject('CaseManager_Signed_By__r')?.get('Name');
-        dto.caseManagerSignedDate = (Date)interview.get('Date_CaseManager_Signed__c');
+        Datetime cmSignedDt2 = (Datetime)interview.get('Date_CaseManager_Signed__c');
+        dto.caseManagerSignedDate = cmSignedDt2 != null ? cmSignedDt2.date() : null;
         dto.canSignAsCaseManager = dto.caseManagerAssignedToId != null && dto.caseManagerAssignedToId == currentUserId && !dto.caseManagerSigned;
         
         // Multi-signature fields (Peer Support)
@@ -436,7 +646,8 @@ public with sharing class PendingDocumentationController {
         dto.peerSupportSigned = peerSupportSigned != null && (Boolean)peerSupportSigned == true;
         dto.peerSupportAssignedToId = (Id)interview.get('PeerSupport_Signed_By__c');
         dto.peerSupportAssignedToName = (String)interview.getSObject('PeerSupport_Signed_By__r')?.get('Name');
-        dto.peerSupportSignedDate = (Date)interview.get('Date_PeerSupport_Signed__c');
+        Datetime psSignedDt2 = (Datetime)interview.get('Date_PeerSupport_Signed__c');
+        dto.peerSupportSignedDate = psSignedDt2 != null ? psSignedDt2.date() : null;
         dto.canSignAsPeerSupport = dto.peerSupportAssignedToId != null && dto.peerSupportAssignedToId == currentUserId && !dto.peerSupportSigned;
 
         Object requiresManagerApproval = interview.get('Requires_Manager_Approval__c');
@@ -445,7 +656,8 @@ public with sharing class PendingDocumentationController {
         dto.managerApproverName = (String)interview.getSObject('Manager_Approver__r')?.get('Name');
         Object managerSigned = interview.get('Manager_Signed__c');
         dto.managerSigned = managerSigned != null && (Boolean)managerSigned == true;
-        dto.managerSignedDate = (Date)interview.get('Manager_Signed_Date__c');
+        Datetime managerSignedDt = (Datetime)interview.get('Manager_Signed_Date__c');
+        dto.managerSignedDate = managerSignedDt != null ? managerSignedDt.date() : null;
 
         Object actionRequired = interview.get('Action_Required__c');
         dto.actionRequired = actionRequired != null && (Boolean)actionRequired == true;
@@ -469,54 +681,53 @@ public with sharing class PendingDocumentationController {
         dto.ownerId = (Id)interview.get('OwnerId');
         dto.ownerName = (String)interview.getSObject('Owner')?.get('Name');
         dto.isCurrentUserOwner = dto.ownerId == currentUserId;
+        dto.lateEntryManagerApprovalRequired = isLateEntryManagerApprovalRequired(interview, true);
 
-        dto.completedDate = (Datetime)interview.get('Completed_On__c');
-        applyEditLockRules(dto);
+        applyEditLockRules(dto, interview, true);
 
         return dto;
     }
-    
+
+    private static Boolean isLateEntryManagerApprovalRequired(SObject record, Boolean isInterview) {
+        if (record == null) {
+            return false;
+        }
+
+        Datetime serviceDateTime = isInterview
+            ? DocumentationDeadlineService.resolveInterviewServiceDateTime(record)
+            : DocumentationDeadlineService.resolveInteractionServiceDateTime(record);
+        Datetime authorCompletedAt = DocumentationDeadlineService.resolveAuthorCompletionDateTime(record, isInterview);
+
+        return DocumentationDeadlineService.requiresManagerEscalationForLateEntry(serviceDateTime, authorCompletedAt);
+    }
+
     /**
      * Calculate edit lock status based on completion date
      * Documents are locked 72 hours after completion and require formal amendment
      */
-    private static void calculateEditLock(UnsignedInteractionDTO dto) {
-        if (dto.completedDate == null) {
-            // Not completed yet - not locked
+    private static void applyEditLockRules(UnsignedInteractionDTO dto, SObject record, Boolean isInterview) {
+        if (dto == null || record == null) {
+            return;
+        }
+
+        DocumentationDeadlineService.DeadlineState deadlineState = isInterview
+            ? DocumentationDeadlineService.evaluateInterview(record)
+            : DocumentationDeadlineService.evaluateInteractionSummary(record);
+
+        if (deadlineState == null || deadlineState.serviceDateTime == null) {
+            dto.completedDate = null;
             dto.isEditLocked = false;
+            dto.isOverdue = false;
             dto.canAmend = false;
             dto.editLockReason = null;
             return;
         }
-        
-        // Calculate if 72 hours have passed since completion
-        Datetime lockTime = dto.completedDate.addHours(72);
-        Boolean isLocked = Datetime.now() >= lockTime;
-        
-        dto.isEditLocked = isLocked;
-        
-        if (isLocked) {
-            // Calculate time since completion for display
-            Long hoursSinceCompletion = (Datetime.now().getTime() - dto.completedDate.getTime()) / (1000 * 60 * 60);
-            Long daysSinceCompletion = hoursSinceCompletion / 24;
-            dto.editLockReason = 'Locked ' + daysSinceCompletion + ' day(s) ago. Requires formal amendment to modify.';
-            dto.canAmend = true; // Allow amendment workflow
-        } else {
-            // Calculate time remaining until lock
-            Long hoursUntilLock = (lockTime.getTime() - Datetime.now().getTime()) / (1000 * 60 * 60);
-            dto.editLockReason = 'Editable for ' + hoursUntilLock + ' more hour(s)';
-            dto.canAmend = false;
-        }
-    }
 
-    /**
-     * Backward-compatible wrapper for edit lock evaluation
-     */
-    private static void applyEditLockRules(UnsignedInteractionDTO dto) {
-        if (dto == null) {
-            return;
-        }
-        calculateEditLock(dto);
+        dto.completedDate = deadlineState.serviceDateTime;
+        dto.isEditLocked = deadlineState.isLocked == true;
+        dto.isOverdue = deadlineState.isOverdue == true;
+        dto.canAmend = dto.isEditLocked;
+        dto.editLockReason = deadlineState.editLockReason;
     }
     
     /**
@@ -545,10 +756,16 @@ public with sharing class PendingDocumentationController {
         approverIds.addAll(delegatingManagerIds);
         
         try {
+            Map<String, Schema.SObjectField> noteFields = Schema.getGlobalDescribe()
+                .get('InteractionSummary').getDescribe().fields.getMap();
+            String pendingSignatureWhere = NoteSignatureLifecycleService.buildPendingRequiredSignaturesWhereClause(noteFields, null);
+
             // Build InteractionSummary query - optionally filtered by Case
             // Note: InteractionSummary does NOT have staff/client signature fields
             // Only manager approval fields exist on this object
-            String interactionQuery = 'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, Interview__c, ' +
+            String interactionQuery = 'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, Interview__c' +
+                          buildInteractionSummaryOptionalSelectClause(new List<String>{ 'Start_Time__c', 'Completed_On__c', 'Signed_Date__c' }) +
+                          ', CreatedDate, ' +
                           'Interview__r.Name, Interview__r.InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
                           'CreatedById, CreatedBy.Name, ' +
                           'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, ' +
@@ -558,8 +775,9 @@ public with sharing class PendingDocumentationController {
                           'RelatedRecordId ' +
                           'FROM InteractionSummary ' +
                           'WHERE Manager_Approver__c IN :approverIds ' +
-                          'AND Requires_Manager_Approval__c = true ' +
-                          'AND (Manager_Signed__c = false OR Manager_Signed__c = null) ';
+                          (String.isNotBlank(pendingSignatureWhere)
+                              ? 'AND (' + pendingSignatureWhere + ') '
+                              : 'AND Requires_Manager_Approval__c = true AND (Manager_Signed__c = false OR Manager_Signed__c = null) ');
             
             // Add Case filter if provided
             if (caseId != null) {
@@ -572,23 +790,20 @@ public with sharing class PendingDocumentationController {
             
             List<SObject> interactions = Database.query(interactionQuery);
             System.debug('Found ' + interactions.size() + ' InteractionSummary records pending approval');
+            Set<Id> pendingSummaryIds = new Set<Id>();
+            for (SObject interaction : interactions) {
+                pendingSummaryIds.add((Id)interaction.get('Id'));
+            }
+            Map<Id, String> referenceBySummaryId = getReferenceNumbersBySummaryIds(pendingSummaryIds);
             
             for (SObject interaction : interactions) {
                 UnsignedInteractionDTO dto = buildInteractionDTO(interaction, currentUserId);
                 Id interviewId = (Id)interaction.get('Interview__c');
                 if (interviewId != null) {
-                    dto.recordType = 'Interview';
-                    dto.sourceRecordId = interviewId;
-                    dto.approvalRecordId = (Id)interaction.get('Id');
-                    dto.approvalRecordType = 'Interaction';
-                    SObject interview = interaction.getSObject('Interview__r');
-                    String templateName = (String)interview?.getSObject('InterviewTemplateVersion__r')
-                        ?.getSObject('InterviewTemplate__r')
-                        ?.get('Name');
-                    Date labelDate = (Date)interaction.get('Date_of_Interaction__c');
-                    if (String.isNotBlank(templateName)) {
-                        dto.name = templateName + (labelDate != null ? ' - ' + labelDate.format() : '');
-                    }
+                    // This treatment plan will appear via the Interview__c query below.
+                    // Including it here as well causes duplicate items and routes approval
+                    // to InteractionSummary (wrong object). Skip it.
+                    continue;
                 } else {
                     dto.recordType = 'Interaction';
                     dto.sourceRecordId = (Id)interaction.get('Id');
@@ -596,26 +811,33 @@ public with sharing class PendingDocumentationController {
                 
                 // Add Case info
                 dto.caseId = (Id)interaction.get('RelatedRecordId');
+                dto.referenceNumber = referenceBySummaryId.get((Id)interaction.get('Id'));
                 
                 results.add(dto);
             }
             
             // Build Interview query - optionally filtered by Case
+            // Only surface for manager approval once CM and PS signatures are complete.
             String interviewQuery = 'SELECT Id, Interview__c, Interview__r.Name, Interview__r.Started_On__c, ' +
                           'Interview__r.Status__c, Interview__r.Staff_Signed__c, Interview__r.Client_Signed__c, ' +
                           'Interview__r.Date_Staff_Signed__c, Interview__r.Date_Client_Signed__c, ' +
+                          'Interview__r.CaseManager_Signed__c, Interview__r.CaseManager_Signed_By__c, ' +
+                          'Interview__r.PeerSupport_Signed__c, Interview__r.PeerSupport_Signed_By__c, ' +
                           'Interview__r.Requires_Manager_Approval__c, Interview__r.Manager_Approver__c, ' +
                           'Interview__r.Manager_Approver__r.Name, Interview__r.Manager_Signed__c, ' +
                           'Interview__r.Manager_Signed_Date__c, Interview__r.Action_Required__c, ' +
                           'Interview__r.Action_Assigned_To__c, Interview__r.Action_Assigned_To__r.Name, ' +
                           'Interview__r.Action_Escalated_By__c, Interview__r.Action_Escalated_By__r.Name, ' +
                           'Interview__r.Action_Notes__c, Interview__r.Case__c, Interview__r.Case__r.CaseNumber, ' +
-                          'Interview__r.InterviewTemplateVersion__c, ' +
+                          'Interview__r.InterviewTemplateVersion__c, Interview__r.CreatedDate, Interview__r.Completed_On__c, ' +
+                          'Interview__r.OwnerId, Interview__r.Owner.Name, Interview__r.Interaction_Summary__r.Date_of_Interaction__c, Interview__r.Interaction_Summary__r.Start_Time__c, ' +
                           'InterviewTemplate__r.Name ' +
                           'FROM InterviewDocument__c ' +
                           'WHERE Interview__r.Manager_Approver__c IN :approverIds ' +
                           'AND Interview__r.Requires_Manager_Approval__c = true ' +
-                          'AND Interview__r.Manager_Signed__c = false ';
+                          'AND Interview__r.Manager_Signed__c = false ' +
+                          'AND (Interview__r.CaseManager_Signed_By__c = null OR Interview__r.CaseManager_Signed__c = true) ' +
+                          'AND (Interview__r.PeerSupport_Signed_By__c = null OR Interview__r.PeerSupport_Signed__c = true) ';
             
             // Add Case filter if provided
             if (caseId != null) {
@@ -626,27 +848,36 @@ public with sharing class PendingDocumentationController {
             
             List<SObject> docs = Database.query(interviewQuery);
             
+            Set<Id> seenInterviewIds = new Set<Id>();
             for (SObject doc : docs) {
                 SObject interview = doc.getSObject('Interview__r');
                 if (interview == null) continue;
-                
+                Id ivId = (Id)interview.get('Id');
+                if (seenInterviewIds.contains(ivId)) continue; // skip duplicate docs for same interview
+                seenInterviewIds.add(ivId);
                 UnsignedInteractionDTO dto = buildInterviewDTO(doc, interview, currentUserId);
                 results.add(dto);
             }
 
             // Fallback: include Interview__c pending approvals even if InterviewDocument__c is missing
-            String interviewOnlyQuery = 'SELECT Id, Name, Started_On__c, Completed_On__c, Status__c, ' +
+            // Skip any interview IDs already returned by the InterviewDocument__c query above to prevent duplicates.
+            String interviewOnlyQuery = 'SELECT Id, Name, Started_On__c, Completed_On__c, CreatedDate, Status__c, ' +
                           'Staff_Signed__c, Client_Signed__c, Date_Staff_Signed__c, Date_Client_Signed__c, ' +
+                          'CaseManager_Signed__c, CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, Date_CaseManager_Signed__c, ' +
+                          'PeerSupport_Signed__c, PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name, Date_PeerSupport_Signed__c, ' +
                           'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, ' +
                           'Manager_Signed__c, Manager_Signed_Date__c, Action_Required__c, ' +
                           'Action_Assigned_To__c, Action_Assigned_To__r.Name, Action_Escalated_By__c, ' +
                           'Action_Escalated_By__r.Name, Action_Notes__c, OwnerId, Owner.Name, ' +
+                          'Interaction_Summary__r.Date_of_Interaction__c, Interaction_Summary__r.Start_Time__c, ' +
                           'InterviewTemplateVersion__c, InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
                           'Case__c, Case__r.CaseNumber ' +
                           'FROM Interview__c ' +
                           'WHERE Manager_Approver__c IN :approverIds ' +
                           'AND Requires_Manager_Approval__c = true ' +
-                          'AND (Manager_Signed__c = false OR Manager_Signed__c = null) ';
+                          'AND (Manager_Signed__c = false OR Manager_Signed__c = null) ' +
+                          'AND (CaseManager_Signed_By__c = null OR CaseManager_Signed__c = true) ' +
+                          'AND (PeerSupport_Signed_By__c = null OR PeerSupport_Signed__c = true) ';
 
             if (caseId != null) {
                 interviewOnlyQuery += 'AND Case__c = :caseId ';
@@ -656,6 +887,8 @@ public with sharing class PendingDocumentationController {
 
             List<SObject> interviewApprovals = Database.query(interviewOnlyQuery);
             for (SObject interview : interviewApprovals) {
+                Id intId = (Id)interview.get('Id');
+                if (seenInterviewIds.contains(intId)) continue;
                 UnsignedInteractionDTO dto = buildInterviewDTOFromInterview(interview, currentUserId);
                 results.add(dto);
             }
@@ -746,7 +979,9 @@ public with sharing class PendingDocumentationController {
         try {
             // Get InteractionSummary records with action assigned to current user
             // Note: InteractionSummary doesn't have staff/client signature fields
-            String interactionQuery = 'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, ' +
+            String interactionQuery = 'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose' +
+                          buildInteractionSummaryOptionalSelectClause(new List<String>{ 'Start_Time__c', 'Completed_On__c', 'Signed_Date__c' }) +
+                          ', CreatedDate, ' +
                           'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, ' +
                           'Manager_Signed__c, Manager_Signed_Date__c, Manager_Rejected__c, Manager_Rejection_Reason__c, ' +
                           'Action_Required__c, Action_Assigned_To__c, Action_Assigned_To__r.Name, ' +
@@ -761,22 +996,31 @@ public with sharing class PendingDocumentationController {
             System.debug('🔍 Action items query: ' + interactionQuery);
             List<SObject> interactions = Database.query(interactionQuery);
             System.debug('🔍 Found ' + interactions.size() + ' InteractionSummary action items');
+            Set<Id> actionSummaryIds = new Set<Id>();
+            for (SObject interaction : interactions) {
+                actionSummaryIds.add((Id)interaction.get('Id'));
+            }
+            Map<Id, String> referenceBySummaryId = getReferenceNumbersBySummaryIds(actionSummaryIds);
             
             for (SObject interaction : interactions) {
                 UnsignedInteractionDTO dto = buildInteractionDTO(interaction, currentUserId);
                 dto.recordType = 'Interaction';
                 dto.sourceRecordId = (Id)interaction.get('Id');
                 dto.caseId = (Id)interaction.get('RelatedRecordId');
+                dto.referenceNumber = referenceBySummaryId.get((Id)interaction.get('Id'));
                 results.add(dto);
             }
             
             // Get Interview__c records with action assigned to current user
-            String interviewQuery = 'SELECT Id, Name, Started_On__c, Status__c, Staff_Signed__c, Client_Signed__c, ' +
+            String interviewQuery = 'SELECT Id, Name, Started_On__c, CreatedDate, Status__c, Staff_Signed__c, Client_Signed__c, ' +
                           'Date_Staff_Signed__c, Date_Client_Signed__c, Requires_Manager_Approval__c, ' +
+                          'CaseManager_Signed__c, CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, Date_CaseManager_Signed__c, ' +
+                          'PeerSupport_Signed__c, PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name, Date_PeerSupport_Signed__c, ' +
                           'Manager_Approver__c, Manager_Approver__r.Name, Manager_Signed__c, Manager_Signed_Date__c, ' +
                           'Action_Required__c, Action_Assigned_To__c, Action_Assigned_To__r.Name, ' +
                           'Action_Escalated_By__c, Action_Escalated_By__r.Name, Action_Notes__c, ' +
                           'Case__c, Case__r.CaseNumber, InterviewTemplateVersion__c, ' +
+                          'Interaction_Summary__r.Date_of_Interaction__c, Interaction_Summary__r.Start_Time__c, ' +
                           'InterviewTemplateVersion__r.InterviewTemplate__r.Name, OwnerId, Owner.Name, Completed_On__c ' +
                           'FROM Interview__c ' +
                           'WHERE Action_Assigned_To__c = :currentUserId ' +
@@ -785,8 +1029,16 @@ public with sharing class PendingDocumentationController {
                           'LIMIT 50';
             
             List<SObject> interviews = Database.query(interviewQuery);
-            
+            Set<String> seenRecalledKeys = new Set<String>();
             for (SObject interview : interviews) {
+                String ivStatus = (String)interview.get('Status__c');
+                if (ivStatus == DocumentStatus.INTERVIEW_RECALLED) {
+                    String recalledKey = String.valueOf(interview.get('Case__c')) + '|' + String.valueOf(interview.get('InterviewTemplateVersion__c'));
+                    if (seenRecalledKeys.contains(recalledKey)) {
+                        continue;
+                    }
+                    seenRecalledKeys.add(recalledKey);
+                }
                 UnsignedInteractionDTO dto = buildInterviewDTOFromInterview(interview, currentUserId);
                 results.add(dto);
             }
@@ -1024,9 +1276,13 @@ public with sharing class PendingDocumentationController {
         @AuraEnabled public Id caseId;
         
         // Document info
-        @AuraEnabled public Id documentId;
-        @AuraEnabled public Id contentVersionId;
+        @AuraEnabled public Id documentId;          // PDF (primary) ContentDocument ID
+        @AuraEnabled public Id contentVersionId;    // PDF (primary) ContentVersion ID
         @AuraEnabled public String documentTitle;
+        @AuraEnabled public String referenceNumber; // IDOC-XXXX from InterviewDocument__c.Name
+        // Word source (.docx) — visible only to Has_Word_Download permission holders
+        @AuraEnabled public Id wordDocumentId;
+        @AuraEnabled public Id wordContentVersionId;
         
         // SSRS Assessment
         @AuraEnabled public Map<String, Object> ssrsAssessment;
@@ -1056,6 +1312,7 @@ public with sharing class PendingDocumentationController {
         
         // Approval requirements
         @AuraEnabled public Boolean requiresManagerApproval;
+        @AuraEnabled public Boolean lateEntryManagerApprovalRequired;
         
         // Signature tracking
         @AuraEnabled public Boolean authorSigned;
@@ -1064,6 +1321,12 @@ public with sharing class PendingDocumentationController {
         @AuraEnabled public Boolean managerSigned;
         @AuraEnabled public String managerSignedBy;
         @AuraEnabled public Date managerSignedDate;
+        @AuraEnabled public Boolean caseManagerSigned;
+        @AuraEnabled public String caseManagerSignedBy;
+        @AuraEnabled public Date caseManagerSignedDate;
+        @AuraEnabled public Boolean peerSupportSigned;
+        @AuraEnabled public String peerSupportSignedBy;
+        @AuraEnabled public Date peerSupportSignedDate;
         
         // Current user info for signature filename
         @AuraEnabled public Map<String, Object> currentUser;
@@ -1084,8 +1347,9 @@ public with sharing class PendingDocumentationController {
         try {
             if (recordType == 'Interaction') {
                 List<SObject> records = Database.query(
-                    'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, ' +
-                    'Description_of_Services__c, Response_and_Progress__c, Plan__c, Chart_Note__c, MeetingNotes, ' +
+                    'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose' +
+                    buildInteractionSummaryOptionalSelectClause(new List<String>{ 'Completed_On__c', 'Signed_Date__c' }) +
+                    ', Description_of_Services__c, Response_and_Progress__c, Plan__c, Chart_Note__c, MeetingNotes, ' +
                     'Start_Time__c, End_Time__c, ' +
                     'Manager_Signed__c, Manager_Signed_Date__c, Manager_Approver__r.Name, Requires_Manager_Approval__c, ' +
                     'CreatedById, CreatedBy.Name, CreatedBy.Title, CreatedDate, ' +
@@ -1125,10 +1389,10 @@ public with sharing class PendingDocumentationController {
                 Datetime endDt = (Datetime)record.get('End_Time__c');
 
                 if (startDt != null) {
-                    dto.startTime = formatTime(startDt.time());
+                    dto.startTime = formatDateTimeInMountain(startDt, 'h:mm a');
                 }
                 if (endDt != null) {
-                    dto.endTime = formatTime(endDt.time());
+                    dto.endTime = formatDateTimeInMountain(endDt, 'h:mm a');
                 }
 
                 dto.createdById = (Id)record.get('CreatedById');
@@ -1161,15 +1425,31 @@ public with sharing class PendingDocumentationController {
                 dto.requiresManagerApproval = requiresManagerApprovalObj != null && (Boolean)requiresManagerApprovalObj == true;
                 Object managerSignedObj = record.get('Manager_Signed__c');
                 dto.managerSigned = managerSignedObj != null ? (Boolean)managerSignedObj : false;
-                dto.managerSignedDate = (Date)record.get('Manager_Signed_Date__c');
+                dto.managerSignedDate = toDateFromTemporal(record.get('Manager_Signed_Date__c'));
                 dto.managerSignedBy = (String)record.getSObject('Manager_Approver__r')?.get('Name');
+                dto.lateEntryManagerApprovalRequired = isLateEntryManagerApprovalRequired(record, false);
                 if (!dto.requiresManagerApproval && (dto.managerSigned || dto.managerSignedDate != null || String.isNotBlank(dto.managerSignedBy))) {
                     dto.requiresManagerApproval = true;
                 }
 
-                // Try to get the attached document
+                // Try to get the attached document — PDF primary, DOCX as Word source
                 try {
-                    List<ContentDocumentLink> docLinks = [
+                    // PDF first
+                    List<ContentDocumentLink> pdfLinks = [
+                        SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.LatestPublishedVersionId
+                        FROM ContentDocumentLink
+                        WHERE LinkedEntityId = :recordId
+                        AND ContentDocument.FileExtension = 'pdf'
+                        ORDER BY ContentDocument.CreatedDate DESC
+                        LIMIT 1
+                    ];
+                    if (!pdfLinks.isEmpty()) {
+                        dto.documentId = pdfLinks[0].ContentDocumentId;
+                        dto.contentVersionId = pdfLinks[0].ContentDocument.LatestPublishedVersionId;
+                        dto.documentTitle = pdfLinks[0].ContentDocument.Title;
+                    }
+                    // DOCX as Word source (always query)
+                    List<ContentDocumentLink> docxLinks = [
                         SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.LatestPublishedVersionId
                         FROM ContentDocumentLink
                         WHERE LinkedEntityId = :recordId
@@ -1177,10 +1457,15 @@ public with sharing class PendingDocumentationController {
                         ORDER BY ContentDocument.CreatedDate DESC
                         LIMIT 1
                     ];
-                    if (!docLinks.isEmpty()) {
-                        dto.documentId = docLinks[0].ContentDocumentId;
-                        dto.contentVersionId = docLinks[0].ContentDocument.LatestPublishedVersionId;
-                        dto.documentTitle = docLinks[0].ContentDocument.Title;
+                    if (!docxLinks.isEmpty()) {
+                        dto.wordDocumentId = docxLinks[0].ContentDocumentId;
+                        dto.wordContentVersionId = docxLinks[0].ContentDocument.LatestPublishedVersionId;
+                        // Backward compat: if no PDF found, use DOCX as primary
+                        if (dto.documentId == null) {
+                            dto.documentId = docxLinks[0].ContentDocumentId;
+                            dto.contentVersionId = docxLinks[0].ContentDocument.LatestPublishedVersionId;
+                            dto.documentTitle = docxLinks[0].ContentDocument.Title;
+                        }
                     }
                 } catch (Exception e) {
                     // Document query failed, continue without it
@@ -1189,14 +1474,28 @@ public with sharing class PendingDocumentationController {
 
             } else if (recordType == 'Interview') {
                 // For interviews, we need to get content differently
+                // Build Interview query — include care plan fields if they exist on Interview__c
+                Map<String, Schema.SObjectField> ivQueryFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+                List<String> ivSelectList = new List<String>{
+                    'Id', 'Name', 'Started_On__c', 'Completed_On__c', 'Status__c', 'Interaction_Summary__c',
+                    'Manager_Signed__c', 'Manager_Signed_Date__c', 'Manager_Approver__r.Name',
+                    'CaseManager_Signed__c', 'CaseManager_Signed_By__c', 'CaseManager_Signed_By__r.Name', 'Date_CaseManager_Signed__c',
+                    'PeerSupport_Signed__c', 'PeerSupport_Signed_By__c', 'PeerSupport_Signed_By__r.Name', 'Date_PeerSupport_Signed__c',
+                    'Requires_Manager_Approval__c', 'CreatedById', 'CreatedBy.Name', 'CreatedBy.Title',
+                    'CreatedDate', 'Case__c', 'Case__r.CaseNumber', 'Case__r.AccountId',
+                    'Case__r.Account.Name', 'Case__r.Account.PersonBirthdate',
+                    'Case__r.Account.PersonPronouns', 'InterviewTemplateVersion__r.InterviewTemplate__r.Name',
+                    'Interaction_Summary__r.Date_of_Interaction__c', 'Interaction_Summary__r.Start_Time__c'
+                };
+                for (String f : new List<String>{
+                    'Discharge_Plan__c', 'Expected_Discharge_Date__c', 'Next_Review_Date__c',
+                    'Last_Review_Date__c', 'Consent_Participated__c', 'Documentation_Offered__c'
+                }) {
+                    if (ivQueryFields.containsKey(f.toLowerCase())) ivSelectList.add(f);
+                }
                 List<SObject> records = Database.query(
-                    'SELECT Id, Name, Started_On__c, Status__c, Interaction_Summary__c, ' +
-                    'Manager_Signed__c, Manager_Signed_Date__c, Manager_Approver__r.Name, Requires_Manager_Approval__c, ' +
-                    'CreatedById, CreatedBy.Name, CreatedBy.Title, CreatedDate, ' +
-                    'Case__c, Case__r.CaseNumber, Case__r.AccountId, Case__r.Account.Name, ' +
-                    'Case__r.Account.PersonBirthdate, Case__r.Account.PersonPronouns, ' +
-                    'InterviewTemplateVersion__r.InterviewTemplate__r.Name ' +
-                    'FROM Interview__c WHERE Id = :recordId LIMIT 1'
+                    'SELECT ' + String.join(ivSelectList, ', ') +
+                    ' FROM Interview__c WHERE Id = :recordId LIMIT 1'
                 );
 
                 if (records.isEmpty()) {
@@ -1210,7 +1509,11 @@ public with sharing class PendingDocumentationController {
                 }
                 dto.id = (Id)record.get('Id');
                 dto.name = (String)record.get('Name');
-                dto.dateOfInteraction = ((Datetime)record.get('Started_On__c'))?.date();
+                Datetime startedOn = (Datetime)record.get('Started_On__c');
+                dto.dateOfInteraction = startedOn != null
+                    ? Date.valueOf(startedOn.format('yyyy-MM-dd', MOUNTAIN_TIMEZONE))
+                    : null;
+                dto.startTime = startedOn != null ? formatDateTimeInMountain(startedOn, 'h:mm a') : null;
                 dto.purpose = 'Interview: ' + (String)record.get('Status__c');
                 dto.createdById = (Id)record.get('CreatedById');
                 dto.createdByName = (String)record.getSObject('CreatedBy')?.get('Name');
@@ -1222,8 +1525,12 @@ public with sharing class PendingDocumentationController {
                 String interviewTemplateName = (String)record.getSObject('InterviewTemplateVersion__r')
                     ?.getSObject('InterviewTemplate__r')
                     ?.get('Name');
-                dto.showCarePlanConsent = String.isNotBlank(interviewTemplateName)
-                    && interviewTemplateName.toLowerCase().contains('treatment plan');
+                String interviewName = (String)record.get('Name');
+                Boolean isTreatmentPlanInterview =
+                    (String.isNotBlank(interviewTemplateName) && interviewTemplateName.toLowerCase().contains('treatment plan'))
+                    || (String.isNotBlank(interviewName) && interviewName.toLowerCase().contains('treatment plan'));
+                dto.showCarePlanConsent = isTreatmentPlanInterview;
+                Boolean hasCarePlanSnapshot = false;
 
                 // Case/Client info via Case relationship
                 dto.caseId = (Id)record.get('Case__c');
@@ -1256,10 +1563,10 @@ public with sharing class PendingDocumentationController {
                             Datetime startDt = (Datetime)interaction.get('Start_Time__c');
                             Datetime endDt = (Datetime)interaction.get('End_Time__c');
                             if (startDt != null) {
-                                dto.startTime = formatTime(startDt.time());
+                                dto.startTime = formatDateTimeInMountain(startDt, 'h:mm a');
                             }
                             if (endDt != null) {
-                                dto.endTime = formatTime(endDt.time());
+                                dto.endTime = formatDateTimeInMountain(endDt, 'h:mm a');
                             }
                         }
                     }
@@ -1274,51 +1581,57 @@ public with sharing class PendingDocumentationController {
                     System.debug('Could not fetch Interview responses: ' + e.getMessage());
                 }
 
-                // Fetch Care Plan fields for Treatment Plan display
-                if (dto.showCarePlanConsent) {
-                    try {
-                        if (dto.caseId != null || dto.clientId != null) {
-                            Map<String, Schema.SObjectField> carePlanFields = Schema.getGlobalDescribe().get('CarePlan').getDescribe().fields.getMap();
-                            List<String> selectFields = new List<String>{ 'Id' };
-                            if (carePlanFields.containsKey('Expected_Discharge_Date__c')) {
-                                selectFields.add('Expected_Discharge_Date__c');
-                            }
-                            if (carePlanFields.containsKey('Discharge_Plan__c')) {
-                                selectFields.add('Discharge_Plan__c');
-                            }
-                            if (carePlanFields.containsKey('Next_Review_Date__c')) {
-                                selectFields.add('Next_Review_Date__c');
-                            }
-                            if (carePlanFields.containsKey('Care_Plan_Reviewed__c')) {
-                                selectFields.add('Care_Plan_Reviewed__c');
-                            }
-                            if (carePlanFields.containsKey('Documentation_Offered__c')) {
-                                selectFields.add('Documentation_Offered__c');
-                            }
+                // Fetch Care Plan fields for Interview display — read from Interview__c first.
+                // Do this even when template-name detection fails so completed docs still show snapshot values.
+                try {
+                    if (ivQueryFields.containsKey('discharge_plan__c'))
+                        dto.carePlanDischargePlan = (String)record.get('Discharge_Plan__c');
+                    if (ivQueryFields.containsKey('expected_discharge_date__c'))
+                        dto.carePlanDischargeDate = (Date)record.get('Expected_Discharge_Date__c');
+                    if (ivQueryFields.containsKey('next_review_date__c'))
+                        dto.carePlanNextReviewDate = (Date)record.get('Next_Review_Date__c');
+                    if (ivQueryFields.containsKey('consent_participated__c')) {
+                        Object v = record.get('Consent_Participated__c');
+                        dto.carePlanConsentParticipated = v != null ? (Boolean)v : null;
+                    }
+                    if (ivQueryFields.containsKey('documentation_offered__c')) {
+                        Object v = record.get('Documentation_Offered__c');
+                        dto.carePlanConsentOffered = v != null ? (Boolean)v : null;
+                    }
+                } catch (Exception e) {
+                    System.debug('Could not read care plan fields from Interview: ' + e.getMessage());
+                }
 
-                            if (selectFields.size() > 1) {
-                                SObject plan = CarePlanService.fetchCarePlan(dto.caseId, dto.clientId, selectFields);
-                                if (plan != null) {
-                                    if (carePlanFields.containsKey('Expected_Discharge_Date__c')) {
-                                        dto.carePlanDischargeDate = (Date)plan.get('Expected_Discharge_Date__c');
-                                    }
-                                    if (carePlanFields.containsKey('Discharge_Plan__c')) {
-                                        dto.carePlanDischargePlan = (String)plan.get('Discharge_Plan__c');
-                                    }
-                                    if (carePlanFields.containsKey('Next_Review_Date__c')) {
-                                        dto.carePlanNextReviewDate = (Date)plan.get('Next_Review_Date__c');
-                                    }
-                                    if (carePlanFields.containsKey('Care_Plan_Reviewed__c')) {
-                                        dto.carePlanConsentParticipated = (Boolean)plan.get('Care_Plan_Reviewed__c');
-                                    }
-                                    if (carePlanFields.containsKey('Documentation_Offered__c')) {
-                                        dto.carePlanConsentOffered = (Boolean)plan.get('Documentation_Offered__c');
-                                    }
-                                }
-                            }
+                hasCarePlanSnapshot =
+                    String.isNotBlank(dto.carePlanDischargePlan) ||
+                    dto.carePlanDischargeDate != null ||
+                    dto.carePlanNextReviewDate != null ||
+                    dto.carePlanConsentParticipated != null ||
+                    dto.carePlanConsentOffered != null;
+
+                // Fallback to CarePlan only for Treatment Plan interviews that don't carry snapshot values.
+                if (dto.showCarePlanConsent && dto.caseId != null && !hasCarePlanSnapshot) {
+                    try {
+                        List<SObject> cps = [
+                            SELECT Id, CaseId, Discharge_Plan__c, Expected_Discharge_Date__c,
+                                   Next_Review_Date__c, Care_Plan_Reviewed__c, Documentation_Offered__c
+                            FROM CarePlan
+                            WHERE CaseId = :dto.caseId
+                            ORDER BY LastModifiedDate DESC
+                            LIMIT 1
+                        ];
+                        if (!cps.isEmpty()) {
+                            SObject cp = cps[0];
+                            dto.carePlanDischargePlan = (String) cp.get('Discharge_Plan__c');
+                            dto.carePlanDischargeDate = (Date) cp.get('Expected_Discharge_Date__c');
+                            dto.carePlanNextReviewDate = (Date) cp.get('Next_Review_Date__c');
+                            Object reviewed = cp.get('Care_Plan_Reviewed__c');
+                            Object offered = cp.get('Documentation_Offered__c');
+                            dto.carePlanConsentParticipated = reviewed != null ? (Boolean) reviewed : null;
+                            dto.carePlanConsentOffered = offered != null ? (Boolean) offered : null;
                         }
-                    } catch (Exception e) {
-                        System.debug('Could not fetch CarePlan details: ' + e.getMessage());
+                    } catch (Exception cpEx) {
+                        System.debug('Could not read care plan fallback fields from CarePlan: ' + cpEx.getMessage());
                     }
                 }
 
@@ -1337,36 +1650,80 @@ public with sharing class PendingDocumentationController {
                 dto.authorSignedDate = dto.createdDate?.date();
                 Object managerSignedObj = record.get('Manager_Signed__c');
                 dto.managerSigned = managerSignedObj != null ? (Boolean)managerSignedObj : false;
-                dto.managerSignedDate = (Date)record.get('Manager_Signed_Date__c');
+                dto.managerSignedDate = toDateFromTemporal(record.get('Manager_Signed_Date__c'));
                 dto.managerSignedBy = (String)record.getSObject('Manager_Approver__r')?.get('Name');
+                Object caseManagerSignedObj = record.get('CaseManager_Signed__c');
+                dto.caseManagerSigned = caseManagerSignedObj != null ? (Boolean)caseManagerSignedObj : false;
+                Datetime caseManagerSignedDt = (Datetime)record.get('Date_CaseManager_Signed__c');
+                dto.caseManagerSignedDate = caseManagerSignedDt != null ? caseManagerSignedDt.date() : null;
+                dto.caseManagerSignedBy = (String)record.getSObject('CaseManager_Signed_By__r')?.get('Name');
+                Object peerSupportSignedObj = record.get('PeerSupport_Signed__c');
+                dto.peerSupportSigned = peerSupportSignedObj != null ? (Boolean)peerSupportSignedObj : false;
+                Datetime peerSupportSignedDt = (Datetime)record.get('Date_PeerSupport_Signed__c');
+                dto.peerSupportSignedDate = peerSupportSignedDt != null ? peerSupportSignedDt.date() : null;
+                dto.peerSupportSignedBy = (String)record.getSObject('PeerSupport_Signed_By__r')?.get('Name');
+                dto.lateEntryManagerApprovalRequired = isLateEntryManagerApprovalRequired(record, true);
                 if (!dto.requiresManagerApproval && (dto.managerSigned || dto.managerSignedDate != null || String.isNotBlank(dto.managerSignedBy))) {
                     dto.requiresManagerApproval = true;
                 }
 
-                // Try to get the attached document for Interview
+                // Try to get the attached document for Interview — PDF primary, DOCX as Word source.
+                // Docgen uploads attach to the InteractionSummary when available.
                 try {
-                    List<ContentDocumentLink> docLinks = [
+                    Id linkedEntityId = interactionSummaryIdForRelated != null ? interactionSummaryIdForRelated : recordId;
+                    // PDF first
+                    List<ContentDocumentLink> pdfLinks = [
                         SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.LatestPublishedVersionId
                         FROM ContentDocumentLink
-                        WHERE LinkedEntityId = :recordId
+                        WHERE LinkedEntityId = :linkedEntityId
+                        AND ContentDocument.FileExtension = 'pdf'
+                        ORDER BY ContentDocument.CreatedDate DESC
+                        LIMIT 1
+                    ];
+                    if (!pdfLinks.isEmpty()) {
+                        dto.documentId = pdfLinks[0].ContentDocumentId;
+                        dto.contentVersionId = pdfLinks[0].ContentDocument.LatestPublishedVersionId;
+                        dto.documentTitle = pdfLinks[0].ContentDocument.Title;
+                    }
+                    // DOCX as Word source
+                    List<ContentDocumentLink> docxLinks = [
+                        SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.LatestPublishedVersionId
+                        FROM ContentDocumentLink
+                        WHERE LinkedEntityId = :linkedEntityId
                         AND ContentDocument.FileExtension = 'docx'
                         ORDER BY ContentDocument.CreatedDate DESC
                         LIMIT 1
                     ];
-                    if (!docLinks.isEmpty()) {
-                        dto.documentId = docLinks[0].ContentDocumentId;
-                        dto.contentVersionId = docLinks[0].ContentDocument.LatestPublishedVersionId;
-                        dto.documentTitle = docLinks[0].ContentDocument.Title;
+                    if (!docxLinks.isEmpty()) {
+                        dto.wordDocumentId = docxLinks[0].ContentDocumentId;
+                        dto.wordContentVersionId = docxLinks[0].ContentDocument.LatestPublishedVersionId;
+                        if (dto.documentId == null) {
+                            dto.documentId = docxLinks[0].ContentDocumentId;
+                            dto.contentVersionId = docxLinks[0].ContentDocument.LatestPublishedVersionId;
+                            dto.documentTitle = docxLinks[0].ContentDocument.Title;
+                        }
                     }
                 } catch (Exception e) {
                     System.debug('Could not fetch document: ' + e.getMessage());
+                }
+
+                // Fetch IDOC reference number (InterviewDocument__c.Name = IDOC-XXXX auto-number)
+                try {
+                    List<SObject> idocRecs = Database.query(
+                        'SELECT Name FROM InterviewDocument__c WHERE Interview__c = :recordId LIMIT 1'
+                    );
+                    if (!idocRecs.isEmpty()) {
+                        dto.referenceNumber = (String)idocRecs[0].get('Name');
+                    }
+                } catch (Exception e) {
+                    System.debug('Could not fetch IDOC reference: ' + e.getMessage());
                 }
             }
 
             // Fetch SSRS Assessment if linked to this note/interview
             try {
                 Id ssrsTargetId = interactionSummaryIdForRelated != null ? interactionSummaryIdForRelated : recordId;
-                dto.ssrsAssessment = fetchSsrsAssessment(ssrsTargetId);
+                dto.ssrsAssessment = fetchSsrsAssessment(ssrsTargetId, dto.dateOfInteraction, dto.startTime);
             } catch (Exception e) {
                 System.debug('Could not fetch SSRS Assessment: ' + e.getMessage());
             }
@@ -1389,9 +1746,9 @@ public with sharing class PendingDocumentationController {
                 System.debug('Could not fetch Benefits: ' + e.getMessage());
             }
 
-            // Fetch Diagnoses
+            // Fetch only diagnoses linked to this note/interview's interaction summary.
             try {
-                dto.diagnoses = fetchDiagnoses(dto.clientId, dto.caseId);
+                dto.diagnoses = fetchDiagnoses(interactionSummaryIdForRelated);
             } catch (Exception e) {
                 System.debug('Could not fetch Diagnoses: ' + e.getMessage());
             }
@@ -1434,6 +1791,7 @@ public with sharing class PendingDocumentationController {
         };
 
         List<String> valueFields = new List<String>{
+            'Response_Picklist__c',
             'Response_Value__c',
             'Response_Text__c',
             'Response_JSON__c',
@@ -1502,9 +1860,47 @@ public with sharing class PendingDocumentationController {
     }
 
     private static String resolveInterviewAnswerValue(SObject answer, List<String> valueFields, String responseType) {
-        String value;
+        List<String> orderedFields;
+        if (isAmbiguousRadioResponseType(responseType)) {
+            // "Radio" questions are ambiguous in legacy templates: some are numeric scales,
+            // some are boolean yes/no. Prefer numeric/text first, boolean as fallback.
+            orderedFields = new List<String>{
+                'Response_Number__c', 'Number_Value__c',
+                'Response_Picklist__c',
+                'Response_Value__c', 'Response_Text__c', 'Value__c', 'Answer_Value__c',
+                'Response_JSON__c',
+                'Response_Boolean__c', 'Boolean_Value__c',
+                'Response_Date__c', 'Date_Value__c',
+                'Response_Datetime__c', 'Datetime_Value__c'
+            };
+        } else if (isNumericResponseType(responseType)) {
+            orderedFields = new List<String>{
+                'Response_Number__c', 'Number_Value__c',
+                'Response_Value__c', 'Response_Text__c', 'Value__c', 'Answer_Value__c',
+                'Response_JSON__c', 'Response_Picklist__c',
+                'Response_Date__c', 'Date_Value__c',
+                'Response_Datetime__c', 'Datetime_Value__c'
+            };
+        } else if (isBooleanResponseType(responseType)) {
+            orderedFields = new List<String>{
+                'Response_Boolean__c', 'Boolean_Value__c',
+                'Response_Value__c', 'Response_Text__c', 'Value__c', 'Answer_Value__c',
+                'Response_JSON__c', 'Response_Picklist__c',
+                'Response_Date__c', 'Date_Value__c',
+                'Response_Datetime__c', 'Datetime_Value__c'
+            };
+        } else {
+            orderedFields = new List<String>{
+                'Response_Value__c', 'Response_Text__c', 'Value__c', 'Answer_Value__c',
+                'Response_JSON__c', 'Response_Picklist__c',
+                'Response_Date__c', 'Date_Value__c',
+                'Response_Datetime__c', 'Datetime_Value__c',
+                'Response_Number__c', 'Number_Value__c'
+            };
+        }
 
-        for (String fieldName : valueFields) {
+        String value;
+        for (String fieldName : orderedFields) {
             try {
                 Object fieldValue = answer.get(fieldName);
                 if (fieldValue != null) {
@@ -1526,23 +1922,98 @@ public with sharing class PendingDocumentationController {
             return value;
         }
 
-        String normalizedType = responseType != null ? responseType.toLowerCase() : '';
-        if (normalizedType == 'boolean' || normalizedType == 'checkbox' || value == 'true' || value == 'false') {
-            if (value == 'true') {
+        String jsonDisplay = parseInterviewJsonValue(value);
+        if (String.isNotBlank(jsonDisplay)) {
+            value = jsonDisplay;
+        }
+
+        value = normalizeBooleanDisplay(value, responseType);
+        value = normalizeNumericDisplay(value, responseType);
+
+        if (value != null && value.contains(';')) {
+            return String.join(value.split(';'), ', ');
+        }
+
+        return value;
+    }
+
+    private static Boolean isBooleanResponseType(String responseType) {
+        if (String.isBlank(responseType)) {
+            return false;
+        }
+        String normalized = responseType.toLowerCase();
+        return normalized.contains('boolean')
+            || normalized.contains('checkbox')
+            || normalized.contains('toggle')
+            || normalized.contains('yes/no');
+    }
+
+    private static Boolean isNumericResponseType(String responseType) {
+        if (String.isBlank(responseType)) {
+            return false;
+        }
+        String normalized = responseType.toLowerCase();
+        return normalized.contains('number')
+            || normalized.contains('numeric')
+            || normalized.contains('decimal')
+            || normalized.contains('integer')
+            || normalized.contains('scale')
+            || normalized.contains('rating')
+            || normalized.contains('score');
+    }
+
+    private static Boolean isAmbiguousRadioResponseType(String responseType) {
+        if (String.isBlank(responseType)) {
+            return false;
+        }
+        return responseType.trim().toLowerCase() == 'radio';
+    }
+
+    private static String normalizeBooleanDisplay(String value, String responseType) {
+        if (String.isBlank(value)) {
+            return value;
+        }
+
+        String normalized = value.trim().toLowerCase();
+        if (normalized == 'true') {
+            return 'Yes';
+        }
+        if (normalized == 'false') {
+            return 'No';
+        }
+
+        if (isBooleanResponseType(responseType)) {
+            if (normalized == '1') {
                 return 'Yes';
             }
-            if (value == 'false') {
+            if (normalized == '0') {
                 return 'No';
             }
         }
 
-        String jsonDisplay = parseInterviewJsonValue(value);
-        if (String.isNotBlank(jsonDisplay)) {
-            return jsonDisplay;
+        return value;
+    }
+
+    private static String normalizeNumericDisplay(String value, String responseType) {
+        if (String.isBlank(value)) {
+            return value;
         }
 
-        if (value.contains(';')) {
-            return String.join(value.split(';'), ', ');
+        String trimmed = value.trim();
+        Boolean looksNumeric = Pattern.matches('^-?\\d+(\\.\\d+)?$', trimmed);
+
+        if (!(isNumericResponseType(responseType) || isAmbiguousRadioResponseType(responseType) || looksNumeric)) {
+            return value;
+        }
+
+        if (trimmed.contains('.')) {
+            while (trimmed.endsWith('0')) {
+                trimmed = trimmed.substring(0, trimmed.length() - 1);
+            }
+            if (trimmed.endsWith('.')) {
+                trimmed = trimmed.substring(0, trimmed.length() - 1);
+            }
+            return String.isNotBlank(trimmed) ? trimmed : value;
         }
 
         return value;
@@ -1610,6 +2081,45 @@ public with sharing class PendingDocumentationController {
         String ampm = hour >= 12 ? 'PM' : 'AM';
         hour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
         return hour + ':' + (minute < 10 ? '0' : '') + minute + ' ' + ampm;
+    }
+
+    private static String formatDateTimeInMountain(Datetime value, String pattern) {
+        if (value == null) {
+            return null;
+        }
+        return value.format(pattern, MOUNTAIN_TIMEZONE);
+    }
+
+    private static Date toDateFromTemporal(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof DateTime) {
+            return ((DateTime)value).date();
+        }
+        if (value instanceof Date) {
+            return (Date)value;
+        }
+        return null;
+    }
+
+    private static void putTemporalNowIfFieldExists(SObject record, String fieldApiName) {
+        if (record == null || String.isBlank(fieldApiName)) {
+            return;
+        }
+
+        Map<String, Schema.SObjectField> fieldMap = record.getSObjectType().getDescribe().fields.getMap();
+        Schema.SObjectField fieldToken = fieldMap.get(fieldApiName);
+        if (fieldToken == null) {
+            return;
+        }
+
+        Schema.DisplayType fieldType = fieldToken.getDescribe().getType();
+        if (fieldType == Schema.DisplayType.Date) {
+            record.put(fieldApiName, Date.today());
+        } else if (fieldType == Schema.DisplayType.DateTime) {
+            record.put(fieldApiName, Datetime.now());
+        }
     }
 
     private static void logApprovalAudit(String actionType, Id recordId, String recordType, String details) {
@@ -1709,7 +2219,9 @@ public with sharing class PendingDocumentationController {
                 
             } else if (recordType == 'Interview') {
                 List<SObject> records = Database.query(
-                    'SELECT Id, Name, Manager_Approver__c, CreatedById, OwnerId, Case__c ' +
+                    'SELECT Id, Name, Manager_Approver__c, CreatedById, OwnerId, Case__c, ' +
+                    'CaseManager_Signed__c, CaseManager_Signed_By__c, ' +
+                    'PeerSupport_Signed__c, PeerSupport_Signed_By__c, Staff_Signed__c ' +
                     'FROM Interview__c WHERE Id = :recordId LIMIT 1'
                 );
                 if (records.isEmpty()) {
@@ -1739,17 +2251,46 @@ public with sharing class PendingDocumentationController {
                 if (approverId != currentUserId && !isDelegatedApprover && !hasSigningAuthority) {
                     throw new AuraHandledException('Only the assigned manager, delegated approver, or users with Signing Authority can reject this interview.');
                 }
-                
+
                 record.put('Manager_Signed__c', false);
-                record.put('Requires_Manager_Approval__c', false); // Return to author
-                
+                record.put('Requires_Manager_Approval__c', false); // Remove from manager queue — re-routing handled by updateInterviewSignatures
+                // Manager_Approver__c is intentionally preserved so re-signing routes back to the same approver
+
+                // Track rejection reason on the Interview (mirrors Interaction pattern)
+                Map<String, Schema.SObjectField> iFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+                if (iFields.containsKey('manager_rejected__c')) {
+                    record.put('Manager_Rejected__c', true);
+                }
+                if (iFields.containsKey('manager_rejection_reason__c')) {
+                    record.put('Manager_Rejection_Reason__c', rejectionReason);
+                }
+
+                // Clear all multi-signature fields so the plan re-enters the full signing chain.
+                // The content was rejected, so all prior signers (CM, PS, Clinician) must re-review.
+                record.put('Status__c', DocumentStatus.INTERVIEW_IN_PROGRESS);
+                if (iFields.containsKey('casemanager_signed__c')) {
+                    record.put('CaseManager_Signed__c', false);
+                    record.put('Date_CaseManager_Signed__c', null);
+                }
+                if (iFields.containsKey('peersupport_signed__c')) {
+                    record.put('PeerSupport_Signed__c', false);
+                    record.put('Date_PeerSupport_Signed__c', null);
+                }
+                if (iFields.containsKey('staff_signed__c')) {
+                    record.put('Staff_Signed__c', false);
+                    record.put('Date_Staff_Signed__c', null);
+                }
+                if (iFields.containsKey('clinician_signed__c')) {
+                    record.put('Clinician_Signed__c', false);
+                }
+
                 // Flag for action by owner
                 Id ownerId = (Id)record.get('OwnerId');
                 record.put('Action_Required__c', true);
                 record.put('Action_Assigned_To__c', ownerId);
                 record.put('Action_Escalated_By__c', currentUserId);
                 record.put('Action_Notes__c', 'Rejected: ' + rejectionReason);
-                
+
                 update record;
 
                 String rejectDetails = 'Manager co-sign rejected.';
@@ -1764,6 +2305,24 @@ public with sharing class PendingDocumentationController {
                 String docName = (String)record.get('Name');
                 if (ownerId != null && ownerId != currentUserId) {
                     PendingDocNotificationService.notifySubmitterOfRejection(ownerId, caseId, docName, rejectionReason);
+                }
+
+                // Notify co-signers (Case Manager and Peer Support) whose signatures were cleared.
+                // They were assigned via Goal Modality and must re-sign after requested changes are made.
+                // Each gets a notification that includes the rejection reason so they understand context.
+                String reSignMsg = 'Treatment Plan rejected by manager. Reason: ' + rejectionReason.abbreviate(200) +
+                                   '. Changes have been requested — your re-signature will be required once the author re-submits.';
+                Id cmSignedBy = (Id)record.get('CaseManager_Signed_By__c');
+                if (cmSignedBy != null && cmSignedBy != currentUserId && cmSignedBy != ownerId) {
+                    PendingDocNotificationService.notifyUserOfActionItem(
+                        cmSignedBy, caseId, docName, reSignMsg, recordId, recordType
+                    );
+                }
+                Id psSignedBy = (Id)record.get('PeerSupport_Signed_By__c');
+                if (psSignedBy != null && psSignedBy != currentUserId && psSignedBy != ownerId) {
+                    PendingDocNotificationService.notifyUserOfActionItem(
+                        psSignedBy, caseId, docName, reSignMsg, recordId, recordType
+                    );
                 }
             }
             
@@ -1794,7 +2353,7 @@ public with sharing class PendingDocumentationController {
             
             if (recordType == 'Interaction') {
                 List<SObject> records = Database.query(
-                    'SELECT Id, Name, Manager_Approver__c, Manager_Signed__c, CreatedById, RelatedRecordId ' +
+                    'SELECT Id, Name, Manager_Approver__c, Manager_Signed__c, Completed_On__c, CreatedById, RelatedRecordId ' +
                     'FROM InteractionSummary WHERE Id = :recordId LIMIT 1'
                 );
                 if (records.isEmpty()) {
@@ -1833,13 +2392,16 @@ public with sharing class PendingDocumentationController {
                 }
                 
                 record.put('Manager_Signed__c', true);
-                record.put('Manager_Signed_Date__c', Date.today());
+                putTemporalNowIfFieldExists(record, 'Manager_Signed_Date__c');
                 record.put('Manager_Approval_Notes__c', approvalNotes);
                 // Note: Manager_Signature__c is saved directly by the signature pad component
                 
                 record.put('Manager_Rejected__c', false); 
                 record.put('Manager_Rejection_Reason__c', null);
-                record.put('Status', 'Completed');
+                record.put('Status', DocumentStatus.NOTE_COMPLETED);
+                if (record.get('Completed_On__c') == null) {
+                    putTemporalNowIfFieldExists(record, 'Completed_On__c');
+                }
                 update record;
 
                 String approveDetails = 'Manager co-sign approved.';
@@ -1882,7 +2444,9 @@ public with sharing class PendingDocumentationController {
                 
             } else if (recordType == 'Interview') {
                  List<SObject> records = Database.query(
-                    'SELECT Id, Name, Manager_Approver__c, OwnerId, Case__c, Interaction_Summary__c ' +
+                    'SELECT Id, Name, Manager_Approver__c, OwnerId, Case__c, Interaction_Summary__c, ' +
+                    'Staff_Signed__c, CaseManager_Signed__c, CaseManager_Signed_By__c, ' +
+                          'PeerSupport_Signed__c, PeerSupport_Signed_By__c, Completed_On__c ' +
                     'FROM Interview__c WHERE Id = :recordId LIMIT 1'
                 );
                 
@@ -1915,22 +2479,74 @@ public with sharing class PendingDocumentationController {
                          record.put('Manager_Approver__c', currentUserId);
                      }
                 }
+
+                // Server-side gate: manager approval is only valid after all assigned
+                // non-manager signatures are complete.
+                Map<String, Schema.SObjectField> interviewFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+                Boolean staffSigned = record.get('Staff_Signed__c') != null && (Boolean)record.get('Staff_Signed__c') == true;
+                Boolean clinicianSigned = false;
+                if (interviewFields.containsKey('clinician_signed__c')) {
+                    clinicianSigned = record.get('Clinician_Signed__c') != null && (Boolean)record.get('Clinician_Signed__c') == true;
+                }
+                Boolean authorSigned = staffSigned || clinicianSigned;
+                if (!authorSigned) {
+                    throw new AuraHandledException('Author signature is required before manager approval.');
+                }
+
+                Boolean cmComplete = record.get('CaseManager_Signed_By__c') == null ||
+                    (record.get('CaseManager_Signed__c') != null && (Boolean)record.get('CaseManager_Signed__c') == true);
+                Boolean psComplete = record.get('PeerSupport_Signed_By__c') == null ||
+                    (record.get('PeerSupport_Signed__c') != null && (Boolean)record.get('PeerSupport_Signed__c') == true);
+
+                if (!cmComplete || !psComplete) {
+                    throw new AuraHandledException('All assigned Case Manager and Peer Support signatures are required before manager approval.');
+                }
                 
                 record.put('Manager_Signed__c', true);
-                record.put('Manager_Signed_Date__c', Date.today());
-                Map<String, Schema.SObjectField> interviewFields = Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap();
+                putTemporalNowIfFieldExists(record, 'Manager_Signed_Date__c');
+                record.put('Manager_Signed_By__c', currentUserId);
                 if (interviewFields.containsKey('Manager_Approval_Notes__c')) {
                     record.put('Manager_Approval_Notes__c', approvalNotes);
                 }
                 
-                 if (signatureData != null && interviewFields.containsKey('Manager_Signature__c')) {
-                    record.put('Manager_Signature__c', signatureData); 
+                // signatureData is a ContentVersion ID from the signature pad — convert to ContentDocument ID
+                if (String.isNotBlank(signatureData)) {
+                    String contentDocId = resolveToContentDocumentId(signatureData);
+                    if (String.isNotBlank(contentDocId)) {
+                        record.put('Manager_Signature_File_Id__c', contentDocId);
+                    }
                 }
                 
-                record.put('Manager_Rejected__c', false);
-                record.put('Manager_Rejection_Reason__c', null);
-                record.put('Status__c', 'Completed'); 
+                if (interviewFields.containsKey('manager_rejected__c')) {
+                    record.put('Manager_Rejected__c', false);
+                }
+                if (interviewFields.containsKey('manager_rejection_reason__c')) {
+                    record.put('Manager_Rejection_Reason__c', null);
+                }
+                record.put('Requires_Manager_Approval__c', false); // clear flag now that manager has signed
+                record.put('Status__c', DocumentStatus.INTERVIEW_SIGNED);
+                if (record.get('Completed_On__c') == null) {
+                    putTemporalNowIfFieldExists(record, 'Completed_On__c');
+                }
                 update record;
+
+                // Also clear approval flag on linked InteractionSummary to prevent orphaned pending items
+                Id linkedSummaryId = (Id)record.get('Interaction_Summary__c');
+                if (linkedSummaryId != null) {
+                    try {
+                        List<SObject> linkedSummaries = Database.query(
+                            'SELECT Id, Requires_Manager_Approval__c, Manager_Signed__c FROM InteractionSummary WHERE Id = :linkedSummaryId LIMIT 1'
+                        );
+                        if (!linkedSummaries.isEmpty()) {
+                            linkedSummaries[0].put('Requires_Manager_Approval__c', false);
+                            linkedSummaries[0].put('Manager_Signed__c', true);
+                            putTemporalNowIfFieldExists(linkedSummaries[0], 'Manager_Signed_Date__c');
+                            update linkedSummaries[0];
+                        }
+                    } catch (Exception summaryEx) {
+                        System.debug('Non-fatal: could not clear approval flag on linked summary: ' + summaryEx.getMessage());
+                    }
+                }
 
                 String approveDetails = 'Manager co-sign approved.';
                 if (String.isNotBlank(approvalNotes)) {
@@ -1939,6 +2555,13 @@ public with sharing class PendingDocumentationController {
                 approveDetails += ' ApproverId: ' + String.valueOf(currentUserId);
                 approveDetails += ' Delegated: ' + String.valueOf(isDelegatedApprover);
                 logApprovalAudit('CO_SIGN_APPROVED', recordId, recordType, approveDetails);
+
+                // Activate the Treatment Plan now that all signatures (including manager) are collected.
+                try {
+                    TreatmentPlanActivationService.finalizeTreatmentPlan(recordId);
+                } catch (Exception activationEx) {
+                    System.debug('⚠️ Treatment Plan activation error after manager approval (non-fatal): ' + activationEx.getMessage());
+                }
 
                 // Regenerate interview document with manager signature asynchronously
                 try {
@@ -2002,15 +2625,17 @@ public with sharing class PendingDocumentationController {
         
         try {
             User currentUser = [
-                SELECT Id, Name, Alias, ManagerId, Manager.Name 
+                SELECT Id, Name, Alias
                 FROM User 
                 WHERE Id = :UserInfo.getUserId() 
                 LIMIT 1
             ];
             
-            result.put('hasManager', currentUser.ManagerId != null);
-            result.put('managerId', currentUser.ManagerId);
-            result.put('managerName', currentUser.Manager?.Name);
+            // Co-sign approvers are selected from Signing_Authority users.
+            // Keep manager fields intentionally empty so UI never pre-fills from User.Manager.
+            result.put('hasManager', false);
+            result.put('managerId', null);
+            result.put('managerName', null);
             result.put('currentUserName', currentUser.Name);
             result.put('userAlias', currentUser.Alias);
             
@@ -2059,19 +2684,11 @@ public with sharing class PendingDocumentationController {
     @AuraEnabled
     public static String requestManagerApproval(Id recordId, String recordType, Id approverId) {
         try {
-            Id currentUserId = UserInfo.getUserId();
             Id targetApproverId = approverId;
-            
-            // If no specific approver provided, try to find manager
-            if (targetApproverId == null) {
-                User currentUser = [SELECT Id, ManagerId FROM User WHERE Id = :currentUserId LIMIT 1];
-                if (currentUser.ManagerId != null) {
-                    targetApproverId = currentUser.ManagerId;
-                }
-            }
+            Boolean shouldNotifyManagerNow = false;
 
             if (targetApproverId == null) {
-                throw new AuraHandledException('No approver selected and no manager assigned. Please select an approver.');
+                throw new AuraHandledException('Please select an approver from the Signing Authority list.');
             }
             
             String noteName = '';
@@ -2091,12 +2708,15 @@ public with sharing class PendingDocumentationController {
                 update interaction;
                 noteName = (String)interaction.get('Name');
                 caseId = (Id)interaction.get('RelatedRecordId');
+                shouldNotifyManagerNow = true;
 
                 String requestDetails = 'Manager co-sign requested. ApproverId: ' + String.valueOf(targetApproverId);
                 logApprovalAudit('CO_SIGN_REQUESTED', recordId, recordType, requestDetails);
             } else if (recordType == 'Interview') {
                 List<SObject> interviews = Database.query(
-                    'SELECT Id, Name, Case__c, Interaction_Summary__c ' +
+                    'SELECT Id, Name, Case__c, Interaction_Summary__c, ' +
+                    'CaseManager_Signed_By__c, CaseManager_Signed__c, ' +
+                    'PeerSupport_Signed_By__c, PeerSupport_Signed__c ' +
                     'FROM Interview__c WHERE Id = :recordId LIMIT 1'
                 );
                 if (interviews.isEmpty()) {
@@ -2106,6 +2726,18 @@ public with sharing class PendingDocumentationController {
                 noteName = (String)interview.get('Name');
                 caseId = (Id)interview.get('Case__c');
 
+                // Set Requires_Manager_Approval__c and Manager_Approver__c directly on Interview__c
+                // so that updateInterviewSignatures can read them and gate activation correctly
+                interview.put('Requires_Manager_Approval__c', true);
+                interview.put('Manager_Approver__c', targetApproverId);
+                interview.put('Manager_Signed__c', false);
+                interview.put('Manager_Signed_Date__c', null);
+                update interview;
+
+                String requestDetails = 'Manager co-sign requested. ApproverId: ' + String.valueOf(targetApproverId);
+                logApprovalAudit('CO_SIGN_REQUESTED', recordId, recordType, requestDetails);
+
+                // Also mirror onto the InteractionSummary so notes-based queries also reflect pending approval
                 Id summaryId = (Id)interview.get('Interaction_Summary__c');
                 if (summaryId != null) {
                     List<SObject> summaries = Database.query(
@@ -2120,17 +2752,27 @@ public with sharing class PendingDocumentationController {
                         summary.put('Manager_Signed_Date__c', null);
                         summary.put('Manager_Rejected__c', false);
                         summary.put('Manager_Rejection_Reason__c', null);
+                        // Link Interview__c so getPendingManagerApprovals skips it (shows via Interview path)
+                        summary.put('Interview__c', recordId);
                         update summary;
-
-                        String requestDetails = 'Manager co-sign requested. ApproverId: ' + String.valueOf(targetApproverId);
-                        logApprovalAudit('CO_SIGN_REQUESTED', recordId, recordType, requestDetails);
                         logApprovalAudit('CO_SIGN_REQUESTED', summaryId, 'Interaction', requestDetails);
                     }
                 }
+
+                // If CM/Peer signatures are already complete (sign-now flow), notify manager now.
+                // If co-signers are still pending (assign-for-later flow), notification is sent later
+                // when updateInterviewSignatures confirms all co-signers are complete.
+                Boolean hasPendingCaseManager =
+                    interview.get('CaseManager_Signed_By__c') != null &&
+                    !(interview.get('CaseManager_Signed__c') != null && (Boolean)interview.get('CaseManager_Signed__c'));
+                Boolean hasPendingPeerSupport =
+                    interview.get('PeerSupport_Signed_By__c') != null &&
+                    !(interview.get('PeerSupport_Signed__c') != null && (Boolean)interview.get('PeerSupport_Signed__c'));
+                shouldNotifyManagerNow = !(hasPendingCaseManager || hasPendingPeerSupport);
             }
             
-            // Send notification to manager/approver - targets the Case so they land on Pending Documentation tab
-            if (caseId != null) {
+            // Notify manager immediately when ready for manager review.
+            if (caseId != null && shouldNotifyManagerNow) {
                 try {
                     PendingDocNotificationService.notifyApproverOfCoSignRequest(
                         targetApproverId, caseId, noteName, recordId, recordType
@@ -2414,11 +3056,11 @@ public with sharing class PendingDocumentationController {
     /**
      * Fetch SSRS Assessment linked to this InteractionSummary
      */
-    private static Map<String, Object> fetchSsrsAssessment(Id interactionSummaryId) {
+    private static Map<String, Object> fetchSsrsAssessment(Id interactionSummaryId, Date contextInteractionDate, String contextStartTime) {
         try {
             List<SObject> assessments = Database.query(
                 'SELECT Id, Name, Assessment_Date__c, Risk_Level__c, Total_Score__c, ' +
-                'Status__c, Assessed_By__r.Name ' +
+                'Status__c, Assessed_By__r.Name, Response_Data__c ' +
                 'FROM Assessment__c ' +
                 'WHERE Interaction_Summary__c = :interactionSummaryId ' +
                 'AND Assessment_Type__c = \'SSRS\' ' +
@@ -2430,11 +3072,28 @@ public with sharing class PendingDocumentationController {
                 Map<String, Object> data = new Map<String, Object>();
                 data.put('id', assessment.get('Id'));
                 data.put('name', assessment.get('Name'));
-                data.put('assessmentDate', assessment.get('Assessment_Date__c'));
+                Date interactionDate = contextInteractionDate != null
+                    ? contextInteractionDate
+                    : (Date)assessment.get('Assessment_Date__c');
+                data.put('assessmentDate', interactionDate);
+                data.put('interactionDate', interactionDate);
+                data.put('interactionStartTime', contextStartTime);
                 data.put('riskLevel', assessment.get('Risk_Level__c'));
                 data.put('totalScore', assessment.get('Total_Score__c'));
                 data.put('status', assessment.get('Status__c'));
                 data.put('assessedBy', assessment.getSObject('Assessed_By__r')?.get('Name'));
+
+                // Parse Response_Data__c to build full field-level responses
+                String responseJson = (String)assessment.get('Response_Data__c');
+                if (String.isNotBlank(responseJson)) {
+                    try {
+                        Map<String, Object> responseData = (Map<String, Object>)JSON.deserializeUntyped(responseJson);
+                        data.put('responses', InterviewDocumentService.buildSsrsResponseItemsFromData(responseData));
+                    } catch (Exception parseEx) {
+                        System.debug('Could not parse SSRS Response_Data__c: ' + parseEx.getMessage());
+                    }
+                }
+
                 return data;
             }
         } catch (Exception e) {
@@ -2466,11 +3125,26 @@ public with sharing class PendingDocumentationController {
                 }
             }
             
-            // Query GoalAssignments with Goal info
+            // Query GoalAssignments using the same schema-safe name fields used elsewhere.
+            Map<String, Schema.SObjectField> goalFields = Schema.getGlobalDescribe()
+                .get('GoalAssignment').getDescribe().fields.getMap();
+            String goalNameField = resolveFieldApiName(goalFields, new List<String>{ 'CustomGoalName' });
+            String altGoalNameField = resolveFieldApiName(goalFields, new List<String>{ 'Goal_Name__c' });
+            String recordNameField = resolveFieldApiName(goalFields, new List<String>{ 'Name' });
             Map<Id, SObject> goalAssignmentMap = new Map<Id, SObject>();
             if (!goalAssignmentIds.isEmpty()) {
+                List<String> selectFields = new List<String>{ 'Id' };
+                if (recordNameField != null) {
+                    selectFields.add(recordNameField);
+                }
+                if (goalNameField != null) {
+                    selectFields.add(goalNameField);
+                }
+                if (altGoalNameField != null) {
+                    selectFields.add(altGoalNameField);
+                }
                 List<SObject> goalAssignments = Database.query(
-                    'SELECT Id, GoalId, Goal.Name, Goal.Description__c ' +
+                    'SELECT ' + String.join(selectFields, ', ') + ' ' +
                     'FROM GoalAssignment ' +
                     'WHERE Id IN :goalAssignmentIds'
                 );
@@ -2485,11 +3159,14 @@ public with sharing class PendingDocumentationController {
                 Id gaId = (Id)detail.get('GoalAssignmentId');
                 if (gaId != null && goalAssignmentMap.containsKey(gaId)) {
                     SObject ga = goalAssignmentMap.get(gaId);
-                    SObject goalObj = ga.getSObject('Goal');
-                    if (goalObj != null) {
-                        goal.put('name', goalObj.get('Name'));
-                        goal.put('description', goalObj.get('Description__c'));
+                    Object goalName = goalNameField != null ? ga.get(goalNameField) : null;
+                    if (goalName == null && altGoalNameField != null) {
+                        goalName = ga.get(altGoalNameField);
                     }
+                    if (goalName == null && recordNameField != null) {
+                        goalName = ga.get(recordNameField);
+                    }
+                    goal.put('name', goalName);
                 }
                 goal.put('narrative', detail.get('Narrative__c'));
                 goal.put('progressBefore', detail.get('ProgressBefore__c'));
@@ -2537,6 +3214,9 @@ public with sharing class PendingDocumentationController {
         if (goalFields.containsKey('description')) {
             selectFields.add('Description');
         }
+        if (goalFields.containsKey('service_modality__c')) {
+            selectFields.add('Service_Modality__c');
+        }
         if (goalFields.containsKey('frequency__c')) {
             selectFields.add('Frequency__c');
         }
@@ -2556,7 +3236,14 @@ public with sharing class PendingDocumentationController {
             }
             item.put('name', nameVal);
             item.put('objective', goalFields.containsKey('goal_notes__c') ? goal.get('Goal_Notes__c') : null);
-            item.put('serviceModality', goalFields.containsKey('description') ? goal.get('Description') : null);
+            String serviceModality = null;
+            if (goalFields.containsKey('service_modality__c')) {
+                serviceModality = (String)goal.get('Service_Modality__c');
+            }
+            if (String.isBlank(serviceModality) && goalFields.containsKey('description')) {
+                serviceModality = (String)goal.get('Description');
+            }
+            item.put('serviceModality', normalizeServiceModality(serviceModality));
             item.put('frequency', goalFields.containsKey('frequency__c') ? goal.get('Frequency__c') : null);
             item.put('status', goalFields.containsKey('status') ? goal.get('Status') : null);
             goalsList.add(item);
@@ -2571,13 +3258,36 @@ public with sharing class PendingDocumentationController {
     private static List<Map<String, Object>> fetchBenefitsProvided(Id recordId, String recordType) {
         List<Map<String, Object>> benefitsList = new List<Map<String, Object>>();
         try {
+            Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
+            if (!globalDescribe.containsKey('BenefitDisbursement') || !globalDescribe.containsKey('BenefitAssignment')) {
+                return benefitsList;
+            }
+
+            Map<String, Schema.SObjectField> disbursementFields = globalDescribe.get('BenefitDisbursement').getDescribe().fields.getMap();
+            String serviceDateField = resolveFieldApiName(disbursementFields, new List<String>{ 'ServiceDate__c', 'StartDate' });
+            String quantityField = resolveFieldApiName(disbursementFields, new List<String>{ 'Quantity__c', 'DisbursedQuantity' });
+            String statusField = resolveFieldApiName(disbursementFields, new List<String>{ 'Status__c', 'Status' });
+
+            List<String> disbursementSelectFields = new List<String>{ 'Id', 'BenefitAssignmentId' };
+            if (serviceDateField != null) {
+                disbursementSelectFields.add(serviceDateField);
+            }
+            if (quantityField != null) {
+                disbursementSelectFields.add(quantityField);
+            }
+            if (statusField != null) {
+                disbursementSelectFields.add(statusField);
+            }
+
             // Query BenefitDisbursement via BenefitAssignment to get Benefit info
-            List<SObject> disbursements = Database.query(
-                'SELECT Id, BenefitAssignmentId, ServiceDate__c, Quantity__c, Status__c ' +
+            String disbursementQuery =
+                'SELECT ' + String.join(disbursementSelectFields, ', ') + ' ' +
                 'FROM BenefitDisbursement ' +
-                'WHERE InteractionSummary__c = :recordId ' +
-                'ORDER BY ServiceDate__c DESC'
-            );
+                'WHERE InteractionSummary__c = :recordId ';
+            if (serviceDateField != null) {
+                disbursementQuery += 'ORDER BY ' + serviceDateField + ' DESC';
+            }
+            List<SObject> disbursements = Database.query(disbursementQuery);
             
             // Collect BenefitAssignment IDs
             Set<Id> assignmentIds = new Set<Id>();
@@ -2591,8 +3301,34 @@ public with sharing class PendingDocumentationController {
             // Query BenefitAssignments with Benefit info
             Map<Id, SObject> assignmentMap = new Map<Id, SObject>();
             if (!assignmentIds.isEmpty()) {
+                List<String> assignmentSelectFields = new List<String>{ 'Id', 'BenefitId', 'Benefit.Name' };
+                if (globalDescribe.containsKey('Benefit')) {
+                    Map<String, Schema.SObjectField> benefitFields = globalDescribe.get('Benefit').getDescribe().fields.getMap();
+                    String benefitTypeField = resolveFieldApiName(
+                        benefitFields,
+                        new List<String>{ 'BenefitType', 'Type__c', 'BenefitType__c' }
+                    );
+                    String benefitTypeIdField = resolveFieldApiName(
+                        benefitFields,
+                        new List<String>{ 'BenefitTypeId' }
+                    );
+                    String benefitTypeLookupField = resolveFieldApiName(
+                        benefitFields,
+                        new List<String>{ 'BenefitType__c' }
+                    );
+                    if (benefitTypeIdField != null) {
+                        assignmentSelectFields.add('Benefit.BenefitType.Name');
+                    }
+                    if (benefitTypeLookupField != null) {
+                        assignmentSelectFields.add('Benefit.BenefitType__r.Name');
+                    }
+                    if (benefitTypeField != null) {
+                        assignmentSelectFields.add('Benefit.' + benefitTypeField);
+                    }
+                }
+
                 List<SObject> assignments = Database.query(
-                    'SELECT Id, BenefitId, Benefit.Name, Benefit.BenefitType ' +
+                    'SELECT ' + String.join(assignmentSelectFields, ', ') + ' ' +
                     'FROM BenefitAssignment ' +
                     'WHERE Id IN :assignmentIds'
                 );
@@ -2610,12 +3346,32 @@ public with sharing class PendingDocumentationController {
                     SObject benefitObj = ba.getSObject('Benefit');
                     if (benefitObj != null) {
                         benefit.put('name', benefitObj.get('Name'));
-                        benefit.put('type', benefitObj.get('BenefitType'));
+                        Object typeValue = null;
+                        SObject benefitTypeObj = benefitObj.getSObject('BenefitType');
+                        if (benefitTypeObj != null) {
+                            typeValue = benefitTypeObj.get('Name');
+                        }
+                        if (typeValue == null) {
+                            SObject customBenefitTypeObj = benefitObj.getSObject('BenefitType__r');
+                            if (customBenefitTypeObj != null) {
+                                typeValue = customBenefitTypeObj.get('Name');
+                            }
+                        }
+                        if (typeValue == null && globalDescribe.containsKey('Benefit')) {
+                            String benefitTypeField = resolveFieldApiName(
+                                globalDescribe.get('Benefit').getDescribe().fields.getMap(),
+                                new List<String>{ 'BenefitType', 'Type__c', 'BenefitType__c' }
+                            );
+                            if (benefitTypeField != null) {
+                                typeValue = benefitObj.get(benefitTypeField);
+                            }
+                        }
+                        benefit.put('type', typeValue);
                     }
                 }
-                benefit.put('serviceDate', disbursement.get('ServiceDate__c'));
-                benefit.put('quantity', disbursement.get('Quantity__c'));
-                benefit.put('status', disbursement.get('Status__c'));
+                benefit.put('serviceDate', serviceDateField != null ? disbursement.get(serviceDateField) : null);
+                benefit.put('quantity', quantityField != null ? disbursement.get(quantityField) : null);
+                benefit.put('status', statusField != null ? disbursement.get(statusField) : null);
                 benefitsList.add(benefit);
             }
         } catch (Exception e) {
@@ -2656,39 +3412,660 @@ public with sharing class PendingDocumentationController {
     }
     
     /**
-     * Fetch Diagnoses for the client
+     * Fetch diagnoses linked to a specific interaction summary.
+     * Uses Diagnosis_Note_Link__c first, then falls back to the legacy direct lookup.
      */
-    private static List<Map<String, Object>> fetchDiagnoses(Id accountId, Id caseId) {
+    private static List<Map<String, Object>> fetchDiagnoses(Id interactionSummaryId) {
         List<Map<String, Object>> diagnosesList = new List<Map<String, Object>>();
-        if (accountId == null) {
+        if (interactionSummaryId == null) {
             return diagnosesList;
         }
         
         try {
-            String query = 'SELECT Id, ICD10Code__c, Name, Status__c, ' +
-                          'Type__c, Primary__c, Onset_Date__c, Notes__c ' +
-                          'FROM Diagnosis__c ' +
-                          'WHERE Account__c = :accountId ' +
-                          'AND (Case__c = :caseId OR Case__c = null) ' +
-                          'AND Status__c = \'Active\' ' +
-                          'ORDER BY Primary__c DESC, ICD10Code__c';
-            
-            List<SObject> diagnoses = Database.query(query);
-            
-            for (SObject diagnosis : diagnoses) {
-                Map<String, Object> diag = new Map<String, Object>();
-                diag.put('code', diagnosis.get('ICD10Code__c'));
-                diag.put('description', diagnosis.get('Name'));
-                diag.put('status', diagnosis.get('Status__c'));
-                diag.put('type', diagnosis.get('Type__c'));
-                diag.put('isPrimary', diagnosis.get('Primary__c'));
-                diag.put('onsetDate', diagnosis.get('Onset_Date__c'));
-                diag.put('notes', diagnosis.get('Notes__c'));
-                diagnosesList.add(diag);
+            Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
+            if (!globalDescribe.containsKey('Diagnosis__c')) {
+                return diagnosesList;
+            }
+
+            Map<String, Schema.SObjectField> diagnosisFieldMap = globalDescribe.get('Diagnosis__c').getDescribe().fields.getMap();
+
+            if (globalDescribe.containsKey('Diagnosis_Note_Link__c')) {
+                List<String> relationshipFields = new List<String>{ 'Id', 'Name', 'Status__c', 'Primary__c' };
+                for (String fieldName : new List<String>{
+                    'ICD10Code__c', 'Description__c', 'Type__c', 'Onset_Date__c', 'Notes__c', 'Category__c'
+                }) {
+                    if (diagnosisFieldMap.containsKey(fieldName.toLowerCase())) {
+                        relationshipFields.add(fieldName);
+                    }
+                }
+
+                String linkQuery = 'SELECT Diagnosis__r.' + String.join(relationshipFields, ', Diagnosis__r.') +
+                    ' FROM Diagnosis_Note_Link__c WHERE InteractionSummary__c = :interactionSummaryId';
+
+                for (SObject link : Database.query(linkQuery)) {
+                    SObject diagnosis = link.getSObject('Diagnosis__r');
+                    if (diagnosis != null) {
+                        diagnosesList.add(buildDiagnosisMap(diagnosis, diagnosisFieldMap));
+                    }
+                }
+            }
+
+            if (diagnosesList.isEmpty() && diagnosisFieldMap.containsKey('interaction_summary__c')) {
+                List<String> directFields = new List<String>{ 'Id', 'Name', 'Status__c', 'Primary__c' };
+                for (String fieldName : new List<String>{
+                    'ICD10Code__c', 'Description__c', 'Type__c', 'Onset_Date__c', 'Notes__c', 'Category__c'
+                }) {
+                    if (diagnosisFieldMap.containsKey(fieldName.toLowerCase())) {
+                        directFields.add(fieldName);
+                    }
+                }
+
+                String directQuery = 'SELECT ' + String.join(directFields, ', ') +
+                    ' FROM Diagnosis__c WHERE Interaction_Summary__c = :interactionSummaryId';
+
+                for (SObject diagnosis : Database.query(directQuery)) {
+                    diagnosesList.add(buildDiagnosisMap(diagnosis, diagnosisFieldMap));
+                }
             }
         } catch (Exception e) {
             System.debug('Could not fetch diagnoses: ' + e.getMessage());
         }
         return diagnosesList;
+    }
+
+    private static Map<String, Object> buildDiagnosisMap(
+        SObject diagnosis,
+        Map<String, Schema.SObjectField> diagnosisFieldMap
+    ) {
+        String code = diagnosisFieldMap.containsKey('icd10code__c') ? (String)diagnosis.get('ICD10Code__c') : null;
+        String description = null;
+
+        if (diagnosisFieldMap.containsKey('description__c')) {
+            description = (String)diagnosis.get('Description__c');
+        }
+        if (String.isBlank(description)) {
+            description = (String)diagnosis.get('Name');
+        }
+
+        Map<String, Object> diagnosisMap = new Map<String, Object>();
+        diagnosisMap.put('code', normalizeDiagnosisCode(code));
+        diagnosisMap.put('description', normalizeDiagnosisDescription(code, description));
+        diagnosisMap.put('status', diagnosis.get('Status__c'));
+        diagnosisMap.put('isPrimary', diagnosis.get('Primary__c') == true);
+
+        if (diagnosisFieldMap.containsKey('type__c')) {
+            diagnosisMap.put('type', diagnosis.get('Type__c'));
+        }
+        if (diagnosisFieldMap.containsKey('category__c')) {
+            diagnosisMap.put('category', diagnosis.get('Category__c'));
+        }
+        if (diagnosisFieldMap.containsKey('onset_date__c')) {
+            diagnosisMap.put('onsetDate', diagnosis.get('Onset_Date__c'));
+        }
+        if (diagnosisFieldMap.containsKey('notes__c')) {
+            diagnosisMap.put('notes', diagnosis.get('Notes__c'));
+        }
+
+        return diagnosisMap;
+    }
+
+    private static String normalizeDiagnosisCode(String code) {
+        return String.isBlank(code) ? null : code.trim();
+    }
+
+    private static String normalizeDiagnosisDescription(String code, String description) {
+        String cleanDescription = String.isBlank(description) ? null : description.trim();
+        String cleanCode = normalizeDiagnosisCode(code);
+
+        if (String.isBlank(cleanDescription)) {
+            return cleanDescription;
+        }
+
+        if (String.isNotBlank(cleanCode)) {
+            String codeLower = cleanCode.toLowerCase();
+            String descLower = cleanDescription.toLowerCase();
+
+            String leadingToken = codeLower + ' - ';
+            if (descLower.startsWith(leadingToken) && cleanDescription.length() > leadingToken.length()) {
+                cleanDescription = cleanDescription.substring(leadingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            String trailingToken = ' - ' + codeLower;
+            if (descLower.endsWith(trailingToken) && cleanDescription.length() > trailingToken.length()) {
+                cleanDescription = cleanDescription.substring(0, cleanDescription.length() - trailingToken.length()).trim();
+                descLower = cleanDescription.toLowerCase();
+            }
+
+            if (descLower == codeLower) {
+                return null;
+            }
+        }
+
+        return cleanDescription.replaceAll('\\s+', ' ');
+    }
+
+    // Normalize treatment plan modality labels shown in manager review UI.
+    private static String normalizeServiceModality(String rawValue) {
+        if (String.isBlank(rawValue)) {
+            return rawValue;
+        }
+
+        String normalized = rawValue.trim();
+        String lower = normalized.toLowerCase();
+
+        if (lower.contains('peer')) {
+            return 'Peer Support';
+        }
+        if (lower.contains('case')) {
+            return 'Case Management';
+        }
+        if (lower.contains('clinical') || lower.contains('therapy') || lower.contains('counsel')) {
+            return 'Clinical';
+        }
+
+        return normalized;
+    }
+    
+    /**
+     * DTO for Interview signature modal
+     */
+    public class InterviewSignatureDTO {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String name;
+        @AuraEnabled public Datetime startedOn;
+        @AuraEnabled public String clientName;
+        @AuraEnabled public Id caseId;
+        @AuraEnabled public String caseNumber;
+        
+        // Document
+        @AuraEnabled public Id documentId;          // PDF (primary) ContentDocument ID
+        @AuraEnabled public Id contentVersionId;    // PDF (primary) ContentVersion ID
+        @AuraEnabled public String documentTitle;
+        // Word source (.docx) — visible only to Has_Word_Download permission holders
+        @AuraEnabled public Id wordDocumentId;
+        @AuraEnabled public Id wordContentVersionId;
+        
+        // Case Manager signature
+        @AuraEnabled public Id caseManagerAssignedToId;
+        @AuraEnabled public String caseManagerAssignedToName;
+        @AuraEnabled public Boolean caseManagerSigned;
+        @AuraEnabled public Datetime caseManagerSignedDate;
+        @AuraEnabled public Boolean canSignAsCaseManager;
+        
+        // Peer Support signature
+        @AuraEnabled public Id peerSupportAssignedToId;
+        @AuraEnabled public String peerSupportAssignedToName;
+        @AuraEnabled public Boolean peerSupportSigned;
+        @AuraEnabled public Datetime peerSupportSignedDate;
+        @AuraEnabled public Boolean canSignAsPeerSupport;
+
+        // Clinician (Staff) signature
+        @AuraEnabled public Id clinicianAssignedToId;
+        @AuraEnabled public String clinicianAssignedToName;
+        @AuraEnabled public Boolean clinicianSigned;
+        @AuraEnabled public Datetime clinicianSignedDate;
+        @AuraEnabled public Boolean canSignAsClinician;
+        
+        // Goals
+        @AuraEnabled public List<GoalDTO> goals;
+
+        // Care Plan summary (shown on CM/Peer signing modal)
+        @AuraEnabled public Date carePlanDischargeDate;
+        @AuraEnabled public String carePlanDischargePlan;
+        @AuraEnabled public Date carePlanNextReviewDate;
+        @AuraEnabled public Boolean carePlanConsentParticipated;
+        @AuraEnabled public Boolean carePlanConsentOffered;
+        @AuraEnabled public Boolean showCarePlanConsent;
+
+        // Amendment flag — pre-checked at load time; true if signing this plan will create an amendment
+        @AuraEnabled public Boolean isAmendment;
+    }
+    
+    /**
+     * DTO for goals in signature modal
+     */
+    public class GoalDTO {
+        @AuraEnabled public String id;
+        @AuraEnabled public String goalName;
+        @AuraEnabled public String objectiveName;
+        @AuraEnabled public String serviceModality;
+    }
+    
+    /**
+     * Get Interview data for signature modal (Treatment Plans)
+     */
+    @AuraEnabled
+    public static InterviewSignatureDTO getInterviewForSignature(Id interviewId) {
+        try {
+            Id currentUserId = UserInfo.getUserId();
+            
+            String query = 'SELECT Id, Name, Started_On__c, Case__c, Case__r.Account.Name, Case__r.CaseNumber, ' +
+                          'Interaction_Summary__c, ' +
+                          'InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
+                          'CaseManager_Signed_By__c, CaseManager_Signed_By__r.Name, ' +
+                          'CaseManager_Signed__c, Date_CaseManager_Signed__c, ' +
+                          'PeerSupport_Signed_By__c, PeerSupport_Signed_By__r.Name, ' +
+                          'PeerSupport_Signed__c, Date_PeerSupport_Signed__c, ' +
+                          'Staff_Signed_By__c, Staff_Signed_By__r.Name, ' +
+                          'Staff_Signed__c, Date_Staff_Signed__c, ' +
+                          'Discharge_Plan__c, Expected_Discharge_Date__c, Next_Review_Date__c, ' +
+                          'Consent_Participated__c, Documentation_Offered__c ' +
+                          'FROM Interview__c WHERE Id = :interviewId LIMIT 1';
+            
+            List<SObject> results = Database.query(query);
+            if (results.isEmpty()) {
+                throw new AuraHandledException('Interview not found');
+            }
+            
+            SObject interview = results[0];
+            InterviewSignatureDTO dto = new InterviewSignatureDTO();
+            
+            dto.id = (Id)interview.get('Id');
+            dto.name = (String)interview.get('Name');
+            dto.startedOn = (Datetime)interview.get('Started_On__c');
+            dto.caseId = (Id)interview.get('Case__c');
+            dto.clientName = (String)interview.getSObject('Case__r')?.getSObject('Account')?.get('Name');
+            dto.caseNumber = (String)interview.getSObject('Case__r')?.get('CaseNumber');
+
+            String templateName = (String)interview.getSObject('InterviewTemplateVersion__r')
+                ?.getSObject('InterviewTemplate__r')
+                ?.get('Name');
+            dto.showCarePlanConsent = String.isNotBlank(templateName) && templateName.toLowerCase().contains('treatment plan');
+
+            if (dto.showCarePlanConsent) {
+                dto.carePlanDischargePlan = (String)interview.get('Discharge_Plan__c');
+                dto.carePlanDischargeDate = (Date)interview.get('Expected_Discharge_Date__c');
+                dto.carePlanNextReviewDate = (Date)interview.get('Next_Review_Date__c');
+                Object cpReviewed = interview.get('Consent_Participated__c');
+                Object cpOffered = interview.get('Documentation_Offered__c');
+                dto.carePlanConsentParticipated = cpReviewed != null ? (Boolean)cpReviewed : null;
+                dto.carePlanConsentOffered = cpOffered != null ? (Boolean)cpOffered : null;
+
+                if (dto.caseId != null &&
+                    String.isBlank(dto.carePlanDischargePlan) &&
+                    dto.carePlanDischargeDate == null &&
+                    dto.carePlanNextReviewDate == null &&
+                    dto.carePlanConsentParticipated == null &&
+                    dto.carePlanConsentOffered == null) {
+                    try {
+                        List<SObject> cps = [
+                            SELECT Id, CaseId, Discharge_Plan__c, Expected_Discharge_Date__c,
+                                   Next_Review_Date__c, Care_Plan_Reviewed__c, Documentation_Offered__c
+                            FROM CarePlan
+                            WHERE CaseId = :dto.caseId
+                            ORDER BY LastModifiedDate DESC
+                            LIMIT 1
+                        ];
+                        if (!cps.isEmpty()) {
+                            SObject cp = cps[0];
+                            dto.carePlanDischargePlan = (String)cp.get('Discharge_Plan__c');
+                            dto.carePlanDischargeDate = (Date)cp.get('Expected_Discharge_Date__c');
+                            dto.carePlanNextReviewDate = (Date)cp.get('Next_Review_Date__c');
+                            Object reviewed = cp.get('Care_Plan_Reviewed__c');
+                            Object offered = cp.get('Documentation_Offered__c');
+                            dto.carePlanConsentParticipated = reviewed != null ? (Boolean)reviewed : null;
+                            dto.carePlanConsentOffered = offered != null ? (Boolean)offered : null;
+                        }
+                    } catch (Exception cpEx) {
+                        System.debug('getInterviewForSignature: care plan fallback skipped: ' + cpEx.getMessage());
+                    }
+                }
+            }
+            
+            // Case Manager
+            dto.caseManagerAssignedToId = (Id)interview.get('CaseManager_Signed_By__c');
+            dto.caseManagerAssignedToName = (String)interview.getSObject('CaseManager_Signed_By__r')?.get('Name');
+            Object cmSigned = interview.get('CaseManager_Signed__c');
+            dto.caseManagerSigned = cmSigned != null && (Boolean)cmSigned == true;
+            dto.caseManagerSignedDate = (Datetime)interview.get('Date_CaseManager_Signed__c');
+            dto.canSignAsCaseManager = dto.caseManagerAssignedToId != null && 
+                                       dto.caseManagerAssignedToId == currentUserId && 
+                                       !dto.caseManagerSigned;
+            
+            // Peer Support
+            dto.peerSupportAssignedToId = (Id)interview.get('PeerSupport_Signed_By__c');
+            dto.peerSupportAssignedToName = (String)interview.getSObject('PeerSupport_Signed_By__r')?.get('Name');
+            Object psSigned = interview.get('PeerSupport_Signed__c');
+            dto.peerSupportSigned = psSigned != null && (Boolean)psSigned == true;
+            dto.peerSupportSignedDate = (Datetime)interview.get('Date_PeerSupport_Signed__c');
+            dto.canSignAsPeerSupport = dto.peerSupportAssignedToId != null && 
+                                       dto.peerSupportAssignedToId == currentUserId && 
+                                       !dto.peerSupportSigned;
+            
+            // Clinician (Staff)
+            dto.clinicianAssignedToId = (Id)interview.get('Staff_Signed_By__c');
+            dto.clinicianAssignedToName = (String)interview.getSObject('Staff_Signed_By__r')?.get('Name');
+            Object staffSignedDto = interview.get('Staff_Signed__c');
+            dto.clinicianSigned = staffSignedDto != null && (Boolean)staffSignedDto == true;
+            dto.clinicianSignedDate = (Datetime)interview.get('Date_Staff_Signed__c');
+            dto.canSignAsClinician = dto.clinicianAssignedToId != null &&
+                                     dto.clinicianAssignedToId == currentUserId &&
+                                     !dto.clinicianSigned;
+            
+            // Get goals
+            dto.goals = getGoalsForInterview(interviewId);
+
+            // Pre-check: will signing this Treatment Plan result in an Amendment?
+            // True when an active plan already exists outside the 30-day review window.
+            dto.isAmendment = TreatmentPlanActivationService.preCheckIsAmendment(interviewId);
+
+            // Look up attached document — PDF primary, DOCX as Word source.
+            // Docgen uploads attach to the InteractionSummary, not the Interview directly.
+            // Fall back to searching by Interview Id if no InteractionSummary is linked.
+            try {
+                Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
+                Id linkedEntityId = interactionSummaryId != null ? interactionSummaryId : interviewId;
+                // PDF first
+                List<SObject> pdfLinks = Database.query(
+                    'SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.LatestPublishedVersionId ' +
+                    'FROM ContentDocumentLink ' +
+                    'WHERE LinkedEntityId = :linkedEntityId ' +
+                    'AND ContentDocument.FileExtension = \'pdf\' ' +
+                    'ORDER BY ContentDocument.CreatedDate DESC ' +
+                    'LIMIT 1'
+                );
+                if (!pdfLinks.isEmpty()) {
+                    dto.documentId = (Id)pdfLinks[0].get('ContentDocumentId');
+                    dto.documentTitle = (String)pdfLinks[0].getSObject('ContentDocument')?.get('Title');
+                    dto.contentVersionId = (Id)pdfLinks[0].getSObject('ContentDocument')?.get('LatestPublishedVersionId');
+                }
+                // DOCX as Word source
+                List<SObject> docxLinks = Database.query(
+                    'SELECT ContentDocumentId, ContentDocument.Title, ContentDocument.LatestPublishedVersionId ' +
+                    'FROM ContentDocumentLink ' +
+                    'WHERE LinkedEntityId = :linkedEntityId ' +
+                    'AND ContentDocument.FileExtension = \'docx\' ' +
+                    'ORDER BY ContentDocument.CreatedDate DESC ' +
+                    'LIMIT 1'
+                );
+                if (!docxLinks.isEmpty()) {
+                    dto.wordDocumentId = (Id)docxLinks[0].get('ContentDocumentId');
+                    dto.wordContentVersionId = (Id)docxLinks[0].getSObject('ContentDocument')?.get('LatestPublishedVersionId');
+                    // Backward compat: no PDF yet → use DOCX as primary
+                    if (dto.documentId == null) {
+                        dto.documentId = (Id)docxLinks[0].get('ContentDocumentId');
+                        dto.documentTitle = (String)docxLinks[0].getSObject('ContentDocument')?.get('Title');
+                        dto.contentVersionId = (Id)docxLinks[0].getSObject('ContentDocument')?.get('LatestPublishedVersionId');
+                    }
+                }
+            } catch (Exception docEx) {
+                System.debug('Document lookup skipped: ' + docEx.getMessage());
+            }
+            
+            return dto;
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to load interview details: ' + e.getMessage());
+        }
+    }
+    
+    /**
+     * Get goals assigned in this interview
+     */
+    private static List<GoalDTO> getGoalsForInterview(Id interviewId) {
+        List<GoalDTO> goals = new List<GoalDTO>();
+        try {
+            // Get Case ID and Account ID from the Interview — Account is needed for GoalAssigneeId fallback
+            List<SObject> interviews = Database.query(
+                'SELECT Id, Case__c, Case__r.AccountId FROM Interview__c WHERE Id = :interviewId LIMIT 1'
+            );
+            if (interviews.isEmpty()) return goals;
+
+            Id caseId = (Id)interviews[0].get('Case__c');
+            SObject caseObj = interviews[0].getSObject('Case__r');
+            Id accountId = caseObj != null ? (Id)caseObj.get('AccountId') : null;
+            if (caseId == null && accountId == null) return goals;
+
+            // Inspect GoalAssignment schema defensively — field names vary across NPC orgs
+            Map<String, Schema.SObjectField> goalFields = Schema.getGlobalDescribe()
+                .get('GoalAssignment').getDescribe().fields.getMap();
+
+            // Build SELECT with only fields that actually exist
+            List<String> selectFields = new List<String>{ 'Id' };
+            if (goalFields.containsKey('name'))             selectFields.add('Name');
+            if (goalFields.containsKey('customgoalname'))   selectFields.add('CustomGoalName');
+            if (goalFields.containsKey('goal_name__c'))     selectFields.add('Goal_Name__c');
+            if (goalFields.containsKey('status'))           selectFields.add('Status');
+            if (goalFields.containsKey('service_modality__c')) selectFields.add('Service_Modality__c');
+
+            // Build WHERE — prefer Case__c lookup; fall back to GoalAssigneeId (participant account)
+            List<String> conditions = new List<String>();
+            if (caseId != null && goalFields.containsKey('case__c')) {
+                conditions.add('Case__c = :caseId');
+            }
+            if (accountId != null && goalFields.containsKey('goalassigneeid')) {
+                conditions.add('GoalAssigneeId = :accountId');
+            }
+            if (conditions.isEmpty()) return goals;
+
+            String query = 'SELECT ' + String.join(selectFields, ', ') +
+                ' FROM GoalAssignment' +
+                ' WHERE (' + String.join(conditions, ' OR ') + ')' +
+                ' ORDER BY CreatedDate ASC';
+
+            for (SObject goal : Database.query(query)) {
+                GoalDTO dto = new GoalDTO();
+                dto.id = (String)goal.get('Id');
+
+                // Resolve goal name — prefer CustomGoalName, then Goal_Name__c, then Name
+                if (goalFields.containsKey('customgoalname') && goal.get('CustomGoalName') != null) {
+                    dto.goalName = (String)goal.get('CustomGoalName');
+                } else if (goalFields.containsKey('goal_name__c') && goal.get('Goal_Name__c') != null) {
+                    dto.goalName = (String)goal.get('Goal_Name__c');
+                } else if (goalFields.containsKey('name')) {
+                    dto.goalName = (String)goal.get('Name');
+                }
+
+                if (goalFields.containsKey('service_modality__c')) {
+                    dto.serviceModality = (String)goal.get('Service_Modality__c');
+                }
+                goals.add(dto);
+            }
+        } catch (Exception e) {
+            System.debug('⚠️ Error fetching goals for interview ' + interviewId + ': ' + e.getMessage());
+            System.debug(e.getStackTraceString());
+        }
+        return goals;
+    }
+    
+    /**
+     * Update Interview signatures (Case Manager and/or Peer Support).
+     * When all signatures are collected on a Treatment Plan, calls TreatmentPlanActivationService
+     * and returns an ActivationResult so the LWC can handle activation / conflict UI.
+     * Returns null when signatures are still pending (not all collected yet).
+     */
+    @AuraEnabled
+    public static TreatmentPlanActivationService.ActivationResult updateInterviewSignatures(Id interviewId, String caseManagerSignatureFileId, String peerSupportSignatureFileId, String clinicianSignatureFileId) {
+        try {
+            Id currentUserId = UserInfo.getUserId();
+            
+            String query = 'SELECT Id, CaseManager_Signed_By__c, PeerSupport_Signed_By__c, ' +
+                          'CaseManager_Signed__c, PeerSupport_Signed__c, Interaction_Summary__c, ' +
+                          'Staff_Signed_By__c, Staff_Signed__c, ' +
+                          'Manager_Signed__c, Completed_On__c, ' +
+                          'Requires_Manager_Approval__c, Manager_Approver__c, Case__c ' +
+                          'FROM Interview__c WHERE Id = :interviewId LIMIT 1';
+            
+            List<SObject> results = Database.query(query);
+            if (results.isEmpty()) {
+                throw new AuraHandledException('Interview not found');
+            }
+            
+            SObject interview = results[0];
+            
+            // Update Case Manager signature if provided and user is assigned
+            if (String.isNotBlank(caseManagerSignatureFileId)) {
+                Id cmAssignedTo = (Id)interview.get('CaseManager_Signed_By__c');
+                if (cmAssignedTo == currentUserId) {
+                    // Convert ContentVersion ID (068...) to ContentDocument ID (069...) for image retrieval
+                    String cmContentDocId = resolveToContentDocumentId(caseManagerSignatureFileId);
+                    interview.put('CaseManager_Signed__c', true);
+                    interview.put('CaseManager_Signature_File_Id__c', String.isNotBlank(cmContentDocId) ? cmContentDocId : caseManagerSignatureFileId);
+                    interview.put('Date_CaseManager_Signed__c', Datetime.now());
+                }
+            }
+            
+            // Update Peer Support signature if provided and user is assigned
+            if (String.isNotBlank(peerSupportSignatureFileId)) {
+                Id psAssignedTo = (Id)interview.get('PeerSupport_Signed_By__c');
+                if (psAssignedTo == currentUserId) {
+                    // Convert ContentVersion ID (068...) to ContentDocument ID (069...) for image retrieval
+                    String psContentDocId = resolveToContentDocumentId(peerSupportSignatureFileId);
+                    interview.put('PeerSupport_Signed__c', true);
+                    interview.put('PeerSupport_Signature_File_Id__c', String.isNotBlank(psContentDocId) ? psContentDocId : peerSupportSignatureFileId);
+                    interview.put('Date_PeerSupport_Signed__c', Datetime.now());
+                }
+            }
+
+            // Update Clinician (Staff) signature if provided and user is assigned
+            if (String.isNotBlank(clinicianSignatureFileId)) {
+                Id staffAssignedTo = (Id)interview.get('Staff_Signed_By__c');
+                if (staffAssignedTo == currentUserId) {
+                    String staffContentDocId = resolveToContentDocumentId(clinicianSignatureFileId);
+                    interview.put('Staff_Signed__c', true);
+                    if (Schema.getGlobalDescribe().get('Interview__c').getDescribe().fields.getMap().containsKey('clinician_signed__c')) {
+                        interview.put('Clinician_Signed__c', true);
+                    }
+                    interview.put('Staff_Signature_File_Id__c', String.isNotBlank(staffContentDocId) ? staffContentDocId : clinicianSignatureFileId);
+                    interview.put('Date_Staff_Signed__c', Datetime.now());
+                }
+            }
+            
+            // Check if all assigned signers have signed
+            Boolean cmComplete = interview.get('CaseManager_Signed_By__c') == null || 
+                                (Boolean)interview.get('CaseManager_Signed__c') == true;
+            Boolean psComplete = interview.get('PeerSupport_Signed_By__c') == null || 
+                                (Boolean)interview.get('PeerSupport_Signed__c') == true;
+            Boolean clinicianComplete = interview.get('Staff_Signed_By__c') == null ||
+                                        (Boolean)interview.get('Staff_Signed__c') == true;
+            
+            if (cmComplete && psComplete && clinicianComplete) {
+                // All signatures complete — match the same pattern as regular notes:
+                // go straight to 'Completed' unless manager approval is still required.
+                Boolean requiresManagerApproval = (Boolean) interview.get('Requires_Manager_Approval__c');
+
+                // Re-trigger manager approval when an approver was previously assigned and hasn't
+                // signed yet — this covers post-rejection re-submission and post-recall re-signing
+                // so the document always follows the same signature policy regardless of iteration.
+                if (requiresManagerApproval != true) {
+                    Id assignedApprover = (Id) interview.get('Manager_Approver__c');
+                    Boolean managerAlreadySigned = (Boolean) interview.get('Manager_Signed__c');
+                    if (assignedApprover != null && managerAlreadySigned != true) {
+                        requiresManagerApproval = true;
+                        interview.put('Requires_Manager_Approval__c', true);
+                    }
+                }
+
+                if (requiresManagerApproval == true) {
+                    interview.put('Status__c', DocumentStatus.INTERVIEW_SUBMITTED); // waiting for manager co-sign
+                    if (interview.get('Completed_On__c') == null) {
+                        interview.put('Completed_On__c', Datetime.now());
+                    }
+                } else {
+                    interview.put('Status__c', DocumentStatus.INTERVIEW_SIGNED); // all sigs done, no further approval needed
+                    if (interview.get('Completed_On__c') == null) {
+                        interview.put('Completed_On__c', Datetime.now());
+                    }
+                }
+            } else {
+                // Still pending signatures
+                interview.put('Status__c', DocumentStatus.INTERVIEW_IN_PROGRESS);
+                if (interview.get('Completed_On__c') == null) {
+                    interview.put('Completed_On__c', Datetime.now());
+                }
+            }
+            
+            update interview;
+            
+            // Regenerate the document and attempt Treatment Plan activation
+            if (cmComplete && psComplete && clinicianComplete) {
+                Boolean requiresApproval = (Boolean) interview.get('Requires_Manager_Approval__c');
+
+                // CM+PS are now done and manager approval is pending — notify the manager NOW
+                // (notification was intentionally deferred from requestManagerApproval until this point)
+                if (requiresApproval == true) {
+                    try {
+                        Id approverIdToNotify = (Id) interview.get('Manager_Approver__c');
+                        Id interviewCaseId = (Id) interview.get('Case__c');
+                        String interviewName = 'Treatment Plan';
+                        if (approverIdToNotify != null && interviewCaseId != null) {
+                            PendingDocNotificationService.notifyApproverOfCoSignRequest(
+                                approverIdToNotify, interviewCaseId, interviewName, interviewId, 'Interview'
+                            );
+                            System.debug('✅ Manager co-sign notification sent after CM+PS signed: ' + approverIdToNotify);
+                        }
+                    } catch (Exception notifEx) {
+                        System.debug('⚠️ Failed to send manager notification (non-fatal): ' + notifEx.getMessage());
+                    }
+                }
+
+                if (requiresApproval != true) {
+                    // All signatures done and no manager approval needed — generate now
+                    try {
+                        Id interactionSummaryId = (Id)interview.get('Interaction_Summary__c');
+                        if (interactionSummaryId != null) {
+                            InterviewDocumentService.generateDocumentAsync(interactionSummaryId);
+                            System.debug('🔄 Queued async document regeneration after multi-signature completion for: ' + interactionSummaryId);
+                        } else {
+                            System.debug('⚠️ No Interaction_Summary__c on Interview — skipping document regeneration');
+                        }
+                    } catch (Exception docEx) {
+                        System.debug('❌ Document regeneration failed after signature completion: ' + docEx.getMessage());
+                        // Non-fatal — signatures are saved even if regeneration fails
+                    }
+                } else {
+                    System.debug('⏳ Manager approval required — deferring document generation until manager signs');
+                }
+
+                // Attempt Treatment Plan activation ONLY when no manager approval is pending.
+                // When Requires_Manager_Approval__c = true, we wait until approveNote fires after the manager signs.
+                if (requiresApproval != true) {
+                    try {
+                        return TreatmentPlanActivationService.finalizeTreatmentPlan(interviewId);
+                    } catch (Exception activationEx) {
+                        System.debug('⚠️ Treatment Plan activation error (non-fatal): ' + activationEx.getMessage());
+                    }
+                } else {
+                    System.debug('⏳ Skipping Treatment Plan activation — awaiting manager co-sign');
+                }
+            }
+
+            return null;
+
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to update signatures: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * Convert a ContentVersion ID (068...) to its parent ContentDocument ID (069...).
+     * If the input is already a ContentDocument ID, returns it unchanged.
+     * Returns null if blank or lookup fails.
+     */
+    private static String resolveToContentDocumentId(String fileId) {
+        if (String.isBlank(fileId)) {
+            return null;
+        }
+        try {
+            Id parsedId = (Id) fileId;
+            // ContentVersion prefix is '068'; ContentDocument prefix is '069'
+            if (String.valueOf(parsedId).startsWith('068')) {
+                List<ContentVersion> cvList = [
+                    SELECT ContentDocumentId
+                    FROM ContentVersion
+                    WHERE Id = :fileId
+                    LIMIT 1
+                ];
+                if (!cvList.isEmpty()) {
+                    return cvList[0].ContentDocumentId;
+                }
+                return null;
+            }
+            // Already a ContentDocument ID (or other) — return as-is
+            return fileId;
+        } catch (Exception e) {
+            System.debug('resolveToContentDocumentId error: ' + e.getMessage());
+            return null;
+        }
     }
 }

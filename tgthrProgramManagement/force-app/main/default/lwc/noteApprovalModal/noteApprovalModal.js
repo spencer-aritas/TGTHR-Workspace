@@ -6,6 +6,7 @@ import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logReco
 import approveNote from '@salesforce/apex/PendingDocumentationController.approveNote';
 import rejectNote from '@salesforce/apex/PendingDocumentationController.rejectNote';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
+import { formatDateOnlyMountain, formatDateTimeMountain, getMountainTimeZoneLabel } from 'c/dateTimeDisplay';
 
 export default class NoteApprovalModal extends NavigationMixin(LightningElement) {
     @track isOpen = false;
@@ -19,6 +20,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
     recordId = null;
     recordType = null;
     _lastLoggedRecordId;
+    mountainTimeZoneLabel = getMountainTimeZoneLabel();
 
     @api
     open(recordId, recordType) {
@@ -64,7 +66,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
 
     get formattedDate() {
         if (!this.noteData.dateOfInteraction) return 'N/A';
-        return new Date(this.noteData.dateOfInteraction).toLocaleDateString('en-US', {
+        return formatDateOnlyMountain(this.noteData.dateOfInteraction, {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -74,18 +76,12 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
 
     get formattedCreatedDate() {
         if (!this.noteData.createdDate) return 'N/A';
-        return new Date(this.noteData.createdDate).toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        return formatDateTimeMountain(this.noteData.createdDate);
     }
 
     get formattedDob() {
         if (!this.noteData.clientDob) return 'N/A';
-        return new Date(this.noteData.clientDob).toLocaleDateString('en-US', {
+        return formatDateOnlyMountain(this.noteData.clientDob, {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -94,20 +90,20 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
     
     get formattedAuthorSignedDate() {
         if (!this.noteData.authorSignedDate) return 'N/A';
-        return new Date(this.noteData.authorSignedDate).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+        return formatDateOnlyMountain(this.noteData.authorSignedDate);
     }
     
     get formattedManagerSignedDate() {
         if (!this.noteData.managerSignedDate) return 'N/A';
-        return new Date(this.noteData.managerSignedDate).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
+        return formatDateOnlyMountain(this.noteData.managerSignedDate);
+    }
+
+    get isLateEntryManagerApprovalRequired() {
+        return this.noteData?.lateEntryManagerApprovalRequired === true;
+    }
+
+    get lateEntryApprovalMessage() {
+        return 'This record was created outside the 72-hour reporting window and is in Manager Co-Sign because of that late entry.';
     }
 
     get hasDiagnoses() {
@@ -219,6 +215,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
             console.log('Has signature:', this.hasSignature);
             
             // Capture and save manager signature first
+            let managerSignatureVersionId = null;
             const signaturePad = this.template.querySelector('c-signature-pad');
             if (signaturePad) {
                 const hasSignature = typeof signaturePad.hasSignature === 'function' ? signaturePad.hasSignature() : false;
@@ -237,7 +234,8 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
                 if (!signatureResult.success) {
                     throw new Error(signatureResult.error || 'Failed to save manager signature');
                 }
-                console.log('Manager signature saved successfully:', signaturePad.filename);
+                managerSignatureVersionId = signatureResult.contentVersionId || null;
+                console.log('Manager signature saved, contentVersionId:', managerSignatureVersionId);
             }
             
             console.log('🚀🚀🚀 FRONTEND CALLING approveNote NOW');
@@ -247,7 +245,7 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
                 recordId: this.recordId,
                 recordType: this.recordType,
                 approvalNotes: this.approvalNotes,
-                signatureData: null
+                signatureData: managerSignatureVersionId
             });
             
             console.log('✅✅✅ FRONTEND approveNote RETURNED SUCCESSFULLY');

@@ -80,6 +80,25 @@ public with sharing class BenefitDisbursementService {
     public Boolean success;
   }
 
+  public class HousingSyncResult {
+    @AuraEnabled
+    public Id programEnrollmentId;
+    @AuraEnabled
+    public Id accountId;
+    @AuraEnabled
+    public Id programId;
+    @AuraEnabled
+    public Integer createdAssignmentCount;
+    @AuraEnabled
+    public Integer createdDisbursementCount;
+    @AuraEnabled
+    public Integer skippedExistingCount;
+    @AuraEnabled
+    public Boolean success;
+    @AuraEnabled
+    public String message;
+  }
+
   // --- Lookups & options ---
 
   /**
@@ -896,9 +915,10 @@ public with sharing class BenefitDisbursementService {
         String errMsg = 'Failed to create disbursement.';
         if (r.getErrors() != null && r.getErrors().size() > 0) {
           List<String> msgs = new List<String>();
-          for (Database.Error e : r.getErrors()) {
-            if (e != null && String.isNotBlank(e.getMessage()))
-              msgs.add(e.getMessage());
+          for (Integer errIndex = 0; errIndex < r.getErrors().size(); errIndex++) {
+            String errorMessage = String.valueOf(r.getErrors()[errIndex]);
+            if (String.isNotBlank(errorMessage))
+              msgs.add(errorMessage);
           }
           if (!msgs.isEmpty())
             errMsg += ' ' + String.join(msgs, ' | ');
@@ -914,6 +934,13 @@ public with sharing class BenefitDisbursementService {
     // For Clinical benefits, create an InteractionSummary per successful disbursement
     try {
       if (isClinicalBenefit) {
+          if (String.isNotBlank(req.interactionSummaryId)) {
+            System.debug(
+              'Skipping supplemental InteractionSummary creation because disbursements are already linked to InteractionSummary ' +
+              req.interactionSummaryId
+            );
+            return results;
+          }
         for (DisburseResult dr : results) {
           if (!dr.success)
             continue;
@@ -1001,7 +1028,428 @@ public with sharing class BenefitDisbursementService {
     return results;
   }
 
+  @AuraEnabled
+  public static List<HousingSyncResult> syncHousingBenefitDisbursements(
+    List<String> programEnrollmentIds,
+    String throughDate
+  ) {
+    Date endDate = parseDateOrDefault(throughDate, Date.today());
+    Set<Id> enrollmentIds = new Set<Id>();
+    if (programEnrollmentIds != null) {
+      for (String programEnrollmentId : programEnrollmentIds) {
+        if (String.isBlank(programEnrollmentId))
+          continue;
+        try {
+          enrollmentIds.add(Id.valueOf(programEnrollmentId));
+        } catch (Exception ignore) {
+        }
+      }
+    }
+
+    Map<Id, SObject> enrollmentsById = getEligibleHousingProgramEnrollments(
+      enrollmentIds
+    );
+    if (enrollmentsById.isEmpty()) {
+      return new List<HousingSyncResult>();
+    }
+
+    Set<Id> programIds = new Set<Id>();
+    Set<Id> enrollmentIdSet = new Set<Id>();
+    for (SObject enrollment : enrollmentsById.values()) {
+      enrollmentIdSet.add((Id) enrollment.get('Id'));
+      programIds.add((Id) enrollment.get('ProgramId'));
+    }
+
+    Map<Id, List<SObject>> housingBenefitsByProgramId = getHousingBenefitsByProgramId(
+      programIds
+    );
+    Set<Id> benefitIds = new Set<Id>();
+    for (List<SObject> benefits : housingBenefitsByProgramId.values()) {
+      for (SObject benefit : benefits) {
+        benefitIds.add((Id) benefit.get('Id'));
+      }
+    }
+
+    Map<String, SObject> assignmentByEnrollmentBenefitKey =
+      getExistingAssignmentsByEnrollmentAndBenefit(enrollmentIdSet, benefitIds);
+
+    List<SObject> assignmentsToCreate = new List<SObject>();
+    Map<String, SObject> pendingAssignmentByKey = new Map<String, SObject>();
+    List<HousingSyncResult> results = new List<HousingSyncResult>();
+    Map<Id, HousingSyncResult> resultByEnrollmentId = new Map<Id, HousingSyncResult>();
+
+    for (SObject enrollment : enrollmentsById.values()) {
+      Id enrollmentId = (Id) enrollment.get('Id');
+      Id accountId = (Id) enrollment.get('AccountId');
+      Id programId = (Id) enrollment.get('ProgramId');
+      Date startDate = toDateValue(enrollment.get('StartDate'));
+
+      HousingSyncResult result = new HousingSyncResult();
+      result.programEnrollmentId = enrollmentId;
+      result.accountId = accountId;
+      result.programId = programId;
+      result.createdAssignmentCount = 0;
+      result.createdDisbursementCount = 0;
+      result.skippedExistingCount = 0;
+      result.success = true;
+      result.message = 'No housing benefit found for program.';
+      results.add(result);
+      resultByEnrollmentId.put(enrollmentId, result);
+
+      if (startDate == null || startDate > endDate) {
+        result.success = false;
+        result.message = 'Enrollment start date is missing or after the requested through date.';
+        continue;
+      }
+
+      List<SObject> housingBenefits = housingBenefitsByProgramId.get(programId);
+      if (housingBenefits == null || housingBenefits.isEmpty()) {
+        continue;
+      }
+
+      result.message = 'Ready to sync housing benefit disbursements.';
+
+      for (SObject housingBenefit : housingBenefits) {
+        Id benefitId = (Id) housingBenefit.get('Id');
+        String key = enrollmentBenefitKey(enrollmentId, benefitId);
+        if (
+          assignmentByEnrollmentBenefitKey.containsKey(key) ||
+          pendingAssignmentByKey.containsKey(key)
+        ) {
+          continue;
+        }
+
+        SObject assignment = Schema.getGlobalDescribe()
+          .get('BenefitAssignment')
+          .newSObject();
+        assignment.put('EnrolleeId', accountId);
+        assignment.put('BenefitId', benefitId);
+        assignment.put('ProgramEnrollmentId', enrollmentId);
+        assignment.put('ParentRecordId', enrollmentId);
+        assignment.put('Status', 'Active');
+        assignment.put('StartDateTime', buildEnrollmentStartDateTime(startDate));
+        assignmentsToCreate.add(assignment);
+        pendingAssignmentByKey.put(key, assignment);
+      }
+    }
+
+    if (!assignmentsToCreate.isEmpty()) {
+      Database.SaveResult[] assignmentResults = Database.insert(
+        assignmentsToCreate,
+        false
+      );
+      for (Integer i = 0; i < assignmentResults.size(); i++) {
+        SObject assignment = assignmentsToCreate[i];
+        Id enrollmentId = (Id) assignment.get('ProgramEnrollmentId');
+        Id benefitId = (Id) assignment.get('BenefitId');
+        String key = enrollmentBenefitKey(enrollmentId, benefitId);
+        HousingSyncResult result = resultByEnrollmentId.get(enrollmentId);
+        if (assignmentResults[i].isSuccess()) {
+          assignment.put('Id', assignmentResults[i].getId());
+          assignmentByEnrollmentBenefitKey.put(key, assignment);
+          if (result != null) {
+            result.createdAssignmentCount++;
+          }
+        } else if (result != null) {
+          result.success = false;
+          result.message = 'Unable to create housing benefit assignment.';
+        }
+      }
+    }
+
+    Set<Id> assignmentIds = new Set<Id>();
+    Map<Id, Id> benefitIdByAssignmentId = new Map<Id, Id>();
+    for (String key : assignmentByEnrollmentBenefitKey.keySet()) {
+      SObject assignment = assignmentByEnrollmentBenefitKey.get(key);
+      Id assignmentId = (Id) assignment.get('Id');
+      if (assignmentId == null)
+        continue;
+      assignmentIds.add(assignmentId);
+      benefitIdByAssignmentId.put(assignmentId, (Id) assignment.get('BenefitId'));
+    }
+
+    Map<String, Boolean> existingDisbursementKeys = new Map<String, Boolean>();
+    if (!assignmentIds.isEmpty()) {
+      for (
+        SObject disbursement : Database.query(
+          'SELECT Id, BenefitAssignmentId, ProgramEnrollmentId, StartDate ' +
+          'FROM BenefitDisbursement ' +
+          'WHERE ProgramEnrollmentId IN :enrollmentIdSet ' +
+          'AND BenefitAssignmentId IN :assignmentIds ' +
+          'AND StartDate <= :endDate'
+        )
+      ) {
+        Id assignmentId = (Id) disbursement.get('BenefitAssignmentId');
+        Id benefitId = benefitIdByAssignmentId.get(assignmentId);
+        Id enrollmentId = (Id) disbursement.get('ProgramEnrollmentId');
+        Date startDate = toDateValue(disbursement.get('StartDate'));
+        if (benefitId != null && enrollmentId != null && startDate != null) {
+          existingDisbursementKeys.put(
+            enrollmentBenefitDateKey(enrollmentId, benefitId, startDate),
+            true
+          );
+        }
+      }
+    }
+
+    List<SObject> disbursementsToCreate = new List<SObject>();
+    Map<Integer, Id> disbursementEnrollmentIndex = new Map<Integer, Id>();
+
+    for (SObject enrollment : enrollmentsById.values()) {
+      Id enrollmentId = (Id) enrollment.get('Id');
+      Id programId = (Id) enrollment.get('ProgramId');
+      Date startDate = toDateValue(enrollment.get('StartDate'));
+      HousingSyncResult result = resultByEnrollmentId.get(enrollmentId);
+      List<SObject> housingBenefits = housingBenefitsByProgramId.get(programId);
+      if (startDate == null || housingBenefits == null)
+        continue;
+
+      for (SObject housingBenefit : housingBenefits) {
+        Id benefitId = (Id) housingBenefit.get('Id');
+        String key = enrollmentBenefitKey(enrollmentId, benefitId);
+        SObject assignment = assignmentByEnrollmentBenefitKey.get(key);
+        if (assignment == null || assignment.get('Id') == null) {
+          if (result != null) {
+            result.success = false;
+            result.message = 'Missing housing benefit assignment.';
+          }
+          continue;
+        }
+
+        Id assignmentId = (Id) assignment.get('Id');
+        for (Date serviceDate = startDate; serviceDate <= endDate; serviceDate = serviceDate.addDays(1)) {
+          String disbursementKey = enrollmentBenefitDateKey(
+            enrollmentId,
+            benefitId,
+            serviceDate
+          );
+          if (existingDisbursementKeys.containsKey(disbursementKey)) {
+            if (result != null) {
+              result.skippedExistingCount++;
+            }
+            continue;
+          }
+
+          SObject disbursement = Schema.getGlobalDescribe()
+            .get('BenefitDisbursement')
+            .newSObject();
+          disbursement.put('BenefitAssignmentId', assignmentId);
+          disbursement.put('ProgramEnrollmentId', enrollmentId);
+          disbursement.put('StartDate', serviceDate);
+          try {
+            disbursement.put('DisbursementDate', serviceDate);
+          } catch (Exception ignore) {
+          }
+          try {
+            disbursement.put('DisbursedQuantity', 1);
+          } catch (Exception ignore) {
+          }
+          try {
+            disbursement.put('ProgramId', programId);
+          } catch (Exception ignore) {
+          }
+          try {
+            disbursement.put('ActualCompletionDate', buildEnrollmentStartDateTime(serviceDate));
+          } catch (Exception ignore) {
+          }
+          try {
+            disbursement.put(
+              'Description',
+              'Auto-created housing benefit disbursement for enrolled housing program.'
+            );
+          } catch (Exception ignore) {
+          }
+
+          existingDisbursementKeys.put(disbursementKey, true);
+          disbursementEnrollmentIndex.put(disbursementsToCreate.size(), enrollmentId);
+          disbursementsToCreate.add(disbursement);
+        }
+      }
+    }
+
+    if (!disbursementsToCreate.isEmpty()) {
+      Database.SaveResult[] disbursementResults = Database.insert(
+        disbursementsToCreate,
+        false
+      );
+      for (Integer i = 0; i < disbursementResults.size(); i++) {
+        Id enrollmentId = disbursementEnrollmentIndex.get(i);
+        HousingSyncResult result = resultByEnrollmentId.get(enrollmentId);
+        if (result == null)
+          continue;
+        if (disbursementResults[i].isSuccess()) {
+          result.createdDisbursementCount++;
+        } else {
+          result.success = false;
+          result.message = 'One or more housing disbursements could not be created.';
+        }
+      }
+    }
+
+    for (HousingSyncResult result : results) {
+      if (
+        result.success &&
+        result.createdAssignmentCount == 0 &&
+        result.createdDisbursementCount == 0 &&
+        result.skippedExistingCount > 0
+      ) {
+        result.message = 'Housing benefit disbursements already exist through the requested date.';
+      } else if (result.success) {
+        result.message =
+          'Created ' +
+          result.createdAssignmentCount +
+          ' assignment(s) and ' +
+          result.createdDisbursementCount +
+          ' disbursement(s).';
+      }
+    }
+
+    return results;
+  }
+
+  @AuraEnabled
+  public static List<HousingSyncResult> syncAllActiveHousingBenefitDisbursements(
+    String throughDate
+  ) {
+    return syncHousingBenefitDisbursements(null, throughDate);
+  }
+
   // --- Helpers ---
+
+  private static Date parseDateOrDefault(String rawDate, Date fallbackDate) {
+    if (String.isBlank(rawDate)) {
+      return fallbackDate;
+    }
+
+    try {
+      return Date.valueOf(rawDate);
+    } catch (Exception e) {
+      return fallbackDate;
+    }
+  }
+
+  private static Datetime buildEnrollmentStartDateTime(Date serviceDate) {
+    if (serviceDate == null) {
+      return Datetime.now();
+    }
+
+    try {
+      return Datetime.newInstance(serviceDate, Time.newInstance(12, 0, 0, 0));
+    } catch (Exception e) {
+      return Datetime.now();
+    }
+  }
+
+  private static Date toDateValue(Object rawValue) {
+    if (rawValue == null) {
+      return null;
+    }
+    if (rawValue instanceof Date) {
+      return (Date) rawValue;
+    }
+    if (rawValue instanceof Datetime) {
+      return ((Datetime) rawValue).date();
+    }
+    try {
+      return Date.valueOf(String.valueOf(rawValue));
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private static String enrollmentBenefitKey(Id enrollmentId, Id benefitId) {
+    return String.valueOf(enrollmentId) + '|' + String.valueOf(benefitId);
+  }
+
+  private static String enrollmentBenefitDateKey(
+    Id enrollmentId,
+    Id benefitId,
+    Date serviceDate
+  ) {
+    return enrollmentBenefitKey(enrollmentId, benefitId) + '|' + String.valueOf(serviceDate);
+  }
+
+  private static Map<Id, SObject> getEligibleHousingProgramEnrollments(
+    Set<Id> enrollmentIds
+  ) {
+    Map<Id, SObject> enrollmentsById = new Map<Id, SObject>();
+    String query =
+      'SELECT Id, AccountId, ProgramId, Status, StartDate, Program.Housing_Program__c ' +
+      'FROM ProgramEnrollment ' +
+      'WHERE Status = \'Enrolled\' ' +
+      'AND Program.Housing_Program__c = true';
+    if (enrollmentIds != null && !enrollmentIds.isEmpty()) {
+      query += ' AND Id IN :enrollmentIds';
+    }
+    query += ' ORDER BY StartDate ASC, CreatedDate ASC';
+
+    for (SObject enrollment : Database.query(query)) {
+      enrollmentsById.put((Id) enrollment.get('Id'), enrollment);
+    }
+    return enrollmentsById;
+  }
+
+  private static Map<Id, List<SObject>> getHousingBenefitsByProgramId(
+    Set<Id> programIds
+  ) {
+    Map<Id, List<SObject>> benefitsByProgramId = new Map<Id, List<SObject>>();
+    if (programIds == null || programIds.isEmpty()) {
+      return benefitsByProgramId;
+    }
+
+    for (
+      SObject benefit : Database.query(
+        'SELECT Id, ProgramId, Name, Is_a_Housing_Benefit__c ' +
+        'FROM Benefit ' +
+        'WHERE ProgramId IN :programIds ' +
+        'AND IsActive = true ' +
+        'AND Is_a_Housing_Benefit__c = true ' +
+        'ORDER BY Name'
+      )
+    ) {
+      Id programId = (Id) benefit.get('ProgramId');
+      if (!benefitsByProgramId.containsKey(programId)) {
+        benefitsByProgramId.put(programId, new List<SObject>());
+      }
+      benefitsByProgramId.get(programId).add(benefit);
+    }
+
+    return benefitsByProgramId;
+  }
+
+  private static Map<String, SObject> getExistingAssignmentsByEnrollmentAndBenefit(
+    Set<Id> enrollmentIds,
+    Set<Id> benefitIds
+  ) {
+    Map<String, SObject> assignmentsByKey = new Map<String, SObject>();
+    if (
+      enrollmentIds == null ||
+      enrollmentIds.isEmpty() ||
+      benefitIds == null ||
+      benefitIds.isEmpty()
+    ) {
+      return assignmentsByKey;
+    }
+
+    for (
+      SObject assignment : Database.query(
+        'SELECT Id, EnrolleeId, BenefitId, ProgramEnrollmentId ' +
+        'FROM BenefitAssignment ' +
+        'WHERE ProgramEnrollmentId IN :enrollmentIds ' +
+        'AND BenefitId IN :benefitIds'
+      )
+    ) {
+      assignmentsByKey.put(
+        enrollmentBenefitKey(
+          (Id) assignment.get('ProgramEnrollmentId'),
+          (Id) assignment.get('BenefitId')
+        ),
+        assignment
+      );
+    }
+
+    return assignmentsByKey;
+  }
 
   private static Id resolveProgram(Id programId, String programName) {
     System.debug(
@@ -1155,14 +1603,14 @@ public with sharing class BenefitDisbursementService {
     Id programId
   ) {
     // Use dynamic SOQL to avoid compile errors with ProgramEnrollment object
-    // Only 'Enrolled' participants can receive benefit disbursements
-    // (Awaiting Intake and Pending Exit are shown separately and cannot receive disbursements)
+    // Keep eligibility aligned with note/interview benefit pickers so selectable
+    // services can actually be disbursed during intake workflows.
     String query =
       'SELECT Id, AccountId, ProgramId, Status, StartDate, LastModifiedDate ' +
       'FROM ProgramEnrollment ' +
       'WHERE AccountId IN :acctIds ' +
       'AND ProgramId = :programId ' +
-      'AND Status = \'Enrolled\' ' +
+      'AND Status IN (\'Enrolled\', \'Active\', \'Awaiting Intake\') ' +
       'ORDER BY AccountId, LastModifiedDate DESC';
 
     System.debug('Query for PE: ' + query);

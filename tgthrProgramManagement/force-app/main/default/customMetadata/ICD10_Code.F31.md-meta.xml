@@ -24,10 +24,10 @@
     </values>
     <values>
         <field>Parent_Code__c</field>
-        <value xsi:type="xsd:string"></value>
+        <value xsi:nil="true"/>
     </values>
     <values>
         <field>Sort_Order__c</field>
-        <value xsi:type="xsd:double">645</value>
+        <value xsi:type="xsd:double">645.0</value>
     </values>
 </CustomMetadata>

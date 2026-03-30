@@ -45,21 +45,6 @@
 
             <!-- Diagnoses List -->
             <template if:true={hasDiagnoses}>
-                <!-- Primary Diagnosis Highlight (if exists) -->
-                <template if:true={primaryDiagnosis}>
-                    <div class="primary-diagnosis-banner slds-box slds-box_x-small slds-theme_info slds-m-bottom_small">
-                        <div class="slds-grid slds-grid_vertical-align-center">
-                            <lightning-icon icon-name="utility:favorite" size="x-small" class="slds-m-right_small"></lightning-icon>
-                            <div>
-                                <span class="slds-text-title_caps">Primary Diagnosis</span>
-                                <p class="slds-text-body_regular slds-m-top_xxx-small">
-                                    <strong>{primaryDiagnosis.displayCode}</strong> — {primaryDiagnosis.description}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
                 <!-- Active Diagnoses -->
                 <template if:true={activeDiagnoses.length}>
                     <div class="diagnosis-section">
@@ -253,13 +238,6 @@
             </template>
         </div>
 
-        <!-- Footer hint -->
-        <template if:true={hasDiagnoses}>
-            <div slot="footer" class="slds-text-body_small slds-text-color_weak">
-                <lightning-icon icon-name="utility:info" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
-                Click edit or delete to manage diagnoses
-            </div>
-        </template>
     </lightning-card>
     
     <!-- Edit Modal -->

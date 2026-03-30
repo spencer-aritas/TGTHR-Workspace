@@ -13,7 +13,6 @@
 public class PendingDocNotificationScheduler implements Schedulable {
     
     public void execute(SchedulableContext sc) {
-        // Send notifications to all users with pending items
-        PendingDocNotificationService.sendPendingDocNotificationsToAllUsers();
+        DocumentationDeadlineService.sendDeadlineNotifications();
     }
 }

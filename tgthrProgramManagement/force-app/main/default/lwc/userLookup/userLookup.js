@@ -1,10 +1,22 @@
-import { LightningElement, api, track, wire } from 'lwc';
+import { LightningElement, api, track } from 'lwc';
 import searchUsers from '@salesforce/apex/UserLookupController.searchUsers';
+
+let instanceCounter = 0;
 
 export default class UserLookup extends LightningElement {
     @api label = 'Select User';
     @api placeholder = 'Search users...';
     @api permissionSetFilter = '';
+
+    _instanceId = ++instanceCounter;
+
+    get inputId() {
+        return `user-search-${this._instanceId}`;
+    }
+
+    get listboxId() {
+        return `user-listbox-${this._instanceId}`;
+    }
 
     @track searchTerm = '';
     @track users = [];
@@ -27,30 +39,33 @@ export default class UserLookup extends LightningElement {
         return this.users && this.users.length > 0;
     }
 
-    @wire(searchUsers, { searchTerm: '$searchTerm', permissionSet: '$permissionSetFilter' })
-    wiredUsers({ error, data }) {
-        if (data) {
-            this.users = data;
-            this.dropdownOpen = this.searchTerm && this.searchTerm.length >= 2;
-        } else if (error) {
+    handleSearchInput(event) {
+        const value = event.target.value;
+        this.searchTerm = value;
+        clearTimeout(this.searchTimeout);
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.searchTimeout = setTimeout(() => {
+            this._doSearch(value);
+        }, 300);
+    }
+
+    async _doSearch(term) {
+        if (!term || term.length < 2) {
+            this.users = [];
+            this.dropdownOpen = false;
+            return;
+        }
+        try {
+            this.users = await searchUsers({ searchTerm: term, permissionSet: this.permissionSetFilter });
+            this.dropdownOpen = true;
+        } catch (error) {
             console.error('Error searching users:', error);
             this.users = [];
         }
     }
 
-    handleSearchInput(event) {
-        // Debounce search input
-        const value = event.target.value;
-        clearTimeout(this.searchTimeout);
-        
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        this.searchTimeout = setTimeout(() => {
-            this.searchTerm = value;
-        }, 300);
-    }
-
     handleFocus() {
-        if (this.searchTerm && this.searchTerm.length >= 2) {
+        if (this.users && this.users.length > 0 && this.searchTerm && this.searchTerm.length >= 2) {
             this.dropdownOpen = true;
         }
     }

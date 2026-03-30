@@ -88,8 +88,30 @@
     background-color: #546E7A;
 }
 
+.completed-badge--active {
+    background-color: #2e844a;
+}
+
+.completed-badge--inactive {
+    background-color: #919191;
+}
+
+.completed-badge--amendment {
+    background-color: #bf6a00;
+}
+
 .completed-badge + .completed-badge {
     margin-left: 0.5rem;
+}
+
+/* Recalled note editor modals need larger width/height for full form usability */
+.documentation-modal .slds-modal__container {
+    width: 94vw;
+    max-width: 80rem;
+}
+
+.documentation-modal .modal-body {
+    min-height: 70vh;
 }
 
 /* Scrollbar styling for document list */

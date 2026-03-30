@@ -28,6 +28,6 @@
     </values>
     <values>
         <field>Sort_Order__c</field>
-        <value xsi:type="xsd:double">708</value>
+        <value xsi:type="xsd:double">708.0</value>
     </values>
 </CustomMetadata>

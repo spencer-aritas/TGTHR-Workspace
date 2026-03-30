@@ -645,17 +645,20 @@ public with sharing class InteractionSummaryService {
 
   // Right-hand thread: last N notes for a participant
   @AuraEnabled(cacheable=true)
-  public static List<SObject> thread(Id accountId, Integer maxRows) {
+  public static List<Map<String, Object>> thread(Id accountId, Integer maxRows) {
     Integer m = (maxRows == null ||
       maxRows <= 0 ||
       maxRows > 2000)
       ? 50
       : maxRows;
+    if (accountId == null) {
+      return new List<Map<String, Object>>();
+    }
     // Using dynamic SOQL to avoid compile-time object validation issues with Nonprofit Cloud objects
     String query =
       'SELECT Id, AccountId, Date_of_Interaction__c, InteractionPurpose, ' +
       'MeetingNotes, CreatedBy.Name, CreatedDate, Notify_Case_Manager__c, Program__c, ' +
-      'Program__r.Name, Program__r.Id, ' +
+      'Program__r.Name, Program__r.Id, RelatedRecordId, ' +
       'Requires_Manager_Approval__c, Manager_Signed__c ' +
       'FROM InteractionSummary ' +
       'WHERE AccountId = :accountId ' +
@@ -663,10 +666,100 @@ public with sharing class InteractionSummaryService {
       'LIMIT :m';
 
     List<SObject> results = Database.query(query);
+    Set<Id> summaryIds = new Set<Id>();
+    for (SObject record : results) {
+      summaryIds.add((Id) record.get('Id'));
+    }
+
+    Map<Id, SObject> interviewBySummaryId = new Map<Id, SObject>();
+    if (!summaryIds.isEmpty()) {
+      List<SObject> interviews = Database.query(
+        'SELECT Id, Interaction_Summary__c, Case__c, InterviewTemplateVersion__r.InterviewTemplate__r.Name, CreatedDate ' +
+        'FROM Interview__c ' +
+        'WHERE Interaction_Summary__c IN :summaryIds ' +
+        'ORDER BY CreatedDate DESC'
+      );
+      for (SObject interview : interviews) {
+        Id summaryId = (Id) interview.get('Interaction_Summary__c');
+        if (!interviewBySummaryId.containsKey(summaryId)) {
+          interviewBySummaryId.put(summaryId, interview);
+        }
+      }
+    }
+
+    Id fallbackCaseId = null;
+    try {
+      List<Case> fallbackCases = [
+        SELECT Id
+        FROM Case
+        WHERE AccountId = :accountId AND IsClosed = false
+        ORDER BY CreatedDate DESC
+        LIMIT 1
+      ];
+      if (!fallbackCases.isEmpty()) {
+        fallbackCaseId = fallbackCases[0].Id;
+      }
+    } catch (Exception ex) {
+      System.debug('InteractionSummaryService.thread fallback case lookup failed: ' + ex.getMessage());
+    }
+
+    List<Map<String, Object>> payload = new List<Map<String, Object>>();
+    for (SObject record : results) {
+      Id summaryId = (Id) record.get('Id');
+      Id caseId = null;
+      String noteTypeLabel = (String) record.get('InteractionPurpose');
+
+      SObject interview = interviewBySummaryId.get(summaryId);
+      if (interview != null) {
+        caseId = (Id) interview.get('Case__c');
+        SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
+        if (templateVersion != null) {
+          SObject template = templateVersion.getSObject('InterviewTemplate__r');
+          if (template != null && String.isNotBlank((String) template.get('Name'))) {
+            noteTypeLabel = InterviewTemplateLabelService.normalizeDisplayLabel(
+              (String) template.get('Name')
+            );
+          }
+        }
+      }
+
+      Id relatedRecordId = (Id) record.get('RelatedRecordId');
+      if (caseId == null && relatedRecordId != null) {
+        try {
+          if (relatedRecordId.getSObjectType().getDescribe().getName() == 'Case') {
+            caseId = relatedRecordId;
+          }
+        } catch (Exception ex) {
+          System.debug('InteractionSummaryService.thread related record type resolution failed: ' + ex.getMessage());
+        }
+      }
+
+      if (caseId == null) {
+        caseId = fallbackCaseId;
+      }
+      if (String.isBlank(noteTypeLabel)) {
+        noteTypeLabel = 'Interaction Summary';
+      }
+
+      payload.add(new Map<String, Object>{
+        'Id' => summaryId,
+        'AccountId' => record.get('AccountId'),
+        'Program__c' => record.get('Program__c'),
+        'CaseId' => caseId,
+        'Date_of_Interaction__c' => record.get('Date_of_Interaction__c'),
+        'InteractionPurpose' => record.get('InteractionPurpose'),
+        'MeetingNotes' => record.get('MeetingNotes'),
+        'CreatedBy_Name' => record.getSObject('CreatedBy') != null ? record.getSObject('CreatedBy').get('Name') : null,
+        'Notify_Case_Manager__c' => record.get('Notify_Case_Manager__c'),
+        'Requires_Manager_Approval__c' => record.get('Requires_Manager_Approval__c'),
+        'Manager_Signed__c' => record.get('Manager_Signed__c'),
+        'NoteTypeLabel' => noteTypeLabel
+      });
+    }
 
     // Log the program IDs for debugging
-    for (Integer i = 0; i < Math.min(3, results.size()); i++) {
-      SObject record = results[i];
+    for (Integer i = 0; i < Math.min(3, payload.size()); i++) {
+      Map<String, Object> record = payload[i];
       Object programId = record.get('Program__c');
       System.debug(
         'Interaction Record ' +
@@ -677,8 +770,7 @@ public with sharing class InteractionSummaryService {
           (programId != null ? programId : 'null')
       );
     }
-
-    return results;
+    return payload;
   }
 
   // additional related: Incidents (right panel)
@@ -962,7 +1054,7 @@ public with sharing class InteractionSummaryService {
         'ORDER BY Account.Name ASC';
 
       String awaitingIntakeQuery =
-        'SELECT Id, Name, AccountId, Account.Name, Status, StartDate ' +
+        'SELECT Id, Name, AccountId, Account.Name, Case__c, Status, StartDate ' +
         'FROM ProgramEnrollment ' +
         'WHERE ProgramId = :pid ' +
         'AND (Status = \'Awaiting Intake\' OR Status = \'Pending Intake\') ' +
@@ -980,6 +1072,51 @@ public with sharing class InteractionSummaryService {
         awaitingIntakeQuery
       );
       List<SObject> pendingExitEnrollments = Database.query(pendingExitQuery);
+
+      Set<Id> awaitingAccountIdsMissingCase = new Set<Id>();
+      for (SObject enrollment : awaitingIntakeEnrollments) {
+        if (
+          enrollment.get('Case__c') == null &&
+          enrollment.get('AccountId') != null
+        ) {
+          awaitingAccountIdsMissingCase.add((Id) enrollment.get('AccountId'));
+        }
+      }
+
+      if (!awaitingAccountIdsMissingCase.isEmpty()) {
+        Map<Id, Id> latestOpenCaseByAccountId = new Map<Id, Id>();
+        for (
+          SObject openCase : [
+            SELECT Id, AccountId
+            FROM Case
+            WHERE AccountId IN :awaitingAccountIdsMissingCase
+            AND Status != 'Closed'
+            ORDER BY CreatedDate DESC
+          ]
+        ) {
+          Id accountId = (Id) openCase.get('AccountId');
+          if (
+            accountId != null &&
+            !latestOpenCaseByAccountId.containsKey(accountId)
+          ) {
+            latestOpenCaseByAccountId.put(accountId, (Id) openCase.get('Id'));
+          }
+        }
+
+        for (SObject enrollment : awaitingIntakeEnrollments) {
+          if (
+            enrollment.get('Case__c') == null &&
+            enrollment.get('AccountId') != null
+          ) {
+            Id fallbackCaseId = latestOpenCaseByAccountId.get(
+              (Id) enrollment.get('AccountId')
+            );
+            if (fallbackCaseId != null) {
+              enrollment.put('Case__c', fallbackCaseId);
+            }
+          }
+        }
+      }
 
       Map<String, Object> result = new Map<String, Object>();
       result.put('activeEnrollments', activeEnrollments);

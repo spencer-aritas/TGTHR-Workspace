@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="force.apex" timestamp="2026-03-13T20:15:09.000Z" hostname="https://tgthrnpc--benefits.sandbox.my.salesforce.com" tests="217" failures="12"  errors="0"  time="65.19">
+        <properties>
+            <property name="outcome" value="Failed"/>
+            <property name="testsRan" value="217"/>
+            <property name="passing" value="205"/>
+            <property name="failing" value="12"/>
+            <property name="skipped" value="0"/>
+            <property name="passRate" value="94%"/>
+            <property name="failRate" value="6%"/>
+            <property name="testStartTime" value="Fri Mar 13 2026 2:15:09 PM"/>
+            <property name="testSetupTimeInMs" value="9744"/>
+            <property name="testExecutionTime" value="65.19 s"/>
+            <property name="testTotalTime" value="74.93 s"/>
+            <property name="commandTime" value="0.19 s"/>
+            <property name="hostname" value="https://tgthrnpc--benefits.sandbox.my.salesforce.com"/>
+            <property name="orgId" value="00DRT000008A0Oj2AK"/>
+            <property name="username" value="sessey@tgthr.org.benefits"/>
+            <property name="testRunId" value="707RT00002A17qP"/>
+            <property name="userId" value="005VY000003VsDhYAK"/>
+            <property name="coveredLines" value="2085"/>
+            <property name="testRunCoverage" value="30%"/>
+            <property name="orgWideCoverage" value="14%"/>
+        </properties>
+        <testcase name="emptyInputCollectionReturnsEmpty" classname="ExtractStringsFromCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="emptyInputCollectionThrowsError" classname="ExtractStringsFromCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="extractTextCollectionNoDedupe" classname="ExtractStringsFromCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="extractTextCollectionSuccess" classname="ExtractStringsFromCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="extractTextCollectionSuccessNullValues" classname="ExtractStringsFromCollectionTest" time="0.48">
+        </testcase>
+        <testcase name="testBuildPayloadWithSignaturePolicies" classname="InterviewDocumentServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testHiddenSignaturesExcluded" classname="InterviewDocumentServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testItemTypes" classname="InterviewDocumentServiceTest" time="0.00">
+        </testcase>
+        <testcase name="testSectionKinds" classname="InterviewDocumentServiceTest" time="0.00">
+        </testcase>
+        <testcase name="testGetCensusByProgramId_blankId" classname="ProgramCensusControllerTest" time="0.05">
+        </testcase>
+        <testcase name="testGetCensusByProgramId_invalidIdFormat" classname="ProgramCensusControllerTest" time="0.01">
+        </testcase>
+        <testcase name="testGetCensusByProgramId_nullId" classname="ProgramCensusControllerTest" time="0.01">
+        </testcase>
+        <testcase name="testGetCensusByProgramId_programNotFound" classname="ProgramCensusControllerTest" time="0.04">
+        </testcase>
+        <testcase name="testGetCensusByProgramId_successPath" classname="ProgramCensusControllerTest" time="1.94">
+        </testcase>
+        <testcase name="testGetCensus_blankProgramName" classname="ProgramCensusControllerTest" time="0.01">
+        </testcase>
+        <testcase name="testGetCensus_cacheableQuery" classname="ProgramCensusControllerTest" time="0.81">
+        </testcase>
+        <testcase name="testGetCensus_limitCapped" classname="ProgramCensusControllerTest" time="0.75">
+        </testcase>
+        <testcase name="testGetCensus_multipleEnrollments" classname="ProgramCensusControllerTest" time="1.99">
+        </testcase>
+        <testcase name="testGetCensus_multipleOpenCases" classname="ProgramCensusControllerTest" time="1.65">
+        </testcase>
+        <testcase name="testGetCensus_noCaseManager" classname="ProgramCensusControllerTest" time="0.77">
+        </testcase>
+        <testcase name="testGetCensus_nullLimit" classname="ProgramCensusControllerTest" time="0.73">
+        </testcase>
+        <testcase name="testGetCensus_nullProgramName" classname="ProgramCensusControllerTest" time="0.00">
+        </testcase>
+        <testcase name="testGetCensus_programNotFound" classname="ProgramCensusControllerTest" time="0.03">
+        </testcase>
+        <testcase name="testGetCensus_statusFiltering" classname="ProgramCensusControllerTest" time="1.38">
+        </testcase>
+        <testcase name="testGetCensus_successPath" classname="ProgramCensusControllerTest" time="0.81">
+        </testcase>
+        <testcase name="testGetCensus_withCaseManager" classname="ProgramCensusControllerTest" time="1.10">
+        </testcase>
+        <testcase name="testGetCensus_zeroOrNegativeLimit" classname="ProgramCensusControllerTest" time="0.81">
+        </testcase>
+        <testcase name="testUpdateParticipantFields_bulkUpdates" classname="ProgramCensusControllerTest" time="0.35">
+        </testcase>
+        <testcase name="testUpdateParticipantFields_emptyUpdates" classname="ProgramCensusControllerTest" time="0.00">
+        </testcase>
+        <testcase name="testUpdateParticipantFields_invalidAccountId" classname="ProgramCensusControllerTest" time="0.01">
+        </testcase>
+        <testcase name="testUpdateParticipantFields_multipleFieldsUpdate" classname="ProgramCensusControllerTest" time="0.27">
+        </testcase>
+        <testcase name="testUpdateParticipantFields_nullFields" classname="ProgramCensusControllerTest" time="0.11">
+        </testcase>
+        <testcase name="testUpdateParticipantFields_singleFieldUpdate" classname="ProgramCensusControllerTest" time="0.27">
+        </testcase>
+        <testcase name="testCreateInteractionDirectly" classname="InteractionSummaryServiceTest" time="1.68">
+        </testcase>
+        <testcase name="testGetRecentEngagements" classname="InteractionSummaryServiceTest" time="0.41">
+        </testcase>
+        <testcase name="testBooleanComparable" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testBulkification" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testDateimeComparable" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testDecimalComparable" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testDoubleComparableIntegerFieldType" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testDoubleComparableLongFieldType" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testSortBooleanContactEmailOptOutAsc" classname="SortCollectionTest" time="0.05">
+        </testcase>
+        <testcase name="testSortBooleanContactEmailOptOutDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortBooleanContactFaxOptOutAscAllNull" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortCurrencyCampaignExpectedRevenueAsc" classname="SortCollectionTest" time="0.04">
+        </testcase>
+        <testcase name="testSortCurrencyCampaignExpectedRevenueDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortDateContactBirthdateAsc" classname="SortCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="testSortDateContactBirthdateDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortDatetimeContactCreatedDateAsc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortDatetimeContactCreatedDateDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortDatetimeContractActivatedDateAsc" classname="SortCollectionTest" time="0.04">
+        </testcase>
+        <testcase name="testSortDatetimeContractActivatedDateDesc" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testSortIdContactIdDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortLookupContactIdDesc" classname="SortCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="testSortPercentageCampaignExpectedResponseAsc" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="testSortPercentageCampaignExpectedResponseDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortPicklistContactLeadAsc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortPicklistContactLeadDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortStringContactDepartmentAscAllNull" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortStringContactEmailAscSomeNull" classname="SortCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="testSortStringContactEmailDescSomeNull" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortStringContactFirstNameAscSomeNull" classname="SortCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="testSortStringContactIdAsc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortStringContactLastNameAsc" classname="SortCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="testSortStringContactLastNameDesc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortStringContactPhoneAsc" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testSortStringContactPhoneDesc" classname="SortCollectionTest" time="0.03">
+        </testcase>
+        <testcase name="testSortableWrapperCompareToUnsupportedType" classname="SortCollectionTest" time="0.02">
+        </testcase>
+        <testcase name="testTimeComparable" classname="SortCollectionTest" time="0.01">
+        </testcase>
+        <testcase name="test_Add" classname="CollectionCalculate_Test" time="0.56">
+        </testcase>
+        <testcase name="test_Average" classname="CollectionCalculate_Test" time="0.17">
+        </testcase>
+        <testcase name="test_Count" classname="CollectionCalculate_Test" time="0.14">
+        </testcase>
+        <testcase name="test_Max" classname="CollectionCalculate_Test" time="0.15">
+        </testcase>
+        <testcase name="test_Min" classname="CollectionCalculate_Test" time="0.14">
+        </testcase>
+        <testcase name="test_Multiply" classname="CollectionCalculate_Test" time="0.14">
+        </testcase>
+        <testcase name="test_Sum" classname="CollectionCalculate_Test" time="0.15">
+        </testcase>
+        <testcase name="testCheckRecordLockStatus" classname="RecordAccessServiceTest" time="0.03">
+        </testcase>
+        <testcase name="testCheckRecordLockStatusNullInput" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testGetCuriosityBrowseReport" classname="RecordAccessServiceTest" time="0.06">
+        </testcase>
+        <testcase name="testGetRecordAuditTrail" classname="RecordAccessServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testGetRecordAuditTrailNullInput" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testLogAmendmentMissingReason" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testLogAmendmentNullRecordId" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testLogRecordAccess" classname="RecordAccessServiceTest" time="0.31">
+        </testcase>
+        <testcase name="testLogRecordAccessNullInput" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="canUpsertExistingRecords" classname="UpsertRecordsTest" time="1.47">
+        </testcase>
+        <testcase name="canUpsertNewRecords" classname="UpsertRecordsTest" time="0.32">
+        </testcase>
+        <testcase name="canUpsertRecords" classname="UpsertRecordsTest" time="1.01">
+        </testcase>
+        <testcase name="testTrigger" classname="dlrs_AccountTest" time="0.24">
+        </testcase>
+        <testcase name="testLogForCarePlan" classname="AuditLogServiceTest" time="0.43">
+        </testcase>
+        <testcase name="testLogForCase" classname="AuditLogServiceTest" time="0.07">
+        </testcase>
+        <testcase name="testLogForInteractionSummary" classname="AuditLogServiceTest" time="0.07">
+        </testcase>
+        <testcase name="testLogForPersonAccount" classname="AuditLogServiceTest" time="0.07">
+        </testcase>
+        <testcase name="testLogForReferral" classname="AuditLogServiceTest" time="0.07">
+        </testcase>
+        <testcase name="testTrigger" classname="dlrs_BenefitDisbursementTest" time="4.33">
+        </testcase>
+        <testcase name="canConvertString" classname="ConvertCSVToStringCollectionTest_CP" time="0.03">
+        </testcase>
+        <testcase name="canConvertStringCollection" classname="ConvertCSVToStringCollectionTest_CP" time="0.01">
+        </testcase>
+        <testcase name="canConvertStringCollectionWithDelimiter" classname="ConvertCSVToStringCollectionTest_CP" time="0.01">
+        </testcase>
+        <testcase name="canConvertStringWithDelimiter" classname="ConvertCSVToStringCollectionTest_CP" time="0.01">
+        </testcase>
+        <testcase name="testCompleteInterviewCreates1440EnrollmentWhenSelected" classname="InterviewCompletionServiceTest" time="0.80">
+        </testcase>
+        <testcase name="testCompleteInterviewCreatesNest56EnrollmentWhenSelected" classname="InterviewCompletionServiceTest" time="0.31">
+        </testcase>
+        <testcase name="testCompleteInterviewDoesNotDuplicateExistingEnrollment" classname="InterviewCompletionServiceTest" time="0.24">
+        </testcase>
+        <testcase name="testCompleteInterviewSkipsUnsupportedSelectedProgram" classname="InterviewCompletionServiceTest" time="0.99">
+        </testcase>
+        <testcase name="testCreateDisbursementsWithAssignments" classname="BenefitDisbursementServiceTestExt" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.BenefitDisbursementServiceTestExt.setupTestData: line 28, column 1]]></failure>
+        </testcase>
+        <testcase name="testCreateMissingBenefitAssignments" classname="BenefitDisbursementServiceTestExt" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.BenefitDisbursementServiceTestExt.setupTestData: line 28, column 1]]></failure>
+        </testcase>
+        <testcase name="testDateFormatHandling" classname="BenefitDisbursementServiceTestExt" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.BenefitDisbursementServiceTestExt.setupTestData: line 28, column 1]]></failure>
+        </testcase>
+        <testcase name="testIngestEncounter_accountUpsertByUuid" classname="ProgramEnrollmentServiceTest" time="5.61">
+        </testcase>
+        <testcase name="testIngestEncounter_caseCreation" classname="ProgramEnrollmentServiceTest" time="2.09">
+        </testcase>
+        <testcase name="testIngestEncounter_datetimeParsing" classname="ProgramEnrollmentServiceTest" time="2.24">
+        </testcase>
+        <testcase name="testIngestEncounter_existingEnrollment" classname="ProgramEnrollmentServiceTest" time="0.20">
+        </testcase>
+        <testcase name="testIngestEncounter_invalidBirthdateFormat" classname="ProgramEnrollmentServiceTest" time="1.93">
+        </testcase>
+        <testcase name="testIngestEncounter_invalidCreatedByUserId" classname="ProgramEnrollmentServiceTest" time="1.90">
+        </testcase>
+        <testcase name="testIngestEncounter_missingEncounterUuid" classname="ProgramEnrollmentServiceTest" time="1.85">
+        </testcase>
+        <testcase name="testIngestEncounter_missingPersonUuid" classname="ProgramEnrollmentServiceTest" time="0.05">
+        </testcase>
+        <testcase name="testIngestEncounter_multipleBenefits" classname="ProgramEnrollmentServiceTest" time="2.20">
+        </testcase>
+        <testcase name="testIngestEncounter_noProgramFound" classname="ProgramEnrollmentServiceTest" time="2.63">
+        </testcase>
+        <testcase name="testIngestEncounter_reuseExistingCase" classname="ProgramEnrollmentServiceTest" time="0.27">
+        </testcase>
+        <testcase name="testIngestEncounter_successPath" classname="ProgramEnrollmentServiceTest" time="1.89">
+        </testcase>
+        <testcase name="testIngestEncounter_withBirthdate" classname="ProgramEnrollmentServiceTest" time="1.79">
+        </testcase>
+        <testcase name="testIngestEncounter_withCreatedByUserId" classname="ProgramEnrollmentServiceTest" time="2.08">
+        </testcase>
+        <testcase name="testIngestEncounter_withEmailAndPhone" classname="ProgramEnrollmentServiceTest" time="1.88">
+        </testcase>
+        <testcase name="testGetActiveEnrollments" classname="ProgramManagementQueriesTest" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1]]></failure>
+        </testcase>
+        <testcase name="testGetBenefitAssignments" classname="ProgramManagementQueriesTest" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1]]></failure>
+        </testcase>
+        <testcase name="testGetBenefitByName" classname="ProgramManagementQueriesTest" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1]]></failure>
+        </testcase>
+        <testcase name="testGetBenefitDisbursements" classname="ProgramManagementQueriesTest" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1]]></failure>
+        </testcase>
+        <testcase name="testGetProgramByName" classname="ProgramManagementQueriesTest" time="0.00">
+            <failure message="System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []"><![CDATA[Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1]]></failure>
+        </testcase>
+        <testcase name="testTrigger" classname="dlrs_EnhancementsTest" time="1.30">
+        </testcase>
+        <testcase name="testAbortAllJobs" classname="PsychoSocialRenewalServiceTest" time="0.07">
+        </testcase>
+        <testcase name="testGetActiveUsers" classname="PsychoSocialRenewalServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testProcessRenewals_NoInterviews" classname="PsychoSocialRenewalServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testReassignInterview_Success" classname="PsychoSocialRenewalServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testRunNow" classname="PsychoSocialRenewalServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testScheduleDaily" classname="PsychoSocialRenewalServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testSchedulerExecution" classname="PsychoSocialRenewalServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testSendRenewalNotification" classname="PsychoSocialRenewalServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testTrigger" classname="dlrs_IncomeTest" time="0.78">
+        </testcase>
+        <testcase name="testExecuteWithNoRecords" classname="NoteLockSchedulerTest" time="0.08">
+        </testcase>
+        <testcase name="testSchedulerExecution" classname="NoteLockSchedulerTest" time="0.13">
+        </testcase>
+        <testcase name="testReturnALLRandomRecords" classname="ReturnNRandomRecordsTest" time="0.33">
+        </testcase>
+        <testcase name="testReturnNRandomRecords" classname="ReturnNRandomRecordsTest" time="0.15">
+        </testcase>
+        <testcase name="testCallDocGenFailure" classname="IncidentDocDownloaderTest" time="1.18">
+        </testcase>
+        <testcase name="testCallDocGenSuccess" classname="IncidentDocDownloaderTest" time="0.64">
+        </testcase>
+        <testcase name="testTrigger" classname="dlrs_CaseTest" time="0.47">
+        </testcase>
+        <testcase name="accountWithContacts" classname="SObjectDeepCloneTests" time="2.07">
+            <failure message="System.AssertException: Assertion Failed: Same value: null"><![CDATA[Class.SObjectDeepCloneTests.accountWithContacts: line 22, column 1]]></failure>
+        </testcase>
+        <testcase name="testTrigger" classname="dlrs_ReferralTest" time="0.14">
+        </testcase>
+        <testcase name="testCreateFollowUpTask_StillWorks" classname="TaskServiceTest" time="0.78">
+        </testcase>
+        <testcase name="testCreateValidationTask_AllFieldsPreserved" classname="TaskServiceTest" time="0.07">
+        </testcase>
+        <testcase name="testCreateValidationTask_CrisisFlag" classname="TaskServiceTest" time="0.06">
+        </testcase>
+        <testcase name="testCreateValidationTask_DTOVsLegacy_Equivalence" classname="TaskServiceTest" time="0.08">
+        </testcase>
+        <testcase name="testCreateValidationTask_LegacyOverload_Success" classname="TaskServiceTest" time="0.05">
+        </testcase>
+        <testcase name="testCreateValidationTask_MultipleTasks" classname="TaskServiceTest" time="0.14">
+        </testcase>
+        <testcase name="testCreateValidationTask_WithDTO_DefaultConstructor" classname="TaskServiceTest" time="0.05">
+        </testcase>
+        <testcase name="testCreateValidationTask_WithDTO_NullThrows" classname="TaskServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testCreateValidationTask_WithDTO_Success" classname="TaskServiceTest" time="0.06">
+        </testcase>
+        <testcase name="testCreateValidationTask_WithDisbursementId" classname="TaskServiceTest" time="0.21">
+        </testcase>
+        <testcase name="testCreateAssignmentAndDisbursement" classname="BenefitAssignmentFlowTest" time="2.34">
+        </testcase>
+        <testcase name="testGetBenefitTypes" classname="BenefitServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testGetBenefitsByInvalidType" classname="BenefitServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testGetBenefitsByType_Housing" classname="BenefitServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testGetProgramIdByName" classname="BenefitServiceTest" time="0.01">
+        </testcase>
+        <testcase name="CanGetRecordsFromIds" classname="GetRecordsFromIdsTest" time="0.06">
+        </testcase>
+        <testcase name="testApproveNote_SetsCompleted" classname="PendingDocumentationControllerTest" time="0.52">
+        </testcase>
+        <testcase name="testGetNoteForApproval_UnescapesHTML" classname="PendingDocumentationControllerTest" time="0.28">
+        </testcase>
+        <testcase name="addOrInsertRecordFirstTest" classname="ListActionsTest" time="0.02">
+        </testcase>
+        <testcase name="canCalculateCollection" classname="ListActionsTest" time="0.02">
+        </testcase>
+        <testcase name="canGetChildCollection_childSobjectName" classname="ListActionsTest" time="0.94">
+        </testcase>
+        <testcase name="canGetChildCollection_dualInputsError" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="canGetChildCollection_inputRecord" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="canGetChildCollection_inputRecordId" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="canGetChildCollection_noInputsError" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="canGetLookupCollection" classname="ListActionsTest" time="0.50">
+        </testcase>
+        <testcase name="cloneRecordTests" classname="ListActionsTest" time="0.96">
+            <failure message="System.AssertException: Assertion Failed: Same value: null"><![CDATA[Class.ListActionsTest.cloneRecordTests: line 273, column 1]]></failure>
+        </testcase>
+        <testcase name="copyCollectionTest" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="countRecordsAndFieldsTest" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="evaluateFormulaTest" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="filterCollectionTest" classname="ListActionsTest" time="0.25">
+        </testcase>
+        <testcase name="findRecordsInCollectionTest" classname="ListActionsTest" time="0.04">
+        </testcase>
+        <testcase name="generateReportTest" classname="ListActionsTest" time="0.19">
+        </testcase>
+        <testcase name="getFirstTest" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="joinCollectionTest" classname="ListActionsTest" time="0.02">
+        </testcase>
+        <testcase name="mapCollection" classname="ListActionsTest" time="0.15">
+        </testcase>
+        <testcase name="removeRecordInCollectionTest" classname="ListActionsTest" time="0.01">
+        </testcase>
+        <testcase name="sortCollectionTest" classname="ListActionsTest" time="0.03">
+        </testcase>
+        <testcase name="testSearchUsers_BlankSearchTerm_ReturnsEmptyList" classname="UserLookupControllerTest" time="0.01">
+        </testcase>
+        <testcase name="testSearchUsers_ByEmail_ReturnsMatchingUsers" classname="UserLookupControllerTest" time="0.09">
+        </testcase>
+        <testcase name="testSearchUsers_NoMatchingUsers_ReturnsEmptyList" classname="UserLookupControllerTest" time="0.04">
+        </testcase>
+        <testcase name="testSearchUsers_PartialName_ReturnsMatchingUsers" classname="UserLookupControllerTest" time="0.05">
+        </testcase>
+        <testcase name="testSearchUsers_WithPermissionSet_ReturnsMatchingUsers" classname="UserLookupControllerTest" time="0.05">
+        </testcase>
+        <testcase name="testCreateAssignmentAndDisbursement" classname="BenefitDisbursementServiceTest" time="0.17">
+        </testcase>
+        <testcase name="testCreateDisbursements_AutoCreateAssignment" classname="BenefitDisbursementServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testCreateDisbursements_ErrorHandling" classname="BenefitDisbursementServiceTest" time="0.03">
+        </testcase>
+        <testcase name="testCreateDisbursements_TimeBasedBenefit" classname="BenefitDisbursementServiceTest" time="0.00">
+        </testcase>
+        <testcase name="testCreateDisbursements_WithExistingAssignment" classname="BenefitDisbursementServiceTest" time="0.00">
+        </testcase>
+        <testcase name="testGetBenefits" classname="BenefitDisbursementServiceTest" time="0.05">
+        </testcase>
+        <testcase name="testGetEventTypes" classname="BenefitDisbursementServiceTest" time="0.04">
+        </testcase>
+        <testcase name="test" classname="ReturnFirstNRecordsTest" time="0.76">
+        </testcase>
+        <testcase name="testCompareRecords" classname="FindCommonAndUniqueRecordsTest" time="0.05">
+        </testcase>
+        <testcase name="testEmptyCollection" classname="FindCommonAndUniqueRecordsTest" time="0.04">
+        </testcase>
+        <testcase name="testUserWithoutPermissionSetAssignments" classname="FindCommonAndUniqueRecordsTest" time="2.73">
+        </testcase>
+        <testcase name="testTrigger" classname="dlrs_PublicComplaintTest" time="0.19">
+        </testcase>
+        <testcase name="GetFirstReturnsFirstResult" classname="GetFirstTest" time="0.03">
+        </testcase>
+        <testcase name="testCreateAssignmentAndDisbursement" classname="BenefitAssignmentTest" time="0.68">
+        </testcase>
+        <testcase name="deprecatedMethodStillWorks" classname="ClinicalNoteControllerTest" time="0.04">
+        </testcase>
+        <testcase name="saveClinicalNoteRequiresCase" classname="ClinicalNoteControllerTest" time="0.03">
+        </testcase>
+        <testcase name="saveClinicalNoteRequiresTimeFields" classname="ClinicalNoteControllerTest" time="0.26">
+        </testcase>
+    </testsuite>
+</testsuites>

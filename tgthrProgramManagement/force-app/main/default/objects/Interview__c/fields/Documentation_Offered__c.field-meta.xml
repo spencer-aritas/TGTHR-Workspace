@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Documentation_Offered__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>A copy of this treatment plan was offered to the participant.</description>
+    <label>Documentation Offered</label>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,5 +1,6 @@
 /* eslint-disable consistent-return */
 import { LightningElement, api, track, wire } from "lwc";
+import { NavigationMixin } from "lightning/navigation";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getBenefitTypes from "@salesforce/apex/BenefitService.getBenefitTypes";
 import getBenefits from "@salesforce/apex/BenefitService.getBenefits";
@@ -29,7 +30,7 @@ const MULTI_NOTE_OPTIONS = [
   { label: "Individual Case Notes per Participant", value: "individual" }
 ];
 
-export default class ProgramCensusGrid extends LightningElement {
+export default class ProgramCensusGrid extends NavigationMixin(LightningElement) {
   _loggedParticipantIds = new Set();
   _loggedEnrollmentIds = new Set();
   _loggedEngagementIds = new Set();
@@ -937,13 +938,18 @@ export default class ProgramCensusGrid extends LightningElement {
       const awaitingIntakeEnrollments = data.awaitingIntakeEnrollments || [];
       this.awaitingIntakeRows = awaitingIntakeEnrollments.map((enrollment) => {
         const account = enrollment.Account || {};
+        const caseManagerHomeUrl = this.buildCaseManagerHomeUrl(
+          enrollment.Case__c,
+          enrollment.AccountId
+        );
         return {
           accountId: enrollment.AccountId,
+          caseId: enrollment.Case__c,
           residentName: account.Name || "",
           startDate: this.formatDate(enrollment.StartDate),
           enrollmentId: enrollment.Id,
-          residentLink: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`,
-          RecordUrl: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
+          residentLink: caseManagerHomeUrl || "javascript:void(0);",
+          RecordUrl: caseManagerHomeUrl || `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
         };
       });
 
@@ -1067,13 +1073,18 @@ export default class ProgramCensusGrid extends LightningElement {
     const awaitingIntakeEnrollments = data.awaitingIntakeEnrollments || [];
     this.awaitingIntakeRows = awaitingIntakeEnrollments.map((enrollment) => {
       const account = enrollment.Account || {};
+      const caseManagerHomeUrl = this.buildCaseManagerHomeUrl(
+        enrollment.Case__c,
+        enrollment.AccountId
+      );
       return {
         accountId: enrollment.AccountId,
+        caseId: enrollment.Case__c,
         residentName: account.Name || "",
         startDate: this.formatDate(enrollment.StartDate),
         enrollmentId: enrollment.Id,
-        residentLink: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`,
-        RecordUrl: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
+        residentLink: caseManagerHomeUrl || "javascript:void(0);",
+        RecordUrl: caseManagerHomeUrl || `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
       };
     });
 
@@ -1111,6 +1122,22 @@ export default class ProgramCensusGrid extends LightningElement {
       console.error("Error formatting date:", error);
       return dateString;
     }
+  }
+
+  buildCaseManagerHomeUrl(caseId, accountId) {
+    if (!caseId) {
+      return null;
+    }
+
+    let url = `/lightning/n/Case_Management?c__caseId=${encodeURIComponent(
+      caseId
+    )}`;
+
+    if (accountId) {
+      url += `&c__accountId=${encodeURIComponent(accountId)}`;
+    }
+
+    return url;
   }
 
   // Load recent engagement data for the calendar
@@ -2192,15 +2219,19 @@ async loadRecentEngagements() {
 
   // Handle clicking on enrollment name link
   handleEnrollmentClick(event) {
+    event.preventDefault();
     event.stopPropagation(); // Prevent the row click event from firing
-    const accountId = event.currentTarget.dataset.id;
+    const enrollmentId =
+      event.currentTarget.dataset.enrollmentId || event.currentTarget.dataset.id;
+    const accountId = event.currentTarget.dataset.accountId;
+    const caseId = event.currentTarget.dataset.caseId;
 
     // Find the enrollment in either awaiting intake or pending exit arrays
     const intakeEnrollment = this.awaitingIntakeRows.find(
-      (row) => row.accountId === accountId
+      (row) => row.enrollmentId === enrollmentId
     );
     const exitEnrollment = this.pendingExitRows.find(
-      (row) => row.accountId === accountId
+      (row) => row.enrollmentId === enrollmentId || row.accountId === accountId
     );
     const enrollment = intakeEnrollment || exitEnrollment;
 
@@ -2219,8 +2250,33 @@ async loadRecentEngagements() {
         `Opening record for ${enrollment.residentName}`,
         "info"
       );
-      // In a real implementation, this would navigate to the record detail page
-      // Using the record ID and the NavigationMixin
+      if (caseId || intakeEnrollment?.caseId) {
+        const targetCaseId = caseId || intakeEnrollment.caseId;
+        const targetAccountId = accountId || intakeEnrollment.accountId;
+        const targetUrl = this.buildCaseManagerHomeUrl(
+          targetCaseId,
+          targetAccountId
+        );
+
+        if (targetUrl) {
+          window.location.assign(targetUrl);
+          return;
+        }
+
+        console.error(
+          "Unable to build Case Management URL for Awaiting Intake row."
+        );
+        return;
+      }
+
+      this[NavigationMixin.Navigate]({
+        type: "standard__recordPage",
+        attributes: {
+          recordId: enrollment.enrollmentId,
+          objectApiName: "ProgramEnrollment",
+          actionName: "view"
+        }
+      });
     }
   }
 

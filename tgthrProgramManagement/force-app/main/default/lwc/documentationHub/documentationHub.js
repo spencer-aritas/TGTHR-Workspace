@@ -5,13 +5,19 @@ import getActiveTemplates from '@salesforce/apex/InterviewTemplateController.get
 import { getRecord } from 'lightning/uiRecordApi';
 import CASE_ACCOUNT_FIELD from '@salesforce/schema/Case.AccountId';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
+import caseHasActiveTreatmentPlan from '@salesforce/apex/TreatmentPlanBoardController.caseHasActiveTreatmentPlan';
 
 const FIELDS = [CASE_ACCOUNT_FIELD];
 const INTERVIEW_BUTTONS = [
     { key: 'treatment-plan', label: 'Treatment Plan', tokens: ['treatment plan'] },
-    { key: 'comp-intake', label: 'Comprehensive Intake Assessment', tokens: ['comprehensive', 'intake'] },
-    { key: '1440-pine', label: '1440 Pine Psycho-Social Intake', tokens: ['1440', 'psycho'] },
-    { key: 'drop-in', label: 'Drop-In and Outreach', tokens: ['drop-in', 'outreach'] }
+    {
+        key: 'comp-intake',
+        label: 'Comprehensive Clinical Assessment',
+        matchAnyTokenSets: [
+            ['comprehensive', 'intake'],
+            ['comprehensive', 'assessment']
+        ]
+    }
 ];
 
 export default class DocumentationHub extends NavigationMixin(LightningElement) {
@@ -21,6 +27,10 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
     @track showCaseNoteModal = false;
     @track showClinicalModal = false;
     @track showPeerNoteModal = false;
+    @track showAmendmentConfirm = false;
+
+    // Pending interview version to launch after amendment confirmation
+    _pendingLaunchVersionId = null;
     
     
     // Interview templates
@@ -83,7 +93,7 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
 
     get interviewButtons() {
         return INTERVIEW_BUTTONS.map(def => {
-            const template = this.findTemplateByTokens(def.tokens);
+            const template = this.findTemplateForButton(def);
             return {
                 ...def,
                 templateVersionId: template?.templateVersionId || null,
@@ -100,6 +110,16 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
 
     closeCaseNote() {
         this.showCaseNoteModal = false;
+    }
+
+    handleCaseNoteClose(event) {
+        this.showCaseNoteModal = false;
+        if (event.detail && event.detail.success) {
+            // Refresh the page to show the saved note in completed documentation
+            // without leaving the Case record context.
+            // eslint-disable-next-line no-restricted-globals
+            location.reload();
+        }
     }
 
     // Clinical Note handlers
@@ -190,6 +210,21 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
         }) || null;
     }
 
+    findTemplateForButton(definition) {
+        const matchAnyTokenSets = definition?.matchAnyTokenSets;
+        if (Array.isArray(matchAnyTokenSets) && matchAnyTokenSets.length > 0) {
+            for (const tokenSet of matchAnyTokenSets) {
+                const template = this.findTemplateByTokens(tokenSet);
+                if (template) {
+                    return template;
+                }
+            }
+            return null;
+        }
+
+        return this.findTemplateByTokens(definition?.tokens || []);
+    }
+
     handleInterviewButtonClick(event) {
         const versionId = event.currentTarget.dataset.versionId;
         if (!versionId) {
@@ -197,8 +232,45 @@ export default class DocumentationHub extends NavigationMixin(LightningElement) 
             return;
         }
 
+        const defKey = event.currentTarget.dataset.defKey;
+
+        // Treatment Plan: warn user if an active plan already exists (would become an amendment)
+        if (defKey === 'treatment-plan' && this.recordId) {
+            caseHasActiveTreatmentPlan({ caseId: this.recordId })
+                .then(hasActive => {
+                    if (hasActive) {
+                        this._pendingLaunchVersionId = versionId;
+                        this.showAmendmentConfirm = true;
+                    } else {
+                        this.logHubAccess('DocumentationHubLaunchInterview');
+                        this.launchInterviewByVersionId(versionId);
+                    }
+                })
+                .catch(() => {
+                    // If check fails, proceed without blocking the user
+                    this.logHubAccess('DocumentationHubLaunchInterview');
+                    this.launchInterviewByVersionId(versionId);
+                });
+            return;
+        }
+
         this.logHubAccess('DocumentationHubLaunchInterview');
         this.launchInterviewByVersionId(versionId);
+    }
+
+    handleAmendmentConfirmCancel() {
+        this.showAmendmentConfirm = false;
+        this._pendingLaunchVersionId = null;
+    }
+
+    handleAmendmentConfirmProceed() {
+        const versionId = this._pendingLaunchVersionId;
+        this.showAmendmentConfirm = false;
+        this._pendingLaunchVersionId = null;
+        if (versionId) {
+            this.logHubAccess('DocumentationHubLaunchInterview');
+            this.launchInterviewByVersionId(versionId);
+        }
     }
 
     launchInterviewByVersionId(versionId) {

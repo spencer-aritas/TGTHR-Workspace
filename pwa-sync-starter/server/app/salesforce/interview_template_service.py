@@ -27,6 +27,7 @@ class InterviewTemplateService:
                        Effective_From__c, Effective_To__c
                 FROM InterviewTemplateVersion__c
                 WHERE InterviewTemplate__r.Active__c = true
+                AND InterviewTemplate__r.Available_for_Mobile__c = true
                 AND Status__c = 'Active'
                 ORDER BY InterviewTemplate__r.Name, Variant__c, Name
             """

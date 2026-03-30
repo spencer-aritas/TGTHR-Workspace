@@ -3,18 +3,21 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin, CurrentPageReference } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
 import Id from '@salesforce/user/Id';
+import hasWordDownload from '@salesforce/customPermission/Has_Word_Download';
 import getDraftsForCase from '@salesforce/apex/DocumentDraftService.getDraftsForCase';
 import getUnsignedInteractions from '@salesforce/apex/PendingDocumentationController.getUnsignedInteractions';
 import getUnsignedInterviews from '@salesforce/apex/PendingDocumentationController.getUnsignedInterviews';
 import getPendingManagerApprovals from '@salesforce/apex/PendingDocumentationController.getPendingManagerApprovals';
 import getMyActionItems from '@salesforce/apex/PendingDocumentationController.getMyActionItems';
 import getOpenRequest from '@salesforce/apex/PendingDocumentationController.getOpenRequest';
+import getInterviewForSignature from '@salesforce/apex/PendingDocumentationController.getInterviewForSignature';
 import clearOpenRequest from '@salesforce/apex/PendingDocumentationController.clearOpenRequest';
 import clearAction from '@salesforce/apex/PendingDocumentationController.clearAction';
 import recallAction from '@salesforce/apex/PendingDocumentationController.recallAction';
 import flagForAction from '@salesforce/apex/PendingDocumentationController.flagForAction';
 import reassignInterview from '@salesforce/apex/PsychoSocialRenewalService.reassignInterview';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
+import { normalizeInterviewDisplayLabel } from 'c/interviewTemplateLabelUtils';
 
 export default class PendingDocumentation extends NavigationMixin(LightningElement) {
     _recordId;
@@ -29,8 +32,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         this._recordId = value;
         this.openRequestHandled = false;
         this.openRequestInFlight = false;
-        // Reload pending approvals when recordId changes
+        // Reload pending approvals and interviews when recordId changes
         this.loadPendingApprovals();
+        this.loadUnsignedInterviews();
     }
     
     @track drafts = [];
@@ -56,6 +60,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     @track flagAssignedToId = '';
     @track flagNotes = '';
     
+    // Selected Treatment Plan document info (for Download button in detail panel)
+    @track selectedInterviewDocData = null;
+
     // Reassign Interview Modal
     @track showReassignModal = false;
     @track reassignTargetInterview = null;
@@ -107,29 +114,6 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
     }
     
-    @wire(getUnsignedInterviews, { caseId: '$recordId' })
-    wiredUnsignedInterviews(result) {
-        this.wiredUnsignedInterviewsResult = result;
-        if (result.data) {
-            console.log('=== Unsigned Interviews Data ===');
-            console.log('Raw data:', JSON.stringify(result.data));
-            if (result.data.length > 0) {
-                console.log('First interview ownerName:', result.data[0].ownerName);
-                console.log('First interview caseId:', result.data[0].caseId);
-                console.log('First interview templateVersionId:', result.data[0].templateVersionId);
-            }
-            this.unsignedInterviews = this.formatUnsignedNotes(result.data);
-            console.log('Formatted interviews:', JSON.stringify(this.unsignedInterviews));
-            this.checkLoadingComplete();
-            this.initializeSelection();
-        } else if (result.error) {
-            console.error('Error loading unsigned interviews:', result.error);
-            this.unsignedInterviews = [];
-            this.checkLoadingComplete();
-            this.initializeSelection();
-        }
-    }
-    
     @wire(getMyActionItems)
     wiredActionItems(result) {
         this.wiredActionItemsResult = result;
@@ -160,6 +144,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     
     // Track if pending approvals have been loaded (for checkLoadingComplete)
     pendingApprovalsLoaded = false;
+    unsignedInterviewsLoaded = false;
     autoOpenedPending = false;
     openRequestHandled = false;
     openRequestInFlight = false;
@@ -179,9 +164,40 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
     }
     
-    // Also call on connectedCallback in case recordId is already set
+    // Load data on connectedCallback only when recordId is NOT yet set (e.g., home page component).
+    // When placed on a record page, set recordId fires first and handles loading.
+    // Calling both here AND from set recordId causes a concurrent double-request race.
     connectedCallback() {
-        this.loadPendingApprovals();
+        if (!this._recordId) {
+            this.loadPendingApprovals();
+            this.loadUnsignedInterviews();
+        }
+    }
+    
+    async loadUnsignedInterviews() {
+        try {
+            console.log('=== Loading unsigned interviews ===');
+            console.log('Case ID:', this._recordId);
+            const data = await getUnsignedInterviews({ caseId: this._recordId });
+            console.log('=== Unsigned Interviews Data ===');
+            console.log('Raw data:', JSON.stringify(data));
+            if (data && data.length > 0) {
+                console.log('First interview ownerName:', data[0].ownerName);
+                console.log('First interview caseId:', data[0].caseId);
+                console.log('First interview templateVersionId:', data[0].templateVersionId);
+            }
+            this.unsignedInterviews = this.formatUnsignedNotes(data);
+            console.log('Formatted interviews:', JSON.stringify(this.unsignedInterviews));
+            this.unsignedInterviewsLoaded = true;
+            this.checkLoadingComplete();
+            this.initializeSelection();
+        } catch (error) {
+            console.error('Error loading unsigned interviews:', error);
+            this.unsignedInterviews = [];
+            this.unsignedInterviewsLoaded = true;
+            this.checkLoadingComplete();
+            this.initializeSelection();
+        }
     }
     
     async loadPendingApprovals() {
@@ -208,25 +224,27 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
     }
     
-    checkLoadingComplete() {
+    async checkLoadingComplete() {
         // Only set loading to false after all data sources have returned
         if (this.wiredDraftsResult && this.wiredUnsignedResult && 
-            this.wiredUnsignedInterviewsResult && this.wiredActionItemsResult && 
+            this.unsignedInterviewsLoaded && this.wiredActionItemsResult && 
             this.pendingApprovalsLoaded) {
             this.isLoading = false;
-            this.initializeSelection();
-            this.loadOpenRequest();
+            await this.loadOpenRequest(); // resolve notification target FIRST
+            this.initializeSelection();   // THEN set default selection
         }
     }
 
     initializeSelection() {
         if (!this.pendingItems.length) {
             this.selectedPendingKey = null;
+            this.selectedInterviewDocData = null;
             return;
         }
         const hasSelection = this.selectedPendingKey && this.pendingItems.some(item => item.key === this.selectedPendingKey);
         if (!hasSelection) {
             this.selectedPendingKey = this.pendingItems[0].key;
+            this.loadInterviewDocInfo(this.selectedPendingKey);
         }
 
         this.autoOpenPendingItem();
@@ -249,19 +267,17 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             );
 
             if (!match) {
+                // Prevent stale open requests from repeatedly auto-triggering.
+                await clearOpenRequest({ requestId: request.id });
+                this.openRequestHandled = true;
                 return;
             }
 
             this.selectedPendingKey = match.key;
+            this.loadInterviewDocInfo(match.key);
             this.autoOpenedPending = true;
 
-            if (match.kind === 'Draft') {
-                this.openDraftByType(match.documentType, match.draftId);
-            } else if (match.kind === 'ActionItem') {
-                this.openNoteForCorrection(match);
-            } else {
-                this.openApprovalModalForItem(match);
-            }
+            this.openPendingItem(match);
 
             await clearOpenRequest({ requestId: request.id });
             this.openRequestHandled = true;
@@ -287,6 +303,12 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             if (item.kind === 'ActionItem') {
                 return true;
             }
+            // Auto-open Treatment Plans where the current user is a pending co-signer.
+            // This covers the case where they navigate directly (no notification URL),
+            // e.g., Paige loading the case page to sign as Case Manager.
+            if (item.kind === 'Interview') {
+                return item.canSignAsCaseManager || item.canSignAsPeerSupport;
+            }
             return false;
         });
 
@@ -296,10 +318,11 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
 
         const item = actionable[0];
         this.selectedPendingKey = item.key;
+        this.loadInterviewDocInfo(item.key);
         this.autoOpenedPending = true;
 
         if (item.kind === 'Draft') {
-            this.openDraftByType(item.documentType, item.draftId);
+            this.openDraftByType(item);
             return;
         }
 
@@ -313,18 +336,27 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
 
     get pendingItems() {
         const items = [];
+        const managerQueueInterviewIds = new Set();
 
         (this.actionItems || []).forEach(item => {
             items.push(this.buildPendingItem('ActionItem', item));
         });
         (this.pendingApprovals || []).forEach(item => {
-            items.push(this.buildPendingItem('PendingApproval', item));
+            const pendingItem = this.buildPendingItem('PendingApproval', item);
+            items.push(pendingItem);
+            if (pendingItem.recordType === 'Interview') {
+                managerQueueInterviewIds.add(pendingItem.sourceRecordId || pendingItem.approvalRecordId || pendingItem.id);
+            }
         });
         (this.unsignedNotes || []).forEach(item => {
             items.push(this.buildPendingItem('UnsignedNote', item));
         });
         (this.unsignedInterviews || []).forEach(item => {
-            items.push(this.buildPendingItem('Interview', item));
+            const pendingItem = this.buildPendingItem('Interview', item);
+            const interviewId = pendingItem.sourceRecordId || pendingItem.approvalRecordId || pendingItem.id;
+            if (!managerQueueInterviewIds.has(interviewId)) {
+                items.push(pendingItem);
+            }
         });
         (this.drafts || []).forEach(item => {
             items.push(this.buildPendingItem('Draft', item));
@@ -332,7 +364,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
 
         return items.map(item => ({
             ...item,
-            itemClass: `pending-item ${item.key === this.selectedPendingKey ? 'pending-item-selected' : ''}`
+            itemClass: `pending-item ${item.key === this.selectedPendingKey ? 'pending-item-selected' : ''}${item.lateEntryManagerApprovalRequired ? ' pending-item-late-entry' : ''}`
         }));
     }
 
@@ -344,6 +376,10 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         const badge = this.getBadgeConfig(kind, item);
         const statusBadge = this.getStatusBadgeConfig(item, kind);
         const actionBadge = this.getActionBadgeConfig(item, kind);
+        const fallbackReference =
+            !item.referenceNumber && recordType === 'Interview' && (item.sourceRecordId || item.id)
+                ? `Interview ID: ${String(item.sourceRecordId || item.id).slice(-6)}`
+                : null;
 
         return {
             key,
@@ -382,12 +418,17 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             peerSupportAssignedToName: item.peerSupportAssignedToName,
             canRecallAction: item.canRecallAction,
             canApproveAsManager: item.canApproveAsManager,
+            canSignAsCaseManager: item.canSignAsCaseManager,
+            canSignAsPeerSupport: item.canSignAsPeerSupport,
             canAmend: item.canAmend,
             isEditLocked: item.isEditLocked,
+            isOverdue: item.isOverdue,
             editLockReason: item.editLockReason,
+            lateEntryManagerApprovalRequired: item.lateEntryManagerApprovalRequired,
             templateVersionId: item.templateVersionId,
             caseId: item.caseId,
-            id: item.id
+            id: item.id,
+            referenceNumber: item.referenceNumber || fallbackReference
         };
     }
 
@@ -398,6 +439,18 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
                 icon: 'utility:undo',
                 className: 'pending-badge pending-badge--action'
             };
+        }
+        // Co-signers must complete before manager approval — check pending co-signers first
+        if (kind === 'Interview') {
+            const hasPendingCaseManager = item?.caseManagerAssignedToId && !item?.caseManagerSigned;
+            const hasPendingPeerSupport = item?.peerSupportAssignedToId && !item?.peerSupportSigned;
+            if (hasPendingCaseManager || hasPendingPeerSupport) {
+                return {
+                    label: 'Awaiting Signatures',
+                    icon: 'utility:clock',
+                    className: 'pending-badge pending-badge--approval'
+                };
+            }
         }
         if (item?.requiresManagerApproval && !item?.managerSigned) {
             return {
@@ -455,8 +508,26 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (item.managerRejected) {
             return { label: 'Draft', className: 'pending-badge pending-badge--draft' };
         }
+        // Recalled documents — surfaced via Action_Required__c set during the recall
+        if (item.actionRequired) {
+            return { label: 'Recalled', className: 'pending-badge pending-badge--action' };
+        }
+        // Co-signer step must complete before manager approval — check pending co-signers first
+        if (kind === 'Interview') {
+            const hasPendingCaseManager = item.caseManagerAssignedToId && !item.caseManagerSigned;
+            const hasPendingPeerSupport = item.peerSupportAssignedToId && !item.peerSupportSigned;
+            if (hasPendingCaseManager || hasPendingPeerSupport) {
+                return { label: 'Pending Signatures', className: 'pending-badge pending-badge--approval' };
+            }
+        }
         if (item.requiresManagerApproval && !item.managerSigned) {
             return { label: 'Signed Draft', className: 'pending-badge pending-badge--draft' };
+        }
+        if (item.isEditLocked) {
+            return { label: 'Locked', className: 'pending-badge pending-badge--action' };
+        }
+        if (item.isOverdue) {
+            return { label: 'Overdue', className: 'pending-badge pending-badge--action' };
         }
         if (kind !== 'Interview' && (item.staffSigned === false || item.clientSigned === false)) {
             return { label: 'Unsigned Draft', className: 'pending-badge pending-badge--draft' };
@@ -471,8 +542,22 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (item.actionRequired) {
             return { label: 'Action Required', className: 'pending-badge pending-badge--action' };
         }
+        // Co-signers must complete before manager approval — check pending co-signers first
+        if (kind === 'Interview') {
+            const hasPendingCaseManager = item.caseManagerAssignedToId && !item.caseManagerSigned;
+            const hasPendingPeerSupport = item.peerSupportAssignedToId && !item.peerSupportSigned;
+            if (hasPendingCaseManager || hasPendingPeerSupport) {
+                return { label: 'Awaiting Signatures', className: 'pending-badge pending-badge--approval' };
+            }
+        }
         if (item.requiresManagerApproval && !item.managerSigned) {
             return { label: 'Awaiting Manager Approval', className: 'pending-badge pending-badge--approval' };
+        }
+        if (item.isEditLocked) {
+            return { label: 'Addendum Required', className: 'pending-badge pending-badge--action' };
+        }
+        if (item.isOverdue) {
+            return { label: 'Final Warning', className: 'pending-badge pending-badge--action' };
         }
         if (kind !== 'Interview' && (item.staffSigned === false || item.clientSigned === false)) {
             return { label: 'Awaiting Signatures', className: 'pending-badge pending-badge--approval' };
@@ -504,6 +589,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         const key = event.currentTarget.dataset.key;
         if (key) {
             this.selectedPendingKey = key;
+            this.loadInterviewDocInfo(key);
             const item = this.pendingItems.find(candidate => candidate.key === key);
             if (item) {
                 this.openPendingItem(item);
@@ -516,12 +602,61 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         this.openPendingItem(item);
     }
 
+    loadInterviewDocInfo(key) {
+        this.selectedInterviewDocData = null;
+        if (!key) return;
+        const item = this.pendingItems.find(i => i.key === key);
+        if (item?.recordType !== 'Interview' || !item?.sourceRecordId) return;
+        getInterviewForSignature({ interviewId: item.sourceRecordId })
+            .then(data => { this.selectedInterviewDocData = data; })
+            .catch(e => { console.warn('Failed to load interview doc info (non-fatal):', e); });
+    }
+
+    get selectedInterviewHasDocument() {
+        return !!(this.selectedInterviewDocData?.contentVersionId || this.selectedInterviewDocData?.documentId
+                  || this.selectedInterviewDocData?.wordContentVersionId || this.selectedInterviewDocData?.wordDocumentId);
+    }
+
+    handleDownloadSelectedInterview() {
+        const cv = this.selectedInterviewDocData?.contentVersionId;
+        const doc = this.selectedInterviewDocData?.documentId;
+        if (cv) {
+            window.open(`/sfc/servlet.shepherd/version/download/${cv}`, '_blank');
+        } else if (doc) {
+            window.open(`/sfc/servlet.shepherd/document/download/${doc}`, '_blank');
+        }
+    }
+
+    get showWordDownloadForSelected() {
+        return hasWordDownload && !!(this.selectedInterviewDocData?.wordContentVersionId || this.selectedInterviewDocData?.wordDocumentId);
+    }
+
+    handleDownloadSelectedInterviewWord() {
+        const cv = this.selectedInterviewDocData?.wordContentVersionId;
+        const doc = this.selectedInterviewDocData?.wordDocumentId;
+        if (cv) {
+            window.open(`/sfc/servlet.shepherd/version/download/${cv}`, '_blank');
+        } else if (doc) {
+            window.open(`/sfc/servlet.shepherd/document/download/${doc}`, '_blank');
+        }
+    }
+
     openPendingItem(item) {
         if (!item) {
             return;
         }
+
+        if (item.isEditLocked && !this.isPendingSignatureWorkflow(item)) {
+            if (item.recordType === 'Interview' && item.canAmend) {
+                this.startInterviewAmendment(item);
+            } else {
+                this.showToast('Document Locked', item.editLockReason || 'This document is locked and requires a formal addendum workflow.', 'warning');
+            }
+            return;
+        }
+
         if (item.kind === 'Draft') {
-            this.openDraftByType(item.documentType, item.draftId);
+            this.openDraftByType(item);
             return;
         }
 
@@ -537,9 +672,13 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         this.openApprovalModalForItem(item);
     }
 
-    openDraftByType(documentType, draftId) {
+    openDraftByType(item) {
+        const documentType = item?.documentType;
+        const draftId = item?.draftId;
+
         this.selectedDraftId = draftId;
         this.logPendingAccess(draftId, 'Draft', 'PendingDocDraftOpen', this.recordId);
+
         switch (documentType) {
             case 'CaseNote':
                 this.showCaseNoteModal = true;
@@ -550,9 +689,30 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             case 'PeerNote':
                 this.showPeerNoteModal = true;
                 break;
+            case 'Interview':
+                this.openInterviewDraft(item);
+                break;
             default:
                 this.showToast('Info', 'Draft type not supported for inline editing', 'info');
         }
+    }
+
+    openInterviewDraft(item) {
+        const caseId = item?.caseId || this.recordId;
+        const templateVersionId = item?.templateVersionId;
+
+        if (!caseId || !templateVersionId) {
+            this.showToast('Info', 'Interview draft is missing template metadata and cannot be reopened from Pending Documentation.', 'info');
+            return;
+        }
+
+        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}`;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: {
+                url: vfPageUrl
+            }
+        });
     }
 
     openApprovalModal(recordId, recordType) {
@@ -564,13 +724,68 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
 
     openApprovalModalForItem(item) {
         if (!item) return;
+        
+        // Check if this is an Interview with pending multi-signatures
+        if (item.recordType === 'Interview') {
+            const hasMultiSignatures = (
+                (item.caseManagerAssignedToId && !item.caseManagerSigned) ||
+                (item.peerSupportAssignedToId && !item.peerSupportSigned)
+            );
+            
+            if (hasMultiSignatures) {
+                // Only open the multi-signature modal if the current user is actually a pending signer.
+                // If they're not (e.g. the clinician who created the plan), show a co-signer pending toast.
+                const currentUserCanSign = item.canSignAsCaseManager || item.canSignAsPeerSupport;
+                if (currentUserCanSign) {
+                    // sourceRecordId is the Interview__c Id; item.id is InterviewDocument__c Id
+                    console.log('Opening multi-signature modal for interview:', item.sourceRecordId);
+                    const modal = this.template.querySelector('c-interview-multi-signature-modal');
+                    if (modal) {
+                        modal.open(item.sourceRecordId);
+                        return;
+                    } else {
+                        console.error('Could not find c-interview-multi-signature-modal');
+                    }
+                } else {
+                    // Current user is not a pending co-signer — show who we're waiting on.
+                    const waitingOn = [];
+                    if (item.caseManagerAssignedToId && !item.caseManagerSigned) {
+                        waitingOn.push(item.caseManagerAssignedToName || 'Case Manager');
+                    }
+                    if (item.peerSupportAssignedToId && !item.peerSupportSigned) {
+                        waitingOn.push(item.peerSupportAssignedToName || 'Peer Support');
+                    }
+                    this.showToast('Awaiting Co-Signatures',
+                        `Waiting for ${waitingOn.join(' and ')} to sign before manager review.`,
+                        'info');
+                    return;
+                }
+            }
+
+            // All co-signatures complete but manager hasn't approved yet.
+            // Only the assigned manager (or their delegate) should see the approval modal.
+            if (item.requiresManagerApproval && !item.managerSigned) {
+                if (!item.canApproveAsManager) {
+                    this.showToast('Awaiting Manager Approval',
+                        'All signatures have been collected. This document is now pending manager approval.',
+                        'info');
+                    return;
+                }
+            }
+        }
+        
         const recordId = item.approvalRecordId || item.sourceRecordId;
         const recordType = item.approvalRecordType || item.recordType;
         this.openApprovalModal(recordId, recordType);
     }
 
     openNoteForCorrection(item) {
-        this.selectedInteractionId = item.sourceRecordId;
+        if (item?.recordType === 'Interview') {
+            this.openInterviewForCorrection(item);
+            return;
+        }
+
+        this.selectedInteractionId = item.sourceRecordId || item.approvalRecordId || item.id;
         this.selectedDraftId = null;
         const noteName = item.title || '';
         if (noteName.includes('Clinical Note') || item.notePurpose === 'Clinical Note') {
@@ -594,7 +809,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             return;
         }
 
-        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}&startStep=review`;
+        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}&interviewId=${interviewId}&startStep=interview`;
         this[NavigationMixin.Navigate]({
             type: 'standard__webPage',
             attributes: {
@@ -620,11 +835,22 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     formatDrafts(data) {
         return (data || []).map(draft => ({
             ...draft,
-            displayTitle: this.docTypeLabels[draft.documentType] || draft.documentType || 'Document',
+            displayTitle: this.getDraftDisplayTitle(draft),
             lastModifiedDisplay: this.formatDateTime(draft.lastModifiedDate) || 'Unknown',
             ownerDisplay: draft.lastModifiedByName || draft.createdByName || 'Unknown',
             pendingReason: 'Saved draft'
         }));
+    }
+
+    getDraftDisplayTitle(draft) {
+        if (draft?.documentType === 'Interview') {
+            const templateName = draft.templateName || draft.title;
+            if (templateName) {
+                return normalizeInterviewDisplayLabel(templateName);
+            }
+        }
+
+        return this.docTypeLabels[draft?.documentType] || draft?.documentType || 'Document';
     }
     
     formatUnsignedNotes(data) {
@@ -684,6 +910,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             if (!note.staffSigned) missing.push('Staff');
             if (!note.clientSigned) missing.push('Client');
         }
+        // Co-signers first, then manager
+        if (note.caseManagerAssignedToId && !note.caseManagerSigned) missing.push('Case Manager');
+        if (note.peerSupportAssignedToId && !note.peerSupportSigned) missing.push('Peer Support');
         if (note.requiresManagerApproval && !note.managerSigned) missing.push('Manager');
         
         if (missing.length === 0) return 'Fully signed';
@@ -698,9 +927,6 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (note.managerRejected) {
             return note.managerRejectionReason || 'Changes requested';
         }
-        if (note.requiresManagerApproval && !note.managerSigned) {
-            return 'Awaiting manager approval';
-        }
         if (note.actionRequired) {
             if (note.actionNotes) {
                 return note.actionNotes;
@@ -708,7 +934,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             return 'See action details';
         }
         
-        // Check for multi-signature assignments (Case Manager, Peer Support)
+        // Co-signers must complete before manager approval — check co-signers first
         const waitingOn = [];
         if (note.caseManagerAssignedToId && !note.caseManagerSigned) {
             waitingOn.push(`Case Manager (${note.caseManagerAssignedToName || 'Assigned'})`);
@@ -719,11 +945,46 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         if (waitingOn.length > 0) {
             return `Waiting on: ${waitingOn.join(', ')}`;
         }
+
+        if (note.requiresManagerApproval && !note.managerSigned) {
+            if (note.lateEntryManagerApprovalRequired) {
+                return 'Awaiting manager co-sign for late entry outside the 72-hour window';
+            }
+            return 'Awaiting manager approval';
+        }
+
+        if ((note.isEditLocked || note.isOverdue) && note.editLockReason) {
+            return note.editLockReason;
+        }
         
         if (!isInterview && (!note.staffSigned || !note.clientSigned)) {
             return 'Awaiting signatures';
         }
         return 'Pending';
+    }
+
+    isPendingSignatureWorkflow(item) {
+        if (!item) {
+            return false;
+        }
+
+        if (item.managerRejected || item.actionRequired) {
+            return false;
+        }
+
+        if (item.requiresManagerApproval && !item.managerSigned) {
+            return true;
+        }
+
+        if (item.caseManagerAssignedToId && !item.caseManagerSigned) {
+            return true;
+        }
+
+        if (item.peerSupportAssignedToId && !item.peerSupportSigned) {
+            return true;
+        }
+
+        return item.recordType !== 'Interview' && (item.staffSigned === false || item.clientSigned === false);
     }
     
     // Computed properties
@@ -748,14 +1009,11 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     }
     
     get hasPendingItems() {
-        return this.hasDrafts || this.hasUnsignedNotes || this.hasUnsignedInterviews || 
-               this.hasActionItems || this.hasPendingApprovals;
+        return this.pendingCount > 0;
     }
     
     get pendingCount() {
-        return (this.drafts?.length || 0) + (this.unsignedNotes?.length || 0) + 
-               (this.unsignedInterviews?.length || 0) + (this.actionItems?.length || 0) + 
-               (this.pendingApprovals?.length || 0);
+        return this.pendingItems.length;
     }
     
     get pluralSuffix() {
@@ -874,9 +1132,31 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
     }
     
-    // Called when signature is complete
-    async handleSignatureComplete() {
-        await this.refreshData();
+    // Called when signature is complete — force a full page reload to clear stale wire cache
+    handleSignatureComplete() {
+        // NavigationMixin.Navigate to the current record is a no-op (already on the page).
+        // window.location.reload() is safe here — it's invoked inside a user-action chain
+        // (Submit Signatures click), so browsers won't block it as a popup.
+        window.location.reload();
+    }
+
+    // Called by c-treatment-plan-conflict-modal bubble from c-interview-multi-signature-modal
+    handleTreatmentPlanConflict(event) {
+        const { conflictData, newInterviewId, caseId, newPlanName } = event.detail;
+        const modal = this.template.querySelector('c-treatment-plan-conflict-modal');
+        if (modal) {
+            modal.open(conflictData, newInterviewId, caseId, newPlanName);
+        }
+    }
+
+    // Called after user force-activates the new Treatment Plan via conflict modal
+    handlePlanActivated() {
+        window.location.reload();
+    }
+
+    // Called when user cancels/keeps the existing active plan
+    handleConflictCancelled() {
+        // No action needed — existing plan stays active
     }
     
     /**
@@ -896,6 +1176,40 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         console.log('Complete Interview clicked:', { interviewId, caseId, templateVersionId });
         console.log('Button dataset:', JSON.stringify(button.dataset));
         
+        // Check if this is a multi-signature interview (Treatment Plan)
+        const interview = this.unsignedInterviews?.find(i => i.id === interviewId);
+        const hasMultiSignatures = interview && (
+            (interview.caseManagerAssignedToId && !interview.caseManagerSigned) ||
+            (interview.peerSupportAssignedToId && !interview.peerSupportSigned)
+        );
+        
+        if (hasMultiSignatures) {
+            // Open multi-signature modal only if the current user is a pending signer
+            const currentUserCanSign = interview.canSignAsCaseManager || interview.canSignAsPeerSupport;
+            if (currentUserCanSign) {
+                const interviewRecordId = interview.sourceRecordId;
+                console.log('Opening multi-signature modal for interview:', interviewRecordId);
+                const modal = this.template.querySelector('c-interview-multi-signature-modal');
+                if (modal) {
+                    modal.open(interviewRecordId);
+                } else {
+                    console.error('Could not find c-interview-multi-signature-modal');
+                }
+            } else {
+                const waitingOn = [];
+                if (interview.caseManagerAssignedToId && !interview.caseManagerSigned) {
+                    waitingOn.push(interview.caseManagerAssignedToName || 'Case Manager');
+                }
+                if (interview.peerSupportAssignedToId && !interview.peerSupportSigned) {
+                    waitingOn.push(interview.peerSupportAssignedToName || 'Peer Support');
+                }
+                this.showToast('Awaiting Co-Signatures',
+                    `Waiting for ${waitingOn.join(' and ')} to sign before manager review.`,
+                    'info');
+            }
+            return;
+        }
+        
         if (!caseId || !templateVersionId) {
             console.warn('Missing navigation parameters - caseId:', caseId, 'templateVersionId:', templateVersionId);
             // Fallback: navigate to the Interview record if we don't have the params
@@ -912,8 +1226,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
         
         // Navigate to the Interview Session VF page with the required parameters
-        // Include startStep=review to jump directly to the Review & Submit step
-        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}&startStep=review`;
+        // Include startStep=interview to open directly on the primary interview/assessment step
+        const sourceInterviewId = interview?.sourceRecordId || interviewId;
+        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}&interviewId=${sourceInterviewId}&startStep=interview`;
         console.log('Navigating to VF page:', vfPageUrl);
         
         // Use NavigationMixin for VF page navigation
@@ -933,8 +1248,16 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         event.stopPropagation();
         const interviewId = event.target.dataset.id;
         const interview = this.unsignedInterviews?.find(n => n.id === interviewId);
-        this.logPendingAccess(interviewId, 'Interview', 'PendingDocAmendInterview', interview?.caseId);
-        
+        this.startInterviewAmendment(interview || { sourceRecordId: interviewId, caseId: interview?.caseId });
+    }
+
+    startInterviewAmendment(item) {
+        const interviewId = item?.sourceRecordId || item?.id;
+        if (!interviewId) {
+            return;
+        }
+        this.logPendingAccess(interviewId, 'Interview', 'PendingDocAmendInterview', item?.caseId);
+
         // Show confirmation dialog before starting amendment
         // eslint-disable-next-line no-restricted-globals, no-alert
         if (!confirm('This interview is locked after 72 hours. Creating an amendment will:\n\n' +
@@ -1031,7 +1354,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             await Promise.all([
                 refreshApex(this.wiredDraftsResult),
                 refreshApex(this.wiredUnsignedResult),
-                refreshApex(this.wiredUnsignedInterviewsResult),
+                this.loadUnsignedInterviews(),
                 refreshApex(this.wiredActionItemsResult),
                 this.loadPendingApprovals() // Reload imperatively since it's not cached
             ]);
@@ -1095,11 +1418,11 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     }
     
     // Called when approval or rejection is complete
-    async handleApprovalComplete() {
-        // Small delay to ensure database commits before refresh
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await this.refreshData();
+    handleApprovalComplete() {
+        // Full page reload to bust cacheable=true wire caches on carePlanBoard and other components.
+        // Consistent with handleSignatureComplete — both are triggered from user-action chains
+        // so browsers won't block the reload as a popup.
+        window.location.reload();
     }
     
     // Flag for Action Modal Handlers

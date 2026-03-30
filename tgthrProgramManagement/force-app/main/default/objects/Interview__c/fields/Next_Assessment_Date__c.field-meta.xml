@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Next_Assessment_Date__c</fullName>
+    <label>Next Assessment Date</label>
+    <type>Date</type>
+    <required>false</required>
+    <description>The date when the next Treatment Plan review is due. Populated from the session's Next Review Date at signing time. Used to determine the 30-day conflict window during activation.</description>
+    <inlineHelpText>The scheduled date for the next review of this Treatment Plan.</inlineHelpText>
+    <trackHistory>false</trackHistory>
+</CustomField>

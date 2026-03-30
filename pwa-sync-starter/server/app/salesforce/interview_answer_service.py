@@ -24,6 +24,7 @@ class InterviewAnswerService:
         template_version_id: str,
         answers: Dict[str, Any],
         ssrs_assessment_id: Optional[str] = None,
+        created_by_user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Save interview answers to Salesforce
@@ -50,14 +51,26 @@ class InterviewAnswerService:
             interaction_summary_id = self._create_interaction_summary(
                 case_id,
                 case_context.get('AccountId'),
-                template_context.get('template_name')
+                template_context.get('template_name'),
+                created_by_user_id,
             )
 
-            assessment_id = self._create_assessment(
-                case_id,
-                case_context.get('AccountId'),
-                template_context.get('template_name')
-            )
+            try:
+                assessment_id = self._create_assessment(
+                    case_id,
+                    case_context.get('AccountId'),
+                    template_context.get('template_name'),
+                    created_by_user_id,
+                )
+            except Exception as exc:
+                logger.warning(
+                    'Assessment creation failed for case %s template %s; continuing without assessment: %s',
+                    case_id,
+                    template_version_id,
+                    exc,
+                    exc_info=True,
+                )
+                assessment_id = None
 
             interview_data = self._build_interview_payload(
                 case_id,
@@ -242,6 +255,7 @@ class InterviewAnswerService:
         case_id: str,
         account_id: Optional[str],
         template_name: str,
+        created_by_user_id: Optional[str],
     ) -> str:
         interaction_date = date.today().isoformat()
         timestamp = self._utc_now_iso()
@@ -256,7 +270,7 @@ class InterviewAnswerService:
             end_time=timestamp,
             interaction_purpose='Interview',
             uuid=f"pwa_interview_{uuid4()}",
-            created_by_user_id=''
+            created_by_user_id=created_by_user_id,
         )
 
     def _trigger_document_generation(self, interaction_summary_id: str) -> bool:
@@ -338,6 +352,7 @@ class InterviewAnswerService:
         case_id: str,
         account_id: Optional[str],
         template_name: str,
+        created_by_user_id: Optional[str],
     ) -> Optional[str]:
         try:
             fields = self._get_object_fields('Assessment__c')
@@ -356,6 +371,8 @@ class InterviewAnswerService:
             payload['Status__c'] = 'In Progress'
         if template_name and 'Assessment_Type__c' in fields:
             payload['Assessment_Type__c'] = template_name
+        if created_by_user_id and 'Assessed_By__c' in fields:
+            payload['Assessed_By__c'] = created_by_user_id
 
         if not payload:
             return None

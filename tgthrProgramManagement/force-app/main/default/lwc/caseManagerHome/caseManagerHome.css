@@ -17,9 +17,9 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 1.25rem;
-    background: #00857d;
+    background: linear-gradient(135deg, #1565c0 0%, #1976d2 60%, #1e88e5 100%);
     color: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    box-shadow: 0 2px 8px rgba(21, 101, 192, 0.35);
     flex-shrink: 0;
     gap: 0.75rem;
 }
@@ -41,8 +41,18 @@
 }
 
 .cmh-toolbar__count {
-    font-size: 0.85rem;
-    opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    padding: 0 0.4rem;
+    height: 1.4rem;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 99px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }
 
 .cmh-toolbar__right {
@@ -178,6 +188,13 @@
     color: #7d3a00;
 }
 
+.cmh-badge--success {
+    background: #d8f6df;
+    color: #0f5c2b;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+}
+
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .cmh-empty {
     display: flex;
@@ -231,10 +248,24 @@
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
 }
 
+.cmh-detail__header-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .cmh-detail__header-left {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
+}
+
+.cmh-detail__photo-container {
+    position: relative;
+    width: 72px;
+    flex-shrink: 0;
 }
 
 .cmh-detail__photo-wrap {
@@ -246,8 +277,48 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
     border: 2px solid #b3e8e6;
+}
+
+.cmh-profile-modal {
+    max-width: 72rem;
+}
+
+.cmh-profile-modal__content {
+    min-height: 18rem;
+    max-height: 70vh;
+}
+
+.cmh-profile-modal__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 18rem;
+}
+
+.cmh-detail__camera-btn {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #00857d;
+    border: 2px solid #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s;
+}
+
+.cmh-detail__camera-btn:hover {
+    background: #005c57;
+}
+
+.cmh-detail__camera-icon {
+    --lwc-colorTextIconDefault: #fff;
 }
 
 .cmh-detail__photo {
@@ -335,6 +406,11 @@
     color: #1c1c1c;
     flex: 1;
     line-height: 1.3;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .cmh-goal__category {
@@ -348,6 +424,8 @@
     font-weight: 700;
     padding: 1px 6px;
     border-radius: 4px;
+    flex-shrink: 0;
+    align-self: flex-start;
     white-space: nowrap;
 }
 
@@ -428,9 +506,25 @@
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
-    padding: 0.5rem 0;
+    padding: 0.6rem 0.5rem;
     border-bottom: 1px solid #f3f2f2;
+    border-radius: 4px;
     font-size: 0.82rem;
+    transition: background 0.1s;
+}
+
+.cmh-activity-row:hover {
+    background: #f5f7fa;
+}
+
+.cmh-activity-row--interaction {
+    border-left: 3px solid #1976d2;
+    padding-left: 0.5rem;
+}
+
+.cmh-activity-row--doc {
+    border-left: 3px solid #00857d;
+    padding-left: 0.5rem;
 }
 
 .cmh-activity-row--incident {
@@ -442,7 +536,8 @@
     min-width: 72px;
     color: #706e6b;
     font-size: 0.75rem;
-    padding-top: 1px;
+    padding-top: 2px;
+    font-weight: 500;
 }
 
 .cmh-activity__body {
@@ -453,23 +548,43 @@
 .cmh-activity__title {
     font-weight: 600;
     color: #1c1c1c;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .cmh-activity__meta {
     font-size: 0.72rem;
     color: #706e6b;
-    margin-top: 1px;
+    margin-top: 2px;
 }
 
 .cmh-activity__notes {
     font-size: 0.75rem;
     color: #444;
-    margin-top: 3px;
+    margin-top: 4px;
     line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 
 .cmh-activity__status {
     flex-shrink: 0;
+    align-self: center;
+}
+
+.cmh-open-files-btn {
+    flex-shrink: 0;
+    align-self: center;
+    opacity: 0.55;
+    transition: opacity 0.15s;
+}
+
+.cmh-activity-row:hover .cmh-open-files-btn {
+    opacity: 1;
 }
 
 .cmh-activity__status--incident {

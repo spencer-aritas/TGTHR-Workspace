@@ -117,7 +117,7 @@ public with sharing class InterviewCompletionService {
             interview.put('Staff_Completed_At__c', DateTime.now());
             interview.put('Completed_On__c', completedOn);
             interview.put('Completion_Method__c', completionMethod);
-            interview.put('Status__c', 'Completed');
+            interview.put('Status__c', DocumentStatus.INTERVIEW_SIGNED);
             
             update interview;
             
@@ -223,6 +223,7 @@ public with sharing class InterviewCompletionService {
             interview.put('Locked_By__c', UserInfo.getUserId());
             
             update interview;
+            AuditLogService.logAction('LOCK', String.valueOf(interviewId), 'Auto-locked 72 hours after Date of Service.', 'Interview');
             
             return true;
         } catch (Exception e) {
@@ -232,10 +233,8 @@ public with sharing class InterviewCompletionService {
     }
     
     /**
-     * Creates a ProgramEnrollment when specific interview templates are completed.
-     * Currently handles:
-     * - "1440 Pine Psycho-Social Intake" → Creates enrollment in "1440 Pine" program
-     * 
+     * Creates a ProgramEnrollment when Psycho-Social Intake interview templates are completed.
+     *
      * @param interviewId The completed Interview__c record ID
      */
     private static void createProgramEnrollmentIfApplicable(Id interviewId) {
@@ -271,9 +270,9 @@ public with sharing class InterviewCompletionService {
             
             System.debug('Interview template name: ' + templateName);
             
-            // Check if this is a 1440 Pine Psycho-Social Intake
-            if (templateName != null && templateName.containsIgnoreCase('1440 Pine') && templateName.containsIgnoreCase('Psycho-Social Intake')) {
-                createProgramEnrollmentFor1440Pine(clientId, caseId);
+            // Trigger enrollment for legacy and normalized Psycho-Social Intake template names.
+            if (templateName != null && templateName.containsIgnoreCase('Psycho-Social Intake')) {
+                createProgramEnrollmentForSelectedProgram(clientId, caseId);
             }
             
         } catch (Exception e) {
@@ -284,29 +283,68 @@ public with sharing class InterviewCompletionService {
     }
     
     /**
-     * Creates a ProgramEnrollment for the 1440 Pine program if one doesn't already exist.
-     * 
+     * Creates a ProgramEnrollment for the selected Psycho-Social program.
+     * Supports 1440 Pine and Nest 56.
+     *
      * @param accountId The Account (Client) ID
      * @param caseId The Case ID to link to the enrollment
      */
-    private static void createProgramEnrollmentFor1440Pine(Id accountId, Id caseId) {
+    private static void createProgramEnrollmentForSelectedProgram(Id accountId, Id caseId) {
         if (accountId == null) {
             System.debug('Cannot create ProgramEnrollment: accountId is null');
             return;
         }
         
         try {
-            // Find the 1440 Pine Program
-            String programQuery = 'SELECT Id, Name FROM Program WHERE Name = \'1440 Pine\' LIMIT 1';
-            List<SObject> programs = Database.query(programQuery);
-            
-            if (programs.isEmpty()) {
-                System.debug('1440 Pine Program not found');
+            Id programId;
+            String programName;
+
+            // First preference: use the Program selected on the Case's latest enrollment context.
+            if (caseId != null) {
+                List<SObject> selectedPrograms = Database.query(
+                    'SELECT ProgramId, Program.Name FROM ProgramEnrollment ' +
+                    'WHERE Case__c = :caseId ' +
+                    'AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\',\'Pending\') ' +
+                    'ORDER BY CreatedDate DESC LIMIT 1'
+                );
+
+                if (!selectedPrograms.isEmpty()) {
+                    programId = (Id) selectedPrograms[0].get('ProgramId');
+                    SObject selectedProgram = selectedPrograms[0].getSObject('Program');
+                    if (selectedProgram != null) {
+                        programName = (String) selectedProgram.get('Name');
+                    }
+                }
+            }
+
+            // Fallback for older/partial data: try known Psycho-Social programs in priority order.
+            if (programId == null) {
+                List<String> fallbackProgramNames = new List<String>{ '1440 Pine', 'Nest 56' };
+                for (String fallbackProgramName : fallbackProgramNames) {
+                    List<SObject> fallbackPrograms = Database.query(
+                        'SELECT Id, Name FROM Program WHERE Name = :fallbackProgramName LIMIT 1'
+                    );
+                    if (!fallbackPrograms.isEmpty()) {
+                        programId = (Id) fallbackPrograms[0].get('Id');
+                        programName = (String) fallbackPrograms[0].get('Name');
+                        break;
+                    }
+                }
+            }
+
+            if (programId == null) {
+                System.debug('No supported Psycho-Social target program found (expected 1440 Pine or Nest 56)');
+                return;
+            }
+
+            // Guardrail: only auto-create for supported Psycho-Social programs.
+            String normalizedProgramName = String.isBlank(programName) ? '' : programName.toLowerCase();
+            if (!normalizedProgramName.contains('1440 pine') && !normalizedProgramName.contains('nest 56')) {
+                System.debug('Skipping enrollment creation for unsupported program: ' + programName);
                 return;
             }
             
-            Id programId = (Id) programs[0].get('Id');
-            System.debug('Found 1440 Pine Program: ' + programId);
+            System.debug('Resolved Psycho-Social program target: ' + programName + ' (' + programId + ')');
             
             // Check if enrollment already exists for this Account + Program
             String existingQuery = 
@@ -316,7 +354,7 @@ public with sharing class InterviewCompletionService {
             List<SObject> existingEnrollments = Database.query(existingQuery);
             
             if (!existingEnrollments.isEmpty()) {
-                System.debug('ProgramEnrollment already exists for Account ' + accountId + ' in 1440 Pine program');
+                System.debug('ProgramEnrollment already exists for Account ' + accountId + ' in program ' + programName);
                 return;
             }
             
@@ -325,7 +363,8 @@ public with sharing class InterviewCompletionService {
             enrollment.put('AccountId', accountId);
             enrollment.put('ProgramId', programId);
             enrollment.put('Status', 'Awaiting Intake');
-            enrollment.put('Name', 'Pine ' + Date.today().format());
+            String enrollmentNamePrefix = String.isBlank(programName) ? 'Program' : programName;
+            enrollment.put('Name', enrollmentNamePrefix + ' ' + Date.today().format());
             
             // Link to Case if provided
             if (caseId != null) {
@@ -334,10 +373,10 @@ public with sharing class InterviewCompletionService {
             
             insert enrollment;
             
-            System.debug('Created ProgramEnrollment: ' + enrollment.get('Id') + ' for Account ' + accountId + ' in 1440 Pine program');
+            System.debug('Created ProgramEnrollment: ' + enrollment.get('Id') + ' for Account ' + accountId + ' in program ' + programName);
             
         } catch (Exception e) {
-            System.debug('Error creating ProgramEnrollment for 1440 Pine: ' + e.getMessage());
+            System.debug('Error creating ProgramEnrollment for Psycho-Social program: ' + e.getMessage());
             System.debug('Stack trace: ' + e.getStackTraceString());
         }
     }

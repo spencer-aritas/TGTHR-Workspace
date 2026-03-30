@@ -228,6 +228,37 @@ lightning-accordion-section [data-section] {
     border-radius: 0.5rem;
 }
 
+.selection-summary {
+    border: 1px solid var(--lwc-colorBorder, #e5e5e5);
+    background: var(--lwc-colorBackgroundShade, #f3f2f2);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.selection-summary__label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--lwc-colorTextLabel, #5f6a7d);
+    margin: 0 0 0.35rem 0;
+    font-weight: 600;
+}
+
+.selection-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.selection-chip {
+    background: #ffffff;
+    border: 1px solid var(--lwc-colorBorder, #d8dde6);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    font-size: 0.75rem;
+    color: var(--lwc-colorTextDefault, #080707);
+    line-height: 1.3;
+}
+
 /* SSRS Modal Styles */
 .ssrs-modal .slds-modal__container {
     width: 90%;

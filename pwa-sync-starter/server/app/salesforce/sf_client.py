@@ -354,9 +354,6 @@ def create_interaction_summary_direct(
     if end_time:
         payload["End_Time__c"] = end_time
     
-    if created_by_user_id:
-        payload["CreatedById"] = created_by_user_id
-    
     res = _sf(_api("/sobjects/InteractionSummary/"), method="POST", json=payload)
     return res["id"]
 

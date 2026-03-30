@@ -1,6 +1,6 @@
-public with sharing class UserLookupController {
+public without sharing class UserLookupController {
     
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=false)
     public static List<User> searchUsers(String searchTerm, String permissionSet) {
         if (String.isBlank(searchTerm)) {
             return new List<User>();
@@ -19,17 +19,29 @@ public with sharing class UserLookupController {
             }
         }
         
-        // Search for users
+        // Search for users — if permissionSet was specified but no assignments found, search all active users
         String searchPattern = '%' + searchTerm + '%';
-        List<User> users = [
-            SELECT Id, Name, Title, Email
-            FROM User
-            WHERE IsActive = true
-            AND (Name LIKE :searchPattern OR Email LIKE :searchPattern)
-            AND Id IN :userIds
-            ORDER BY Name
-            LIMIT 20
-        ];
+        List<User> users;
+        if (String.isNotBlank(permissionSet) && !userIds.isEmpty()) {
+            users = [
+                SELECT Id, Name, Title, Email
+                FROM User
+                WHERE IsActive = true
+                AND (Name LIKE :searchPattern OR Email LIKE :searchPattern)
+                AND Id IN :userIds
+                ORDER BY Name
+                LIMIT 20
+            ];
+        } else {
+            users = [
+                SELECT Id, Name, Title, Email
+                FROM User
+                WHERE IsActive = true
+                AND (Name LIKE :searchPattern OR Email LIKE :searchPattern)
+                ORDER BY Name
+                LIMIT 20
+            ];
+        }
         
         return users;
     }

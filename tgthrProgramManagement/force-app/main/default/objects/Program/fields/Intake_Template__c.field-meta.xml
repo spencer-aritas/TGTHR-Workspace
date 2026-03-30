@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Intake_Template__c</fullName>
+    <deleteConstraint>Restrict</deleteConstraint>
+    <description>Interview template used when launching intake from this Program.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Select the interview template that should launch for new intakes in this Program. The active template version will be resolved at runtime.</inlineHelpText>
+    <label>Intake Template</label>
+    <referenceTo>InterviewTemplate__c</referenceTo>
+    <relationshipLabel>Programs</relationshipLabel>
+    <relationshipName>Programs</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

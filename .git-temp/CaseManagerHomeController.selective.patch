@@ -1,0 +1,226 @@
+diff --git a/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls b/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls
+index b6fe038..13b5066 100644
+--- a/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls
++++ b/tgthrProgramManagement/force-app/main/default/classes/CaseManagerHomeController.cls
+@@ -214,7 +565,8 @@ public with sharing class CaseManagerHomeController {
+-                    'id'        => r.get('Id'),
+-                    'name'      => r.get('Name'),
+-                    'date'      => r.get('Date_of_Interaction__c'),
+-                    'purpose'   => r.get('InteractionPurpose'),
+-                    'notes'     => r.get('MeetingNotes'),
+-                    'status'    => r.get('Status'),
+-                    'createdBy' => createdBy != null ? (String)createdBy.get('Name') : ''
++                    'id'                => r.get('Id'),
++                    'name'              => r.get('Name'),
++                    'date'              => r.get('Date_of_Interaction__c'),
++                    'purpose'           => r.get('InteractionPurpose'),
++                    'notes'             => r.get('MeetingNotes'),
++                    'status'            => r.get('Status'),
++                    'createdBy'         => createdBy != null ? (String)createdBy.get('Name') : '',
++                    'contentDocumentId' => cdId
+@@ -222,0 +575 @@ public with sharing class CaseManagerHomeController {
++            populateMissingContentDocumentIds(result, 'id', 'contentDocumentId');
+@@ -245,7 +601,9 @@ public with sharing class CaseManagerHomeController {
+-                    'id'               => d.get('Id'),
+-                    'name'             => d.get('Name'),
+-                    'status'           => d.get('Document_Status__c'),
+-                    'createdDate'      => d.get('CreatedDate'),
+-                    'templateName'     => tmpl != null ? (String)tmpl.get('Name') : '',
+-                    'completedDate'    => interview != null ? interview.get('Completed_On__c') : null,
+-                    'interviewStatus'  => interview != null ? (String)interview.get('Status__c') : ''
++                    'id'                => d.get('Id'),
++                    'openId'            => d.get('Id'),
++                    'recordType'        => 'Interview',
++                    'displayTitle'      => InterviewTemplateLabelService.normalizeDisplayLabel((String)d.get('Name')),
++                    'displayMeta'       => documentationStatus,
++                    'date'              => rawDate,
++                    'status'            => documentationStatus,
++                    'sortDate'          => rawDate != null ? String.valueOf(rawDate) : '',
++                    'contentDocumentId' => dCdId
+@@ -253,0 +612,26 @@ public with sharing class CaseManagerHomeController {
++            // ΓöÇΓöÇ Notes (InteractionSummary) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
++            List<SObject> notes = Database.query(
++                'SELECT Id, InteractionPurpose, Date_of_Interaction__c, Status, CreatedBy.Name, PDF_File_Id__c ' +
++                'FROM InteractionSummary ' +
++                'WHERE AccountId = :accountId ' +
++                // Deterministic documentation allowlist (canonical + legacy).
++                'AND InteractionPurpose IN :DOCUMENTATION_PURPOSES ' +
++                'ORDER BY Date_of_Interaction__c DESC LIMIT 8'
++            );
++            for (SObject n : notes) {
++                SObject createdBy = n.getSObject('CreatedBy');
++                Object  rawDate   = n.get('Date_of_Interaction__c');
++                String nCdId = (String)n.get('PDF_File_Id__c');
++                result.add(new Map<String, Object>{
++                    'id'                => n.get('Id'),
++                    'openId'            => n.get('Id'),
++                    'recordType'        => 'Note',
++                    'displayTitle'      => (String)n.get('InteractionPurpose'),
++                    'displayMeta'       => createdBy != null ? 'by ' + (String)createdBy.get('Name') : '',
++                    'date'              => rawDate,
++                    'status'            => (String)n.get('Status'),
++                    'sortDate'          => rawDate != null ? String.valueOf(rawDate) : '',
++                    'contentDocumentId' => nCdId
++                });
++            }
++            populateMissingContentDocumentIds(result, 'id', 'contentDocumentId');
+@@ -256,0 +641,16 @@ public with sharing class CaseManagerHomeController {
++        // Insertion-sort by sortDate descending and cap at 15
++        for (Integer i = 1; i < result.size(); i++) {
++            Map<String, Object> cur = result[i];
++            String curDate = (String)cur.get('sortDate');
++            Integer j = i - 1;
++            while (j >= 0 && String.valueOf(result[j].get('sortDate')) < curDate) {
++                result[j + 1] = result[j];
++                j--;
++            }
++            result[j + 1] = cur;
++        }
++        if (result.size() > 15) {
++            while (result.size() > 15) {
++                result.remove(result.size() - 1);
++            }
++        }
+@@ -259,0 +660,65 @@ public with sharing class CaseManagerHomeController {
++    private static String deriveInterviewDocumentationStatus(
++        SObject interview,
++        Map<String, Schema.SObjectField> interviewFields
++    ) {
++        if (interview == null) {
++            return 'Unknown';
++        }
++
++        String rawStatus = (String)interview.get('Status__c');
++        if (isInterviewDocumentationCompleted(interview, interviewFields)) {
++            return 'Completed';
++        }
++
++        return String.isBlank(rawStatus) ? 'Unknown' : rawStatus;
++    }
++
++    private static Boolean isInterviewDocumentationCompleted(
++        SObject interview,
++        Map<String, Schema.SObjectField> interviewFields
++    ) {
++        if (hasField(interviewFields, 'Completed_On__c') && interview.get('Completed_On__c') == null) {
++            return false;
++        }
++
++        Boolean authorSigned = false;
++        if (hasField(interviewFields, 'Staff_Signed__c') && interview.get('Staff_Signed__c') != null && (Boolean)interview.get('Staff_Signed__c') == true) {
++            authorSigned = true;
++        }
++        if (hasField(interviewFields, 'Clinician_Signed__c') && interview.get('Clinician_Signed__c') != null && (Boolean)interview.get('Clinician_Signed__c') == true) {
++            authorSigned = true;
++        }
++        if (!authorSigned) {
++            return false;
++        }
++
++        if (hasField(interviewFields, 'Requires_Manager_Approval__c') && hasField(interviewFields, 'Manager_Signed__c')) {
++            Boolean requiresManager = interview.get('Requires_Manager_Approval__c') != null && (Boolean)interview.get('Requires_Manager_Approval__c') == true;
++            if (requiresManager && (interview.get('Manager_Signed__c') == null || (Boolean)interview.get('Manager_Signed__c') != true)) {
++                return false;
++            }
++        }
++
++        if (hasField(interviewFields, 'CaseManager_Signed_By__c') && hasField(interviewFields, 'CaseManager_Signed__c')) {
++            Boolean caseManagerPending = interview.get('CaseManager_Signed_By__c') != null
++                && (interview.get('CaseManager_Signed__c') == null || (Boolean)interview.get('CaseManager_Signed__c') != true);
++            if (caseManagerPending) {
++                return false;
++            }
++        }
++
++        if (hasField(interviewFields, 'PeerSupport_Signed_By__c') && hasField(interviewFields, 'PeerSupport_Signed__c')) {
++            Boolean peerSupportPending = interview.get('PeerSupport_Signed_By__c') != null
++                && (interview.get('PeerSupport_Signed__c') == null || (Boolean)interview.get('PeerSupport_Signed__c') != true);
++            if (peerSupportPending) {
++                return false;
++            }
++        }
++
++        return true;
++    }
++
++    private static Boolean hasField(Map<String, Schema.SObjectField> fieldMap, String fieldName) {
++        return fieldMap != null && fieldMap.containsKey(fieldName);
++    }
++
+@@ -272,6 +738,7 @@ public with sharing class CaseManagerHomeController {
+-                    'id'          => i.get('Id'),
+-                    'subject'     => i.get('Subject'),
+-                    'description' => i.get('Description'),
+-                    'type'        => i.get('ComplaintType'),
+-                    'date'        => i.get('IncidentDate'),
+-                    'status'      => i.get('Status')
++                    'id'                => i.get('Id'),
++                    'subject'           => i.get('Subject'),
++                    'description'       => i.get('Description'),
++                    'type'              => i.get('ComplaintType'),
++                    'date'              => i.get('IncidentDate'),
++                    'status'            => i.get('Status'),
++                    'contentDocumentId' => iCdId
+@@ -279,0 +747 @@ public with sharing class CaseManagerHomeController {
++            populateMissingContentDocumentIds(result, 'id', 'contentDocumentId');
+@@ -285,0 +754,60 @@ public with sharing class CaseManagerHomeController {
++    private static void populateMissingContentDocumentIds(
++        List<Map<String, Object>> rows,
++        String idField,
++        String fileField
++    ) {
++        if (rows == null || rows.isEmpty()) return;
++
++        Set<Id> missingRecordIds = new Set<Id>();
++        for (Map<String, Object> row : rows) {
++            String fileId = (String)row.get(fileField);
++            Id recordId = (Id)row.get(idField);
++            if (String.isBlank(fileId) && recordId != null) {
++                missingRecordIds.add(recordId);
++            }
++        }
++        if (missingRecordIds.isEmpty()) return;
++
++        Map<Id, String> resolved = getLatestLinkedContentDocumentIds(missingRecordIds);
++        if (resolved.isEmpty()) return;
++
++        for (Map<String, Object> row : rows) {
++            String fileId = (String)row.get(fileField);
++            Id recordId = (Id)row.get(idField);
++            if (String.isBlank(fileId) && recordId != null && resolved.containsKey(recordId)) {
++                row.put(fileField, resolved.get(recordId));
++            }
++        }
++    }
++
++    private static Map<Id, String> getLatestLinkedContentDocumentIds(Set<Id> recordIds) {
++        Map<Id, String> chosenByRecord = new Map<Id, String>();
++        if (recordIds == null || recordIds.isEmpty()) return chosenByRecord;
++
++        for (ContentDocumentLink cdl : [
++            SELECT LinkedEntityId, ContentDocumentId, ContentDocument.FileExtension, ContentDocument.CreatedDate
++            FROM ContentDocumentLink
++            WHERE LinkedEntityId IN :recordIds
++            ORDER BY ContentDocument.CreatedDate DESC
++        ]) {
++            Id linkedId = cdl.LinkedEntityId;
++            if (linkedId == null) continue;
++
++            String current = chosenByRecord.get(linkedId);
++            String ext = cdl.ContentDocument != null ? cdl.ContentDocument.FileExtension : null;
++            String normalizedExt = String.isNotBlank(ext) ? ext.toLowerCase() : '';
++
++            if (String.isBlank(current)) {
++                chosenByRecord.put(linkedId, cdl.ContentDocumentId);
++                continue;
++            }
++
++            // Prefer PDF when available; otherwise keep the newest file selected by query order.
++            if (normalizedExt == 'pdf') {
++                chosenByRecord.put(linkedId, cdl.ContentDocumentId);
++            }
++        }
++
++        return chosenByRecord;
++    }
++

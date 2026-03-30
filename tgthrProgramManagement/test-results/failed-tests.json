@@ -1,0 +1,167 @@
+[
+  {
+    "FullName": "RecordAccessServiceTest.testLogAmendmentMissingReason",
+    "Message": "System.AssertException: Assertion Failed: Should mention required",
+    "StackTrace": "Class.RecordAccessServiceTest.testLogAmendmentMissingReason: line 101, column 1"
+  },
+  {
+    "FullName": "RecordAccessServiceTest.testLogAmendmentNullRecordId",
+    "Message": "System.AssertException: Assertion Failed: Should mention required",
+    "StackTrace": "Class.RecordAccessServiceTest.testLogAmendmentNullRecordId: line 113, column 1"
+  },
+  {
+    "FullName": "AuditLogServiceTest.testLogForCarePlan",
+    "Message": "System.QueryException: Variable does not exist: entityId",
+    "StackTrace": "Class.AuditLogServiceTest.testLogForCarePlan: line 39, column 1"
+  },
+  {
+    "FullName": "InterviewCompletionServiceTest.testCompleteInterviewCreates1440EnrollmentWhenSelected",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY, dlrs_CaseTrigger: execution of AfterInsert\n\ncaused by: System.DmlException: Update failed. First exception on row 0 with id 001RT00000uMl87YAC; first error: INVALID_FIELD_FOR_INSERT_UPDATE, Account: bad field names on insert/update call: Case_Manager__pc: [Case_Manager__pc]\n\n(dlrs)\nTrigger.dlrs_CaseTrigger: line 7, column 1: []",
+    "StackTrace": "Class.InterviewCompletionServiceTest.createTestCase: line 209, column 1\nClass.InterviewCompletionServiceTest.testCompleteInterviewCreates1440EnrollmentWhenSelected: line 52, column 1"
+  },
+  {
+    "FullName": "InterviewCompletionServiceTest.testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY, dlrs_CaseTrigger: execution of AfterInsert\n\ncaused by: System.DmlException: Update failed. First exception on row 0 with id 001RT00000uMl89YAC; first error: INVALID_FIELD_FOR_INSERT_UPDATE, Account: bad field names on insert/update call: Case_Manager__pc: [Case_Manager__pc]\n\n(dlrs)\nTrigger.dlrs_CaseTrigger: line 7, column 1: []",
+    "StackTrace": "Class.InterviewCompletionServiceTest.createTestCase: line 209, column 1\nClass.InterviewCompletionServiceTest.testCompleteInterviewCreatesNest56EnrollmentWhenSelected: line 17, column 1"
+  },
+  {
+    "FullName": "InterviewCompletionServiceTest.testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY, dlrs_CaseTrigger: execution of AfterInsert\n\ncaused by: System.DmlException: Update failed. First exception on row 0 with id 001RT00000uMl8BYAS; first error: INVALID_FIELD_FOR_INSERT_UPDATE, Account: bad field names on insert/update call: Case_Manager__pc: [Case_Manager__pc]\n\n(dlrs)\nTrigger.dlrs_CaseTrigger: line 7, column 1: []",
+    "StackTrace": "Class.InterviewCompletionServiceTest.createTestCase: line 209, column 1\nClass.InterviewCompletionServiceTest.testCompleteInterviewDoesNotDuplicateExistingEnrollment: line 86, column 1"
+  },
+  {
+    "FullName": "InterviewCompletionServiceTest.testCompleteInterviewSkipsUnsupportedSelectedProgram",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: CANNOT_INSERT_UPDATE_ACTIVATE_ENTITY, dlrs_CaseTrigger: execution of AfterInsert\n\ncaused by: System.DmlException: Update failed. First exception on row 0 with id 001RT00000uMl8CYAS; first error: INVALID_FIELD_FOR_INSERT_UPDATE, Account: bad field names on insert/update call: Case_Manager__pc: [Case_Manager__pc]\n\n(dlrs)\nTrigger.dlrs_CaseTrigger: line 7, column 1: []",
+    "StackTrace": "Class.InterviewCompletionServiceTest.createTestCase: line 209, column 1\nClass.InterviewCompletionServiceTest.testCompleteInterviewSkipsUnsupportedSelectedProgram: line 122, column 1"
+  },
+  {
+    "FullName": "BenefitDisbursementServiceTestExt.testCreateDisbursementsWithAssignments",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.BenefitDisbursementServiceTestExt.setupTestData: line 28, column 1"
+  },
+  {
+    "FullName": "BenefitDisbursementServiceTestExt.testCreateMissingBenefitAssignments",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.BenefitDisbursementServiceTestExt.setupTestData: line 28, column 1"
+  },
+  {
+    "FullName": "BenefitDisbursementServiceTestExt.testDateFormatHandling",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.BenefitDisbursementServiceTestExt.setupTestData: line 28, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_accountUpsertByUuid",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_accountUpsertByUuid: line 113, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_caseCreation",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_caseCreation: line 248, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_datetimeParsing",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_datetimeParsing: line 431, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_existingEnrollment",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_existingEnrollment: line 216, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_invalidBirthdateFormat",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_invalidBirthdateFormat: line 194, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_invalidCreatedByUserId",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_invalidCreatedByUserId: line 335, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_missingEncounterUuid",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_missingEncounterUuid: line 381, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_missingPersonUuid",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_missingPersonUuid: line 407, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_multipleBenefits",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_multipleBenefits: line 453, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_reuseExistingCase",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_reuseExistingCase: line 277, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_successPath",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_successPath: line 88, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_withBirthdate",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_withBirthdate: line 172, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_withCreatedByUserId",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_withCreatedByUserId: line 313, column 1"
+  },
+  {
+    "FullName": "ProgramEnrollmentServiceTest.testIngestEncounter_withEmailAndPhone",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramEnrollmentServiceTest.createTestBenefit: line 23, column 1\nClass.ProgramEnrollmentServiceTest.testIngestEncounter_withEmailAndPhone: line 149, column 1"
+  },
+  {
+    "FullName": "ProgramManagementQueriesTest.testGetActiveEnrollments",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1"
+  },
+  {
+    "FullName": "ProgramManagementQueriesTest.testGetBenefitAssignments",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1"
+  },
+  {
+    "FullName": "ProgramManagementQueriesTest.testGetBenefitByName",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1"
+  },
+  {
+    "FullName": "ProgramManagementQueriesTest.testGetBenefitDisbursements",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1"
+  },
+  {
+    "FullName": "ProgramManagementQueriesTest.testGetProgramByName",
+    "Message": "System.DmlException: Insert failed. First exception on row 0; first error: INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY, insufficient access rights on cross-reference id: []",
+    "StackTrace": "Class.ProgramManagementQueriesTest.setupTestData: line 24, column 1"
+  },
+  {
+    "FullName": "PsychoSocialRenewalServiceTest.testAbortAllJobs",
+    "Message": "System.AsyncException: The Apex job named \"Psycho-Social 6-Month Renewal Check - Daily\" is already scheduled for execution.",
+    "StackTrace": "Class.PsychoSocialRenewalScheduler.scheduleDaily: line 40, column 1\nClass.PsychoSocialRenewalServiceTest.testAbortAllJobs: line 116, column 1"
+  },
+  {
+    "FullName": "PsychoSocialRenewalServiceTest.testScheduleDaily",
+    "Message": "System.AsyncException: The Apex job named \"Psycho-Social 6-Month Renewal Check - Daily\" is already scheduled for execution.",
+    "StackTrace": "Class.PsychoSocialRenewalScheduler.scheduleDaily: line 40, column 1\nClass.PsychoSocialRenewalServiceTest.testScheduleDaily: line 83, column 1"
+  },
+  {
+    "FullName": "SObjectDeepCloneTests.accountWithContacts",
+    "Message": "System.AssertException: Assertion Failed: Same value: null",
+    "StackTrace": "Class.SObjectDeepCloneTests.accountWithContacts: line 22, column 1"
+  },
+  {
+    "FullName": "ListActionsTest.cloneRecordTests",
+    "Message": "System.AssertException: Assertion Failed: Same value: null",
+    "StackTrace": "Class.ListActionsTest.cloneRecordTests: line 273, column 1"
+  }
+]

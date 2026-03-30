@@ -10,6 +10,7 @@ import getCurrentUserInfo from '@salesforce/apex/InterviewSessionController.getC
 import linkFilesToCase from '@salesforce/apex/InterviewSessionController.linkFilesToCase';
 import generateDocument from '@salesforce/apex/InterviewDocumentService.generateDocument';
 import getGoalAssignments from '@salesforce/apex/GoalAssignmentController.getGoalAssignments';
+import getGoalAssignmentsLive from '@salesforce/apex/GoalAssignmentController.getGoalAssignmentsLive';
 import saveDraft from '@salesforce/apex/DocumentDraftService.saveDraft';
 import checkForExistingDraftByTemplate from '@salesforce/apex/DocumentDraftService.checkForExistingDraftByTemplate';
 import loadDraft from '@salesforce/apex/DocumentDraftService.loadDraft';
@@ -17,8 +18,11 @@ import deleteDraft from '@salesforce/apex/DocumentDraftService.deleteDraft';
 import getCurrentUserManagerInfo from '@salesforce/apex/PendingDocumentationController.getCurrentUserManagerInfo';
 import getSigningAuthorities from '@salesforce/apex/PendingDocumentationController.getSigningAuthorities';
 import requestManagerApproval from '@salesforce/apex/PendingDocumentationController.requestManagerApproval';
+import { normalizeInterviewDisplayLabel } from 'c/interviewTemplateLabelUtils';
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 import logSignatureEvent from '@salesforce/apex/RecordAccessService.logSignatureEvent';
+import getSsrsAssessmentResponses from '@salesforce/apex/SSRSAssessmentController.getSsrsAssessmentResponses';
+import loadRecalledInterview from '@salesforce/apex/InterviewSessionController.loadRecalledInterview';
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
 import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
 
@@ -30,11 +34,14 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @api templateVersionId;
     @api startStep; // Optional: jump directly to a step like 'review'
     @api isIntakeMode = false; // When true: demographics is "Client Info" first step, shown on Review
+    @api interviewId; // Optional: Id of an existing Interview to restore (used by recall flow)
+    @api allowIntakeDemographicsEditing = false;
     
     // Internal properties to hold URL state parameters
     urlCaseId;
     urlTemplateVersionId;
     urlStartStep; // Optional: jump directly to a step like 'review' (from URL)
+    urlInterviewId; // Optional: Id of an existing Interview to restore (from URL, recall flow)
 
     @track currentStepIndex = 0;
     @track isLoading = true;
@@ -66,6 +73,10 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track peerSupportSignatureStatus = null;
     @track caseManagerSignedBy = null; // { id, name, title, email }
     @track peerSupportSignedBy = null; // { id, name, title, email }
+    @track originalCaseManagerSignedBy = null; // Persisted assignee from recalled/source plan
+    @track originalPeerSupportSignedBy = null; // Persisted assignee from recalled/source plan
+    @track caseManagerOverrideSelection = false;
+    @track peerSupportOverrideSelection = false;
     @track clinicianIsOther = false;   // Running user is NOT the clinician — assign someone else
     @track clinicianSignedBy = null;   // { id, name, title, email } — set when clinicianIsOther
     @track signForCaseManagement = false; // Staff signing as Case Manager (override)
@@ -74,8 +85,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track caseManagementNotRequested = false;
     @track peerSupportNotRequested = false;
     @track clinicianNotRequested = false;
-    @track caseManagerSignNow = false; // Sign during interview vs assign for later
-    @track peerSupportSignNow = false; // Sign during interview vs assign for later
     @track housingBenefitOptions = [];
     @track clinicalBenefitOptions = [];
     @track housingBenefitIds = [];
@@ -83,8 +92,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track incomeBenefitsData = [];
     @track incomeBenefitsFileIds = []; // ContentDocument IDs for Case linking
     @track demographicsData = {}; // Demographics for Account update
+    @track carryForwardCandidateByQuestionId = {};
+    @track carryForwardStateByQuestionId = {};
     @track selectedDiagnoses = [];
     @track newDiagnosesToCreate = [];
+    @track selectedCptCodes = []; // CPT codes chosen for this template's CPT billing policy
     @track goals = [];
     @track carePlanConsent = {
         consentParticipated: false,
@@ -116,6 +128,36 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     reviewActiveSections = [];
     
     parametersLoaded = false;
+    pendingStepScrollReset = false;
+    pendingCarryForwardFocusQuestionId = null;
+    pendingCarryForwardInputQuestionId = null;
+    pendingApproverFocus = false;
+
+    renderedCallback() {
+        if (this.pendingStepScrollReset) {
+            this.pendingStepScrollReset = false;
+            this.focusStepStart();
+            this.scrollStepContainerToTop();
+        }
+
+        if (this.pendingCarryForwardFocusQuestionId) {
+            if (this.focusCarryForwardQuestion(this.pendingCarryForwardFocusQuestionId, false)) {
+                this.pendingCarryForwardFocusQuestionId = null;
+            }
+        }
+
+        if (this.pendingCarryForwardInputQuestionId) {
+            if (this.focusCarryForwardQuestion(this.pendingCarryForwardInputQuestionId, true)) {
+                this.pendingCarryForwardInputQuestionId = null;
+            }
+        }
+
+        if (this.pendingApproverFocus) {
+            if (this.focusManagerApproverInput()) {
+                this.pendingApproverFocus = false;
+            }
+        }
+    }
 
     @wire(getCurrentUserManagerInfo)
     wiredManagerInfo({ data, error }) {
@@ -167,6 +209,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             
             // Optional: startStep parameter to jump to a specific step (e.g., 'review')
             this.urlStartStep = currentPageReference.state.c__startStep || currentPageReference.state.startStep;
+
+            // Optional: interviewId for recall flow — pre-populate with existing Interview data
+            this.urlInterviewId = currentPageReference.state.c__interviewId || currentPageReference.state.interviewId;
             
             // Reset parametersLoaded if navigating to different session
             if (paramsChanged) {
@@ -184,8 +229,22 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return this.caseId || this.urlCaseId;
     }
 
+    // fetchAccountData returns lowercase keys from Apex fieldMap.keySet() (e.g. 'id' not 'Id').
+    // This getter handles both casings so child components always receive the account ID.
+    get effectiveAccountId() {
+        return this.accountData?.Id || this.accountData?.id || null;
+    }
+
     get effectiveTemplateVersionId() {
         return this.templateVersionId || this.urlTemplateVersionId;
+    }
+
+    get effectiveInterviewId() {
+        return this.interviewId || this.urlInterviewId;
+    }
+
+    get shouldAutoRestoreDraft() {
+        return this.isIntakeMode === true && !this.effectiveInterviewId;
     }
 
     get recordTypeId() {
@@ -237,6 +296,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             });
             this.templateData = response.template;
             this.accountData = response.accountData || {};
+            this.setCarryForwardCandidates(response.carryForwardCandidates || []);
             this.housingBenefitOptions = response.housingBenefitOptions || [];
             this.clinicalBenefitOptions = response.clinicalBenefitOptions || [];
             console.log('=== ACCOUNT DATA LOADED ===');
@@ -261,11 +321,20 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 if (this.showDiagnoses) {
                     reviewSections.push('diagnoses');
                 }
+                if (this.showCptBillingCodes) {
+                    reviewSections.push('cptCodes');
+                }
                 this.reviewActiveSections = reviewSections;
             }
             
-            // Check for existing draft
-            await this.checkForDraft();
+            // If an existing Interview Id is provided (recall flow), restore its data instead of
+            // looking for a draft – the recalled record IS the source of truth.
+            if (this.effectiveInterviewId) {
+                await this.restoreRecalledInterview(this.effectiveInterviewId);
+            } else {
+                // Check for existing draft
+                await this.checkForDraft();
+            }
 
             // Load goals early for Treatment Plans (needed for multi-signature conditional logic)
             if (this.showGoals && this.effectiveCaseId) {
@@ -309,16 +378,27 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         // Reset other tracked state
         this.selectedDiagnoses = [];
         this.newDiagnosesToCreate = [];
+        this.selectedCptCodes = [];
         this.goals = [];
+        this.caseManagerSignedBy = null;
+        this.peerSupportSignedBy = null;
+        this.originalCaseManagerSignedBy = null;
+        this.originalPeerSupportSignedBy = null;
+        this.caseManagerOverrideSelection = false;
+        this.peerSupportOverrideSelection = false;
         this.housingBenefitIds = [];
         this.clinicalBenefitIds = [];
         this.demographicsData = {};
+        this.carryForwardCandidateByQuestionId = {};
+        this.carryForwardStateByQuestionId = {};
         this.incomeBenefitsData = []; // Array, not object
         this.ssrsAssessmentData = null;
         this.draftWasRestored = false;
         this.hasDraft = false;
         this.draftId = null;
         this.currentStepIndex = 0;
+        this.pendingCarryForwardFocusQuestionId = null;
+        this.pendingCarryForwardInputQuestionId = null;
         
         // Reset interaction input (preserve times set in connectedCallback)
         const startDateTime = this.interactionInput.startDateTime;
@@ -348,6 +428,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             if (draftCheck.found) {
                 this.hasDraft = true;
                 this.draftId = draftCheck.draftId;
+
+                if (this.shouldAutoRestoreDraft) {
+                    await this.restoreDraft(draftCheck.draftId);
+                    this.draftWasRestored = true;
+                    return;
+                }
                 
                 // Show confirmation to restore draft
                 const savedAt = new Date(draftCheck.savedAt);
@@ -412,7 +498,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 
                 // Restore demographics data
                 if (savedState.demographicsData) {
-                    this.demographicsData = savedState.demographicsData;
+                    this.demographicsData = this.getDirtyDemographicsData(savedState.demographicsData);
+                }
+
+                if (savedState.carryForwardStateByQuestionId) {
+                    this.carryForwardStateByQuestionId = { ...savedState.carryForwardStateByQuestionId };
                 }
                 
                 // Restore income benefits data
@@ -447,6 +537,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 if (savedState.startedAt) {
                     this.startedAt = savedState.startedAt;
                 }
+
+                this.reconcileCarryForwardResolutionFromAnswers();
                 
                 // Determine the first incomplete step to start at
                 // This picks up where they left off by finding the first step with missing data
@@ -469,6 +561,135 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
     
     /**
+     * Restore session state from a recalled (previously submitted) Interview record.
+     * Called instead of checkForDraft() when effectiveInterviewId is set.
+     * Queries all persisted data via loadRecalledInterview and populates LWC state
+     * so the user sees the form pre-filled with their previous submission.
+     */
+    async restoreRecalledInterview(recalledInterviewId) {
+        try {
+            const data = await loadRecalledInterview({ interviewId: recalledInterviewId });
+
+            // ── Interaction details (date, start/end time, location, notes) ──
+            if (data.interactionInput) {
+                const inp = data.interactionInput;
+                this.interactionInput = {
+                    interactionDate: inp.interactionDate || null,
+                    startDateTime:   inp.startDateTime   || null,
+                    endDateTime:     inp.endDateTime     || null,
+                    meetingNotes:    inp.meetingNotes    || '',
+                    location:        inp.location        || '',
+                    interpreterUsed: inp.interpreterUsed === true
+                };
+            }
+
+            // ── Question answers ──
+            if (data.answers && data.answers.length > 0) {
+                data.answers.forEach(ar => {
+                    const existing = this.answers.get(ar.questionId);
+                    if (existing) {
+                        existing.value  = ar.value  != null ? ar.value  : existing.value;
+                        existing.values = ar.values != null && ar.values.length > 0
+                            ? ar.values
+                            : (ar.value && ar.value.includes(';')
+                                ? ar.value.split(';')
+                                : existing.values);
+                        this.answers.set(ar.questionId, existing);
+                    }
+                });
+            }
+
+            // ── Income / Benefits ──
+            if (data.incomeBenefitsData && data.incomeBenefitsData.length > 0) {
+                this.incomeBenefitsData = data.incomeBenefitsData.map(item => ({
+                    label:        item.label        || '',
+                    checked:      true,
+                    statedIncome: item.statedIncome || null
+                }));
+            }
+
+            // ── Care Plan consent/discharge details ──
+            if (data.carePlanConsent) {
+                this.carePlanConsent = {
+                    ...this.carePlanConsent,
+                    consentParticipated: data.carePlanConsent.consentParticipated === true,
+                    consentOffered: data.carePlanConsent.consentOffered === true,
+                    nextReviewDate: data.carePlanConsent.nextReviewDate || null,
+                    dischargeDate: data.carePlanConsent.dischargeDate || null,
+                    dischargePlan: data.carePlanConsent.dischargePlan || ''
+                };
+            }
+
+            // ── Recalled co-signer assignments (carry forward signature policy) ──
+            if (data.caseManagerSignedById) {
+                this.caseManagerSignedBy = {
+                    id: data.caseManagerSignedById,
+                    name: data.caseManagerSignedByName || 'Case Manager',
+                    title: '',
+                    email: ''
+                };
+                this.originalCaseManagerSignedBy = { ...this.caseManagerSignedBy };
+                this.caseManagerOverrideSelection = false;
+            }
+            if (data.peerSupportSignedById) {
+                this.peerSupportSignedBy = {
+                    id: data.peerSupportSignedById,
+                    name: data.peerSupportSignedByName || 'Peer Support',
+                    title: '',
+                    email: ''
+                };
+                this.originalPeerSupportSignedBy = { ...this.peerSupportSignedBy };
+                this.peerSupportOverrideSelection = false;
+            }
+
+            // ── Manager co-sign routing ──
+            // If the recalled interview had a manager approver assigned, pre-check the
+            // co-sign toggle so the same routing policy is enforced on re-submission
+            // without requiring the user to manually re-select it.
+            if (data.managerApproverId) {
+                this.requestManagerCoSign = true;
+                this.selectedApproverId = data.managerApproverId;
+            }
+
+            // ── Diagnoses ──
+            if (data.selectedDiagnoses && data.selectedDiagnoses.length > 0) {
+                this.selectedDiagnoses = data.selectedDiagnoses.map(d => ({
+                    Id:            d.id            || null,
+                    id:            d.id            || null,
+                    code:          d.code          || null,
+                    description:   d.description   || null,
+                    status:        d.status        || 'Active',
+                    diagnosisType: d.diagnosisType || null,
+                    onsetDate:     d.onsetDate     || null,
+                    isPrimary:     d.isPrimary     === true,
+                    notes:         d.notes         || null,
+                    category:      d.category      || null
+                }));
+            }
+
+            // ── CPT Codes (Comp Assess) ──
+            if (Array.isArray(data.selectedCptCodes)) {
+                this.selectedCptCodes = data.selectedCptCodes.slice(0, 1);
+            }
+
+            this.reconcileCarryForwardResolutionFromAnswers();
+
+            this.showToast(
+                'Document Restored',
+                'Previous submission data has been loaded. Review and make any changes before resubmitting.',
+                'success'
+            );
+        } catch (error) {
+            console.error('Error restoring recalled interview:', error);
+            this.showToast(
+                'Error Loading Previous Data',
+                'Could not load the previous submission data. The form is blank — please re-enter information.',
+                'warning'
+            );
+        }
+    }
+
+    /**
      * Find the first step that has incomplete/missing data
      * Returns 0 (interaction) if all steps are incomplete
      * Returns the interview step index if interaction is complete but questions remain
@@ -478,7 +699,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         // Check if a specific start step was requested via @api prop or URL parameter
         const requestedStep = this.startStep || this.urlStartStep;
         if (requestedStep) {
-            const requestedIndex = STEPS.indexOf(requestedStep.toLowerCase());
+            const requestedIndex = this.visibleSteps.indexOf(requestedStep.toLowerCase());
             if (requestedIndex !== -1) {
                 console.log('Starting at requested step:', requestedStep, 'index:', requestedIndex);
                 return requestedIndex;
@@ -488,8 +709,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         // Step 0: Interaction Details - check if start/end times are set
         const interactionComplete = this.interactionInput?.startDateTime && 
                                     this.interactionInput?.endDateTime;
-        if (!interactionComplete) {
-            return 0; // Start at interaction step
+        if (this.showInteractionStep && !interactionComplete) {
+            return this.visibleSteps.indexOf('interaction');
         }
 
         return null;
@@ -503,21 +724,21 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     applyStartStep() {
         const requestedStep = this.startStep || this.urlStartStep;
         if (requestedStep) {
-            const requestedIndex = STEPS.indexOf(requestedStep.toLowerCase());
+            const requestedIndex = this.visibleSteps.indexOf(requestedStep.toLowerCase());
             if (requestedIndex !== -1) {
                 console.log('Applying startStep:', requestedStep, 'index:', requestedIndex);
                 this.currentStepIndex = requestedIndex;
                 this._logStepAccess('InterviewSessionStepJump');
             } else {
-                console.warn('Invalid startStep requested:', requestedStep, 'Valid steps:', STEPS);
+                console.warn('Invalid startStep requested:', requestedStep, 'Valid steps:', this.visibleSteps);
             }
             return;
         }
 
         // For Comprehensive Clinical Intake: always start at the Primary Assessment (interview) step
         // Interaction Details are shown inline on that step; demographics tab is not used
-        if (this.isComprehensiveIntakeTemplate) {
-            this.currentStepIndex = STEPS.indexOf('interview');
+        if (this.isComprehensiveIntakeTemplate && !this.showDemographicsAsClientInfo) {
+            this.currentStepIndex = this.visibleSteps.indexOf('interview');
             return;
         }
         
@@ -526,7 +747,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             const demographicsComplete = this.demographicsData && 
                                          Object.keys(this.demographicsData).length > 0;
             if (!demographicsComplete) {
-                return 1; // Start at demographics step
+                this.currentStepIndex = this.visibleSteps.indexOf('demographics');
+                return;
             }
         }
         
@@ -544,17 +766,19 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 })
             );
             if (requiredUnanswered) {
-                return this.showDemographics ? 2 : 1; // Interview step index depends on demographics
+                this.currentStepIndex = this.visibleSteps.indexOf('interview');
+                return;
             }
         }
         
         // If we got here with no answers at all, start at interview step
         if (!hasAnswers) {
-            return this.showDemographics ? 2 : 1;
+            this.currentStepIndex = this.visibleSteps.indexOf('interview');
+            return;
         }
         
         // All steps appear complete, start at interaction to let user review
-        return 0;
+        this.currentStepIndex = 0;
     }
 
     initializeAnswers() {
@@ -574,6 +798,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     || question.apiName === 'Mental_Health_History__c';
                 let initialValue = isBooleanType ? (isYesNoRadio ? '' : false) : '';
                 let initialValues = [];
+                const carryForwardCandidate = this.getCarryForwardCandidate(question.questionId);
+
+                if (carryForwardCandidate) {
+                    initialValue = '';
+                    initialValues = [];
+                }
                 
                 // Extract Account field name from mapsTo (format: "Account.FirstName")
                 let accountFieldName = null;
@@ -581,7 +811,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     accountFieldName = question.mapsTo.split('.')[1]; // Get "FirstName" from "Account.FirstName"
                 }
                 
-                if (accountFieldName && this.accountData && this.accountData[accountFieldName] !== undefined && this.accountData[accountFieldName] !== null) {
+                if (!carryForwardCandidate && accountFieldName && this.accountData && this.accountData[accountFieldName] !== undefined && this.accountData[accountFieldName] !== null) {
                     const accountValue = this.accountData[accountFieldName];
                     console.log(`  Mapping question "${question.label}" (mapsTo: ${question.mapsTo}, field: ${accountFieldName}) to account value:`, accountValue);
                     // Format the value based on type
@@ -595,8 +825,18 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                         initialValue = String(accountValue);
                     }
                     console.log(`  Set initial value to: "${initialValue}"`);
-                } else if (question.mapsTo) {
+                } else if (!carryForwardCandidate && question.mapsTo) {
                     console.log(`Question "${question.label}" (mapsTo: ${question.mapsTo}) - NO Account value found in accountData keys:`, Object.keys(this.accountData));
+                }
+
+                if (carryForwardCandidate && !this.carryForwardStateByQuestionId[question.questionId]) {
+                    this.carryForwardStateByQuestionId = {
+                        ...this.carryForwardStateByQuestionId,
+                        [question.questionId]: {
+                            resolved: false,
+                            action: null
+                        }
+                    };
                 }
                 
                 this.answers.set(question.questionId, {
@@ -613,8 +853,174 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         console.log('Total answers:', this.answers.size);
     }
 
+    setCarryForwardCandidates(candidates) {
+        const nextCandidates = {};
+        (candidates || []).forEach(candidate => {
+            if (!candidate?.questionId) {
+                return;
+            }
+
+            nextCandidates[candidate.questionId] = {
+                ...candidate,
+                displayValue: candidate.displayValue || '(No response)',
+                values: Array.isArray(candidate.values) ? [...candidate.values] : []
+            };
+        });
+
+        this.carryForwardCandidateByQuestionId = nextCandidates;
+    }
+
+    getCarryForwardCandidate(questionId) {
+        return questionId ? this.carryForwardCandidateByQuestionId?.[questionId] || null : null;
+    }
+
+    getCarryForwardState(questionId) {
+        return questionId ? this.carryForwardStateByQuestionId?.[questionId] || null : null;
+    }
+
+    setCarryForwardState(questionId, nextState) {
+        if (!questionId) {
+            return;
+        }
+
+        this.carryForwardStateByQuestionId = {
+            ...this.carryForwardStateByQuestionId,
+            [questionId]: {
+                ...(this.carryForwardStateByQuestionId?.[questionId] || {}),
+                ...nextState
+            }
+        };
+    }
+
+    commitAnswer(questionId, answer) {
+        if (!questionId || !answer) {
+            return;
+        }
+
+        const nextAnswers = new Map(this.answers);
+        nextAnswers.set(questionId, {
+            ...answer,
+            values: Array.isArray(answer.values) ? [...answer.values] : []
+        });
+        this.answers = nextAnswers;
+    }
+
+    applyCarryForwardAction(questionId, action) {
+        const candidate = this.getCarryForwardCandidate(questionId);
+        const currentAnswer = this.answers.get(questionId);
+        if (!questionId || !action || !candidate || !currentAnswer) {
+            return;
+        }
+
+        const nextAnswer = {
+            ...currentAnswer,
+            values: Array.isArray(currentAnswer.values) ? [...currentAnswer.values] : []
+        };
+
+        if (action === 'confirm') {
+            nextAnswer.value = candidate.value;
+            nextAnswer.values = Array.isArray(candidate.values) ? [...candidate.values] : [];
+        } else if (action === 'ignore') {
+            nextAnswer.value = '';
+            nextAnswer.values = [];
+        }
+
+        this.commitAnswer(questionId, nextAnswer);
+        this.setCarryForwardState(questionId, {
+            resolved: true,
+            action
+        });
+
+        if (action === 'edit') {
+            this.pendingCarryForwardInputQuestionId = questionId;
+        }
+    }
+
+    hasAnswerValue(answer) {
+        if (!answer) {
+            return false;
+        }
+
+        if (Array.isArray(answer.values) && answer.values.length > 0) {
+            return true;
+        }
+
+        if (answer.value === false) {
+            return true;
+        }
+
+        return answer.value !== null && answer.value !== undefined && answer.value !== '';
+    }
+
+    reconcileCarryForwardResolutionFromAnswers() {
+        Object.keys(this.carryForwardCandidateByQuestionId || {}).forEach(questionId => {
+            const answer = this.answers.get(questionId);
+            const state = this.getCarryForwardState(questionId);
+            if (!state?.resolved && this.hasAnswerValue(answer)) {
+                this.setCarryForwardState(questionId, {
+                    resolved: true,
+                    action: 'edited'
+                });
+            }
+        });
+    }
+
+    formatCarryForwardDate(value) {
+        if (!value) {
+            return 'Not recorded';
+        }
+
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+            return value;
+        }
+
+        return parsed.toLocaleDateString();
+    }
+
+    buildCarryForwardQuestionState(question) {
+        const candidate = this.getCarryForwardCandidate(question.questionId);
+        if (!candidate) {
+            return null;
+        }
+
+        const state = this.getCarryForwardState(question.questionId) || {};
+        const actionLabelByType = {
+            confirm: 'Confirmed previous answer',
+            edit: 'Edited current answer',
+            edited: 'Edited current answer',
+            ignore: 'Ignored previous answer'
+        };
+        return {
+            hasCandidate: true,
+            requiresReview: question.requiresReview === true,
+            isResolved: state.resolved === true,
+            action: state.action || null,
+            actionLabel: state.action ? actionLabelByType[state.action] || state.action : null,
+            displayValue: candidate.displayValue,
+            recordedDateLabel: this.formatCarryForwardDate(candidate.recordedDate),
+            sourceLabel: candidate.sourceLabel || 'Previous Interview',
+            showPrompt: true
+        };
+    }
+
     get currentStep() {
-        return STEPS[this.currentStepIndex];
+        return this.visibleSteps[this.currentStepIndex] || this.visibleSteps[0] || 'interview';
+    }
+
+    get visibleSteps() {
+        const visibleSteps = [];
+
+        if (this.showInteractionStep) {
+            visibleSteps.push('interaction');
+        }
+
+        if (this.showDemographics) {
+            visibleSteps.push('demographics');
+        }
+
+        visibleSteps.push('interview', 'review');
+        return visibleSteps;
     }
 
     get isInteractionStep() {
@@ -634,20 +1040,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get isFirstStep() {
-        if (this.isSinglePageMode) return true;
-        if (this.isComprehensiveIntakeTemplate) {
-            // In intake mode, demographics (Client Info) is the first real step
-            if (this.isIntakeMode) {
-                return this.currentStepIndex <= STEPS.indexOf('demographics');
-            }
-            // In non-intake CompIntake, prevent going back past interview start
-            return this.currentStepIndex <= STEPS.indexOf('interview');
-        }
-        return this.currentStepIndex === 0;
+        return this.isSinglePageMode || this.currentStepIndex === 0;
     }
 
     get isLastStep() {
-        return this.isSinglePageMode || this.currentStepIndex === STEPS.length - 1;
+        return this.isSinglePageMode || this.currentStepIndex === this.visibleSteps.length - 1;
     }
 
     get isSinglePageMode() {
@@ -666,7 +1063,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get showGoals() {
-        return this.templateData?.goalsPolicy && this.templateData.goalsPolicy !== 'Hidden';
+        return this.isTreatmentPlanTemplate || (this.templateData?.goalsPolicy && this.templateData.goalsPolicy !== 'Hidden');
     }
 
     get showClinicalBenefits() {
@@ -724,20 +1121,99 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get showDemographics() {
-        return this.templateData?.demographicsPolicy && this.templateData.demographicsPolicy !== 'Hidden';
+        if (this.isIntakeMode) {
+            return this.allowIntakeDemographicsEditing === true;
+        }
+
+        const demographicsEnabledByTemplate = this.templateData?.demographicsPolicy && this.templateData.demographicsPolicy !== 'Hidden';
+        return demographicsEnabledByTemplate;
     }
 
-    // True when CompIntake in intake mode — shows "Client Info" step label in progress indicator
+    get showInteractionStep() {
+        return !this.isIntakeMode && !this.isComprehensiveIntakeTemplate;
+    }
+
+    get demographicsStepLabel() {
+        return this.isIntakeMode ? 'Client Info' : 'Demographics';
+    }
+
+    // True when intake mode is using demographics as the first visible step.
     get showDemographicsAsClientInfo() {
-        return this.isComprehensiveIntakeTemplate && this.isIntakeMode && this.showDemographics;
+        return this.isIntakeMode && this.showDemographics;
+    }
+
+    get demographicFormData() {
+        const mergedData = {
+            ...(this.accountData || {}),
+            ...(this.demographicsData || {})
+        };
+
+        mergedData.Referral_Source_Name =
+            this.demographicsData?.Referral_Source_Name ||
+            this.accountData?.Referral_Source_Name ||
+            '';
+
+        return mergedData;
+    }
+
+    normalizeDemographicValue(fieldName, value) {
+        if (fieldName === 'Race_and_Ethnicity__pc') {
+            if (Array.isArray(value)) {
+                return [...value].filter(item => item !== null && item !== undefined && item !== '').sort();
+            }
+            if (typeof value === 'string' && value) {
+                return value.split(';').filter(Boolean).sort();
+            }
+            return [];
+        }
+
+        if (value === undefined) {
+            return null;
+        }
+
+        return value;
+    }
+
+    demographicValuesEqual(fieldName, leftValue, rightValue) {
+        const normalizedLeft = this.normalizeDemographicValue(fieldName, leftValue);
+        const normalizedRight = this.normalizeDemographicValue(fieldName, rightValue);
+        return JSON.stringify(normalizedLeft) === JSON.stringify(normalizedRight);
+    }
+
+    getDirtyDemographicsData(sourceData = this.demographicFormData || {}) {
+        const dirtyData = {};
+        const baselineData = this.accountData || {};
+        const inputData = sourceData || {};
+
+        Object.keys(inputData).forEach(fieldName => {
+            if (fieldName === 'Age__pc') {
+                return;
+            }
+
+            const nextValue = inputData[fieldName];
+            const baselineValue = baselineData[fieldName];
+            if (!this.demographicValuesEqual(fieldName, nextValue, baselineValue)) {
+                dirtyData[fieldName] = nextValue;
+            }
+        });
+
+        if ('Referral_Source__c' in dirtyData || 'Referral_Source_Name' in dirtyData) {
+            dirtyData.Referral_Source__c = inputData.Referral_Source__c || null;
+            dirtyData.Referral_Source_Name = inputData.Referral_Source_Name || '';
+        }
+
+        return dirtyData;
     }
 
     // Fields to show in Review step's "Client Info" section (intake mode only)
     get reviewClientInfoFields() {
-        if (!this.isComprehensiveIntakeTemplate || !this.isIntakeMode) return [];
+        if (!this.isIntakeMode || !this.showDemographicsAsClientInfo) return [];
         const d = this.demographicsData || {};
         const a = this.accountData || {};
         const val = (key) => {
+            if (key === 'Referral_Source__c') {
+                return d.Referral_Source_Name || a.Referral_Source_Name || d[key] || a[key] || null;
+            }
             const v = (d[key] !== undefined && d[key] !== '' && d[key] !== null) ? d[key] : a[key];
             return v ?? null;
         };
@@ -790,31 +1266,46 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return this.templateData?.incomeBenefitsPolicy === 'Required';
     }
 
+    normalizeServiceModality(value) {
+        return (value || '')
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z]/g, '');
+    }
+
+    goalMatchesServiceModality(goal, expectedModality) {
+        const normalizedGoalModality = this.normalizeServiceModality(goal?.serviceModality);
+        const normalizedExpectedModality = this.normalizeServiceModality(expectedModality);
+
+        if (!normalizedGoalModality || !normalizedExpectedModality) {
+            return false;
+        }
+
+        if (normalizedGoalModality === normalizedExpectedModality) {
+            return true;
+        }
+
+        if (normalizedExpectedModality === 'casemanagement') {
+            return normalizedGoalModality === 'casemanager' || normalizedGoalModality === 'casemgmt';
+        }
+
+        if (normalizedExpectedModality === 'peer') {
+            return normalizedGoalModality === 'peersupport';
+        }
+
+        return false;
+    }
+
     // Multi-signature computed properties for Treatment Plans
     get hasCaseManagementGoals() {
-        console.log('🔍 Checking hasCaseManagementGoals...');
-        console.log('  - goals array:', JSON.stringify(this.goals));
-        console.log('  - goals count:', this.goals?.length);
-        if (this.goals && this.goals.length > 0) {
-            console.log('  - goal[0]:', JSON.stringify(this.goals[0]));
-            console.log('  - goal[0].serviceModality:', this.goals[0].serviceModality);
-        }
-        const result = this.goals && this.goals.some(goal => goal.serviceModality === 'Case Management');
-        console.log('  - result:', result);
-        return result;
+        return Array.isArray(this.goals) &&
+            this.goals.some(goal => this.goalMatchesServiceModality(goal, 'Case Management'));
     }
 
     get hasPeerGoals() {
-        console.log('🔍 Checking hasPeerGoals...');
-        console.log('  - goals array:', JSON.stringify(this.goals));
-        console.log('  - goals count:', this.goals?.length);
-        if (this.goals && this.goals.length > 0) {
-            console.log('  - goal[0]:', JSON.stringify(this.goals[0]));
-            console.log('  - goal[0].serviceModality:', this.goals[0].serviceModality);
-        }
-        const result = this.goals && this.goals.some(goal => goal.serviceModality === 'Peer');
-        console.log('  - result:', result);
-        return result;
+        return Array.isArray(this.goals) &&
+            this.goals.some(goal => this.goalMatchesServiceModality(goal, 'Peer'));
     }
 
     get showCaseManagerSignature() {
@@ -858,7 +1349,49 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get managerApprovalLabel() {
-        return 'Request Approval/Co-Signature';
+        return this.isLateEntryManagerApprovalRequired
+            ? 'Request Approval/Co-Signature (Required for late entry)'
+            : 'Request Approval/Co-Signature';
+    }
+
+    get serviceDateTimeForManagerApproval() {
+        const startDateTime = this.parseDateTime(this.interactionInput?.startDateTime);
+        if (startDateTime) {
+            return startDateTime;
+        }
+
+        const interactionDate = this.interactionInput?.interactionDate;
+        if (!interactionDate) {
+            return null;
+        }
+
+        const parsed = new Date(`${interactionDate}T12:00`);
+        return isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    get isLateEntryManagerApprovalRequired() {
+        const serviceDateTime = this.serviceDateTimeForManagerApproval;
+        if (!serviceDateTime) {
+            return false;
+        }
+
+        return (Date.now() - serviceDateTime.getTime()) > (72 * 60 * 60 * 1000);
+    }
+
+    get managerApprovalChecked() {
+        return this.isLateEntryManagerApprovalRequired || this.requestManagerCoSign;
+    }
+
+    get managerApprovalInputDisabled() {
+        return this.managerMissing || this.isLateEntryManagerApprovalRequired;
+    }
+
+    get managerApprovalHelpText() {
+        if (this.isLateEntryManagerApprovalRequired) {
+            return 'This interview date is outside the 72-hour reporting window. Select a Signing Authority approver to route the required manager co-sign.';
+        }
+
+        return `${this.managerName} will be notified to co-sign this interview after you save.`;
     }
 
     handleApproverChange(event) {
@@ -887,17 +1420,54 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         return this.templateData ? this.templateData.templateName : 'Interview';
     }
 
+    get displayTemplateName() {
+        return normalizeInterviewDisplayLabel(this.templateName);
+    }
+
     get templateCategory() {
         return this.templateData ? this.templateData.category : '';
     }
 
     get isComprehensiveIntakeTemplate() {
+        if (this.templateData?.cptNoteType === 'Comp Assess') {
+            return true;
+        }
+
         const name = this.templateName?.toLowerCase() || '';
-        return name.includes('comprehensive') && name.includes('intake');
+        return name.includes('comprehensive clinical assessment')
+            || name.includes('comprehensive assessment')
+            || (name.includes('comprehensive') && name.includes('intake'))
+            || name.includes('1440 pine')
+            || name.includes('psycho-social intake')
+            || name.includes('psychosocial intake');
+    }
+    
+    get showCptBillingCodes() {
+        return Boolean(this.templateData?.hasCptCodes);
+    }
+
+    get cptSelectorNoteType() {
+        return this.templateData?.cptNoteType || 'Comp Assess';
+    }
+
+    get cptAllowedCodes() {
+        return this.templateData?.allowedCptCodes || '';
+    }
+
+    get isBusy() {
+        return this.isSaving || this.isSavingDraft || this.isGeneratingDocument;
+    }
+
+    handleCptCodeSelection(event) {
+        const selected = event.detail.selectedCodes || [];
+        this.selectedCptCodes = selected.length > 0 ? [selected[0]] : [];
     }
 
     get interviewStepLabel() {
-        return this.isComprehensiveIntakeTemplate ? 'Primary Assessment' : 'Interview Questions';
+        if (this.isComprehensiveIntakeTemplate) {
+            return 'Primary Assessment';
+        }
+        return this.isIntakeMode ? 'Intake Questions' : 'Interview Questions';
     }
 
     get visitDurationDisplay() {
@@ -945,7 +1515,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const hasSsrsCategory = ssrsCategories.some(c => category.includes(c));
         
         // Also check template name for specific interviews
-        const ssrsTemplateNames = ['psychosocial', 'comprehensive intake', '1440 pine'];
+        const ssrsTemplateNames = ['psychosocial', 'comprehensive intake', 'comprehensive assessment', '1440 pine'];
         const hasSsrsTemplateName = ssrsTemplateNames.some(n => templateName.includes(n));
         
         return hasSsrsCategory || hasSsrsTemplateName || this.isComprehensiveIntakeTemplate;
@@ -986,20 +1556,28 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             return minOrderA - minOrderB;
         });
 
+        const diagnosesSection = {
+            name: 'diagnoses',
+            label: 'Diagnoses',
+            questions: [],
+            isDiagnosesSection: true
+        };
+
         if (this.showDiagnoses && !this.isComprehensiveIntakeTemplate) {
             // Standard behavior: add a standalone Diagnoses accordion section before the Plan section
-            const diagnosesSection = {
-                name: 'diagnoses',
-                label: 'Diagnoses',
-                questions: [],
-                isDiagnosesSection: true
-            };
             const planIndex = sortedSections.findIndex(section =>
                 section.label && section.label.toLowerCase().includes('plan')
             );
             if (planIndex >= 0) {
                 sortedSections.splice(planIndex, 0, diagnosesSection);
             } else {
+                sortedSections.push(diagnosesSection);
+            }
+        } else if (this.showDiagnoses && this.isComprehensiveIntakeTemplate) {
+            const hasPlanSection = sortedSections.some(section =>
+                section.label && section.label.toLowerCase().includes('plan')
+            );
+            if (!hasPlanSection) {
                 sortedSections.push(diagnosesSection);
             }
         }
@@ -1113,6 +1691,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         console.log('  Picklist Values:', question.picklistValues);
         
         const answer = this.answers.get(question.questionId);
+        const carryForward = this.buildCarryForwardQuestionState(question);
         const picklistOptions = question.picklistValues 
             ? question.picklistValues.map(value => {
                 console.log('    Creating picklist option - raw value:', value);
@@ -1129,7 +1708,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                               this.accountData && 
                               this.accountData[question.apiName] !== undefined && 
                               this.accountData[question.apiName] !== null &&
-                              this.accountData[question.apiName] !== '';
+                              this.accountData[question.apiName] !== '' &&
+                              !carryForward;
         
         // If Account field has data, it should be read-only to prevent overwriting
         // If Account field is empty, allow editing and value will be written back to Account
@@ -1165,6 +1745,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             picklistOptions,
             isDemographic: isDemographic,
             isReadOnly: isDemographic,
+            carryForward,
             columnClass: columnClass,
             isFieldSetGroup: false
         };
@@ -1262,7 +1843,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             sections: [],
             incomeBenefits: this.formatIncomeBenefitsForReview(),
             goals: this.goals || [],
-            diagnoses: this.formatDiagnosesForReview()
+            diagnoses: this.formatDiagnosesForReview(),
+            cptCodes: this.formatCptCodesForReview()
         };
 
         if (!this.templateData || !this.templateData.sections) {
@@ -1389,7 +1971,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         if (!this.showDiagnoses) {
             return { hasData: false, items: [] };
         }
-
         const combined = [...(this.selectedDiagnoses || []), ...(this.newDiagnosesToCreate || [])];
         if (combined.length === 0) {
             return { hasData: false, items: [] };
@@ -1397,7 +1978,15 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
         const items = combined.map(diag => {
             const code = diag.code || diag.ICD10Code__c || '';
-            const description = diag.description || diag.Description__c || '';
+            const rawDescription = diag.description || diag.Description__c || '';
+            const escapedCode = (code || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const cleanDescription = rawDescription
+                ? rawDescription
+                    .replace(new RegExp(`^${escapedCode}\\s*-\\s*`, 'i'), '')
+                    .replace(new RegExp(`\\s*-\\s*${escapedCode}$`, 'i'), '')
+                    .trim()
+                : '';
+            const description = cleanDescription.toLowerCase() === (code || '').toLowerCase() ? '' : cleanDescription;
             const label = [code, description].filter(Boolean).join(' - ') || '(Unnamed Diagnosis)';
             const status = diag.status || diag.Status__c;
             const diagnosisType = diag.diagnosisType || diag.DiagnosisType__c;
@@ -1416,6 +2005,24 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         });
 
         return { hasData: items.length > 0, items };
+    }
+
+    formatCptCodesForReview() {
+        if (!this.showCptBillingCodes || !Array.isArray(this.selectedCptCodes) || this.selectedCptCodes.length === 0) {
+            return { hasData: false, items: [] };
+        }
+
+        const items = this.selectedCptCodes
+            .filter(code => !!code)
+            .map(code => ({
+                key: `cpt-${code}`,
+                code: String(code)
+            }));
+
+        return {
+            hasData: items.length > 0,
+            items
+        };
     }
 
     formatAnswerForReview(question, answer) {
@@ -1488,7 +2095,17 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const detail = event.detail || {};
         const selectedExisting = detail.selectedExisting || [];
         const newDiagnoses = detail.newDiagnoses || [];
-
+        
+        // Ignore empty initialization events from child selector when we already
+        // hold restored diagnoses and the user has not made an explicit change.
+        if (
+            selectedExisting.length === 0
+            && newDiagnoses.length === 0
+            && Array.isArray(this.selectedDiagnoses)
+            && this.selectedDiagnoses.length > 0
+        ) {
+            return;
+        }
         this.selectedDiagnoses = selectedExisting.map(item => ({
             Id: item.Id || item.id,
             id: item.Id || item.id,
@@ -1516,19 +2133,29 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
     handleDemographicsChange(event) {
         // Clean the data by serializing/deserializing to remove Proxy objects
-        this.demographicsData = JSON.parse(JSON.stringify(event.detail));
+        const incomingData = JSON.parse(JSON.stringify(event.detail || {}));
+        this.demographicsData = this.getDirtyDemographicsData(incomingData);
         console.log('Demographics Data:', this.demographicsData);
     }
 
     handleCarePlanChange(event) {
-        // Capture care plan values from goalAssignmentCreator
-        this.carePlanConsent = {
-            ...this.carePlanConsent,
-            consentParticipated: event.detail.consentParticipated,
-            consentOffered: event.detail.consentOffered,
-            dischargeDate: event.detail.dischargeDate,
-            dischargePlan: event.detail.dischargePlan
-        };
+        // Capture care plan values from goalAssignmentCreator without clobbering
+        // recalled values when child events omit specific fields.
+        const detail = event.detail || {};
+        const next = { ...this.carePlanConsent };
+        if (typeof detail.consentParticipated === 'boolean') {
+            next.consentParticipated = detail.consentParticipated;
+        }
+        if (typeof detail.consentOffered === 'boolean') {
+            next.consentOffered = detail.consentOffered;
+        }
+        if (detail.dischargeDate !== undefined && detail.dischargeDate !== null) {
+            next.dischargeDate = detail.dischargeDate;
+        }
+        if (detail.dischargePlan !== undefined && detail.dischargePlan !== null) {
+            next.dischargePlan = detail.dischargePlan;
+        }
+        this.carePlanConsent = next;
         // If the event carries a fresh goals list (after save/delete), use it directly
         // to avoid a cacheable Apex re-call that could return stale data.
         if (event.detail.goals) {
@@ -1551,7 +2178,18 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const detail = event.detail;
         const questionId = detail.questionId;
         const responseType = detail.responseType;
-        const answer = this.answers.get(questionId);
+        if (detail?.carryForwardAction) {
+            this.applyCarryForwardAction(questionId, detail.carryForwardAction);
+            return;
+        }
+
+        const currentAnswer = this.answers.get(questionId);
+        const answer = currentAnswer
+            ? {
+                ...currentAnswer,
+                values: Array.isArray(currentAnswer.values) ? [...currentAnswer.values] : []
+            }
+            : null;
 
         if (!answer) {
             return;
@@ -1579,26 +2217,153 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             }
         }
 
-        this.answers.set(questionId, answer);
+        this.commitAnswer(questionId, answer);
+
+        if (this.getCarryForwardCandidate(questionId)) {
+            this.setCarryForwardState(questionId, {
+                resolved: true,
+                action: 'edited'
+            });
+        }
+    }
+
+    handleCarryForwardAction(event) {
+        const { questionId, action } = event.detail || {};
+        this.applyCarryForwardAction(questionId, action);
+    }
+
+    getOrderedRenderedQuestions() {
+        const orderedQuestions = [];
+        this.sections.forEach(section => {
+            (section.questions || []).forEach(item => {
+                if (item.isFieldSetGroup) {
+                    orderedQuestions.push(...(item.questions || []));
+                } else if (!item.isDiagnosesSection) {
+                    orderedQuestions.push(item);
+                }
+            });
+        });
+        return orderedQuestions;
+    }
+
+    getUnresolvedCarryForwardQuestions() {
+        return this.getOrderedRenderedQuestions().filter(question => {
+            const carryForward = question.carryForward;
+            return carryForward?.hasCandidate && carryForward.requiresReview && carryForward.isResolved !== true;
+        });
+    }
+
+    focusCarryForwardQuestion(questionId, focusInput) {
+        const fieldComponent = Array.from(this.template.querySelectorAll('c-interview-question-field'))
+            .find(component => component.question?.questionId === questionId);
+
+        if (!fieldComponent) {
+            return false;
+        }
+
+        fieldComponent.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+        if (focusInput) {
+            fieldComponent.focusInput?.();
+        } else {
+            fieldComponent.focusCarryForwardPrompt?.();
+        }
+        return true;
+    }
+
+    focusManagerApproverInput() {
+        const approverInput = this.template.querySelector('lightning-combobox[name="approver"]');
+        if (!approverInput) {
+            return false;
+        }
+
+        approverInput.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+        approverInput.focus?.();
+        return true;
+    }
+
+    validateCarryForwardReview() {
+        const unresolvedQuestions = this.getUnresolvedCarryForwardQuestions();
+        if (unresolvedQuestions.length === 0) {
+            return true;
+        }
+
+        const firstQuestion = unresolvedQuestions[0];
+        const interviewStepIndex = this.visibleSteps.indexOf('interview');
+        if (interviewStepIndex !== -1 && this.currentStep !== 'interview') {
+            this.currentStepIndex = interviewStepIndex;
+            this.pendingStepScrollReset = true;
+        }
+
+        if (firstQuestion.section) {
+            this.activeSections = Array.from(new Set([...(this.activeSections || []), firstQuestion.section]));
+        }
+        this.pendingCarryForwardFocusQuestionId = firstQuestion.questionId;
+        this.showToast(
+            'Carry Forward Review Required',
+            `Review the carried-forward answer for "${firstQuestion.label}" before continuing to Review & Submit.`,
+            'error'
+        );
+        return false;
+    }
+
+    navigateToReviewForApproval() {
+        const reviewStepIndex = this.visibleSteps.indexOf('review');
+        if (reviewStepIndex !== -1 && this.currentStep !== 'review') {
+            this.currentStepIndex = reviewStepIndex;
+            this.pendingStepScrollReset = true;
+        }
+        this.pendingApproverFocus = true;
+    }
+
+    validateManagerApprovalRequirement() {
+        if (!this.managerApprovalChecked) {
+            return true;
+        }
+
+        if (!this.hasManager) {
+            this.navigateToReviewForApproval();
+            this.showToast(
+                'Manager Approval Unavailable',
+                'A Signing Authority approver is required, but no manager or approver options are available for your profile.',
+                'error'
+            );
+            return false;
+        }
+
+        if (!this.selectedApproverId) {
+            this.navigateToReviewForApproval();
+            this.showToast(
+                'Approver Required',
+                this.isLateEntryManagerApprovalRequired
+                    ? 'This interview was entered outside the 72-hour reporting window. Select a Signing Authority approver on the Review tab before saving.'
+                    : 'Select a Signing Authority approver on the Review tab before saving.',
+                'error'
+            );
+            return false;
+        }
+
+        return true;
     }
 
     handlePrev() {
-        const minStep = (this.isComprehensiveIntakeTemplate && this.isIntakeMode)
-            ? STEPS.indexOf('demographics')
-            : 0;
-        if (this.currentStepIndex > minStep) {
+        if (this.currentStepIndex > 0) {
+            this.blurActiveElement();
             this.currentStepIndex -= 1;
-            // Scroll to top when changing steps
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            this.pendingStepScrollReset = true;
             this._logStepAccess('InterviewSessionStepPrevious');
         }
     }
 
     handleNext() {
-        if (this.currentStepIndex < STEPS.length - 1) {
+        if (this.currentStepIndex < this.visibleSteps.length - 1) {
+            const nextStep = this.visibleSteps[this.currentStepIndex + 1];
+            if (this.currentStep === 'interview' && nextStep === 'review' && !this.validateCarryForwardReview()) {
+                return;
+            }
+
+            this.blurActiveElement();
             this.currentStepIndex += 1;
-            // Scroll to top when changing steps
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            this.pendingStepScrollReset = true;
             this._logStepAccess('InterviewSessionStepNext');
 
             // Refetch goals when entering Review step to get latest Service_Modality__c values
@@ -1608,13 +2373,77 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         }
     }
 
+    scrollStepContainerToTop() {
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => {
+            const scrollContainers = this.findScrollableAncestors();
+
+            scrollContainers.forEach(container => {
+                if (typeof container.scrollTo === 'function') {
+                    container.scrollTo({ top: 0, behavior: 'auto' });
+                } else {
+                    container.scrollTop = 0;
+                }
+            });
+
+            const documentScroller = document.scrollingElement;
+            if (documentScroller) {
+                documentScroller.scrollTop = 0;
+            }
+
+            window.scrollTo(0, 0);
+        }, 0);
+    }
+
+    focusStepStart() {
+        const stepAnchor = this.template.querySelector('[data-step-anchor]');
+        if (stepAnchor && typeof stepAnchor.focus === 'function') {
+            stepAnchor.focus({ preventScroll: true });
+        }
+    }
+
+    blurActiveElement() {
+        const activeElement = this.template.activeElement || document.activeElement;
+        if (activeElement && typeof activeElement.blur === 'function') {
+            activeElement.blur();
+        }
+    }
+
+    findScrollableAncestors() {
+        let node = this.template.host;
+        const scrollContainers = [];
+
+        while (node) {
+            if (node instanceof HTMLElement) {
+                const canScroll = node.scrollHeight > node.clientHeight + 8;
+                const style = window.getComputedStyle(node);
+                const overflowY = style ? style.overflowY : '';
+                if (canScroll && (overflowY === 'auto' || overflowY === 'scroll')) {
+                    scrollContainers.push(node);
+                }
+            }
+
+            if (node.parentNode) {
+                node = node.parentNode;
+            } else if (node.host) {
+                node = node.host;
+            } else {
+                node = null;
+            }
+        }
+
+        return scrollContainers;
+
+        return document.scrollingElement || document.documentElement || document.body;
+    }
+
     async fetchGoalsForReview() {
-        if (this.showGoals && this.effectiveCaseId) {
+        if ((this.showGoals || this.isTreatmentPlanTemplate) && this.effectiveCaseId) {
             try {
                 console.log('🔄 Fetching goals for review...');
-                this.goals = await getGoalAssignments({ 
+                this.goals = await getGoalAssignmentsLive({ 
                     caseId: this.effectiveCaseId, 
-                    accountId: this.accountData?.Id 
+                    accountId: this.effectiveAccountId 
                 });
                 console.log('✅ Goals fetched:', this.goals?.length, 'goals');
                 if (this.goals && this.goals.length > 0) {
@@ -1627,7 +2456,13 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     async handleSave() {
-        await this.performSave(false);
+        try {
+            await this.performSave(false);
+        } catch (error) {
+            console.error('Unexpected Save handler error:', error);
+            this.isSaving = false;
+            this.showToast('Error Saving Interview', this.normalizeError(error), 'error');
+        }
     }
 
     async handleSaveAndDownload() {
@@ -1639,8 +2474,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         const staffPad = this.template.querySelector('[data-role="staff"]');
         const caseManagerPad = this.template.querySelector('[data-role="casemanager"]');
         const peerSupportPad = this.template.querySelector('[data-role="peersupport"]');
+        const hasSignature = (pad) => !!(pad && typeof pad.hasSignature === 'function' && pad.hasSignature());
 
-        if (this.requireClientSignature && clientPad && !clientPad.hasSignature()) {
+        if (this.requireClientSignature && clientPad && !hasSignature(clientPad)) {
             this.showToast('Client Signature Required', 'Please draw a client signature before saving.', 'error');
             return false;
         }
@@ -1651,7 +2487,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     this.showToast('Clinician Required', 'Please select a Clinician for this Treatment Plan.', 'error');
                     return false;
                 }
-            } else if (staffPad && !staffPad.hasSignature()) {
+            } else if (staffPad && !hasSignature(staffPad)) {
                 this.showToast('Clinician Signature Required', 'Please draw a Clinician signature before saving.', 'error');
                 return false;
             }
@@ -1664,13 +2500,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 this.showToast('Case Manager Required', 'Please select a Case Manager for this Treatment Plan.', 'error');
                 return false;
             }
-            // If signing now, must have drawn signature
-            if (this.caseManagerSignNow && !this.signForCaseManagement) {
-                if (caseManagerPad && !caseManagerPad.hasSignature()) {
-                    this.showToast('Case Manager Signature Required', 'Please draw Case Manager signature or uncheck "sign now" to assign for later.', 'error');
-                    return false;
-                }
-            }
         }
 
         // Validate Peer Support signature
@@ -1680,19 +2509,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 this.showToast('Peer Support Required', 'Please select a Peer Support person for this Treatment Plan.', 'error');
                 return false;
             }
-            // If signing now, must have drawn signature
-            if (this.peerSupportSignNow && !this.signForPeer) {
-                if (peerSupportPad && !peerSupportPad.hasSignature()) {
-                    this.showToast('Peer Support Signature Required', 'Please draw Peer Support signature or uncheck "sign now" to assign for later.', 'error');
-                    return false;
-                }
-            }
         }
 
         return true;
     }
 
-    async saveSignaturesToInterview(interviewId) {
+    async saveSignaturesToInterview(interviewId, requiresManagerApproval = false) {
         console.log('🎯 saveSignaturesToInterview called with interviewId:', interviewId);
         console.log('🎯 this.caseManagerSignedBy:', JSON.stringify(this.caseManagerSignedBy));
         console.log('🎯 this.peerSupportSignedBy:', JSON.stringify(this.peerSupportSignedBy));
@@ -1806,7 +2628,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                     caseManagerSignatureId: caseManagerSigId,
                     caseManagerSignedBy: this.caseManagerSignedBy?.id,
                     peerSupportSignatureId: peerSupportSigId,
-                    peerSupportSignedBy: this.peerSupportSignedBy?.id
+                    peerSupportSignedBy: this.peerSupportSignedBy?.id,
+                    isTreatmentPlan: this.isTreatmentPlanTemplate,
+                    managerApprovalRequested: requiresManagerApproval
                 });
                 console.log('✅ Interview signatures updated successfully');
             } catch (error) {
@@ -1872,6 +2696,8 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 title: event.detail.userTitle,
                 email: event.detail.userEmail
             };
+            this.originalCaseManagerSignedBy = { ...this.caseManagerSignedBy };
+            this.caseManagerOverrideSelection = false;
             console.log('   ✅ Set caseManagerSignedBy.id =', this.caseManagerSignedBy.id);
             console.log('   ✅ Set caseManagerSignedBy.name =', this.caseManagerSignedBy.name);
         } else {
@@ -1889,11 +2715,61 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 title: event.detail.userTitle,
                 email: event.detail.userEmail
             };
+            this.originalPeerSupportSignedBy = { ...this.peerSupportSignedBy };
+            this.peerSupportOverrideSelection = false;
             console.log('   ✅ Set peerSupportSignedBy.id =', this.peerSupportSignedBy.id);
             console.log('   ✅ Set peerSupportSignedBy.name =', this.peerSupportSignedBy.name);
         } else {
             this.peerSupportSignedBy = null;
             console.log('   ❌ Cleared peerSupportSignedBy (no userId in event)');
+        }
+    }
+
+    get showCaseManagerLookup() {
+        return !this.signForCaseManagement && (!this.caseManagerSignedBy || this.caseManagerOverrideSelection);
+    }
+
+    get showPeerSupportLookup() {
+        return !this.signForPeer && (!this.peerSupportSignedBy || this.peerSupportOverrideSelection);
+    }
+
+    get hasPersistedCaseManagerAssignee() {
+        return !!this.caseManagerSignedBy && !this.caseManagerOverrideSelection;
+    }
+
+    get hasPersistedPeerSupportAssignee() {
+        return !!this.peerSupportSignedBy && !this.peerSupportOverrideSelection;
+    }
+
+    handleCaseManagerOverrideChange(event) {
+        this.caseManagerOverrideSelection = event.target.checked;
+        if (this.caseManagerOverrideSelection) {
+            if (!this.originalCaseManagerSignedBy && this.caseManagerSignedBy) {
+                this.originalCaseManagerSignedBy = { ...this.caseManagerSignedBy };
+            }
+            this.caseManagerSignedBy = null;
+            this.caseManagerSignatureId = null;
+            this.caseManagerSignatureStatus = null;
+        } else {
+            if (this.originalCaseManagerSignedBy) {
+                this.caseManagerSignedBy = { ...this.originalCaseManagerSignedBy };
+            }
+        }
+    }
+
+    handlePeerSupportOverrideChange(event) {
+        this.peerSupportOverrideSelection = event.target.checked;
+        if (this.peerSupportOverrideSelection) {
+            if (!this.originalPeerSupportSignedBy && this.peerSupportSignedBy) {
+                this.originalPeerSupportSignedBy = { ...this.peerSupportSignedBy };
+            }
+            this.peerSupportSignedBy = null;
+            this.peerSupportSignatureId = null;
+            this.peerSupportSignatureStatus = null;
+        } else {
+            if (this.originalPeerSupportSignedBy) {
+                this.peerSupportSignedBy = { ...this.originalPeerSupportSignedBy };
+            }
         }
     }
 
@@ -2045,7 +2921,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         }
 
         // Manager co-sign requested
-        if (this.requestManagerCoSign && this.hasManager) {
+        if (this.managerApprovalChecked && this.hasManager) {
             auditCalls.push(
                 logSignatureEvent({ recordId: interviewId, objectType: 'Interview', action: 'COSIGN_REQUESTED',
                     description: 'Manager co-signature requested for Treatment Plan' })
@@ -2054,24 +2930,6 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         }
 
         await Promise.all(auditCalls);
-    }
-
-    handleCaseManagerSignNowChange(event) {
-        this.caseManagerSignNow = event.target.checked;
-        // If unchecking, clear any signature that was drawn
-        if (!this.caseManagerSignNow) {
-            this.caseManagerSignatureId = null;
-            this.caseManagerSignatureStatus = null;
-        }
-    }
-
-    handlePeerSupportSignNowChange(event) {
-        this.peerSupportSignNow = event.target.checked;
-        // If unchecking, clear any signature that was drawn
-        if (!this.peerSupportSignNow) {
-            this.peerSupportSignatureId = null;
-            this.peerSupportSignatureStatus = null;
-        }
     }
 
     handleClinicianIsOtherChange(event) {
@@ -2100,19 +2958,44 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     handleManagerApprovalToggle(event) {
+        if (this.isLateEntryManagerApprovalRequired && !event.target.checked) {
+            this.requestManagerCoSign = true;
+            this.showToast(
+                'Manager Approval Required',
+                'Entries outside the 72-hour reporting window must be routed for manager co-signature.',
+                'error'
+            );
+            return;
+        }
+
         this.requestManagerCoSign = event.target.checked;
     }
 
     async performSave(shouldDownload) {
         console.log('Save button clicked, shouldDownload:', shouldDownload);
-        
-        // First validate required signatures are present
-        if (!this.validateRequiredSignatures()) {
+
+        // Prevent duplicate clicks while an in-flight save is running.
+        if (this.isSaving) {
+            this.showToast('Save In Progress', 'Please wait while your interview is being saved.', 'info');
             return;
         }
-        
+
         this.isSaving = true;
         try {
+            // Validate required signatures before making any server calls.
+            // Keep this inside try/catch so validation/runtime faults are surfaced to the user.
+            if (!this.validateCarryForwardReview()) {
+                return;
+            }
+
+            if (!this.validateManagerApprovalRequirement()) {
+                return;
+            }
+
+            if (!this.validateRequiredSignatures()) {
+                return;
+            }
+
             const requestData = this.buildSaveRequest();
             console.log('Save request:', JSON.stringify(requestData));
             // Pass as JSON string for manual deserialization in Apex
@@ -2126,9 +3009,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             if (result.success) {
                 console.log('SUCCESS! Interview created with ID:', result.interviewId);
                 console.log('InteractionSummary created with ID:', result.interactionSummaryId);
+                const requiresManagerApproval = result?.requiresManagerApproval === true;
+                const managerApprovalForced = result?.managerApprovalForced === true;
                 
                 // Save signatures after Interview is created
-                await this.saveSignaturesToInterview(result.interviewId);
+                await this.saveSignaturesToInterview(result.interviewId, requiresManagerApproval);
 
                 // Audit log: all signature and suppression events (non-fatal)
                 try {
@@ -2138,7 +3023,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 }
 
                 // Request manager approval if toggled
-                if (this.requestManagerCoSign && this.hasManager) {
+                if (requiresManagerApproval) {
                     try {
                         await requestManagerApproval({ 
                             recordId: result.interviewId, 
@@ -2192,14 +3077,16 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 const hasDeferredCoSigners = hasDeferredCM || hasDeferredPS;
 
                 let successMsg;
-                if (this.requestManagerCoSign && this.hasManager && hasDeferredCoSigners) {
+                if (requiresManagerApproval && hasDeferredCoSigners) {
                     const coSignerNames = [
                         hasDeferredCM ? this.caseManagerSignedBy?.name : null,
                         hasDeferredPS ? this.peerSupportSignedBy?.name : null
                     ].filter(Boolean).join(' and ');
                     successMsg = `Interview saved. Signature requests sent to ${coSignerNames}. Manager co-sign (${this.managerName}) will be requested once they sign.`;
-                } else if (this.requestManagerCoSign && this.hasManager) {
-                    successMsg = `Interview saved. Manager approval requested from ${this.managerName}.`;
+                } else if (requiresManagerApproval) {
+                    successMsg = managerApprovalForced && !(this.requestManagerCoSign && this.hasManager)
+                        ? `Interview saved. Late entry requires manager approval and has been routed to ${this.managerName}.`
+                        : `Interview saved. Manager approval requested from ${this.managerName}.`;
                 } else {
                     successMsg = 'Interview has been saved successfully.';
                 }
@@ -2218,8 +3105,18 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 console.log('Attempting navigation...');
                 console.log('recordId:', recordId);
                 console.log('navUrl:', navUrl);
-                console.log('window.top exists:', !!window.top);
-                console.log('window.top !== window.self:', window.top !== window.self);
+
+                // In intake mode, fire interviewcomplete so caseManagerHome closes the
+                // modal and navigates — do NOT try window.top navigation inside a modal.
+                if (this.isIntakeMode) {
+                    console.log('Intake mode: dispatching interviewcomplete event');
+                    this.dispatchEvent(new CustomEvent('interviewcomplete', {
+                        bubbles: true,
+                        composed: true,
+                        detail: { caseId: recordId, interviewId: result.interviewId }
+                    }));
+                    return;
+                }
                 
                 // Use postMessage to navigate from VF iframe to avoid CORS issues
                 try {
@@ -2321,7 +3218,19 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
         console.log('SSRS Assessment completed:', event.detail);
         this.ssrsAssessmentData = event.detail;
         this.showSsrsModal = false;
-        
+
+        // Load the raw field-level responses so the pre-submit review shows actual answers
+        const assessmentId = this.ssrsAssessmentData?.assessmentId;
+        if (assessmentId) {
+            getSsrsAssessmentResponses({ assessmentId })
+                .then(responses => {
+                    this.ssrsAssessmentData = { ...this.ssrsAssessmentData, responses };
+                })
+                .catch(err => {
+                    console.warn('Could not load SSRS responses for review:', err);
+                });
+        }
+
         this.showToast(
             'Risk Assessment Completed',
             'The SSRS assessment has been completed and will be saved with this interview.',
@@ -2363,7 +3272,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             // Build the draft data object
             const draftData = {
                 caseId: this.effectiveCaseId,
-                accountId: this.accountData?.Id,
+                accountId: this.effectiveAccountId,
                 templateVersionId: this.effectiveTemplateVersionId,
                 templateName: this.templateName,
                 templateCategory: this.templateCategory,
@@ -2374,6 +3283,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 housingBenefitIds: this.housingBenefitIds,
                 clinicalBenefitIds: this.clinicalBenefitIds,
                 demographicsData: JSON.parse(JSON.stringify(this.demographicsData || {})),
+                carryForwardStateByQuestionId: JSON.parse(JSON.stringify(this.carryForwardStateByQuestionId || {})),
                 incomeBenefitsData: JSON.parse(JSON.stringify(this.incomeBenefitsData || [])),
                 selectedDiagnoses: JSON.parse(JSON.stringify(this.selectedDiagnoses || [])),
                 newDiagnosesToCreate: JSON.parse(JSON.stringify(this.newDiagnosesToCreate || [])),
@@ -2430,6 +3340,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     buildSaveRequest() {
+        const demographicCapture = this.template.querySelector('c-demographic-capture');
+        if (demographicCapture && typeof demographicCapture.getData === 'function') {
+            const latestDemographics = demographicCapture.getData();
+            this.demographicsData = this.getDirtyDemographicsData(latestDemographics);
+        }
+
         const answerList = Array.from(this.answers.values())
             .filter(answer => answer.value || (answer.values && answer.values.length > 0));
 
@@ -2490,8 +3406,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
 
         return {
             caseId: this.effectiveCaseId,
-            accountId: this.accountData?.Id || null,
+            accountId: this.effectiveAccountId,
             templateVersionId: this.effectiveTemplateVersionId,
+            sourceInterviewId: this.effectiveInterviewId || null,
             startedAt: this.startedAt, // When interview was first started (for audit trail)
             interaction: {
                 interactionDate: interactionDate,
@@ -2509,10 +3426,16 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             carePlanConsent: this.carePlanConsent,
             ssrsAssessmentId: ssrsAssessmentId,
             diagnoses: diagnoses,
+            selectedCptCodes: this.showCptBillingCodes ? this.selectedCptCodes.slice(0, 1) : [],
+            reviewedCarryForwardQuestionIds: Object.entries(this.carryForwardStateByQuestionId || {})
+                .filter(([, state]) => state?.resolved === true)
+                .map(([questionId]) => questionId),
             // Signature suppression flags (Treatment Plan only)
             caseManagementNotRequested: this.caseManagementNotRequested,
             peerSupportNotRequested: this.peerSupportNotRequested,
-            clinicianNotRequested: this.clinicianNotRequested
+            clinicianNotRequested: this.clinicianNotRequested,
+            requestManagerCoSign: this.managerApprovalChecked && this.hasManager,
+            managerApproverId: this.selectedApproverId
             // Note: Signatures are saved after Interview creation, not in initial request
         };
     }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>PeerSupport_Not_Requested__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Indicates that Peer Support signature was suppressed for this Treatment Plan — the signing clinician marked Peer Support as Not Requested.</description>
+    <externalId>false</externalId>
+    <label>Peer Support Not Requested</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,4 +1,6 @@
 public with sharing class InterviewTemplateController {
+    private static final Integer INTERVIEW_QUESTION_NAME_MAX_LENGTH = 80;
+
     /**
      * Field metadata option exposed to the LWC so users can choose Account/Case fields.
      */
@@ -602,7 +604,7 @@ public with sharing class InterviewTemplateController {
                     }
 
                     InterviewQuestion__c question = new InterviewQuestion__c(
-                        Name = (form.name != null && form.name.trim().length() > 0) ? form.name : form.label,
+                        Name = buildInterviewQuestionName(form),
                         InterviewTemplateVersion__c = version.Id,
                         Label__c = form.label,
                         API_Name__c = form.apiName,
@@ -703,6 +705,60 @@ public with sharing class InterviewTemplateController {
         }
 
         return response;
+    }
+
+    private static String buildInterviewQuestionName(QuestionForm form) {
+        List<String> candidates = new List<String>();
+
+        if (form != null) {
+            String apiNameCandidate = normalizeQuestionNameCandidate(form.apiName);
+            if (String.isNotBlank(apiNameCandidate)) {
+                candidates.add(apiNameCandidate);
+            }
+
+            String explicitNameCandidate = normalizeQuestionNameCandidate(form.name);
+            if (String.isNotBlank(explicitNameCandidate)) {
+                candidates.add(explicitNameCandidate);
+            }
+
+            String labelCandidate = normalizeQuestionNameCandidate(form.label);
+            if (String.isNotBlank(labelCandidate)) {
+                candidates.add(labelCandidate);
+            }
+        }
+
+        for (String candidate : candidates) {
+            if (String.isNotBlank(candidate)) {
+                return truncateQuestionName(candidate);
+            }
+        }
+
+        return 'Interview Question';
+    }
+
+    private static String normalizeQuestionNameCandidate(String value) {
+        if (String.isBlank(value)) {
+            return null;
+        }
+
+        String candidate = value.trim();
+        candidate = candidate.replaceAll('__c$', '');
+        candidate = candidate.replaceAll('_+', ' ');
+        candidate = candidate.replaceAll('\\s+', ' ').trim();
+        return String.isBlank(candidate) ? null : candidate;
+    }
+
+    private static String truncateQuestionName(String value) {
+        if (String.isBlank(value)) {
+            return 'Interview Question';
+        }
+
+        String normalized = value.trim();
+        if (normalized.length() <= INTERVIEW_QUESTION_NAME_MAX_LENGTH) {
+            return normalized;
+        }
+
+        return normalized.substring(0, INTERVIEW_QUESTION_NAME_MAX_LENGTH).trim();
     }
 
     private static TemplateRequest parsePayload(String payloadJson) {

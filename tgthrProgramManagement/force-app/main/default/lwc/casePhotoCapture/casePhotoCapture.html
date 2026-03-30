@@ -1,0 +1,66 @@
+<template>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open" aria-label="Take Client Photo">
+        <div class="slds-modal__container cph-container">
+            <header class="slds-modal__header">
+                <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                    title="Close" onclick={handleCancel}>
+                    <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+                </button>
+                <h2 class="slds-modal__title">Take Client Photo</h2>
+            </header>
+
+            <div class="slds-modal__content cph-content">
+                <template if:true={cameraError}>
+                    <div class="cph-error">
+                        <lightning-icon icon-name="utility:error" size="small" variant="error"></lightning-icon>
+                        <p>{cameraError}</p>
+                    </div>
+                </template>
+
+                <div class="cph-media-wrap">
+                    <!-- Video stream (hidden once captured) -->
+                    <video class={videoClass} autoplay muted playsinline></video>
+                    <!-- Captured still (hidden until captured) -->
+                    <img class={previewClass} src={capturedImage} alt="Captured photo" />
+                </div>
+                <!-- Hidden canvas used only for capturing the frame -->
+                <canvas class="cph-canvas"></canvas>
+
+                <template if:true={isStarting}>
+                    <div class="cph-starting">
+                        <lightning-spinner alternative-text="Starting camera…" size="small"></lightning-spinner>
+                        <p>Requesting camera access…</p>
+                    </div>
+                </template>
+            </div>
+
+            <footer class="slds-modal__footer">
+                <template if:false={capturedImage}>
+                    <lightning-button
+                        label="Capture"
+                        variant="brand"
+                        icon-name="utility:photo"
+                        onclick={handleCapture}
+                        disabled={captureDisabled}>
+                    </lightning-button>
+                </template>
+                <template if:true={capturedImage}>
+                    <lightning-button
+                        label="Retake"
+                        icon-name="utility:redo"
+                        onclick={handleRetake}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Save Photo"
+                        variant="brand"
+                        icon-name="utility:upload"
+                        onclick={handleSave}
+                        disabled={isSaving}>
+                    </lightning-button>
+                </template>
+                <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+            </footer>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+</template>

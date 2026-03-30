@@ -1,6 +1,7 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getGoalAssignments from '@salesforce/apex/GoalAssignmentController.getGoalAssignments';
+import getGoalAssignmentsLive from '@salesforce/apex/GoalAssignmentController.getGoalAssignmentsLive';
 import saveGoalAssignment from '@salesforce/apex/GoalAssignmentController.saveGoalAssignment';
 import deleteGoalAssignment from '@salesforce/apex/GoalAssignmentController.deleteGoalAssignment';
 import updateCarePlanDetails from '@salesforce/apex/GoalAssignmentController.updateCarePlanDetails';
@@ -10,6 +11,7 @@ export default class GoalAssignmentCreator extends LightningElement {
     @api accountId;
     @api caseId;
     @api hideConsentCheckboxes = false;
+    liveSyncKey;
     
     @track goals = [];
     @track isLoading = false;
@@ -46,6 +48,24 @@ export default class GoalAssignmentCreator extends LightningElement {
         this.carePlan.consentOffered = Boolean(value);
     }
 
+    @api
+    get dischargeDate() {
+        return this.carePlan.dischargeDate;
+    }
+
+    set dischargeDate(value) {
+        this.carePlan.dischargeDate = value || null;
+    }
+
+    @api
+    get dischargePlan() {
+        return this.carePlan.dischargePlan;
+    }
+
+    set dischargePlan(value) {
+        this.carePlan.dischargePlan = value || '';
+    }
+
     wiredGoalsResult;
 
     @wire(getGoalAssignments, { caseId: '$caseId', accountId: '$accountId' })
@@ -56,6 +76,36 @@ export default class GoalAssignmentCreator extends LightningElement {
         } else if (result.error) {
             this.showToast('Error', 'Failed to load goals', 'error');
         }
+    }
+
+    renderedCallback() {
+        const nextKey = `${this.caseId || ''}:${this.accountId || ''}`;
+        if (!this.caseId && !this.accountId) {
+            return;
+        }
+        if (this.liveSyncKey === nextKey) {
+            return;
+        }
+
+        this.liveSyncKey = nextKey;
+        this.syncGoalsState().catch(error => {
+            // eslint-disable-next-line no-console
+            console.error('Error syncing goals state on render:', error);
+        });
+    }
+
+    async syncGoalsState() {
+        if (!this.caseId && !this.accountId) {
+            this.goals = [];
+            return this.goals;
+        }
+
+        const freshGoals = await getGoalAssignmentsLive({
+            caseId: this.caseId,
+            accountId: this.accountId
+        });
+        this.goals = (freshGoals || []).map(goal => ({ ...goal }));
+        return this.goals;
     }
 
     initializeGoal() {
@@ -210,6 +260,17 @@ export default class GoalAssignmentCreator extends LightningElement {
             console.log('Sending goal to Apex:', JSON.stringify(goalToSave));
             await saveGoalAssignment({ goalJson: JSON.stringify(goalToSave) });
             await refreshApex(this.wiredGoalsResult);
+            const refreshedGoals = await this.syncGoalsState();
+            // Notify parent so it can re-evaluate signature sections using fresh goals
+            this.dispatchEvent(new CustomEvent('careplanchanged', {
+                detail: {
+                    goals: refreshedGoals,
+                    consentParticipated: this.carePlan.consentParticipated,
+                    consentOffered: this.carePlan.consentOffered,
+                    dischargeDate: this.carePlan.dischargeDate,
+                    dischargePlan: this.carePlan.dischargePlan
+                }
+            }));
             return true;
         } catch (error) {
             console.error('Error saving goal:', JSON.stringify(error));
@@ -247,7 +308,18 @@ export default class GoalAssignmentCreator extends LightningElement {
         try {
             await deleteGoalAssignment({ goalId });
             await refreshApex(this.wiredGoalsResult);
+            const refreshedGoals = await this.syncGoalsState();
             this.showToast('Success', 'Goal deleted successfully', 'success');
+            // Notify parent to re-evaluate signature sections using fresh goals
+            this.dispatchEvent(new CustomEvent('careplanchanged', {
+                detail: {
+                    goals: refreshedGoals,
+                    consentParticipated: this.carePlan.consentParticipated,
+                    consentOffered: this.carePlan.consentOffered,
+                    dischargeDate: this.carePlan.dischargeDate,
+                    dischargePlan: this.carePlan.dischargePlan
+                }
+            }));
         } catch (error) {
             this.showToast('Error', error.body?.message || error.message, 'error');
         } finally {
@@ -343,6 +415,16 @@ export default class GoalAssignmentCreator extends LightningElement {
                 await Promise.all(promises);
                 this.showToast('Success', 'Priorities updated based on new order', 'success');
                 await refreshApex(this.wiredGoalsResult);
+                const refreshedGoals = await this.syncGoalsState();
+                this.dispatchEvent(new CustomEvent('careplanchanged', {
+                    detail: {
+                        goals: refreshedGoals,
+                        consentParticipated: this.carePlan.consentParticipated,
+                        consentOffered: this.carePlan.consentOffered,
+                        dischargeDate: this.carePlan.dischargeDate,
+                        dischargePlan: this.carePlan.dischargePlan
+                    }
+                }));
             } catch (error) {
                 this.showToast('Error', 'Failed to update priorities: ' + (error.body?.message || error.message), 'error');
             } finally {

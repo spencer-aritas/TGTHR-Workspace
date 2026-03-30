@@ -27,8 +27,9 @@ public class AuditLogServiceTest {
 
     @isTest
     static void testLogForCarePlan() {
+        String entityId = 'a1Bxx000003DGbEAAW';
         Test.startTest();
-        AuditLogService.logForCarePlan('VIEW', 'a1Bxx000003DGbEAAW', 'Viewed a Care Plan');
+        AuditLogService.logForCarePlan('VIEW', entityId, 'Viewed a Care Plan');
         Test.stopTest();
 
         // Verify Audit_Log__c entry dynamically

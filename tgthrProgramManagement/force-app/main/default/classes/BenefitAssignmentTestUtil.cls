@@ -42,6 +42,31 @@ public class BenefitAssignmentTestUtil {
     return null;
   }
 
+  // Backward-compatible overload used by legacy tests.
+  public static Id createProgramEnrollment(Id accountId, Id programId) {
+    return createProgramEnrollment(accountId, programId, 'Enrolled');
+  }
+
+  // Backward-compatible helper used by some org-side tests.
+  public static Id createBenefit(Id programId, String name) {
+    SObject benefit = Schema.getGlobalDescribe().get('Benefit').newSObject();
+
+    try {
+      benefit.put('ProgramId', programId);
+    } catch (Exception ex) {
+      // Ignore if schema variant does not expose ProgramId.
+    }
+    benefit.put('Name', String.isBlank(name) ? 'Test Benefit' : name);
+
+    Database.SaveResult[] results = Database.insert(new List<SObject>{ benefit }, false);
+    if (results != null && results.size() > 0 && results[0].isSuccess()) {
+      return (Id) benefit.get('Id');
+    }
+
+    System.debug('createBenefit failed: ' + (results != null && results.size() > 0 ? results[0].getErrors() : null));
+    return null;
+  }
+
   // Create a BenefitAssignment using dynamic SObject fields. Returns the created Id, or null on failure.
   public static Id createBenefitAssignment(
     Id enrolleeId,

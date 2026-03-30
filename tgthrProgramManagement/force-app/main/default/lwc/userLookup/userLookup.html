@@ -1,6 +1,6 @@
 <template>
     <div class="slds-form-element">
-        <label class="slds-form-element__label" for="user-search">
+        <label class="slds-form-element__label" for={inputId}>
             {label}
         </label>
         <div class="slds-form-element__control">
@@ -10,9 +10,9 @@
                         <input
                             type="text"
                             class="slds-input slds-combobox__input"
-                            id="user-search"
+                            id={inputId}
                             aria-autocomplete="list"
-                            aria-controls="user-listbox"
+                            aria-controls={listboxId}
                             placeholder={placeholder}
                             value={searchTerm}
                             oninput={handleSearchInput}
@@ -29,7 +29,7 @@
                         </template>
                     </div>
                     <template if:true={showDropdown}>
-                        <div id="user-listbox" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+                        <div id={listboxId} class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
                             <ul class="slds-listbox slds-listbox_vertical" role="presentation">
                                 <template if:true={hasResults}>
                                     <template for:each={users} for:item="user">

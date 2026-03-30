@@ -956,6 +956,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>PublicComplaint.Other_Staff_Present__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>CaseFormDocument__c.Consent_Type__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -1156,6 +1161,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>InterviewQuestionLibrary__c.Allow_Carry_Forward__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>InterviewQuestionLibrary__c.Category__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -1216,6 +1226,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>InterviewQuestionLibrary__c.Requires_Review__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>InterviewQuestionLibrary__c.Response_Type__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -1237,6 +1252,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>InterviewQuestion__c.API_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>InterviewQuestion__c.Allow_Carry_Forward__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -1322,6 +1342,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>InterviewQuestion__c.Required__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>InterviewQuestion__c.Requires_Review__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -1534,6 +1559,11 @@
         <field>InterviewTemplate__c.Category__c</field>
         <readable>true</readable>
     </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>InterviewTemplate__c.cpt_note_type__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>InterviewTemplate__c.Change_Summary__c</field>
@@ -1574,6 +1604,11 @@
         <field>InterviewTemplate__c.Goals_Policy__c</field>
         <readable>true</readable>
     </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>InterviewTemplate__c.has_cpt_codes__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>InterviewTemplate__c.Housing_Benefit_Policy__c</field>
@@ -1652,6 +1687,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>InterviewTemplate__c.UUID__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Program.Intake_Template__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
@@ -2218,6 +2258,63 @@
         <field>InteractionSummary.Requires_Manager_Approval__c</field>
         <readable>true</readable>
     </fieldPermissions>
+        <!-- ═══ Interaction_Service_Line__c — CPT service-line fields ═══ -->
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Billing_Status__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Case__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Client__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Duration_Minutes__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Modifier_1__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Modifier_2__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Service_Code__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Service_Date__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>Interaction_Service_Line__c.Units__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <!-- ═══ InterviewTemplate CPT configuration ═══ -->
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>InterviewTemplate__c.allowed_cpt_codes__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
+        <fieldPermissions>
+            <editable>true</editable>
+            <field>InterviewTemplateCPTCode__c.Active__c</field>
+            <readable>true</readable>
+        </fieldPermissions>
     <!-- ═══ InterviewTemplateDocument__c — missing fields ═══ -->
     <fieldPermissions>
         <editable>true</editable>
@@ -2580,6 +2677,16 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
+        <object>Interaction_Service_Line__c</object>
+        <viewAllFields>true</viewAllFields>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
         <object>InterviewTemplate__c</object>
         <viewAllFields>true</viewAllFields>
         <viewAllRecords>true</viewAllRecords>
@@ -2601,6 +2708,16 @@
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
         <object>InterviewTemplateVersion__c</object>
+        <viewAllFields>true</viewAllFields>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>InterviewTemplateCPTCode__c</object>
         <viewAllFields>true</viewAllFields>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>

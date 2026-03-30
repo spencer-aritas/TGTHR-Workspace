@@ -1,0 +1,21 @@
+.care-plan-board {
+}
+
+.active-plan-section {
+    border-left: 4px solid #2e844a;
+    padding-left: 1rem;
+}
+
+.due-soon-text {
+    color: #c05b00;
+    font-weight: 600;
+}
+
+.discharge-plan-text {
+    max-height: 4rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: pre-line;
+    font-size: 0.875rem;
+    color: #444;
+}

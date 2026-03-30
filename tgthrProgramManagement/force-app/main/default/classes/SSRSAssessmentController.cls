@@ -16,6 +16,29 @@ public with sharing class SSRSAssessmentController {
         @AuraEnabled public String medicaidId;
     }
 
+    /**
+     * Load the full field-level C-SSRS response items for a completed Assessment record.
+     * Returns a list of items identical in shape to the responses array in buildSsrsAssessment,
+     * so the same LWC template can render both the pre-submit review and the post-submit viewer.
+     */
+    @AuraEnabled(cacheable=false)
+    public static List<Map<String, Object>> getSsrsAssessmentResponses(Id assessmentId) {
+        try {
+            SObject assessment = Database.query(
+                'SELECT Id, Response_Data__c FROM Assessment__c WHERE Id = :assessmentId LIMIT 1'
+            );
+            String jsonStr = (String)assessment.get('Response_Data__c');
+            if (String.isBlank(jsonStr)) {
+                return new List<Map<String, Object>>();
+            }
+            Map<String, Object> responseData = (Map<String, Object>)JSON.deserializeUntyped(jsonStr);
+            return InterviewDocumentService.buildSsrsResponseItemsFromData(responseData);
+        } catch (Exception e) {
+            System.debug('getSsrsAssessmentResponses error: ' + e.getMessage());
+            return new List<Map<String, Object>>();
+        }
+    }
+
     @AuraEnabled
     public static InitResponse initAssessment(Id caseId, Id assessmentId, Id interactionId) {
         Id targetCaseId = caseId;

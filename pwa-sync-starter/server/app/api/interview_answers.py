@@ -13,6 +13,7 @@ class InterviewAnswerRequest(BaseModel):
     templateVersionId: str
     answers: Dict[str, Any]  # Maps question IDs to answer values
     ssrsAssessmentId: Optional[str] = None
+    createdById: Optional[str] = None
 
 @router.post("/interview-answers")
 async def save_interview_answers(request: InterviewAnswerRequest):
@@ -30,7 +31,8 @@ async def save_interview_answers(request: InterviewAnswerRequest):
             request.caseId,
             request.templateVersionId,
             request.answers,
-            request.ssrsAssessmentId
+            request.ssrsAssessmentId,
+            request.createdById,
         )
         
         logger.info(f"API response: Successfully saved interview {result['interview_id']}")

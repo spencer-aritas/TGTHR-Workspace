@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CLS_Work_Documents__c</fullName>
+    <externalId>false</externalId>
+    <inlineHelpText>I know who to ask to get documents I need for work, such as a social security card, birth certificate, state ID, or work permit.</inlineHelpText>
+    <label>Work Documents</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>Casey_Life_Skills</valueSetName>
+    </valueSet>
+</CustomField>

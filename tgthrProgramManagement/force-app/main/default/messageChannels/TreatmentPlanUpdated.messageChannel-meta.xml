@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>TreatmentPlanUpdated</masterLabel>
+    <isExposed>true</isExposed>
+    <description>Published when a Treatment Plan is activated. Crosses component-tree boundaries so carePlanBoard can refresh without being in the same DOM tree as pendingDocumentation.</description>
+    <lightningMessageFields>
+        <fieldName>caseId</fieldName>
+        <description>Case Record Id whose active Treatment Plan changed</description>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <fieldName>interviewId</fieldName>
+        <description>Interview__c Id of the newly activated plan</description>
+    </lightningMessageFields>
+</LightningMessageChannel>

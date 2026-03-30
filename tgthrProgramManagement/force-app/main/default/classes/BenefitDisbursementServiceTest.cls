@@ -495,25 +495,29 @@ public class BenefitDisbursementServiceTest {
       return;
     }
 
-    // Verify specific categories are present
-    Boolean hasHousing = false;
-    Boolean hasFood = false;
+    Set<String> eventTypePairs = new Set<String>();
+    Set<String> eventTypePairsByName = new Set<String>();
     for (BenefitDisbursementService.Option opt : eventTypes) {
-      if (opt.value == 'Housing')
-        hasHousing = true;
-      if (opt.value == 'Food')
-        hasFood = true;
+      System.assert(String.isNotBlank(opt.label), 'Event type label should be populated');
+      System.assert(String.isNotBlank(opt.value), 'Event type value should be populated');
+      eventTypePairs.add(opt.label + '|' + opt.value);
     }
-    System.assert(
-      hasHousing || hasFood,
-      'At least one expected category should be present'
-    );
+    for (BenefitDisbursementService.Option opt : eventTypesByName) {
+      System.assert(String.isNotBlank(opt.label), 'Event type label should be populated when querying by program name');
+      System.assert(String.isNotBlank(opt.value), 'Event type value should be populated when querying by program name');
+      eventTypePairsByName.add(opt.label + '|' + opt.value);
+    }
 
     // Verify both methods return the same results (length may be 0 if blocked, but if not, they should match)
     System.assertEquals(
       eventTypes.size(),
       eventTypesByName.size(),
       'Both methods should return the same number of event types'
+    );
+    System.assertEquals(
+      eventTypePairs,
+      eventTypePairsByName,
+      'Both methods should return the same event type options'
     );
   }
 
@@ -747,13 +751,14 @@ public class BenefitDisbursementServiceTest {
   static void testCreateDisbursements_ErrorHandling() {
     Test.startTest();
 
-    // Get account IDs
-    String accQuery = 'SELECT Id FROM Account WHERE LastName LIKE \'Participant %\' LIMIT 2';
-    List<SObject> accounts = Database.query(accQuery);
-    List<Id> accountIds = new List<Id>();
-    for (SObject acc : accounts) {
-      accountIds.add((Id) acc.get('Id'));
-    }
+    Account first = new Account(Name = 'Benefit Error Participant 1');
+    Account second = new Account(Name = 'Benefit Error Participant 2');
+    insert new List<Account>{ first, second };
+
+    List<String> accountIds = new List<String>{
+      String.valueOf(first.Id),
+      String.valueOf(second.Id)
+    };
 
     Boolean exceptionCaught = false;
     try {
@@ -782,7 +787,7 @@ public class BenefitDisbursementServiceTest {
 
       // Create a disbursement request with missing account IDs
       BenefitDisbursementService.DisburseRequest req = new BenefitDisbursementService.DisburseRequest();
-      req.participantAccountIds = new List<Id>(); // Empty list
+      req.participantAccountIds = new List<String>(); // Empty list
       req.programName = PROGRAM_NAME_1;
       req.benefitId = benefitId;
       req.quantity = 1;
@@ -839,12 +844,11 @@ public class BenefitDisbursementServiceTest {
 
   @isTest
   static void testCreateAssignmentAndDisbursement() {
-    // Arrange: Use existing Program and Benefit records
-    Id programId = TestDataFactory.ensureProgram('Existing Program');
-    Id benefitId = TestDataFactory.safeInsert(
-      Schema.getGlobalDescribe().get('Benefit').newSObject()
-    );
-    Id accountId = TestDataFactory.createAccount('TestAccount');
+    Id programId = createHousingProgram('Benefit Assignment Program');
+    Id benefitId = createHousingBenefit(programId, 'Assignment Housing Benefit');
+    Account account = new Account(Name = 'Assignment Test Account');
+    insert account;
+    Id accountId = account.Id;
 
     if (programId == null || benefitId == null || accountId == null) {
       System.debug(
@@ -854,11 +858,7 @@ public class BenefitDisbursementServiceTest {
     }
 
     // Create ProgramEnrollment
-    Id enrollmentId = BenefitAssignmentTestUtil.createProgramEnrollment(
-      accountId,
-      programId,
-      'Enrolled'
-    );
+    Id enrollmentId = createHousingEnrollment(accountId, programId, Date.today().addDays(-5));
     if (enrollmentId == null) {
       System.debug(
         'Skipping testCreateAssignmentAndDisbursement due to failed ProgramEnrollment creation'
@@ -868,20 +868,28 @@ public class BenefitDisbursementServiceTest {
 
     // Act: Create BenefitAssignment and BenefitDisbursement
     Test.startTest();
-    Id baId = BenefitAssignmentTestUtil.createBenefitAssignment(
-      accountId,
-      benefitId,
-      enrollmentId
-    );
-    Id bdId = null;
-    if (baId != null) {
-      bdId = BenefitAssignmentTestUtil.createDisbursement(
-        baId,
-        enrollmentId,
-        1
+    List<BenefitDisbursementService.HousingSyncResult> syncResults =
+      BenefitDisbursementService.syncHousingBenefitDisbursements(
+        new List<String>{ String.valueOf(enrollmentId) },
+        String.valueOf(Date.today())
       );
-    }
     Test.stopTest();
+
+    Id baId;
+    List<SObject> assignments = Database.query(
+      'SELECT Id FROM BenefitAssignment WHERE ProgramEnrollmentId = :enrollmentId AND BenefitId = :benefitId LIMIT 1'
+    );
+    if (!assignments.isEmpty()) {
+      baId = (Id) assignments[0].get('Id');
+    }
+
+    Id bdId;
+    List<SObject> disbursements = Database.query(
+      'SELECT Id FROM BenefitDisbursement WHERE ProgramEnrollmentId = :enrollmentId LIMIT 1'
+    );
+    if (!disbursements.isEmpty()) {
+      bdId = (Id) disbursements[0].get('Id');
+    }
 
     // Assert: Verify records exist
     System.assertNotEquals(
@@ -894,6 +902,138 @@ public class BenefitDisbursementServiceTest {
       bdId,
       'BenefitDisbursement should have been created'
     );
+    System.assertEquals(1, syncResults.size(), 'Should return one sync result');
+    System.assert(syncResults[0].success, 'Sync result should succeed');
+  }
+
+  @isTest
+  static void testSyncHousingBenefitDisbursements_BackfillsFromEnrollmentStart() {
+    Id programId = createHousingProgram('Housing Sync Program');
+    Id housingBenefitId = createHousingBenefit(programId, 'Housing');
+    if (programId == null || housingBenefitId == null) {
+      System.debug('Skipping housing sync test due to missing housing program setup');
+      return;
+    }
+
+    Account account = new Account(Name = 'Housing Sync Participant');
+    insert account;
+
+    Id enrollmentId = createHousingEnrollment(
+      account.Id,
+      programId,
+      Date.today().addDays(-2)
+    );
+    if (enrollmentId == null) {
+      System.debug('Skipping housing sync test due to failed enrollment setup');
+      return;
+    }
+
+    Test.startTest();
+    List<BenefitDisbursementService.HousingSyncResult> initialResults =
+      BenefitDisbursementService.syncHousingBenefitDisbursements(
+        new List<String>{ String.valueOf(enrollmentId) },
+        String.valueOf(Date.today())
+      );
+    List<BenefitDisbursementService.HousingSyncResult> secondResults =
+      BenefitDisbursementService.syncHousingBenefitDisbursements(
+        new List<String>{ String.valueOf(enrollmentId) },
+        String.valueOf(Date.today())
+      );
+    Test.stopTest();
+
+    System.assertEquals(1, initialResults.size(), 'Should return one housing sync result');
+    System.assert(initialResults[0].success, 'Initial sync should succeed');
+    System.assertEquals(1, initialResults[0].createdAssignmentCount, 'Should create one housing assignment');
+    System.assertEquals(3, initialResults[0].createdDisbursementCount, 'Should backfill three daily disbursements including today');
+
+    List<SObject> assignments = Database.query(
+      'SELECT Id FROM BenefitAssignment WHERE ProgramEnrollmentId = :enrollmentId AND BenefitId = :housingBenefitId'
+    );
+    System.assertEquals(1, assignments.size(), 'Should create exactly one housing assignment');
+
+    List<SObject> disbursements = Database.query(
+      'SELECT Id, StartDate FROM BenefitDisbursement WHERE ProgramEnrollmentId = :enrollmentId ORDER BY StartDate ASC'
+    );
+    System.assertEquals(3, disbursements.size(), 'Should create one housing disbursement per enrolled day');
+    System.assertEquals(Date.today().addDays(-2), (Date)disbursements[0].get('StartDate'));
+    System.assertEquals(Date.today(), (Date)disbursements[2].get('StartDate'));
+
+    System.assertEquals(1, secondResults.size(), 'Second sync should also return one result');
+    System.assert(secondResults[0].success, 'Second sync should succeed');
+    System.assertEquals(0, secondResults[0].createdAssignmentCount, 'Second sync should not create another assignment');
+    System.assertEquals(0, secondResults[0].createdDisbursementCount, 'Second sync should not create duplicate disbursements');
+    System.assert(secondResults[0].skippedExistingCount >= 3, 'Second sync should recognize existing disbursements');
+  }
+
+  private static Id createHousingProgram(String programName) {
+    try {
+      SObject program = Schema.getGlobalDescribe().get('Program').newSObject();
+      program.put('Name', programName);
+      try {
+        program.put('Housing_Program__c', true);
+      } catch (Exception ignore) {
+      }
+      insert program;
+      return (Id) program.get('Id');
+    } catch (Exception e) {
+      System.debug('createHousingProgram failed: ' + e.getMessage());
+      return null;
+    }
+  }
+
+  private static Id createHousingBenefit(Id programId, String benefitName) {
+    if (programId == null) {
+      return null;
+    }
+
+    try {
+      SObject benefitType = Schema.getGlobalDescribe().get('BenefitType').newSObject();
+      benefitType.put('Name', 'Housing');
+      benefitType.put('Category', 'Housing');
+      try {
+        benefitType.put('Type', 'Service');
+      } catch (Exception ignore) {
+      }
+      try {
+        benefitType.put('ProcessType', 'ProgramManagement');
+      } catch (Exception ignore) {
+      }
+      insert benefitType;
+
+      SObject benefit = Schema.getGlobalDescribe().get('Benefit').newSObject();
+      benefit.put('Name', benefitName);
+      benefit.put('ProgramId', programId);
+      benefit.put('BenefitTypeId', (Id) benefitType.get('Id'));
+      benefit.put('IsActive', true);
+      try {
+        benefit.put('Is_a_Housing_Benefit__c', true);
+      } catch (Exception ignore) {
+      }
+      insert benefit;
+      return (Id) benefit.get('Id');
+    } catch (Exception e) {
+      System.debug('createHousingBenefit failed: ' + e.getMessage());
+      return null;
+    }
+  }
+
+  private static Id createHousingEnrollment(Id accountId, Id programId, Date startDate) {
+    if (accountId == null || programId == null) {
+      return null;
+    }
+
+    try {
+      SObject enrollment = Schema.getGlobalDescribe().get('ProgramEnrollment').newSObject();
+      enrollment.put('AccountId', accountId);
+      enrollment.put('ProgramId', programId);
+      enrollment.put('Status', 'Enrolled');
+      enrollment.put('StartDate', startDate);
+      insert enrollment;
+      return (Id) enrollment.get('Id');
+    } catch (Exception e) {
+      System.debug('createHousingEnrollment failed: ' + e.getMessage());
+      return null;
+    }
   }
 
   // Additional tests from BenefitDisbursementServiceTest can be added here...

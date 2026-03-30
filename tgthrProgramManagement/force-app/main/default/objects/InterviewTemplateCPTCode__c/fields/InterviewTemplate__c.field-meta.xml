@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>InterviewTemplate__c</fullName>
+    <deleteConstraint>Restrict</deleteConstraint>
+    <description>Interview template that this CPT code policy row applies to.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Select the interview template that should allow this CPT code.</inlineHelpText>
+    <label>Interview Template</label>
+    <referenceTo>InterviewTemplate__c</referenceTo>
+    <relationshipLabel>CPT Codes</relationshipLabel>
+    <relationshipName>CPT_Codes</relationshipName>
+    <required>true</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

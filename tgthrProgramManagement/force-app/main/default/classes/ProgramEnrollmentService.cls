@@ -437,7 +437,7 @@ global with sharing class ProgramEnrollmentService {
         interview.Name = 'Drop-In Intake - ' + e.firstName + ' ' + e.lastName;
         interview.Case__c = caseId;
         interview.InterviewTemplateVersion__c = templateVersionId;
-        interview.Status__c = 'In Progress';
+        interview.Status__c = DocumentStatus.INTERVIEW_IN_PROGRESS;
         interview.Started_On__c = Datetime.now();
         
         // Set owner if provided

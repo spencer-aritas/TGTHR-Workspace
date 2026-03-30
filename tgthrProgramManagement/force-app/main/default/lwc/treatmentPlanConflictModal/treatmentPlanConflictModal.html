@@ -1,0 +1,108 @@
+<template>
+    <template lwc:if={isOpen}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="conflict-modal-title"
+            class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <!-- Header -->
+                <header class="slds-modal__header slds-theme_warning">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Cancel" onclick={handleCancel}>
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                        <span class="slds-assistive-text">Cancel</span>
+                    </button>
+                    <h2 id="conflict-modal-title" class="slds-modal__title slds-has-flexi-truncate">
+                        <lightning-icon icon-name="utility:warning" size="small"
+                            class="slds-m-right_x-small"></lightning-icon>
+                        Active Treatment Plan Conflict
+                    </h2>
+                    <p class="slds-m-top_x-small conflict-subtitle">
+                        There is already an active Treatment Plan for this participant.
+                        Review both plans before deciding how to proceed.
+                    </p>
+                </header>
+
+                <!-- Body -->
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <!-- Explanation -->
+                    <template lwc:if={showWindowMessage}>
+                        <div class="slds-notify slds-notify_alert slds-theme_info slds-m-bottom_medium" role="status">
+                            <span class="slds-assistive-text">Info</span>
+                            <lightning-icon icon-name="utility:info" size="x-small"
+                                class="slds-m-right_x-small"></lightning-icon>
+                            The next scheduled review date is <strong>{formattedNextReview}</strong>.
+                            The new Treatment Plan is outside the 30-day review window.
+                            You may cancel or activate the new plan anyway, which will supersede the current one.
+                        </div>
+                    </template>
+
+                    <!-- Side-by-side comparison -->
+                    <div class="slds-grid slds-gutters slds-wrap">
+
+                        <!-- Current Active Plan -->
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-card title="Current Active Plan" icon-name="utility:check"
+                                class="active-plan-card">
+                                <div class="slds-p-around_medium">
+                                    <dl class="slds-dl_horizontal">
+                                        <dt class="slds-dl_horizontal__label slds-text-color_weak">Name</dt>
+                                        <dd class="slds-dl_horizontal__detail">{existingPlanName}</dd>
+
+                                        <dt class="slds-dl_horizontal__label slds-text-color_weak">Started</dt>
+                                        <dd class="slds-dl_horizontal__detail">{formattedExistingStartDate}</dd>
+
+                                        <dt class="slds-dl_horizontal__label slds-text-color_weak">Next Review</dt>
+                                        <dd class="slds-dl_horizontal__detail">{formattedNextReview}</dd>
+                                    </dl>
+                                    <div class="slds-m-top_small">
+                                        <lightning-badge label="Active" class="slds-badge_inverse"></lightning-badge>
+                                    </div>
+                                </div>
+                            </lightning-card>
+                        </div>
+
+                        <!-- New Plan -->
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                            <lightning-card title="New Treatment Plan (Pending)" icon-name="utility:new"
+                                class="new-plan-card">
+                                <div class="slds-p-around_medium">
+                                    <dl class="slds-dl_horizontal">
+                                        <dt class="slds-dl_horizontal__label slds-text-color_weak">Name</dt>
+                                        <dd class="slds-dl_horizontal__detail">{newPlanName}</dd>
+
+                                        <dt class="slds-dl_horizontal__label slds-text-color_weak">Started</dt>
+                                        <dd class="slds-dl_horizontal__detail">{formattedNewStartDate}</dd>
+
+                                        <dt class="slds-dl_horizontal__label slds-text-color_weak">Status</dt>
+                                        <dd class="slds-dl_horizontal__detail">Fully Signed — Awaiting Activation</dd>
+                                    </dl>
+                                    <div class="slds-m-top_small">
+                                        <lightning-badge label="Signed" variant="success"></lightning-badge>
+                                    </div>
+                                </div>
+                            </lightning-card>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <footer class="slds-modal__footer">
+                    <button class="slds-button slds-button_neutral" onclick={handleCancel}
+                        disabled={isProcessing}>
+                        Cancel — Keep Current Plan
+                    </button>
+                    <button class="slds-button slds-button_destructive" onclick={handleActivateAnyway}
+                        disabled={isProcessing}>
+                        <template lwc:if={isProcessing}>
+                            <lightning-spinner size="x-small" alternative-text="Activating"
+                                class="slds-m-right_x-small"></lightning-spinner>
+                        </template>
+                        Activate New Plan Anyway
+                    </button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

@@ -12,7 +12,7 @@
 public with sharing class PsychoSocialRenewalService {
     
     // Template name to match for renewals
-    private static final String PINE_INTAKE_TEMPLATE_NAME = '1440 Pine Psycho-Social Intake';
+    private static final String PINE_INTAKE_TEMPLATE_NAME = 'Psycho-Social Intake';
     private static final String PINE_PROGRAM_NAME = '1440 Pine';
     private static final Integer RENEWAL_MONTHS = 6;
     
@@ -34,16 +34,17 @@ public with sharing class PsychoSocialRenewalService {
             
             // Find completed 1440 Pine Psycho-Social Intake interviews that are 6+ months old
             // and don't already have a newer interview (in progress or completed)
-            String query = 
-                'SELECT Id, Name, Client__c, Case__c, Case__r.OwnerId, Case__r.Owner.Name, ' +
-                'Completed_On__c, InterviewTemplateVersion__c, InterviewTemplateVersion__r.InterviewTemplate__c, ' +
-                'InterviewTemplateVersion__r.InterviewTemplate__r.Name ' +
-                'FROM Interview__c ' +
-                'WHERE InterviewTemplateVersion__r.InterviewTemplate__r.Name = :PINE_INTAKE_TEMPLATE_NAME ' +
-                'AND Completed_On__c != null ' +
-                'AND Completed_On__c <= :sixMonthsAgoDateTime ' +
-                'AND Status__c IN (\'Completed\', \'Signed\') ' +
-                'ORDER BY Completed_On__c DESC';
+                String query = 
+                    'SELECT Id, Name, Client__c, Case__c, Case__r.OwnerId, Case__r.Owner.Name, ' +
+                    'Completed_On__c, InterviewTemplateVersion__c, InterviewTemplateVersion__r.InterviewTemplate__c, ' +
+                    'InterviewTemplateVersion__r.InterviewTemplate__r.Name ' +
+                    'FROM Interview__c ' +
+                    'WHERE (InterviewTemplateVersion__r.InterviewTemplate__r.Name = :PINE_INTAKE_TEMPLATE_NAME ' +
+                    'OR InterviewTemplateVersion__r.InterviewTemplate__r.Name LIKE \'%Psycho-Social%Intake%\') ' +
+                    'AND Completed_On__c != null ' +
+                    'AND Completed_On__c <= :sixMonthsAgoDateTime ' +
+                    'AND Status__c IN (\'' + DocumentStatus.INTERVIEW_SIGNED + '\') ' +
+                    'ORDER BY Completed_On__c DESC';
             
             List<SObject> completedInterviews = Database.query(query);
             System.debug('Found ' + completedInterviews.size() + ' completed interviews to check for renewal');
@@ -97,8 +98,9 @@ public with sharing class PsychoSocialRenewalService {
         String query = 
             'SELECT Case__c FROM Interview__c ' +
             'WHERE Case__c IN :caseIds ' +
-            'AND InterviewTemplateVersion__r.InterviewTemplate__r.Name = :PINE_INTAKE_TEMPLATE_NAME ' +
-            'AND Status__c IN (\'Draft\', \'In Progress\', \'Awaiting Signatures\')';
+            'AND (InterviewTemplateVersion__r.InterviewTemplate__r.Name = :PINE_INTAKE_TEMPLATE_NAME ' +
+            'OR InterviewTemplateVersion__r.InterviewTemplate__r.Name LIKE \'%Psycho-Social%Intake%\') ' +
+            'AND Status__c IN (\'' + DocumentStatus.INTERVIEW_IN_PROGRESS + '\', \'' + DocumentStatus.INTERVIEW_RECALLED + '\', \'' + DocumentStatus.INTERVIEW_SUBMITTED + '\')' ;
         
         List<SObject> inProgressInterviews = Database.query(query);
         
@@ -136,7 +138,7 @@ public with sharing class PsychoSocialRenewalService {
             newInterview.put('Client__c', clientId);
             newInterview.put('Case__c', caseId);
             newInterview.put('InterviewTemplateVersion__c', templateVersionId);
-            newInterview.put('Status__c', 'In Progress');
+            newInterview.put('Status__c', DocumentStatus.INTERVIEW_IN_PROGRESS);
             newInterview.put('Started_On__c', DateTime.now());
             newInterview.put('Name', PINE_INTAKE_TEMPLATE_NAME + ' - ' + clientName + ' - ' + Date.today().format());
             

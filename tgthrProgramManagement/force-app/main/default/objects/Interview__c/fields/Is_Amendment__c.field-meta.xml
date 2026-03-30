@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Amendment__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>True when this Treatment Plan Interview was signed as an amendment — i.e., an active Treatment Plan already existed and was outside the 30-day review window when this plan was activated. The existing active plan was superseded by this amendment.</description>
+    <inlineHelpText>Checked automatically when this Treatment Plan activates outside the standard review window, superseding a currently active plan.</inlineHelpText>
+    <label>Is Amendment</label>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>
