@@ -22,6 +22,7 @@ from .api.interview_answers import router as interview_answers_router
 from .routers.ssrs_assessment import router as ssrs_router
 from .api.photos import router as photos_router
 from .api.signing_requests import router as signing_requests_router
+from .api.pending_signatures import router as pending_signatures_router
 from .middleware.logging_with_audit import setup_audit_logging
 
 init_schema_and_seed()
@@ -75,6 +76,7 @@ app.include_router(interview_answers_router, prefix="/api")
 app.include_router(ssrs_router, prefix="/api")
 app.include_router(photos_router, prefix="/api")
 app.include_router(signing_requests_router, prefix="/api")
+app.include_router(pending_signatures_router, prefix="/api")
 
 # Add device registration router
 from .routers.device import router as device_reg_router

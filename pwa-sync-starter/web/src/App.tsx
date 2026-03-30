@@ -4,14 +4,17 @@ import ProgramIntakeForm from "./features/intake/ProgramIntakeForm"
 import { SyncStatus } from "./components/SyncStatus"
 import { UserSelection } from "./components/UserSelection"
 import { MyCasesPage } from "./components/MyCasesPage"
+import { PendingSignaturesPage } from "./components/PendingSignaturesPage"
 import { OfflineIndicator } from "./components/OfflineIndicator"
 import { isDeviceRegistered, getCurrentUser } from "./lib/salesforceAuth"
 import { syncService } from "./lib/syncService"
+import { pendingSignatureService } from "./services/pendingSignatureService"
 
 export default function App() {
   const [showUserSelection, setShowUserSelection] = useState(false)
   const [currentUser, setCurrentUser] = useState(getCurrentUser())
-  const [currentPage, setCurrentPage] = useState<'intake' | 'cases'>('cases')
+  const [currentPage, setCurrentPage] = useState<'intake' | 'cases' | 'signatures'>('cases')
+  const [pendingCount, setPendingCount] = useState(0)
 
   useEffect(() => {
     if (!isDeviceRegistered()) {
@@ -20,6 +23,16 @@ export default function App() {
     
     // Start auto-sync service
     syncService.startAutoSync();
+
+    // Poll pending signature count
+    const refreshCount = () => {
+      pendingSignatureService.getPendingSignatures()
+        .then(items => setPendingCount(items.length))
+        .catch(() => {});
+    };
+    refreshCount();
+    const interval = setInterval(refreshCount, 60_000); // every 60s
+    return () => clearInterval(interval);
   }, [])
 
   const handleUserSelectionComplete = () => {
@@ -29,6 +42,10 @@ export default function App() {
 
   if (showUserSelection) {
     return <UserSelection onUserSelected={handleUserSelectionComplete} />
+  }
+
+  if (currentPage === 'signatures') {
+    return <PendingSignaturesPage onBack={() => setCurrentPage('cases')} />
   }
 
   if (currentPage === 'cases') {
@@ -52,6 +69,24 @@ export default function App() {
             </div>
             <div className="slds-col slds-text-align_right">
               <div className="slds-button-group">
+                <button
+                  className="slds-button slds-button_outline-brand"
+                  onClick={() => setCurrentPage('signatures')}
+                  style={{ position: 'relative' }}
+                >
+                  Pending Signatures
+                  {pendingCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: '-6px', right: '-6px',
+                      backgroundColor: '#c23934', color: 'white',
+                      borderRadius: '50%', width: '20px', height: '20px',
+                      fontSize: '0.7rem', fontWeight: 700, lineHeight: '20px',
+                      textAlign: 'center',
+                    }}>
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
                 <button 
                   className="slds-button slds-button_outline-brand"
                   onClick={() => setCurrentPage('intake')}
