@@ -246,7 +246,7 @@ export function InteractionHistory({ selectedCase, onBack }: InteractionHistoryP
                       }}>
                         <div className="slds-text-body_small slds-text-color_weak">
                           <span style={{ fontWeight: '600' }}>Date:</span>{' '}
-                          {new Date(interaction.InteractionDate).toLocaleDateString()}
+                          {interaction.InteractionDate ? new Date(interaction.InteractionDate).toLocaleDateString() : '—'}
                         </div>
                         <div className="slds-text-body_small slds-text-color_weak">
                           <span style={{ fontWeight: '600' }}>By:</span>{' '}
