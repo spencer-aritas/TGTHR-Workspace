@@ -19,21 +19,23 @@ class PendingSignatureService {
   }
 
   async cosign(
-    interviewId: string,
+    recordId: string,
     role: 'CaseManager' | 'PeerSupport' | 'Manager',
+    recordType: 'Interview' | 'Interaction',
     signatureDataUrl?: string
   ): Promise<{ success: boolean; message: string }> {
     const user = getCurrentUser();
     if (!user?.sfUserId) throw new Error('No authenticated user');
 
     const response = await fetch(
-      `/api/pending-signatures/${encodeURIComponent(interviewId)}/sign`,
+      `/api/pending-signatures/${encodeURIComponent(recordId)}/sign`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.sfUserId,
           role,
+          recordType,
           signatureDataUrl: signatureDataUrl || null,
         }),
       }

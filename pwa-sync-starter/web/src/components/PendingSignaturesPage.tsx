@@ -85,7 +85,7 @@ export function PendingSignaturesPage({ onBack }: PendingSignaturesPageProps) {
 
         {items.map((item) => (
           <div
-            key={item.interviewId}
+            key={item.recordId}
             style={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -101,10 +101,19 @@ export function PendingSignaturesPage({ onBack }: PendingSignaturesPageProps) {
               {item.clientName && (
                 <p className="slds-text-body_small slds-text-color_weak">{item.clientName}</p>
               )}
+              {item.createdByName && (
+                <p className="slds-text-body_small slds-text-color_weak">By: {item.createdByName}</p>
+              )}
             </div>
 
             {/* Metadata */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+              {item.recordType === 'Interaction' && (
+                <span style={{
+                  display: 'inline-block', padding: '2px 10px', borderRadius: '12px',
+                  fontSize: '0.75rem', backgroundColor: '#e3f2fd', color: '#333',
+                }}>Note</span>
+              )}
               {item.caseNumber && (
                 <span style={{
                   display: 'inline-block', padding: '2px 10px', borderRadius: '12px',
@@ -122,7 +131,7 @@ export function PendingSignaturesPage({ onBack }: PendingSignaturesPageProps) {
                   display: 'inline-block', padding: '2px 10px', borderRadius: '12px',
                   fontSize: '0.75rem', backgroundColor: '#f0f0f0', color: '#333',
                 }}>
-                  {new Date(item.startedOn).toLocaleDateString()}
+                  {formatDateTime(item.startedOn)}
                 </span>
               )}
             </div>
@@ -229,8 +238,9 @@ function SigningFlow({
       const canvas = canvasRef.current;
       const signatureDataUrl = canvas ? canvas.toDataURL('image/png') : undefined;
       await pendingSignatureService.cosign(
-        item.interviewId,
+        item.recordId,
         role as 'CaseManager' | 'PeerSupport' | 'Manager',
+        item.recordType || 'Interview',
         signatureDataUrl
       );
       setSuccess(true);
@@ -373,24 +383,27 @@ function SigningFlow({
 function DocumentContentSections({ detail }: { detail: InteractionDetailResponse }) {
   const { content, relatedRecords, interviewAnswers } = detail;
 
+  // Helper: build labeled note fields from content
+  const noteFields: { label: string; value?: string }[] = [
+    { label: 'Reason for Visit', value: content.reasonForVisit },
+    { label: 'Description of Services', value: content.descriptionOfServices },
+    { label: 'Response and Progress', value: content.responseAndProgress },
+    { label: 'Plan', value: content.plan },
+    { label: 'Place of Service', value: content.placeOfService },
+    { label: 'Interpreter Used', value: content.interpreterUsed },
+  ].filter(f => f.value);
+
+  // Fallback to raw notesHtml if no labeled fields available
+  const hasLabeledNotes = noteFields.length > 0;
+
   return (
     <>
-      {/* Meeting Notes */}
-      {content.notesHtml && (
-        <DetailCard title="Meeting Notes">
-          <div
-            style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontSize: '0.875rem' }}
-            dangerouslySetInnerHTML={{ __html: content.notesHtml }}
-          />
-        </DetailCard>
-      )}
-
-      {/* Interview Form Data */}
+      {/* 1. Interview Form Data (Treatment Plans — form answers first) */}
       {interviewAnswers && interviewAnswers.length > 0 && (
         <InterviewFormSections answers={interviewAnswers} />
       )}
 
-      {/* Goals */}
+      {/* 2. Goals */}
       {relatedRecords.goals.length > 0 && (
         <DetailCard title={`Goals (${relatedRecords.goals.length})`}>
           {relatedRecords.goals.map((g) => (
@@ -411,7 +424,58 @@ function DocumentContentSections({ detail }: { detail: InteractionDetailResponse
         </DetailCard>
       )}
 
-      {/* Services Provided */}
+      {/* 3. Notes (labeled fields or raw HTML) */}
+      {hasLabeledNotes ? (
+        <DetailCard title="Notes">
+          {noteFields.map((f, i) => (
+            <div key={i} style={{ padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div className="slds-text-body_small" style={{ fontWeight: 600, color: '#666', marginBottom: '2px' }}>
+                {f.label}
+              </div>
+              <div
+                style={{ fontSize: '0.875rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                dangerouslySetInnerHTML={{ __html: f.value! }}
+              />
+            </div>
+          ))}
+        </DetailCard>
+      ) : content.notesHtml ? (
+        <DetailCard title="Notes">
+          <div
+            style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontSize: '0.875rem' }}
+            dangerouslySetInnerHTML={{ __html: content.notesHtml }}
+          />
+        </DetailCard>
+      ) : null}
+
+      {/* 4. Risk Assessments */}
+      {relatedRecords.assessments.length > 0 && (
+        <DetailCard title={`Risk Assessments (${relatedRecords.assessments.length})`}>
+          {relatedRecords.assessments.map((a) => (
+            <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.type || a.name || 'Assessment'}</span>
+                {a.riskLevel && (
+                  <SmallBadge
+                    color={a.riskLevel === 'High' || a.riskLevel === 'Imminent' ? '#fce4ec' : a.riskLevel === 'Moderate' ? '#fff3e0' : '#e8f5e9'}
+                    text={`Risk: ${a.riskLevel}`}
+                  />
+                )}
+              </div>
+              <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
+                {[
+                  a.totalScore != null ? `Score: ${a.totalScore}` : null,
+                  a.assessedBy ? `By: ${a.assessedBy}` : null,
+                  a.date ? formatDateTime(a.date) : null,
+                  a.status,
+                ].filter(Boolean).join(' · ')}
+              </p>
+            </div>
+          ))}
+        </DetailCard>
+      )}
+
+      {/* 5. Services Provided */}
       {relatedRecords.services.length > 0 && (
         <DetailCard title={`Services Provided (${relatedRecords.services.length})`}>
           {relatedRecords.services.map((s) => (
@@ -422,7 +486,7 @@ function DocumentContentSections({ detail }: { detail: InteractionDetailResponse
               </div>
               {(s.amount != null || s.date) && (
                 <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
-                  {[s.amount != null ? `$${s.amount}` : null, s.date ? new Date(s.date).toLocaleDateString() : null].filter(Boolean).join(' · ')}
+                  {[s.amount != null ? `$${s.amount}` : null, s.date ? formatDateTime(s.date) : null].filter(Boolean).join(' · ')}
                 </p>
               )}
             </div>
@@ -430,7 +494,7 @@ function DocumentContentSections({ detail }: { detail: InteractionDetailResponse
         </DetailCard>
       )}
 
-      {/* Diagnoses */}
+      {/* 6. Diagnoses */}
       {relatedRecords.diagnoses.length > 0 && (
         <DetailCard title={`Diagnoses (${relatedRecords.diagnoses.length})`}>
           {relatedRecords.diagnoses.map((d) => (
@@ -447,7 +511,7 @@ function DocumentContentSections({ detail }: { detail: InteractionDetailResponse
               {d.description && <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>{d.description}</p>}
               {(d.category || d.onsetDate) && (
                 <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
-                  {[d.category, d.onsetDate ? `Onset: ${new Date(d.onsetDate).toLocaleDateString()}` : null].filter(Boolean).join(' · ')}
+                  {[d.category, d.onsetDate ? `Onset: ${formatDateTime(d.onsetDate)}` : null].filter(Boolean).join(' · ')}
                 </p>
               )}
             </div>
@@ -455,34 +519,7 @@ function DocumentContentSections({ detail }: { detail: InteractionDetailResponse
         </DetailCard>
       )}
 
-      {/* Assessments */}
-      {relatedRecords.assessments.length > 0 && (
-        <DetailCard title={`Assessments (${relatedRecords.assessments.length})`}>
-          {relatedRecords.assessments.map((a) => (
-            <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.type || a.name || 'Assessment'}</span>
-                {a.riskLevel && (
-                  <SmallBadge
-                    color={a.riskLevel === 'High' || a.riskLevel === 'Imminent' ? '#fce4ec' : a.riskLevel === 'Moderate' ? '#fff3e0' : '#e8f5e9'}
-                    text={`Risk: ${a.riskLevel}`}
-                  />
-                )}
-              </div>
-              <p className="slds-text-body_small slds-text-color_weak" style={{ margin: '2px 0 0' }}>
-                {[
-                  a.totalScore != null ? `Score: ${a.totalScore}` : null,
-                  a.assessedBy ? `By: ${a.assessedBy}` : null,
-                  a.date ? new Date(a.date).toLocaleDateString() : null,
-                  a.status,
-                ].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-          ))}
-        </DetailCard>
-      )}
-
-      {/* CPT / Service Lines */}
+      {/* 7. CPT / Service Lines */}
       {relatedRecords.serviceLines && relatedRecords.serviceLines.length > 0 && (
         <DetailCard title={`Service Lines / CPT Codes (${relatedRecords.serviceLines.length})`}>
           {relatedRecords.serviceLines.map((sl) => (
@@ -548,6 +585,24 @@ function InterviewFormSections({ answers }: { answers: InteractionDetailIntervie
 }
 
 /* ── Tiny shared helpers ─────────────────────────────────────────── */
+
+/** Format an ISO/UTC date string to local date or date-time. */
+function formatDateTime(isoStr: string): string {
+  try {
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    // Date-only values (YYYY-MM-DD) → just date; otherwise date + time
+    if (/^\d{4}-\d{2}-\d{2}$/.test(isoStr)) {
+      return d.toLocaleDateString();
+    }
+    return d.toLocaleString(undefined, {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
+  } catch {
+    return isoStr;
+  }
+}
 
 function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (

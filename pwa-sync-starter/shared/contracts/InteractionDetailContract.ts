@@ -26,6 +26,18 @@ export interface InteractionDetailOwnership {
 export interface InteractionDetailContent {
   notesHtml?: string;
   notesText?: string;
+  /** Clinical Note: Reason for Visit (MeetingNotes) */
+  reasonForVisit?: string;
+  /** Clinical Note: Description of Services Provided */
+  descriptionOfServices?: string;
+  /** Clinical Note: Response and Progress */
+  responseAndProgress?: string;
+  /** Clinical Note: Plan */
+  plan?: string;
+  /** Place of Service */
+  placeOfService?: string;
+  /** Interpreter Used (Yes/No) */
+  interpreterUsed?: string;
 }
 
 export interface InteractionDetailLinkage {

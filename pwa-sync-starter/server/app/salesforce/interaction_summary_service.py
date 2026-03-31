@@ -138,6 +138,8 @@ class InteractionSummaryService:
             SELECT Id, Name, RelatedRecordId, Date_of_Interaction__c,
                    AccountId, InteractionPurpose, Status,
                    Start_Time__c, End_Time__c, MeetingNotes,
+                   Description_of_Services__c, Response_and_Progress__c,
+                   Plan__c, POS__c, Interpreter_Used__c,
                    CreatedDate, LastModifiedDate,
                    CreatedBy.Name,
                    Interview__c,
@@ -225,6 +227,12 @@ class InteractionSummaryService:
                 'content': {
                     'notesHtml': rec.get('MeetingNotes'),
                     'notesText': rec.get('MeetingNotes'),
+                    'reasonForVisit': rec.get('MeetingNotes'),
+                    'descriptionOfServices': rec.get('Description_of_Services__c'),
+                    'responseAndProgress': rec.get('Response_and_Progress__c'),
+                    'plan': rec.get('Plan__c'),
+                    'placeOfService': rec.get('POS__c'),
+                    'interpreterUsed': rec.get('Interpreter_Used__c'),
                 },
                 'linkage': {
                     'caseId': case_id,

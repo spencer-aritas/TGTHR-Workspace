@@ -1,7 +1,6 @@
 // web/src/App.tsx
 import { useState, useEffect } from "react"
 import ProgramIntakeForm from "./features/intake/ProgramIntakeForm"
-import { SyncStatus } from "./components/SyncStatus"
 import { UserSelection } from "./components/UserSelection"
 import { MyCasesPage } from "./components/MyCasesPage"
 import { PendingSignaturesPage } from "./components/PendingSignaturesPage"
@@ -105,9 +104,6 @@ export default function App() {
               </button>
             </div>
           </div>
-          <div style={{ marginTop: '8px' }}>
-            <SyncStatus />
-          </div>
         </nav>
         <MyCasesPage />
       </div>
@@ -154,9 +150,6 @@ export default function App() {
         <p className="slds-text-body_small slds-text-color_weak" style={{ margin: 0 }}>
           {currentUser ? `${currentUser.name} | ` : ''}Capture client information for outreach services
         </p>
-        <div style={{ marginTop: '6px' }}>
-          <SyncStatus />
-        </div>
       </header>
 
       <div className="slds-p-around_medium">
