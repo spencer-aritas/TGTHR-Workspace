@@ -89,8 +89,8 @@
                 <template if:true={selectedDocument}>
                     <div class="slds-p-around_medium">
                         <!-- Document Header -->
-                        <div class="slds-grid slds-grid_vertical-align-center slds-wrap slds-m-bottom_medium">
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
+                        <div class="completed-header slds-m-bottom_medium">
+                            <div class="completed-header__summary">
                                 <h2 class="slds-text-heading_medium">{documentName}</h2>
                                 <div class="slds-m-top_xx-small">
                                     <template if:true={selectedDocument.templateCategory}>
@@ -110,33 +110,15 @@
                                 <div class="slds-text-body_small text-muted slds-m-top_xx-small">
                                     Submitted By: {submittedByDisplay} • Submitted On: {submittedOnDisplay}
                                 </div>
-                                <div class="slds-text-body_small text-muted slds-m-top_xx-small">
-                                    Interaction Date &amp; Start Time ({mountainTimeZoneLabel}): {interactionDateTimeDisplay} • Started On: {startedOnDisplay} • Completed On: {completedOnDisplay}
-                                </div>
                             </div>
-                            <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-text-align_right slds-m-top_small slds-medium-m-top_none">
-                                <lightning-button-group>
-                                    <lightning-button 
-                                        label="Previous" 
-                                        icon-name="utility:back" 
-                                        onclick={handlePrevious}
-                                        disabled={isFirstDocument}>
-                                    </lightning-button>
-                                    <lightning-button 
-                                        label="Next" 
-                                        icon-name="utility:forward" 
-                                        icon-position="right"
-                                        onclick={handleNext}
-                                        disabled={isLastDocument}>
-                                    </lightning-button>
-                                </lightning-button-group>
-                                <div class="slds-m-top_small slds-grid slds-grid_align-end slds-wrap">
+                            <div class="completed-header__actions">
+                                <div class="completed-header__action-row">
                                     <lightning-button 
                                         variant="brand"
                                         label="Download PDF" 
                                         icon-name="utility:download" 
                                         onclick={handleDownload}
-                                        class="slds-m-left_x-small slds-m-top_xx-small"
+                                        class="completed-header__action-button"
                                         disabled={isOpeningInFiles}>
                                     </lightning-button>
                                     <template if:true={showWordDownload}>
@@ -145,7 +127,7 @@
                                             label="Download in Word"
                                             icon-name="utility:file"
                                             onclick={handleDownloadWord}
-                                            class="slds-m-left_x-small slds-m-top_xx-small"
+                                            class="completed-header__action-button"
                                             disabled={isOpeningInFiles}>
                                         </lightning-button>
                                     </template>
@@ -154,7 +136,7 @@
                                         label="Open in Files" 
                                         icon-name="utility:new_window" 
                                         onclick={handleOpenInFiles}
-                                        class="slds-m-left_x-small slds-m-top_xx-small"
+                                        class="completed-header__action-button"
                                         disabled={isOpeningInFiles}>
                                     </lightning-button>
                                     <template if:true={showRecallButton}>
@@ -164,12 +146,12 @@
                                                 label="Recall Document"
                                                 icon-name="utility:undo"
                                                 onclick={handleRecall}
-                                                class="slds-m-left_x-small slds-m-top_xx-small"
+                                                class="completed-header__action-button"
                                                 disabled={isRecalling}>
                                             </lightning-button>
                                         </template>
                                         <template if:true={showRecallConfirm}>
-                                            <div class="slds-box slds-box_x-small slds-theme_shade slds-m-top_small slds-size_1-of-1">
+                                            <div class="slds-box slds-box_x-small slds-theme_shade completed-header__recall-confirm">
                                                 <p class="slds-text-body_small slds-m-bottom_x-small">Recall this document? All signatures will be cleared and it will return to Pending Documentation.</p>
                                                 <lightning-button
                                                     variant="destructive"
@@ -199,7 +181,8 @@
                             <div class="slds-m-bottom_medium">
                                 <c-note-detail-display
                                     record-id={selectedDocument.id}
-                                    record-type="Interaction">
+                                    record-type="Interaction"
+                                    completed-view>
                                 </c-note-detail-display>
                             </div>
                         </template>
@@ -209,7 +192,8 @@
                             <div class="slds-m-bottom_medium">
                                 <c-note-detail-display
                                     record-id={interviewDetailRecordId}
-                                    record-type={interviewDetailRecordType}>
+                                    record-type={interviewDetailRecordType}
+                                    completed-view>
                                 </c-note-detail-display>
                             </div>
                         </template>

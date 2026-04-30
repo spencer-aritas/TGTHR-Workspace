@@ -5,6 +5,7 @@ import { formatDateOnlyMountain, formatDateTimeMountain, getMountainTimeZoneLabe
 
 export default class NoteDetailDisplay extends LightningElement {
     _recordId;
+    @api completedView = false;
     @api
     get recordId() {
         return this._recordId;
@@ -218,11 +219,38 @@ export default class NoteDetailDisplay extends LightningElement {
         return this.recordType === 'Interview';
     }
 
+    get showInteractionMeta() {
+        return this.completedView !== true;
+    }
+
+    get showCompletedFooterInteractionMeta() {
+        return this.completedView === true;
+    }
+
     get showManagerApprovalStatus() {
-        return this.noteData.requiresManagerApproval === true
-            || this.noteData.managerSigned === true
-            || !!this.noteData.managerSignedDate
-            || !!this.noteData.managerSignedBy;
+        if (this.completedView === true) {
+            return this.hasManagerSignature;
+        }
+        return this.noteData.requiresManagerApproval === true || this.hasManagerSignature;
+    }
+
+    get hasManagerSignature() {
+        return this.noteData.managerSigned === true
+            || !!this.noteData.managerSignedDate;
+    }
+
+    get showManagerApprovalPending() {
+        if (this.completedView === true) {
+            return false;
+        }
+        return this.noteData.requiresManagerApproval === true && !this.hasManagerSignature;
+    }
+
+    get managerApprovalDisplayLabel() {
+        if (this.completedView === true && !this.hasManagerSignature) {
+            return 'N/A';
+        }
+        return 'Manager co-sign not requested';
     }
 
     get showCarePlanConsent() {
@@ -264,6 +292,10 @@ export default class NoteDetailDisplay extends LightningElement {
 
     get showInterviewGoals() {
         return this.hasGoals;
+    }
+
+    get goalsSectionTitle() {
+        return this.isInterview ? 'Treatment Plan Goals' : 'Goals Worked On';
     }
 
     get carePlanDischargeDateDisplay() {

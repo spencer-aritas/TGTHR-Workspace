@@ -1,6 +1,8 @@
 import { LightningElement, api, track } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import createContentVersion from '@salesforce/apex/SignatureController.createContentVersion';
+import getUserSignature from '@salesforce/apex/SignatureController.getUserSignature';
+import saveUserSignatureApex from '@salesforce/apex/SignatureController.saveUserSignature';
 
 const DEFAULT_HEIGHT = 200;
 const DEFAULT_WIDTH = 600;
@@ -10,11 +12,19 @@ export default class SignaturePad extends LightningElement {
     @api recordId;
     @api title = 'Please sign below';
     @api hideControls = false;
-    @api filename; // Custom filename for the signature
+    @api filename;
+    @api enableSavedSignature = false;
 
     @track isEmpty = true;
     @track loadError;
     @track isSaving = false;
+    @track signatureMode = 'draw';
+    @track hasSavedSignature = false;
+    @track savedSignatureData;
+    @track signatureAcknowledged = false;
+    @track uploadedImageData;
+    @track isLoadingSignature = false;
+    @track saveAsDefault = false;
 
     canvas;
     context;
@@ -26,8 +36,15 @@ export default class SignaturePad extends LightningElement {
     pointerUpHandler;
     resizeHandler;
 
+    connectedCallback() {
+        if (this.enableSavedSignature) {
+            this.isLoadingSignature = true;
+            this._loadUserSignature();
+        }
+    }
+
     renderedCallback() {
-        if (!this.isInitialized) {
+        if (!this.isInitialized && this.isDrawMode && !this.isLoadingSignature) {
             this.initializeCanvas();
         }
     }
@@ -198,24 +215,157 @@ export default class SignaturePad extends LightningElement {
         };
     }
 
-    @api
-    clearSignature() {
-        if (!this.context || !this.canvas) {
+    // ---- Saved-signature helpers ----
+
+    async _loadUserSignature() {
+        try {
+            const result = await getUserSignature();
+            if (result.success && result.hasSignature) {
+                this.hasSavedSignature = true;
+                this.savedSignatureData = result.signatureData;
+                this.signatureMode = 'saved';
+            } else {
+                this.hasSavedSignature = false;
+                this.signatureMode = 'draw';
+                this.saveAsDefault = true;
+            }
+        } catch (error) {
+            console.error('Error loading user signature:', error);
+            this.hasSavedSignature = false;
+            this.signatureMode = 'draw';
+        } finally {
+            this.isLoadingSignature = false;
+        }
+    }
+
+    get isDrawMode() {
+        return this.signatureMode === 'draw';
+    }
+    get isSavedMode() {
+        return this.signatureMode === 'saved';
+    }
+    get isUploadMode() {
+        return this.signatureMode === 'upload';
+    }
+
+    get showModeSelector() {
+        return this.enableSavedSignature && !this.isLoadingSignature;
+    }
+
+    get modeOptions() {
+        const options = [];
+        if (this.hasSavedSignature) {
+            options.push({ label: 'Use Saved Signature', value: 'saved' });
+        }
+        options.push({ label: 'Draw Signature', value: 'draw' });
+        options.push({ label: 'Upload Image', value: 'upload' });
+        return options;
+    }
+
+    get savedSignatureUrl() {
+        return this.savedSignatureData
+            ? 'data:image/png;base64,' + this.savedSignatureData
+            : '';
+    }
+
+    get uploadedSignatureUrl() {
+        return this.uploadedImageData
+            ? 'data:image/png;base64,' + this.uploadedImageData
+            : '';
+    }
+
+    get showSaveAsDefault() {
+        return this.enableSavedSignature && !this.hasSavedSignature;
+    }
+
+    handleModeChange(event) {
+        const mode = event.detail.value;
+        if (mode === this.signatureMode) {
             return;
         }
-        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this._fillBackground();
-        this.isEmpty = true;
+        this.signatureMode = mode;
+        if (mode === 'draw') {
+            this.isInitialized = false;
+            this.isEmpty = true;
+        }
+    }
+
+    handleAcknowledgementChange(event) {
+        this.signatureAcknowledged = event.target.checked;
+    }
+
+    handleSaveAsDefaultChange(event) {
+        this.saveAsDefault = event.target.checked;
+    }
+
+    handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+        if (!file.type.match(/^image\/(png|jpe?g)$/)) {
+            this._showToast('Error', 'Please upload a PNG or JPG image.', 'error');
+            return;
+        }
+        if (file.size > 1024 * 1024) {
+            this._showToast('Error', 'File must be smaller than 1 MB.', 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            this.uploadedImageData = reader.result.split(',')[1];
+        };
+        reader.readAsDataURL(file);
+    }
+
+    handleClearUpload() {
+        this.uploadedImageData = null;
+    }
+
+    async _saveAsUserSignature(base64Data) {
+        try {
+            const result = await saveUserSignatureApex({
+                base64Data,
+                source: this.signatureMode
+            });
+            if (result.success) {
+                this.hasSavedSignature = true;
+                this.savedSignatureData = base64Data;
+            }
+        } catch (error) {
+            console.error('Error saving user default signature:', error);
+        }
+    }
+
+    @api
+    clearSignature() {
+        if (this.signatureMode === 'saved') {
+            this.signatureAcknowledged = false;
+        } else if (this.signatureMode === 'upload') {
+            this.uploadedImageData = null;
+        } else {
+            if (this.context && this.canvas) {
+                this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this._fillBackground();
+            }
+            this.isEmpty = true;
+        }
     }
 
     @api
     hasSignature() {
+        if (this.signatureMode === 'saved') {
+            return this.hasSavedSignature && this.signatureAcknowledged;
+        }
+        if (this.signatureMode === 'upload') {
+            return !!this.uploadedImageData;
+        }
         return !this.isEmpty;
     }
 
     @api
     async saveSignature(recordId, suppressToast = false) {
-        if (!this.canvas || this.isEmpty) {
+        if (!this.hasSignature()) {
             if (!suppressToast) {
                 this._showToast('Error', 'Signature is empty.', 'error');
             }
@@ -233,15 +383,35 @@ export default class SignaturePad extends LightningElement {
 
         try {
             this.isSaving = true;
-            const base64Data = this.canvas.toDataURL('image/png').split(',')[1];
+
+            let base64Data;
+            if (this.signatureMode === 'saved') {
+                base64Data = this.savedSignatureData;
+            } else if (this.signatureMode === 'upload') {
+                base64Data = this.uploadedImageData;
+            } else {
+                base64Data = this.canvas.toDataURL('image/png').split(',')[1];
+            }
+
             const filenameToUse = this.filename || `signature_${new Date().toISOString()}.png`;
             const result = await createContentVersion({
                 base64Data,
                 filename: filenameToUse,
-                recordId: targetRecordId
+                recordId: targetRecordId,
+                signatureSource: this.signatureMode
             });
 
             if (result.success) {
+                // Save as user's default signature when appropriate
+                if (this.enableSavedSignature) {
+                    const shouldSaveDefault =
+                        this.signatureMode === 'upload' ||
+                        (this.signatureMode === 'draw' && !this.hasSavedSignature && this.saveAsDefault);
+                    if (shouldSaveDefault) {
+                        await this._saveAsUserSignature(base64Data);
+                    }
+                }
+
                 if (!suppressToast) {
                     this._showToast('Success', 'Signature saved successfully', 'success');
                 }
@@ -274,7 +444,7 @@ export default class SignaturePad extends LightningElement {
     }
 
     get isEmptyOrSaving() {
-        return this.isEmpty || this.isSaving;
+        return !this.hasSignature() || this.isSaving;
     }
 
     _showToast(title, message, variant) {

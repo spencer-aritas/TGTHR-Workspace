@@ -148,6 +148,41 @@
                                 </lightning-textarea>
                             </div>
 
+                            <!-- Emergency Services Involved -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label="Emergency Services Involved"
+                                    checked={emergencyServicesInvolved}
+                                    onchange={handleEmergencyServicesChange}>
+                                </lightning-input>
+                            </div>
+
+                            <!-- Emergency Services Details (shown when emergency checked) -->
+                            <template lwc:if={emergencyServicesInvolved}>
+                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                    <lightning-textarea
+                                        label="Emergency Services Details"
+                                        value={emergencyServicesDetails}
+                                        max-length="5000"
+                                        placeholder="Which agencies responded, officer names/badge numbers, report numbers, actions taken..."
+                                        onchange={handleEmergencyDetailsChange}>
+                                    </lightning-textarea>
+                                </div>
+                            </template>
+
+                            <!-- Notify Care Team (hidden when emergency is checked — auto-notifies) -->
+                            <template lwc:if={showNotifyCareTeam}>
+                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                    <lightning-input
+                                        type="checkbox"
+                                        label="Notify Care Team"
+                                        checked={notifyCareTeam}
+                                        onchange={handleNotifyCareTeamChange}>
+                                    </lightning-input>
+                                </div>
+                            </template>
+
                             <!-- Signature -->
                             <div class="slds-col slds-size_1-of-1 slds-m-top_small">
                                 <p class="slds-form-element__label">
@@ -155,6 +190,7 @@
                                 </p>
                                 <c-signature-pad
                                     hide-controls
+                                    enable-saved-signature
                                     title="Sign below">
                                 </c-signature-pad>
                             </div>

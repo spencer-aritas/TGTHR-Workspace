@@ -1,0 +1,88 @@
+<template>
+    <lightning-card icon-name="standard:goals" class="active-goals-card">
+        <h2 slot="title">
+            <span class="slds-text-heading_small">{cardTitle}</span>
+        </h2>
+        <lightning-button-icon
+            slot="actions"
+            icon-name="utility:refresh"
+            alternative-text="Refresh"
+            title="Refresh goals"
+            onclick={handleRefresh}>
+        </lightning-button-icon>
+
+        <div class="slds-card__body slds-card__body_inner">
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-p-around_medium">
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:true={error}>
+                <div class="goal-error slds-text-body_small slds-p-around_small">
+                    <lightning-icon icon-name="utility:warning" size="x-small" variant="error" class="slds-m-right_x-small"></lightning-icon>
+                    {error}
+                </div>
+            </template>
+
+            <template if:true={showEmptyState}>
+                <div class="empty-state slds-p-around_medium">
+                    <div class="slds-text-align_center">
+                        <lightning-icon icon-name="utility:target_mode" size="large" class="empty-icon slds-m-bottom_small"></lightning-icon>
+                        <p class="slds-text-body_regular">No active goals on this case.</p>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+                            Goals stay managed in the Treatment Plan and surface here for quick visibility.
+                        </p>
+                    </div>
+                </div>
+            </template>
+
+            <template if:true={hasGoals}>
+                <div class="goal-list">
+                    <template for:each={goals} for:item="goal">
+                        <article key={goal.id} class={goal.cardClass}>
+                            <div class="goal-card__header">
+                                <div class="goal-card__title-block">
+                                    <h3 class="goal-name">{goal.name}</h3>
+                                    <template if:true={goal.hasSupportingMeta}>
+                                        <p class="goal-supporting-meta">{goal.supportingMeta}</p>
+                                    </template>
+                                </div>
+
+                                <div class="goal-badges">
+                                    <span class={goal.statusClass}>{goal.statusLabel}</span>
+                                    <span class={goal.targetBadgeClass}>{goal.targetBadgeLabel}</span>
+                                </div>
+                            </div>
+
+                            <p class="goal-description">{goal.displayDescription}</p>
+
+                            <div class="goal-progress-block">
+                                <div class="goal-progress-header">
+                                    <span class="goal-progress-title">Progress</span>
+                                    <span class="goal-progress-value">{goal.progressValue}%</span>
+                                </div>
+                                <lightning-progress-bar value={goal.progressValue} size="medium"></lightning-progress-bar>
+                                <div class="goal-progress-meta">
+                                    <span>{goal.progressLabel}</span>
+                                    <template if:true={goal.dateRangeLabel}>
+                                        <span>{goal.dateRangeLabel}</span>
+                                    </template>
+                                </div>
+                                <template if:true={goal.hasLastWorkedLabel}>
+                                    <p class="goal-last-worked">{goal.lastWorkedLabel}</p>
+                                </template>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+
+                <template if:true={hasInactiveGoals}>
+                    <p class="inactive-note slds-m-top_small">
+                        {inactiveGoalCount} inactive goal(s) remain available in the Treatment Plan.
+                    </p>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

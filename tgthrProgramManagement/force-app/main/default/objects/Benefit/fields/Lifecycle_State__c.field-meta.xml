@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Lifecycle_State__c</fullName>
+    <description>Tracks the versioning lifecycle of a Benefit record. Active = current; Replaced = superseded by a newer Benefit; Retired = permanently deactivated; Draft = not yet live.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Active = selectable for disbursements. Replaced = a newer version exists. Retired = no longer in use. Draft = not yet published.</inlineHelpText>
+    <label>Lifecycle State</label>
+    <required>false</required>
+    <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Draft</fullName>
+                <default>false</default>
+                <label>Draft</label>
+            </value>
+            <value>
+                <fullName>Active</fullName>
+                <default>true</default>
+                <label>Active</label>
+            </value>
+            <value>
+                <fullName>Retired</fullName>
+                <default>false</default>
+                <label>Retired</label>
+            </value>
+            <value>
+                <fullName>Replaced</fullName>
+                <default>false</default>
+                <label>Replaced</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

@@ -9,6 +9,7 @@
                 <lightning-tab label="ROIs" value="ROI" onactive={handleTabActive}></lightning-tab>
                 <lightning-tab label="Consents" value="Consent Form" onactive={handleTabActive}></lightning-tab>
                 <lightning-tab label="Mandatory Disclosure" value="Disclosure Form" onactive={handleTabActive}></lightning-tab>
+                <lightning-tab label="Other" value="Other" onactive={handleTabActive}></lightning-tab>
             </lightning-tabset>
 
             <template lwc:if={activeTabDocuments.length}>
@@ -89,6 +90,19 @@
                                     options={consentSubtypeOptions}
                                     onchange={handleSubtypeChange}>
                                 </lightning-combobox>
+                            </div>
+                        </template>
+
+                        <template lwc:if={showNameField}>
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                <lightning-input
+                                    type="text"
+                                    label="Name"
+                                    value={docName}
+                                    required
+                                    maxlength="255"
+                                    onchange={handleDocNameChange}>
+                                </lightning-input>
                             </div>
                         </template>
 

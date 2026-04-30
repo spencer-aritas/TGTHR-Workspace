@@ -21,7 +21,7 @@ public with sharing class BenefitAssignmentService {
                 ba.put('ParentRecordId', programEnrollmentId);
                 ba.put('Status', 'Enrolled');
                 ba.put('StartDateTime', Datetime.now());
-                ba.put('UnitId', benefit.get('UnitId'));
+                // UnitId does not exist on BenefitAssignment in this org; omit to avoid SObjectException.
                 
                 benefitAssignments.add(ba);
             }

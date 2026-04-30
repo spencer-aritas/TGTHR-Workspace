@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Generates_Interaction_Summary__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, a BenefitDisbursement for this benefit automatically creates a linked InteractionSummary (clinical note).</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Use for clinical and case management benefits that require a service note to be documented.</inlineHelpText>
+    <label>Generates Interaction Summary</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Emergency_Services_Involved__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Indicates emergency services (police, fire, EMS) were involved. Automatically notifies Care Team and creates follow-up Tasks.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Check if emergency services (police, fire, EMS) were called or responded.</inlineHelpText>
+    <label>Emergency Services Involved</label>
+    <trackHistory>true</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

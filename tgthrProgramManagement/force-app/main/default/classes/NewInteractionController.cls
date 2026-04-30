@@ -14,6 +14,7 @@ public with sharing class NewInteractionController {
         @AuraEnabled public String  notes;
         @AuraEnabled public String  interactionDate;  // "YYYY-MM-DD"
         @AuraEnabled public String  interactionTime;  // "HH:MM"
+        @AuraEnabled public Boolean notifyCareTeam;   // Send bell notification to Care Team
     }
 
     public class InteractionResult {
@@ -104,6 +105,21 @@ public with sharing class NewInteractionController {
             ];
             if (!openCases.isEmpty()) caseId = openCases[0].Id;
 
+            // ── Resolve active Program from enrollment ────────────────────────
+            Id resolvedProgramId = null;
+            try {
+                List<SObject> enrollments = Database.query(
+                    'SELECT ProgramId FROM ProgramEnrollment ' +
+                    'WHERE AccountId = :acctId AND IsActive = true ' +
+                    'ORDER BY CreatedDate DESC LIMIT 1'
+                );
+                if (!enrollments.isEmpty()) {
+                    resolvedProgramId = (Id) enrollments[0].get('ProgramId');
+                }
+            } catch (Exception enrollEx) {
+                System.debug('NewInteractionController: could not resolve program: ' + enrollEx.getMessage());
+            }
+
             // ── Build InteractionSummary ───────────────────────────────────────
             Map<String, Schema.SObjectField> fields = Schema.getGlobalDescribe()
                 .get('InteractionSummary')
@@ -117,13 +133,21 @@ public with sharing class NewInteractionController {
             interaction.put('Notify_Case_Manager__c', false);
             interaction.put('POS__c',                '27 - Outreach Site / Street');
 
+            Boolean careTeamFlag = req.notifyCareTeam == true;
+            if (fields.containsKey('notify_care_team__c')) {
+                interaction.put('Notify_Care_Team__c', careTeamFlag);
+            }
+
+            if (resolvedProgramId != null && fields.containsKey('program__c')) {
+                interaction.put('Program__c', resolvedProgramId);
+            }
             if (caseId != null) interaction.put('RelatedRecordId', caseId);
 
             if (String.isNotBlank(req.purpose) && fields.containsKey('interactionpurpose')) {
                 interaction.put('InteractionPurpose', req.purpose);
             }
-            if (String.isNotBlank(req.notes) && fields.containsKey('notes__c')) {
-                interaction.put('Notes__c', req.notes);
+            if (String.isNotBlank(req.notes) && fields.containsKey('meetingnotes')) {
+                interaction.put('MeetingNotes', req.notes);
             }
 
             // ── Parse time → Interaction_Time__c custom field ─────────────────
@@ -139,6 +163,20 @@ public with sharing class NewInteractionController {
             }
 
             insert interaction;
+
+            // Send Care Team bell notifications if flagged
+            if (careTeamFlag) {
+                String notifBody = currentUser.Name + ' logged an interaction for ' + participantName
+                    + ' on ' + formattedDate + '.';
+                if (String.isNotBlank(req.purpose)) {
+                    notifBody += ' Purpose: ' + req.purpose + '.';
+                }
+                CareTeamNotificationService.notifyCareTeam(
+                    acctId, interaction.Id,
+                    'Care Team Alert: New Interaction',
+                    notifBody
+                );
+            }
 
             result.recordId   = interaction.Id;
             result.recordName = title;

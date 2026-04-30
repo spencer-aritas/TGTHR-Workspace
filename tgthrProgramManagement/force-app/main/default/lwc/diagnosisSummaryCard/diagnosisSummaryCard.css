@@ -14,6 +14,16 @@
     --border-radius: 6px;
 }
 
+.diagnosis-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.diagnosis-card-title__icon {
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+
 /* Empty State */
 .empty-state {
     min-height: 120px;

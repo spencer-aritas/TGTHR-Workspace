@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Target_Record_Type__c</fullName>
+    <label>Target Record Type</label>
+    <description>API name of the target object (e.g. Interview__c, InteractionSummary)</description>
+    <type>Text</type>
+    <length>80</length>
+    <required>true</required>
+    <externalId>false</externalId>
+</CustomField>

@@ -8,6 +8,10 @@ public with sharing class GoalAssignmentController {
         @AuraEnabled public String objective; // Goal_Notes__c
         @AuraEnabled public Date startDate;
         @AuraEnabled public Date targetDate; // TargetCompletionDate
+        @AuraEnabled public Decimal currentProgress;
+        @AuraEnabled public Integer totalSessions;
+        @AuraEnabled public Date lastWorkedOn;
+        @AuraEnabled public String lastWorkedByName;
         @AuraEnabled public String frequency;
         @AuraEnabled public String priority;
         @AuraEnabled public String status;
@@ -27,8 +31,29 @@ public with sharing class GoalAssignmentController {
 
     private static List<GoalAssignmentDTO> queryGoalAssignments(Id caseId, Id accountId) {
         List<GoalAssignmentDTO> results = new List<GoalAssignmentDTO>();
+
+        Schema.DescribeSObjectResult goalAssignmentDescribe = Schema.getGlobalDescribe().get('GoalAssignment').getDescribe();
+        Map<String, Schema.SObjectField> fieldMap = goalAssignmentDescribe.fields.getMap();
+        Boolean hasCurrentProgress = fieldMap.containsKey('CurrentProgress__c');
+        Boolean hasTotalSessions = fieldMap.containsKey('TotalSessions__c');
+        Boolean hasLastWorkedOnDate = fieldMap.containsKey('LastWorkedOnDate__c');
         
-        String query = 'SELECT Id, CustomGoalName, Description, Service_Modality__c, Goal_Notes__c, StartDate, TargetCompletionDate, Frequency__c, Priority, Status, GoalAssigneeId, Case__c FROM GoalAssignment WHERE ';
+        List<String> selectFields = new List<String>{
+            'Id', 'CustomGoalName', 'Description', 'Service_Modality__c', 'Goal_Notes__c',
+            'StartDate', 'TargetCompletionDate', 'Frequency__c', 'Priority', 'Status',
+            'GoalAssigneeId', 'Case__c'
+        };
+        if (hasCurrentProgress) {
+            selectFields.add('CurrentProgress__c');
+        }
+        if (hasTotalSessions) {
+            selectFields.add('TotalSessions__c');
+        }
+        if (hasLastWorkedOnDate) {
+            selectFields.add('LastWorkedOnDate__c');
+        }
+
+        String query = 'SELECT ' + String.join(selectFields, ', ') + ' FROM GoalAssignment WHERE ';
         List<String> conditions = new List<String>();
         
         if (caseId != null) {
@@ -46,6 +71,26 @@ public with sharing class GoalAssignmentController {
         query += ' ORDER BY CreatedDate DESC';
         
         List<SObject> goals = Database.query(query);
+        Set<Id> goalIds = new Set<Id>();
+        for (SObject goal : goals) {
+            goalIds.add((Id)goal.get('Id'));
+        }
+
+        Map<Id, String> latestWorkedByNameByGoalId = new Map<Id, String>();
+        if (!goalIds.isEmpty()) {
+            for (SObject detail : Database.query(
+                'SELECT GoalAssignmentId, CreatedBy.Name ' +
+                'FROM GoalAssignmentDetail ' +
+                'WHERE GoalAssignmentId IN :goalIds ' +
+                'ORDER BY CreatedDate DESC'
+            )) {
+                Id goalId = (Id)detail.get('GoalAssignmentId');
+                if (!latestWorkedByNameByGoalId.containsKey(goalId)) {
+                    SObject createdBy = detail.getSObject('CreatedBy');
+                    latestWorkedByNameByGoalId.put(goalId, createdBy != null ? (String)createdBy.get('Name') : null);
+                }
+            }
+        }
         
         for (SObject goal : goals) {
             GoalAssignmentDTO dto = new GoalAssignmentDTO();
@@ -56,6 +101,11 @@ public with sharing class GoalAssignmentController {
             dto.objective = (String)goal.get('Goal_Notes__c');
             dto.startDate = (Date)goal.get('StartDate');
             dto.targetDate = (Date)goal.get('TargetCompletionDate');
+            dto.currentProgress = hasCurrentProgress ? (Decimal)goal.get('CurrentProgress__c') : 0;
+            Decimal totalSessions = hasTotalSessions ? (Decimal)goal.get('TotalSessions__c') : 0;
+            dto.totalSessions = totalSessions != null ? totalSessions.intValue() : 0;
+            dto.lastWorkedOn = hasLastWorkedOnDate ? (Date)goal.get('LastWorkedOnDate__c') : null;
+            dto.lastWorkedByName = latestWorkedByNameByGoalId.get((Id)goal.get('Id'));
             dto.frequency = (String)goal.get('Frequency__c');
             dto.priority = (String)goal.get('Priority');
             dto.status = (String)goal.get('Status');

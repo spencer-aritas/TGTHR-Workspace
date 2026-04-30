@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Goal_Linkage_Enabled__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, disbursements of this benefit can be linked to GoalAssignment progress updates.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Use for benefits that directly support measurable treatment plan goals.</inlineHelpText>
+    <label>Goal Linkage Enabled</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

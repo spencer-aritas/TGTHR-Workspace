@@ -20,6 +20,8 @@
     <!-- Apex Classes - Controllers -->
     <types>
         <members>ClinicalNoteController</members>
+        <members>BillingClearinghouseDispatchJob</members>
+        <members>BillingClearinghouseService</members>
         <members>CodeAssignmentController</members>
         <members>GoalAssignmentController</members>
         <members>InterviewSessionController</members>
@@ -32,6 +34,8 @@
     <!-- Apex Classes - Test Utilities -->
     <types>
         <members>AuditLogServiceTest</members>
+        <members>BillingClearinghouseServiceTest</members>
+        <members>BillingExportControllerTest</members>
         <members>BenefitAssignmentTest</members>
         <members>BenefitAssignmentTestUtil</members>
         <members>BenefitDisbursementServiceTest</members>
@@ -46,6 +50,7 @@
     <!-- Lightning Web Components -->
     <types>
         <members>asyncHelpers</members>
+        <members>billingExportBoard</members>
         <members>clinicalNoteForm</members>
         <members>codeAssignmentCreator</members>
         <members>contextBanner</members>
@@ -68,6 +73,11 @@
         <members>ssrsAssessment</members>
         <name>LightningComponentBundle</name>
     </types>
+    <!-- Object metadata updates -->
+    <types>
+        <members>Interaction_Service_Line__c.Billing_Status__c</members>
+        <name>CustomField</name>
+    </types>
     <!-- Aura Components -->
     <types>
         <members>InterviewSessionApp</members>
@@ -89,6 +99,5 @@
         <members>TGTHR Base Profile</members>
         <name>Profile</name>
     </types>
-    <!-- API Version (Salesforce v57.0 = Spring 2023) -->
-    <version>57.0</version>
+    <version>66.0</version>
 </Package>

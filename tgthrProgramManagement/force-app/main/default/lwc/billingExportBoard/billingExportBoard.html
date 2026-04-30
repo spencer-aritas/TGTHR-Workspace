@@ -1,0 +1,209 @@
+<template>
+    <lightning-card title="Billing Export" icon-name="standard:report">
+        <!-- Summary Bar -->
+        <div slot="actions">
+            <template lwc:if={hasRows}>
+                <span class="slds-m-right_medium slds-text-body_small">{summaryText}</span>
+            </template>
+            <lightning-button-group>
+                <lightning-button
+                    label="Export Billing Package"
+                    icon-name="utility:download"
+                    onclick={handleExportCsv}
+                    disabled={noRows}
+                ></lightning-button>
+                <lightning-button
+                    label="Send to Clearinghouse"
+                    icon-name="utility:upload"
+                    onclick={handleSendToClearinghouse}
+                    disabled={sendDisabled}
+                ></lightning-button>
+                <lightning-button
+                    label={exportPdfsLabel}
+                    icon-name="utility:file"
+                    onclick={handleExportPdfs}
+                    disabled={noPdfs}
+                ></lightning-button>
+                <lightning-button
+                    label="Update Status"
+                    icon-name="utility:edit"
+                    variant="neutral"
+                    onclick={handleBulkStatusClick}
+                    disabled={noSelection}
+                ></lightning-button>
+            </lightning-button-group>
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="slds-p-around_medium slds-border_bottom">
+            <div class="slds-grid slds-wrap slds-gutters_x-small">
+                <div class="slds-col slds-size_1-of-5 slds-p-bottom_x-small">
+                    <lightning-input
+                        type="date"
+                        label="Start Date"
+                        value={startDate}
+                        onchange={handleStartDateChange}
+                    ></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-5 slds-p-bottom_x-small">
+                    <lightning-input
+                        type="date"
+                        label="End Date"
+                        value={endDate}
+                        onchange={handleEndDateChange}
+                    ></lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-5 slds-p-bottom_x-small">
+                    <lightning-combobox
+                        label="Provider"
+                        value={selectedProvider}
+                        placeholder={providerPlaceholder}
+                        options={providerOptions}
+                        onchange={handleProviderChange}
+                    ></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-5 slds-p-bottom_x-small">
+                    <lightning-combobox
+                        label="Billing Status"
+                        value={selectedBillingStatus}
+                        options={billingStatusOptions}
+                        onchange={handleBillingStatusChange}
+                    ></lightning-combobox>
+                </div>
+                <div class="slds-col slds-size_1-of-5 slds-p-bottom_x-small">
+                    <lightning-combobox
+                        label="Note Type"
+                        value={selectedNoteType}
+                        options={noteTypeOptions}
+                        onchange={handleNoteTypeChange}
+                    ></lightning-combobox>
+                </div>
+            </div>
+            <!-- Active filter pills -->
+            <template lwc:if={hasActiveFilters}>
+                <div class="slds-m-top_x-small slds-p-vertical_xx-small">
+                    <template for:each={activeFilters} for:item="pill">
+                        <span key={pill.key} class="slds-badge slds-badge_lightest slds-m-right_xx-small">{pill.label}</span>
+                    </template>
+                </div>
+            </template>
+            <div class="slds-grid slds-m-top_small">
+                <lightning-button
+                    variant="brand"
+                    label="Search"
+                    icon-name="utility:search"
+                    onclick={handleSearch}
+                    class="slds-m-right_small"
+                ></lightning-button>
+                <lightning-button
+                    variant="neutral"
+                    label="Clear Filters"
+                    icon-name="utility:clear"
+                    onclick={handleClearFilters}
+                ></lightning-button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <template lwc:if={pdfExporting}>
+            <div class="slds-p-around_medium">
+                <p class="slds-m-bottom_x-small slds-text-body_small">{pdfProgressText}</p>
+                <lightning-progress-bar value={pdfProgressPercent} size="large"></lightning-progress-bar>
+            </div>
+        </template>
+        <template lwc:if={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </template>
+
+        <!-- Results Table -->
+        <template lwc:if={hasRows}>
+            <div class="slds-scrollable_x" style="max-height: 60vh; overflow-y: auto;">
+                <lightning-datatable
+                    key-field="serviceLineId"
+                    data={rows}
+                    columns={columns}
+                    sorted-by={sortedBy}
+                    sorted-direction={sortDirection}
+                    onsort={handleSort}
+                    onrowselection={handleRowSelection}
+                    show-row-number-column
+                    max-row-selection="2000"
+                    wrap-text-max-lines="3"
+                ></lightning-datatable>
+            </div>
+        </template>
+
+        <!-- Empty State -->
+        <template lwc:if={hasSearched}>
+            <template lwc:if={noRows}>
+                <template lwc:if={notLoading}>
+                    <div class="slds-p-around_large slds-text-align_center">
+                        <p class="slds-text-heading_small slds-text-color_weak">
+                            No service lines found matching your filters.
+                        </p>
+                    </div>
+                </template>
+            </template>
+        </template>
+    </lightning-card>
+
+    <!-- Hidden download anchors (Locker-safe) -->
+    <a data-id="csvDownload" class="slds-hide"></a>
+    <a data-id="pdfDownload" class="slds-hide"></a>
+
+    <!-- Bulk Status Update Modal -->
+    <template lwc:if={showBulkModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            class="slds-modal slds-fade-in-open"
+            aria-modal="true"
+            aria-labelledby="modal-heading"
+        >
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 id="modal-heading" class="slds-modal__title slds-hyphenate">
+                        Update Billing Status
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <!-- Warning box -->
+                    <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_medium" role="alert">
+                        <span class="slds-assistive-text">warning</span>
+                        <h2>You are about to update <strong>{selectionCount}</strong> service line(s). This cannot be undone.</h2>
+                    </div>
+                    <lightning-combobox
+                        label="New Billing Status"
+                        value={bulkNewStatus}
+                        options={bulkStatusOptions}
+                        onchange={handleBulkStatusChange}
+                        required
+                    ></lightning-combobox>
+                    <!-- Confirmation checkbox -->
+                    <div class="slds-m-top_medium">
+                        <lightning-input
+                            type="checkbox"
+                            label={confirmLabel}
+                            checked={bulkConfirmed}
+                            onchange={handleBulkConfirmChange}
+                        ></lightning-input>
+                    </div>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button
+                        label="Cancel"
+                        onclick={handleBulkModalCancel}
+                    ></lightning-button>
+                    <lightning-button
+                        variant="brand"
+                        label="Update"
+                        onclick={handleBulkModalConfirm}
+                        disabled={bulkUpdateDisabled}
+                        class="slds-m-left_x-small"
+                    ></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

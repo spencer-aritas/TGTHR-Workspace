@@ -59,6 +59,7 @@ export default class InteractionSummaryBoard extends LightningElement {
   @track meetingNotes = "";
   @track interactionDate = "";
   @track notifyCaseManager = false;
+  @track notifyCareTeam = false;
 
   // Pagination properties for convo
   @track convoCurrentPage = 1;
@@ -263,11 +264,13 @@ export default class InteractionSummaryBoard extends LightningElement {
       `;
       styleEl.appendChild(document.createTextNode(css));
 
-      // Append to the shadow root
-      this.template.querySelector(".conversation-section").appendChild(styleEl);
-
-      // Store a reference to avoid creating multiple style elements
-      this.bulletStyleElement = styleEl;
+      // Append to the shadow root (only if conversation-section exists)
+      const host = this.template.querySelector(".conversation-section");
+      if (host) {
+        host.appendChild(styleEl);
+        // Store a reference to avoid creating multiple style elements
+        this.bulletStyleElement = styleEl;
+      }
     }
   }
 
@@ -693,6 +696,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       MeetingNotes: r.MeetingNotes,
       CreatedBy_Name: r.CreatedBy_Name || null,
       Notify_Case_Manager__c: r.Notify_Case_Manager__c,
+      Notify_Care_Team__c: r.Notify_Care_Team__c,
       noteClass: r.Notify_Case_Manager__c ? "note note-attn" : "note",
       isPendingApproval: r.Requires_Manager_Approval__c === true && r.Manager_Signed__c !== true
     }));
@@ -1163,8 +1167,18 @@ export default class InteractionSummaryBoard extends LightningElement {
       parentInteractionId: recordId || ""
     };
 
-    // Reset form fields and form modified state
+    // Inherit Notify Care Team flag from parent interaction
+    if (recordId && this.convo) {
+      const parentRecord = this.convo.find((c) => c.Id === recordId);
+      if (parentRecord && parentRecord.Notify_Care_Team__c) {
+        this.notifyCareTeam = true;
+      }
+    }
+
+    // Reset form fields and form modified state (except notifyCareTeam when inherited)
+    const inheritedCareTeam = this.notifyCareTeam;
     this.resetModalFields();
+    this.notifyCareTeam = inheritedCareTeam;
     this.formModified = false; // Reset form modified state when opening a new form
 
     // Use explicit show method with minimal delay to ensure DOM is ready
@@ -1220,6 +1234,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
     this.interactionDate = `${year}-${month}-${day}`;
     this.notifyCaseManager = false;
+    this.notifyCareTeam = false;
 
     // Reset form modified state when opening a new form
     // We don't do this in closeModal because we need to check the state first
@@ -1297,6 +1312,9 @@ export default class InteractionSummaryBoard extends LightningElement {
     } else if (fieldName === "notify-case-manager") {
       this.notifyCaseManager = event.target.checked;
       console.log("Notify case manager updated to:", this.notifyCaseManager);
+    } else if (fieldName === "notify-care-team") {
+      this.notifyCareTeam = event.target.checked;
+      console.log("Notify care team updated to:", this.notifyCareTeam);
     }
   }
 
@@ -1735,7 +1753,8 @@ export default class InteractionSummaryBoard extends LightningElement {
         notes: this.meetingNotes,
         purpose: this.interactionPurpose,
         interactionDate: this.interactionDate,
-        notifyCaseManager: this.notifyCaseManager
+        notifyCaseManager: this.notifyCaseManager,
+        notifyCareTeam: this.notifyCareTeam
       };
 
       // Store the accountId for reselection
@@ -1765,7 +1784,8 @@ export default class InteractionSummaryBoard extends LightningElement {
         purpose: interactionData.purpose,
         interactionDate: interactionData.interactionDate,
         notifyCaseManager: interactionData.notifyCaseManager,
-        caseId: interactionData.caseId
+        caseId: interactionData.caseId,
+        notifyCareTeam: interactionData.notifyCareTeam
       });
 
       console.log("Record created successfully with ID:", recordId);

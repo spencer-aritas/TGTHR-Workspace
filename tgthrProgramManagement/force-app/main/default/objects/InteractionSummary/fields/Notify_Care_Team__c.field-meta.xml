@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Notify_Care_Team__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When true, bell notifications are sent to all Care Team members on the participant's active Case. Persists through follow-up child records.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Check to notify the entire Care Team about this interaction.</inlineHelpText>
+    <label>Notify Care Team</label>
+    <trackHistory>true</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

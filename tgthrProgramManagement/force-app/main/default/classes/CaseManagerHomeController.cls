@@ -73,12 +73,26 @@ public with sharing class CaseManagerHomeController {
     };
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CASELOAD: Cases owned by the current user
+    // CASELOAD: Cases owned by the current user OR where user is on Care Team
     // ─────────────────────────────────────────────────────────────────────────
 
     @AuraEnabled(cacheable=true)
     public static List<Map<String, Object>> getMyCases() {
         Id userId = UserInfo.getUserId();
+
+        // Collect Case IDs where the current user is a Care Team member
+        Set<Id> careTeamCaseIds = new Set<Id>();
+        try {
+            if (Schema.getGlobalDescribe().containsKey('careteammember__c')) {
+                for (SObject ctm : Database.query(
+                    'SELECT Case__c FROM CareTeamMember__c WHERE User__c = :userId'
+                )) {
+                    careTeamCaseIds.add((Id) ctm.get('Case__c'));
+                }
+            }
+        } catch (Exception e) {
+            System.debug('CaseManagerHome.getMyCases: CareTeamMember lookup failed — ' + e.getMessage());
+        }
 
         List<SObject> cases = Database.query(
             'SELECT Id, CaseNumber, AccountId, Status, ' +
@@ -87,7 +101,7 @@ public with sharing class CaseManagerHomeController {
             'Account.HMIS_Identifier_Number__pc, Account.PersonContactId, ' +
             'Account.Photo__pc, Account.PersonMobilePhone, Account.PersonPronouns ' +
             'FROM Case ' +
-            'WHERE OwnerId = :userId ' +
+            'WHERE (OwnerId = :userId OR Id IN :careTeamCaseIds) ' +
             'AND Status != \'Closed\' ' +
             'ORDER BY Account.LastName ASC, Account.FirstName ASC ' +
             'LIMIT 200'
@@ -1493,5 +1507,739 @@ public with sharing class CaseManagerHomeController {
         update acct;
 
         return System.URL.getOrgDomainURL().toExternalForm() + relUrl;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PENDING DROP-INS: Kiosk check-in queue for Case Managers
+    // Tasks created by DropInCheckInService for new / incomplete / suspicious
+    // visitors.  These appear in the "Pending Check-Ins" card so the CM can
+    // resolve them via one of two paths:
+    //   A) Match to Existing  — the visitor already has a record
+    //   B) New Person         — accept the kiosk-created account and complete intake
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Live account search used by the "Match to Existing" modal.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<Map<String, Object>> searchPersonAccounts(String searchTerm) {
+        List<Map<String, Object>> result = new List<Map<String, Object>>();
+        if (String.isBlank(searchTerm) || searchTerm.trim().length() < 2) return result;
+        try {
+            String nameWild = '%' + String.escapeSingleQuotes(searchTerm.trim()) + '%';
+            Id personRtId = Schema.SObjectType.Account
+                .getRecordTypeInfosByName().get('Person Account').getRecordTypeId();
+            List<Account> accounts = [
+                SELECT Id, FirstName, LastName, PersonEmail
+                FROM Account
+                WHERE RecordTypeId = :personRtId
+                AND (FirstName LIKE :nameWild OR LastName LIKE :nameWild OR Name LIKE :nameWild)
+                ORDER BY LastName, FirstName
+                LIMIT 10
+            ];
+            for (Account a : accounts) {
+                result.add(new Map<String, Object>{
+                    'accountId' => a.Id,
+                    'name'      => (a.LastName != null ? a.LastName : '') +
+                                   ', ' + (a.FirstName != null ? a.FirstName : ''),
+                    'email'     => a.PersonEmail
+                });
+            }
+        } catch (Exception e) {
+            System.debug('CaseManagerHome: searchPersonAccounts failed — ' + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Returns the kiosk Drop-In Day work queue:
+     *   1) Open Tasks  — fat-fingered "new" people / incomplete / suspicious
+     *      check-ins that need program-staff resolution (Match / New Person).
+     *   2) In-Progress kiosk InteractionSummary "shells" — clean returning
+     *      visitors whose visit notes still need to be filled in.
+     *
+     * Surfaced to all program staff (not just the kiosk-logged-in user).
+     */
+    @AuraEnabled(cacheable=false)
+    public static List<Map<String, Object>> getPendingDropIns() {
+        List<Map<String, Object>> result = new List<Map<String, Object>>();
+        try {
+            // ── 1. Open Drop-In Day tasks (cleanup queue) ────────────────────
+            List<Task> tasks = [
+                SELECT Id, Subject, WhatId, ActivityDate, CreatedDate,
+                       Description, Status, Priority, What.Name
+                FROM Task
+                WHERE Status NOT IN ('Completed', 'Deferred')
+                AND Subject LIKE 'Drop-In Day%'
+                ORDER BY CreatedDate DESC
+                LIMIT 50
+            ];
+
+            Set<Id> caseIds = new Set<Id>();
+            Set<Id> shellSkipCaseIds = new Set<Id>();
+            for (Task t : tasks) {
+                if (t.WhatId != null && String.valueOf(t.WhatId).startsWith('500')) {
+                    caseIds.add(t.WhatId);
+                    shellSkipCaseIds.add(t.WhatId);
+                }
+            }
+            Map<Id, SObject> caseMap = new Map<Id, SObject>();
+            if (!caseIds.isEmpty()) {
+                for (SObject c : Database.query(
+                    'SELECT Id, AccountId, ' +
+                    'Account.FirstName, Account.LastName, Account.Name ' +
+                    'FROM Case WHERE Id IN :caseIds'
+                )) {
+                    caseMap.put((Id) c.get('Id'), c);
+                }
+            }
+
+            for (Task t : tasks) {
+                SObject relCase = t.WhatId != null ? caseMap.get(t.WhatId) : null;
+                SObject account = relCase != null ? relCase.getSObject('Account') : null;
+                result.add(new Map<String, Object>{
+                    'kind'           => 'TASK',
+                    'taskId'         => t.Id,
+                    'subject'        => t.Subject,
+                    'date'           => t.ActivityDate,
+                    'createdDate'    => t.CreatedDate,
+                    'description'    => t.Description,
+                    'priority'       => t.Priority,
+                    'caseId'         => t.WhatId,
+                    'caseName'       => t.What != null ? t.What.Name : '',
+                    'accountId'      => relCase != null ? (Id) relCase.get('AccountId') : null,
+                    'accountName'    => account != null ? (String) account.get('Name') : '',
+                    'isHighPriority' => t.Priority == 'High'
+                });
+            }
+
+            // ── 2. Kiosk InteractionSummary shells (returning matches) ───────
+            // Skip ones whose Case already has a Task in the queue above —
+            // those will be resolved through the Task path instead.
+            try {
+                Date cutoff = Date.today().addDays(-14);
+                String soql =
+                    'SELECT Id, Name, AccountId, Account.Name, RelatedRecordId, ' +
+                    '       Date_of_Interaction__c, CreatedDate, MeetingNotes ' +
+                    'FROM InteractionSummary ' +
+                    'WHERE InteractionPurpose = \'Drop-In Check-In\' ' +
+                    'AND Status = \'In Progress\' ' +
+                    'AND Date_of_Interaction__c >= :cutoff ' +
+                    'ORDER BY CreatedDate DESC LIMIT 50';
+                for (SObject iSum : Database.query(soql)) {
+                    Id relCaseId = (Id) iSum.get('RelatedRecordId');
+                    if (relCaseId != null && shellSkipCaseIds.contains(relCaseId)) continue;
+                    SObject acct = iSum.getSObject('Account');
+                    result.add(new Map<String, Object>{
+                        'kind'           => 'SHELL',
+                        'interactionId' => (Id) iSum.get('Id'),
+                        'subject'        => 'Fill in visit details',
+                        'date'           => iSum.get('Date_of_Interaction__c'),
+                        'createdDate'    => iSum.get('CreatedDate'),
+                        'description'    => iSum.get('MeetingNotes'),
+                        'priority'       => 'Normal',
+                        'caseId'         => relCaseId,
+                        'accountId'      => (Id) iSum.get('AccountId'),
+                        'accountName'    => acct != null ? (String) acct.get('Name') : '',
+                        'isHighPriority' => false
+                    });
+                }
+            } catch (Exception ie) {
+                System.debug('CaseManagerHome: getPendingDropIns InteractionSummary shells skipped — '
+                    + ie.getMessage());
+            }
+        } catch (Exception e) {
+            System.debug('CaseManagerHome: getPendingDropIns failed — ' + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Resolution path A — visitor already has a record in Salesforce.
+     * Disburses a Drop-In Day for the CORRECT account and creates an
+     * InteractionSummary, then marks the pending task Completed.
+     */
+    @AuraEnabled
+    public static Map<String, Object> resolveDropInMatchExisting(
+        String taskId, String correctAccountId, String staffUserId
+    ) {
+        Map<String, Object> res = new Map<String, Object>{ 'success' => false };
+        try {
+            Id correctAccId = Id.valueOf(correctAccountId);
+
+            // Find the correct open Case
+            List<Case> cases = [
+                SELECT Id FROM Case
+                WHERE AccountId = :correctAccId AND IsClosed = false
+                ORDER BY CreatedDate DESC LIMIT 1
+            ];
+            if (cases.isEmpty()) {
+                res.put('message', 'No open case found for the selected account.');
+                return res;
+            }
+            Id caseId = cases[0].Id;
+
+            // Find Drop-In program
+            List<SObject> progs = Database.query(
+                'SELECT Id FROM Program ' +
+                'WHERE (Name LIKE \'%Drop-In%\' OR Name LIKE \'%Drop In%\' OR Name LIKE \'%Outreach%\') ' +
+                'AND Status = \'Active\' LIMIT 1'
+            );
+            if (progs.isEmpty()) {
+                progs = Database.query(
+                    'SELECT Id FROM Program WHERE Status = \'Active\' LIMIT 1'
+                );
+            }
+            if (progs.isEmpty()) {
+                res.put('message', 'Drop-In program not found.');
+                return res;
+            }
+            Id programId = (Id) progs[0].get('Id');
+
+            // Ensure ProgramEnrollment
+            List<SObject> existingEnroll = Database.query(
+                'SELECT Id FROM ProgramEnrollment ' +
+                'WHERE AccountId = :correctAccId AND ProgramId = :programId ' +
+                'AND Status IN (\'Enrolled\',\'Active\') LIMIT 1'
+            );
+            if (existingEnroll.isEmpty()) {
+                SObject pe = (SObject) Type.forName('ProgramEnrollment').newInstance();
+                pe.put('AccountId', correctAccId);
+                pe.put('ProgramId', programId);
+                pe.put('Status', 'Enrolled');
+                pe.put('StartDate', Date.today());
+                pe.put('Case__c', caseId);
+                insert pe;
+            }
+
+            // Disburse Drop-In Day
+            List<SObject> benefits = Database.query(
+                'SELECT Id FROM Benefit WHERE ProgramId = :programId AND IsActive = true ' +
+                'AND (Name LIKE \'%Drop-In Day%\' OR Name LIKE \'%Drop In Day%\') LIMIT 1'
+            );
+            if (benefits.isEmpty()) {
+                benefits = Database.query(
+                    'SELECT Id FROM Benefit WHERE ProgramId = :programId AND IsActive = true LIMIT 1'
+                );
+            }
+            if (!benefits.isEmpty()) {
+                BenefitDisbursementService.DisburseRequest req =
+                    new BenefitDisbursementService.DisburseRequest();
+                req.participantAccountIds = new List<String>{ correctAccountId };
+                req.programId = String.valueOf(programId);
+                req.benefitId = (String) benefits[0].get('Id');
+                req.serviceDate = String.valueOf(Date.today());
+                req.quantity = 1;
+                req.ensureAssignment = true;
+                req.notes = 'Drop-In Day \u2014 resolved from kiosk check-in queue';
+                BenefitDisbursementService.createDisbursements(req);
+            }
+
+            // Create InteractionSummary on the correct account
+            Account a = [SELECT FirstName, LastName FROM Account WHERE Id = :correctAccId LIMIT 1];
+            String participantName =
+                (String.isNotBlank(a.LastName) ? a.LastName : '?') + ', ' +
+                (String.isNotBlank(a.FirstName) ? a.FirstName : '?');
+            Date svcDate = Date.today();
+            String mm = (svcDate.month() < 10 ? '0' : '') + String.valueOf(svcDate.month());
+            String dd = (svcDate.day()   < 10 ? '0' : '') + String.valueOf(svcDate.day());
+            String staffName = 'Case Manager';
+            if (String.isNotBlank(staffUserId)) {
+                List<User> su = [SELECT Name FROM User WHERE Id = :Id.valueOf(staffUserId) LIMIT 1];
+                if (!su.isEmpty()) staffName = su[0].Name;
+            }
+            String title = participantName + ' - ' + mm + '/' + dd + '/' +
+                String.valueOf(svcDate.year()) + ' - ' + staffName;
+
+            SObject interaction = Schema.getGlobalDescribe()
+                .get('InteractionSummary').newSObject();
+            interaction.put('Name',                  title);
+            interaction.put('AccountId',             correctAccId);
+            interaction.put('RelatedRecordId',       caseId);
+            interaction.put('Program__c',            programId);
+            interaction.put('InteractionPurpose',    'Drop-In Check-In');
+            interaction.put('MeetingNotes',
+                'Drop-In Day resolved from kiosk pending queue. Please fill in the details of this visit.');
+            interaction.put('Date_of_Interaction__c', svcDate);
+            interaction.put('Status',                'In Progress');
+            interaction.put('POS__c',                '27 - Outreach Site / Street');
+            if (String.isNotBlank(staffUserId)) {
+                try { interaction.put('OwnerId', Id.valueOf(staffUserId)); } catch (Exception oe) {}
+            }
+            insert interaction;
+
+            // Complete the pending task
+            update new Task(Id = Id.valueOf(taskId), Status = 'Completed');
+
+            res.put('success',       true);
+            res.put('accountId',     correctAccountId);
+            res.put('caseId',        String.valueOf(caseId));
+            res.put('interactionId', String.valueOf(interaction.get('Id')));
+        } catch (Exception e) {
+            System.debug('CaseManagerHome: resolveDropInMatchExisting failed — ' + e.getMessage());
+            res.put('message', e.getMessage());
+        }
+        return res;
+    }
+
+    /**
+     * Resolution path B — visitor is genuinely a new person.
+     * Marks the pending task Completed and returns the kiosk-created
+     * account / case IDs so the LWC can launch the Complete Intake flow.
+     */
+    @AuraEnabled
+    public static Map<String, Object> resolveDropInNewPerson(String taskId) {
+        Map<String, Object> res = new Map<String, Object>{ 'success' => false };
+        try {
+            Task t = [SELECT Id, WhatId FROM Task WHERE Id = :Id.valueOf(taskId) LIMIT 1];
+            update new Task(Id = t.Id, Status = 'Completed');
+
+            // Derive accountId from the Case
+            Id caseId = t.WhatId;
+            Id accountId;
+            if (caseId != null) {
+                List<Case> cases = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+                if (!cases.isEmpty()) accountId = cases[0].AccountId;
+            }
+
+            res.put('success',   true);
+            res.put('caseId',    caseId != null ? String.valueOf(caseId) : null);
+            res.put('accountId', accountId != null ? String.valueOf(accountId) : null);
+        } catch (Exception e) {
+            System.debug('CaseManagerHome: resolveDropInNewPerson failed — ' + e.getMessage());
+            res.put('message', e.getMessage());
+        }
+        return res;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // DROP-IN SHELL RESOLUTION
+    // Used by the dropInShellModal LWC on Case Manager Home to fill in / publish
+    // a kiosk-created InteractionSummary without leaving the dashboard.
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Hydrate everything the modal needs in one round-trip:
+     *   - InteractionSummary core fields
+     *   - Linked Case + Account (and Program)
+     *   - Available Benefits for the program (active only)
+     *   - Existing BenefitDisbursements already on this IS
+     *   - Existing Care Team members on the case
+     *   - Allowed InteractionPurpose picklist values
+     */
+    @AuraEnabled
+    public static Map<String, Object> getDropInShellDetails(Id interactionId) {
+        Map<String, Object> out = new Map<String, Object>();
+        try {
+            // 1. Core IS + linked Case + Account
+            String soql =
+                'SELECT Id, Name, AccountId, Account.Name, Account.FirstName, Account.LastName, ' +
+                '       Account.PersonEmail, Account.PersonMobilePhone, Account.PersonBirthdate, ' +
+                '       RelatedRecordId, InteractionPurpose, MeetingNotes, Date_of_Interaction__c, ' +
+                '       POS__c, Status, Program__c, Program__r.Name ' +
+                'FROM InteractionSummary WHERE Id = :interactionId LIMIT 1';
+            List<SObject> rows = Database.query(soql);
+            if (rows.isEmpty()) throw new AuraHandledException('Interaction not found.');
+            SObject iSum = rows[0];
+            SObject acct = iSum.getSObject('Account');
+            Id caseId    = (Id) iSum.get('RelatedRecordId');
+            Id accountId = (Id) iSum.get('AccountId');
+            Id programId = (Id) iSum.get('Program__c');
+
+            Map<String, Object> isMap = new Map<String, Object>{
+                'id'             => iSum.get('Id'),
+                'name'           => iSum.get('Name'),
+                'accountId'      => accountId,
+                'accountName'    => acct != null ? acct.get('Name') : null,
+                'accountEmail'   => acct != null ? acct.get('PersonEmail') : null,
+                'accountPhone'   => acct != null ? acct.get('PersonMobilePhone') : null,
+                'accountDob'     => acct != null ? acct.get('PersonBirthdate') : null,
+                'caseId'         => caseId,
+                'purpose'        => iSum.get('InteractionPurpose'),
+                'notes'          => iSum.get('MeetingNotes'),
+                'pos'            => iSum.get('POS__c'),
+                'status'         => iSum.get('Status'),
+                'date'           => iSum.get('Date_of_Interaction__c'),
+                'programId'      => programId,
+                'programName'    => iSum.getSObject('Program__r') != null
+                    ? iSum.getSObject('Program__r').get('Name') : null
+            };
+            out.put('interaction', isMap);
+
+            // 2. Allowed InteractionPurpose picklist values
+            List<Map<String, String>> purposeOpts = new List<Map<String, String>>();
+            try {
+                Schema.DescribeFieldResult df = InteractionSummary.InteractionPurpose.getDescribe();
+                for (Schema.PicklistEntry pe : df.getPicklistValues()) {
+                    if (pe.isActive()) {
+                        purposeOpts.add(new Map<String, String>{
+                            'label' => pe.getLabel(), 'value' => pe.getValue()
+                        });
+                    }
+                }
+            } catch (Exception pe) {
+                System.debug('CMH.getDropInShellDetails: purpose picklist failed — ' + pe.getMessage());
+            }
+            out.put('purposeOptions', purposeOpts);
+
+            // 3. Available Benefits for the program (active only)
+            List<Map<String, Object>> benefits = new List<Map<String, Object>>();
+            if (programId != null) {
+                String benefitSoql =
+                    'SELECT Id, Name, BenefitType.Name FROM Benefit ' +
+                    'WHERE ProgramId = :programId AND IsActive = true ' +
+                    'ORDER BY Name LIMIT 200';
+                for (SObject b : Database.query(benefitSoql)) {
+                    SObject bt = b.getSObject('BenefitType');
+                    benefits.add(new Map<String, Object>{
+                        'id'       => b.get('Id'),
+                        'name'     => b.get('Name'),
+                        'typeName' => bt != null ? (String) bt.get('Name') : ''
+                    });
+                }
+            }
+            out.put('availableBenefits', benefits);
+
+            // 4a. Auto-link kiosk Drop-In Day disbursement to this IS.
+            //     The kiosk creates the disbursement BEFORE the IS exists, so it
+            //     has no InteractionSummary__c link yet. Find any disbursement on
+            //     this Account+Program from today that isn't yet linked, and link it.
+            Set<Id> lockedBenefitIds = new Set<Id>();
+            if (accountId != null && programId != null) {
+                try {
+                    Datetime dayStart = Datetime.newInstance(Date.today(), Time.newInstance(0,0,0,0));
+                    String linkSoql =
+                        'SELECT Id, BenefitAssignment.BenefitId ' +
+                        'FROM BenefitDisbursement ' +
+                        'WHERE InteractionSummary__c = null ' +
+                        '  AND BenefitAssignment.ProgramEnrollment.AccountId = :accountId ' +
+                        '  AND BenefitAssignment.ProgramEnrollment.ProgramId = :programId ' +
+                        '  AND CreatedDate >= :dayStart ' +
+                        'ORDER BY CreatedDate DESC LIMIT 5';
+                    List<SObject> orphanDisbs = Database.query(linkSoql);
+                    if (!orphanDisbs.isEmpty()) {
+                        List<SObject> linkUpd = new List<SObject>();
+                        for (SObject d : orphanDisbs) {
+                            SObject u = Schema.getGlobalDescribe().get('BenefitDisbursement').newSObject();
+                            u.put('Id', d.get('Id'));
+                            u.put('InteractionSummary__c', interactionId);
+                            linkUpd.add(u);
+                            SObject ba = d.getSObject('BenefitAssignment');
+                            if (ba != null && ba.get('BenefitId') != null) {
+                                lockedBenefitIds.add((Id) ba.get('BenefitId'));
+                            }
+                        }
+                        update linkUpd;
+                    }
+                } catch (Exception linkErr) {
+                    System.debug('CMH.getDropInShellDetails: auto-link disbursement failed — ' + linkErr.getMessage());
+                }
+            }
+            out.put('lockedBenefitIds', new List<Id>(lockedBenefitIds));
+
+            // 4b. Existing disbursements on this IS (after auto-link above)
+            List<Map<String, Object>> disbs = new List<Map<String, Object>>();
+            try {
+                String disbSoql =
+                    'SELECT Id, Name, BenefitAssignment.Benefit.Name, ' +
+                    '       BenefitAssignment.Benefit.BenefitType.Name, ' +
+                    '       Quantity, StartDate ' +
+                    'FROM BenefitDisbursement WHERE InteractionSummary__c = :interactionId ' +
+                    'ORDER BY CreatedDate ASC';
+                for (SObject d : Database.query(disbSoql)) {
+                    SObject ba = d.getSObject('BenefitAssignment');
+                    SObject bn = ba != null ? ba.getSObject('Benefit') : null;
+                    SObject bt = bn != null ? bn.getSObject('BenefitType') : null;
+                    disbs.add(new Map<String, Object>{
+                        'id'        => d.get('Id'),
+                        'name'      => d.get('Name'),
+                        'benefit'   => bn != null ? (String) bn.get('Name') : '',
+                        'typeName'  => bt != null ? (String) bt.get('Name') : '',
+                        'quantity'  => d.get('Quantity'),
+                        'startDate' => d.get('StartDate')
+                    });
+                }
+            } catch (Exception de) {
+                System.debug('CMH.getDropInShellDetails: disbursement load failed — ' + de.getMessage());
+            }
+            out.put('disbursements', disbs);
+
+            // 5. Auto-add the running case manager to the Care Team (silent, no notify)
+            //    then load the full team for display.
+            if (caseId != null && Schema.getGlobalDescribe().containsKey('careteammember__c')) {
+                try {
+                    CareTeamService.ensureMember(caseId, UserInfo.getUserId(), null);
+                } catch (Exception cmErr) {
+                    System.debug('CMH.getDropInShellDetails: auto-add case manager failed — ' + cmErr.getMessage());
+                }
+            }
+            List<Map<String, Object>> careTeam = new List<Map<String, Object>>();
+            if (caseId != null && Schema.getGlobalDescribe().containsKey('careteammember__c')) {
+                try {
+                    String ctSoql =
+                        'SELECT Id, User__c, User__r.Name, User__r.Title, Role__c ' +
+                        'FROM CareTeamMember__c WHERE Case__c = :caseId';
+                    for (SObject m : Database.query(ctSoql)) {
+                        SObject u = m.getSObject('User__r');
+                        careTeam.add(new Map<String, Object>{
+                            'id'       => m.get('Id'),
+                            'userId'   => m.get('User__c'),
+                            'userName' => u != null ? (String) u.get('Name') : '',
+                            'title'    => u != null ? (String) u.get('Title') : '',
+                            'role'     => m.get('Role__c')
+                        });
+                    }
+                } catch (Exception ce) {
+                    System.debug('CMH.getDropInShellDetails: care team load failed — ' + ce.getMessage());
+                }
+            }
+            out.put('careTeam', careTeam);
+
+            return out;
+        } catch (AuraHandledException ahe) {
+            throw ahe;
+        } catch (Exception e) {
+            System.debug('CMH.getDropInShellDetails failed — ' + e.getMessage());
+            throw new AuraHandledException('Failed to load check-in details: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * Patch the InteractionSummary core fields (notes, purpose, POS),
+     * add any selected benefits as disbursements, and optionally publish.
+     * One round-trip from Save Draft / Save & Publish.
+     */
+    @AuraEnabled
+    public static void saveDropInShell(
+        Id interactionId, String notes, String purpose, String pos,
+        List<Id> benefitIdsToAdd, Boolean publish
+    ) {
+        try {
+            SObject upd = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
+            upd.put('Id', interactionId);
+            if (notes  != null) upd.put('MeetingNotes', notes);
+            if (purpose != null && purpose != '') upd.put('InteractionPurpose', purpose);
+            if (pos     != null && pos     != '') upd.put('POS__c', pos);
+            if (publish == true) {
+                upd.put('Status', 'Published');
+                try { upd.put('Completed_On__c', System.now()); } catch (Exception ign) {}
+            }
+            update upd;
+            if (benefitIdsToAdd != null && !benefitIdsToAdd.isEmpty()) {
+                addDropInDisbursements(interactionId, benefitIdsToAdd);
+            }
+        } catch (Exception e) {
+            System.debug('CMH.saveDropInShell failed — ' + e.getMessage());
+            throw new AuraHandledException('Save failed: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * Add one BenefitDisbursement per benefit selected, all linked to this IS.
+     * Uses BenefitDisbursementService.createDisbursements with ensureAssignment=true
+     * so missing BenefitAssignments are created on the fly.
+     */
+    @AuraEnabled
+    public static List<BenefitDisbursementService.DisburseResult> addDropInDisbursements(
+        Id interactionId, List<Id> benefitIds
+    ) {
+        if (benefitIds == null || benefitIds.isEmpty()) return new List<BenefitDisbursementService.DisburseResult>();
+        try {
+            List<SObject> rows = Database.query(
+                'SELECT Id, AccountId, Program__c FROM InteractionSummary ' +
+                'WHERE Id = :interactionId LIMIT 1'
+            );
+            if (rows.isEmpty()) throw new AuraHandledException('Interaction not found.');
+            Id accountId = (Id) rows[0].get('AccountId');
+            Id programId = (Id) rows[0].get('Program__c');
+            if (accountId == null || programId == null) {
+                throw new AuraHandledException('Interaction is missing Account or Program — cannot add services.');
+            }
+
+            List<BenefitDisbursementService.DisburseResult> all =
+                new List<BenefitDisbursementService.DisburseResult>();
+            for (Id benefitId : benefitIds) {
+                BenefitDisbursementService.DisburseRequest req =
+                    new BenefitDisbursementService.DisburseRequest();
+                req.participantAccountIds  = new List<String>{ String.valueOf(accountId) };
+                req.programId              = String.valueOf(programId);
+                req.benefitId              = String.valueOf(benefitId);
+                req.quantity               = 1;
+                req.serviceDate            = String.valueOf(Date.today());
+                req.ensureAssignment       = true;
+                req.interactionSummaryId   = String.valueOf(interactionId);
+                all.addAll(BenefitDisbursementService.createDisbursements(req));
+            }
+            return all;
+        } catch (AuraHandledException ahe) {
+            throw ahe;
+        } catch (Exception e) {
+            System.debug('CMH.addDropInDisbursements failed — ' + e.getMessage());
+            throw new AuraHandledException('Add services failed: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * Remove a single BenefitDisbursement from this IS (used when CM mis-clicks).
+     */
+    @AuraEnabled
+    public static void removeDropInDisbursement(Id disbursementId) {
+        try {
+            delete new BenefitDisbursement(Id = disbursementId);
+        } catch (Exception e) {
+            System.debug('CMH.removeDropInDisbursement failed — ' + e.getMessage());
+            throw new AuraHandledException('Remove failed: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * Re-parent a kiosk-stub IS to a different Person Account.
+     * Strategy:
+     *   1. Find/create an open Case on the target account (uses kiosk Case's program if needed)
+     *   2. Update IS.AccountId + IS.RelatedRecordId
+     *   3. If the original kiosk Account/Case have no other references, delete them.
+     *      Otherwise close the kiosk Case and append a re-parent note.
+     */
+    @AuraEnabled
+    public static Map<String, Object> reparentDropInShell(
+        Id interactionId, Id correctAccountId
+    ) {
+        Map<String, Object> res = new Map<String, Object>{ 'success' => false };
+        try {
+            List<SObject> isRows = Database.query(
+                'SELECT Id, AccountId, RelatedRecordId, Program__c, MeetingNotes ' +
+                'FROM InteractionSummary WHERE Id = :interactionId LIMIT 1'
+            );
+            if (isRows.isEmpty()) throw new AuraHandledException('Interaction not found.');
+            SObject iSum = isRows[0];
+            Id oldAccountId = (Id) iSum.get('AccountId');
+            Id oldCaseId    = (Id) iSum.get('RelatedRecordId');
+            Id programId    = (Id) iSum.get('Program__c');
+
+            if (correctAccountId == oldAccountId) {
+                throw new AuraHandledException('Already parented to that account.');
+            }
+
+            // Find an open Case on the target account; prefer same program
+            Id targetCaseId;
+            List<Case> targetCases = [
+                SELECT Id, Status FROM Case
+                WHERE AccountId = :correctAccountId
+                AND Status NOT IN ('Closed', 'Cancelled')
+                ORDER BY CreatedDate DESC LIMIT 1
+            ];
+            if (!targetCases.isEmpty()) {
+                targetCaseId = targetCases[0].Id;
+            } else {
+                // Create a lightweight case for them
+                Case c = new Case(
+                    AccountId = correctAccountId,
+                    Subject   = 'Drop-In Visit (re-parented)',
+                    Status    = 'New',
+                    Origin    = 'Drop-In'
+                );
+                insert c;
+                targetCaseId = c.Id;
+            }
+
+            // Move the IS
+            SObject upd = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
+            upd.put('Id', interactionId);
+            upd.put('AccountId', correctAccountId);
+            upd.put('RelatedRecordId', targetCaseId);
+            update upd;
+
+            // Decide what to do with the orphan kiosk Account + Case
+            Boolean kioskDeleted = false;
+            if (oldAccountId != null) {
+                Integer otherRefs = [
+                    SELECT COUNT() FROM InteractionSummary
+                    WHERE AccountId = :oldAccountId AND Id != :interactionId
+                ];
+                if (otherRefs == 0) {
+                    try {
+                        if (oldCaseId != null) delete new Case(Id = oldCaseId);
+                        delete new Account(Id = oldAccountId);
+                        kioskDeleted = true;
+                    } catch (Exception delErr) {
+                        System.debug('CMH.reparentDropInShell delete failed — ' + delErr.getMessage());
+                    }
+                }
+                if (!kioskDeleted && oldCaseId != null) {
+                    try {
+                        update new Case(
+                            Id = oldCaseId,
+                            Status = 'Closed',
+                            Description = 'Closed: re-parented to Account ' + correctAccountId
+                        );
+                    } catch (Exception cErr) {
+                        System.debug('CMH.reparentDropInShell close case failed — ' + cErr.getMessage());
+                    }
+                }
+            }
+
+            res.put('success',       true);
+            res.put('newCaseId',     targetCaseId);
+            res.put('kioskDeleted',  kioskDeleted);
+            res.put('interactionId', interactionId);
+        } catch (AuraHandledException ahe) {
+            throw ahe;
+        } catch (Exception e) {
+            System.debug('CMH.reparentDropInShell failed — ' + e.getMessage());
+            throw new AuraHandledException('Re-parent failed: ' + e.getMessage());
+        }
+        return res;
+    }
+
+    /**
+     * Mark a kiosk-stub IS as bad-data / fake-name.
+     *   - IS.Status = 'Cancelled' (falls back to Draft + prefixed notes if picklist rejects)
+     *   - IS.MeetingNotes prepended with [BAD DATA] reason
+     *   - Kiosk Case closed with reason in Description
+     *   - Kiosk Account left intact (admin can purge later) since deleting may
+     *     orphan disbursements from other intentional check-ins.
+     */
+    @AuraEnabled
+    public static void markDropInShellAsBadData(Id interactionId, String reason) {
+        try {
+            String safeReason = String.isBlank(reason) ? 'No reason provided' : reason.trim();
+            List<SObject> rows = Database.query(
+                'SELECT Id, RelatedRecordId, MeetingNotes FROM InteractionSummary ' +
+                'WHERE Id = :interactionId LIMIT 1'
+            );
+            if (rows.isEmpty()) throw new AuraHandledException('Interaction not found.');
+            SObject iSum = rows[0];
+            String existingNotes = (String) iSum.get('MeetingNotes');
+            String prefixed = '[BAD DATA] ' + safeReason +
+                (String.isBlank(existingNotes) ? '' : '\n\n--- Original kiosk notes ---\n' + existingNotes);
+
+            SObject upd = Schema.getGlobalDescribe().get('InteractionSummary').newSObject();
+            upd.put('Id', interactionId);
+            upd.put('MeetingNotes', prefixed);
+            try {
+                upd.put('Status', 'Cancelled');
+            } catch (Exception statusErr) {
+                System.debug('CMH.markDropInShellAsBadData: Status=Cancelled rejected, leaving Status as-is.');
+            }
+            update upd;
+
+            Id caseId = (Id) iSum.get('RelatedRecordId');
+            if (caseId != null) {
+                try {
+                    update new Case(
+                        Id = caseId,
+                        Status = 'Closed',
+                        Description = '[BAD DATA] ' + safeReason
+                    );
+                } catch (Exception cErr) {
+                    System.debug('CMH.markDropInShellAsBadData close case failed — ' + cErr.getMessage());
+                }
+            }
+        } catch (AuraHandledException ahe) {
+            throw ahe;
+        } catch (Exception e) {
+            System.debug('CMH.markDropInShellAsBadData failed — ' + e.getMessage());
+            throw new AuraHandledException('Mark bad data failed: ' + e.getMessage());
+        }
     }
 }

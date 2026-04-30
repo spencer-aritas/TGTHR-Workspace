@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Care Team Member</label>
+    <pluralLabel>Care Team Members</pluralLabel>
+    <nameField>
+        <label>Care Team Member Name</label>
+        <type>AutoNumber</type>
+        <displayFormat>CTM-{0000}</displayFormat>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ControlledByParent</sharingModel>
+    <description>Junction object linking a User to a Case as part of the Care Team. Lightweight alternative to standard Case Teams.</description>
+</CustomObject>

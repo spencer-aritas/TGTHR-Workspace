@@ -165,7 +165,8 @@ public with sharing class InteractionSummaryService {
     String purpose,
     String interactionDate,
     Boolean notifyCaseManager,
-    String caseId
+    String caseId,
+    Boolean notifyCareTeam
   ) {
     try {
       System.debug(
@@ -336,6 +337,16 @@ public with sharing class InteractionSummaryService {
         notifyCaseManager != null ? notifyCaseManager : false
       );
 
+      // Persist Care Team elevation flag through child records
+      Boolean careTeamFlag = notifyCareTeam != null ? notifyCareTeam : false;
+      Map<String, Schema.SObjectField> fieldMap = Schema.getGlobalDescribe()
+        .get('InteractionSummary')
+        .getDescribe()
+        .fields.getMap();
+      if (careTeamFlag && fieldMap.containsKey('notify_care_team__c')) {
+        newInteraction.put('Notify_Care_Team__c', true);
+      }
+
       // Set the Name field (which appears as Title in the UI)
       System.debug('Setting Name field with value: ' + title);
       newInteraction.put('Name', title);
@@ -426,6 +437,17 @@ public with sharing class InteractionSummaryService {
       insert newInteraction;
 
       System.debug('New interaction created with ID: ' + newInteraction.Id);
+
+      // Send Care Team notification if flagged
+      if (notifyCareTeam == true && String.isNotBlank(accountId)) {
+        try {
+          String notifTitle = 'New Interaction Summary - ' + participantName;
+          String notifBody = staffName + ' logged a ' + purpose + ' on ' + formattedDate;
+          CareTeamNotificationService.notifyCareTeam(accountId, newInteraction.Id, notifTitle, notifBody);
+        } catch (Exception notifEx) {
+          System.debug('Care Team notification failed: ' + notifEx.getMessage());
+        }
+      }
 
       // Return the ID of the created record
       return (String) newInteraction.Id;
@@ -566,22 +588,25 @@ public with sharing class InteractionSummaryService {
     
     System.debug('recentByProgramId: programId=' + programId + ', daysBack=' + d + ', maxRows=' + m + ', startDate=' + startDate);
     
-    // Note types that should appear in Documentation Hub, not Interaction History
-    List<String> hubNoteTypes = new List<String>{'Clinical Note', 'Case Note', 'Peer Note'};
+    // Documentation purposes to exclude — matches CaseManagerHomeController.DOCUMENTATION_PURPOSES exactly.
+    List<String> clinicalNotePurposes = new List<String>{
+      'Clinical Note', 'Case Note', 'Case Notes', 'Peer Note', 'Case Management', 'Case Management Note'
+    };
     
-    // Return InteractionSummary records for enrolled participants
-    // FILTER OUT: Hub notes (Clinical/Case/Peer) and Interview-linked interactions
+    // Return InteractionSummary records for enrolled participants.
+    // FILTER OUT: clinical notes, Interview-purpose records, and Interview-linked records.
+    // NULL InteractionPurpose is allowed (via the OR clause).
     List<SObject> interactions = new List<SObject>();
     try {
       String interactionQuery = 
-        'SELECT Id, AccountId, Account.Name, CreatedBy.Name, MeetingNotes, Notify_Case_Manager__c, ' +
+        'SELECT Id, AccountId, Account.Name, CreatedBy.Name, MeetingNotes, Notify_Case_Manager__c, Notify_Care_Team__c, ' +
         'Date_of_Interaction__c, Program__c, InteractionPurpose, Name, ' +
         'Requires_Manager_Approval__c, Manager_Signed__c ' +
         'FROM InteractionSummary ' +
         'WHERE Program__c = :pid ' +
         'AND Date_of_Interaction__c >= :startDate ' +
         'AND (Status = \'Published\' OR Status = NULL) ' +
-        'AND (InteractionPurpose NOT IN :hubNoteTypes OR InteractionPurpose = NULL) ' +
+        'AND (InteractionPurpose = NULL OR (InteractionPurpose NOT IN :clinicalNotePurposes AND InteractionPurpose != \'Interview\')) ' +
         'AND Id NOT IN (SELECT Interaction_Summary__c FROM Interview__c WHERE Interaction_Summary__c != NULL) ' +
         'AND AccountId IN (' +
           'SELECT AccountId FROM ProgramEnrollment ' +
@@ -643,9 +668,11 @@ public with sharing class InteractionSummaryService {
     }
   }
 
-  // Right-hand thread: last N notes for a participant
-  @AuraEnabled(cacheable=true)
-  public static List<Map<String, Object>> thread(Id accountId, Integer maxRows) {
+  // Right-hand thread: last N interaction records for a participant
+  // Excludes documentation-purpose notes and interview-linked records to show
+  // only Interactions (same pattern as CaseManagerHomeController.getRecentInteractions).
+  @AuraEnabled
+  public static List<Map<String, Object>> thread(Id accountId, Integer maxRows, Long cacheBuster) {
     Integer m = (maxRows == null ||
       maxRows <= 0 ||
       maxRows > 2000)
@@ -654,39 +681,28 @@ public with sharing class InteractionSummaryService {
     if (accountId == null) {
       return new List<Map<String, Object>>();
     }
+
+    // Documentation purposes to exclude — matches CaseManagerHomeController.DOCUMENTATION_PURPOSES exactly.
+    List<String> clinicalNotePurposes = new List<String>{
+      'Clinical Note', 'Case Note', 'Case Notes', 'Peer Note', 'Case Management', 'Case Management Note'
+    };
+
     // Using dynamic SOQL to avoid compile-time object validation issues with Nonprofit Cloud objects
     String query =
       'SELECT Id, AccountId, Date_of_Interaction__c, InteractionPurpose, ' +
-      'MeetingNotes, CreatedBy.Name, CreatedDate, Notify_Case_Manager__c, Program__c, ' +
+      'MeetingNotes, CreatedBy.Name, CreatedDate, Notify_Case_Manager__c, Notify_Care_Team__c, Program__c, ' +
       'Program__r.Name, Program__r.Id, RelatedRecordId, ' +
       'Requires_Manager_Approval__c, Manager_Signed__c ' +
       'FROM InteractionSummary ' +
       'WHERE AccountId = :accountId ' +
+      'AND (InteractionPurpose = NULL OR (InteractionPurpose NOT IN :clinicalNotePurposes AND InteractionPurpose != \'Interview\')) ' +
+      'AND Id NOT IN (SELECT Interaction_Summary__c FROM Interview__c WHERE Interaction_Summary__c != NULL) ' +
       'ORDER BY Date_of_Interaction__c DESC, CreatedDate DESC ' +
       'LIMIT :m';
 
     List<SObject> results = Database.query(query);
-    Set<Id> summaryIds = new Set<Id>();
-    for (SObject record : results) {
-      summaryIds.add((Id) record.get('Id'));
-    }
 
-    Map<Id, SObject> interviewBySummaryId = new Map<Id, SObject>();
-    if (!summaryIds.isEmpty()) {
-      List<SObject> interviews = Database.query(
-        'SELECT Id, Interaction_Summary__c, Case__c, InterviewTemplateVersion__r.InterviewTemplate__r.Name, CreatedDate ' +
-        'FROM Interview__c ' +
-        'WHERE Interaction_Summary__c IN :summaryIds ' +
-        'ORDER BY CreatedDate DESC'
-      );
-      for (SObject interview : interviews) {
-        Id summaryId = (Id) interview.get('Interaction_Summary__c');
-        if (!interviewBySummaryId.containsKey(summaryId)) {
-          interviewBySummaryId.put(summaryId, interview);
-        }
-      }
-    }
-
+    // Resolve a fallback Case for records without an explicit RelatedRecordId
     Id fallbackCaseId = null;
     try {
       List<Case> fallbackCases = [
@@ -709,22 +725,8 @@ public with sharing class InteractionSummaryService {
       Id caseId = null;
       String noteTypeLabel = (String) record.get('InteractionPurpose');
 
-      SObject interview = interviewBySummaryId.get(summaryId);
-      if (interview != null) {
-        caseId = (Id) interview.get('Case__c');
-        SObject templateVersion = interview.getSObject('InterviewTemplateVersion__r');
-        if (templateVersion != null) {
-          SObject template = templateVersion.getSObject('InterviewTemplate__r');
-          if (template != null && String.isNotBlank((String) template.get('Name'))) {
-            noteTypeLabel = InterviewTemplateLabelService.normalizeDisplayLabel(
-              (String) template.get('Name')
-            );
-          }
-        }
-      }
-
       Id relatedRecordId = (Id) record.get('RelatedRecordId');
-      if (caseId == null && relatedRecordId != null) {
+      if (relatedRecordId != null) {
         try {
           if (relatedRecordId.getSObjectType().getDescribe().getName() == 'Case') {
             caseId = relatedRecordId;
@@ -738,7 +740,7 @@ public with sharing class InteractionSummaryService {
         caseId = fallbackCaseId;
       }
       if (String.isBlank(noteTypeLabel)) {
-        noteTypeLabel = 'Interaction Summary';
+        noteTypeLabel = 'Interaction';
       }
 
       payload.add(new Map<String, Object>{
@@ -751,6 +753,7 @@ public with sharing class InteractionSummaryService {
         'MeetingNotes' => record.get('MeetingNotes'),
         'CreatedBy_Name' => record.getSObject('CreatedBy') != null ? record.getSObject('CreatedBy').get('Name') : null,
         'Notify_Case_Manager__c' => record.get('Notify_Case_Manager__c'),
+        'Notify_Care_Team__c' => record.get('Notify_Care_Team__c'),
         'Requires_Manager_Approval__c' => record.get('Requires_Manager_Approval__c'),
         'Manager_Signed__c' => record.get('Manager_Signed__c'),
         'NoteTypeLabel' => noteTypeLabel
@@ -774,8 +777,8 @@ public with sharing class InteractionSummaryService {
   }
 
   // additional related: Incidents (right panel)
-  @AuraEnabled(cacheable=true)
-  public static List<SObject> recentIncidents(Id accountId, Integer maxRows) {
+  @AuraEnabled
+  public static List<SObject> recentIncidents(Id accountId, Integer maxRows, Long cacheBuster) {
     Integer m = (maxRows == null ||
       maxRows <= 0 ||
       maxRows > 2000)

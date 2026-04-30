@@ -30,6 +30,14 @@
     color: var(--slds-c-text-color-weak, #706e6b);
 }
 
+.pending-reference {
+    color: var(--slds-c-text-color-weak, #706e6b);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
 .text-warning {
     color: var(--slds-c-text-color-warning, #fe9339);
 }

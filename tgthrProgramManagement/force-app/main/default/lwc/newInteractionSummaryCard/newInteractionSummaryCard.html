@@ -134,6 +134,16 @@
                                 </lightning-textarea>
                             </div>
 
+                            <!-- Notify Care Team -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label="Notify Care Team"
+                                    checked={notifyCareTeam}
+                                    onchange={handleNotifyCareTeamChange}>
+                                </lightning-input>
+                            </div>
+
                         </div>
 
                         <template lwc:if={saveError}>

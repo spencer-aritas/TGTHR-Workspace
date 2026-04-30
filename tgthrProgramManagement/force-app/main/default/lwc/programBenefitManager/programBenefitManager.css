@@ -1,0 +1,122 @@
+/* programBenefitManager.css */
+
+:host {
+    display: block;
+}
+
+/* ── Card grid ──────────────────────────────────────────────────────────── */
+.benefit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 0.75rem;
+    padding: 0.25rem 0 0.5rem;
+}
+
+/* Individual benefit card */
+.benefit-card {
+    background: #fff;
+    border: 1px solid #dddbda;
+    border-radius: 0.375rem;
+    padding: 0.875rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.15s;
+}
+.benefit-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Name + type badge row */
+.card-header {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+.card-name {
+    font-weight: 700;
+    font-size: 0.875rem;
+    flex: 1 1 60%;
+    line-height: 1.3;
+}
+.type-badge {
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    background: #e9e9e9;
+    color: #3e3e3c;
+    white-space: nowrap;
+}
+
+/* UoM / qty / duration pills */
+.card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    min-height: 1.25rem;
+}
+.meta-pill {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    background: #f3f2f2;
+    border-radius: 1rem;
+    font-size: 0.6875rem;
+    color: #444;
+}
+
+/* Channel availability badges */
+.card-channels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+.channel-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    letter-spacing: 0.01em;
+}
+.channel-on {
+    background-color: #06a59a;
+    color: #fff;
+    border-color: #06a59a;
+}
+.channel-off {
+    background-color: #f9f9f9;
+    color: #b8b8b8;
+    border-color: #e0e0e0;
+}
+
+/* Housing Benefit classification tag (separate from channel badges) */
+.card-housing-tag {
+    display: inline-block;
+    margin-top: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background-color: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+/* Action buttons row */
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-top: 0.375rem;
+    border-top: 1px solid #f3f2f2;
+    margin-top: auto;
+}
+
+/* Filter bar */
+.filter-bar {
+    max-width: 320px;
+    margin-bottom: 0.5rem;
+}

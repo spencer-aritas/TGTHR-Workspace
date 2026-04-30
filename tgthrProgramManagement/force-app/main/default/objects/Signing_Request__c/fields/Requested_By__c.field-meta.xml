@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Requested_By__c</fullName>
+    <label>Requested By</label>
+    <description>The staff user who initiated the signing request</description>
+    <type>Lookup</type>
+    <referenceTo>User</referenceTo>
+    <relationshipLabel>Signing Requests Created</relationshipLabel>
+    <relationshipName>SigningRequestsCreated</relationshipName>
+    <required>true</required>
+</CustomField>

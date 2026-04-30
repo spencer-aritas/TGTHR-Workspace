@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Elevated EHR/billing/audit admin access. Additive on top of TGTHR EHR Base Access. Grants billing export and clearinghouse Apex controllers.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>TGTHR EHR Management Access</label>
+    <classAccesses>
+        <apexClass>BillingExportController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>BillingClearinghouseService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>BillingClearinghouseDispatchJob</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+</PermissionSet>

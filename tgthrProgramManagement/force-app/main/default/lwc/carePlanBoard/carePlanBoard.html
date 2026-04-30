@@ -11,7 +11,11 @@
         <template lwc:if={isReady}>
 
             <!-- ── Care Plan Status ──────────────────────────────── -->
-            <lightning-card title="Care Plan Status" icon-name="standard:care_plan_problem">
+            <lightning-card>
+                <div slot="title" class="board-card-title">
+                    <lightning-icon icon-name="utility:note" size="x-small" class="board-card-title__icon"></lightning-icon>
+                    <span>Care Plan Details</span>
+                </div>
                 <div class="slds-p-around_medium">
                     <template lwc:if={hasCarePlanSummary}>
                         <div class="slds-grid slds-gutters slds-wrap">
@@ -74,6 +78,42 @@
                             </div>
 
                         </div>
+
+                        <template lwc:if={hasActivePlan}>
+                            <div class="plan-meta-panel slds-m-top_medium">
+                                <p class="slds-text-title_caps slds-m-bottom_small">Active Plan Metadata</p>
+                                <div class="slds-grid slds-wrap slds-gutters_x-small plan-meta-grid">
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                                        <p class="plan-meta-label">Plan</p>
+                                        <p class="plan-meta-value">{activePlan.name}</p>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                                        <p class="plan-meta-label">Started</p>
+                                        <p class="plan-meta-value">{formattedActivePlanStart}</p>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                                        <p class="plan-meta-label">Next Assessment</p>
+                                        <p class="plan-meta-value">{formattedNextAssessment}</p>
+                                    </div>
+                                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-large-size_1-of-4">
+                                        <p class="plan-meta-label">Status</p>
+                                        <p class="plan-meta-value">{activePlan.status}</p>
+                                    </div>
+                                    <template lwc:if={activePlan.caseManagerName}>
+                                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                            <p class="plan-meta-label">Case Manager</p>
+                                            <p class="plan-meta-value">{activePlan.caseManagerName}<span class="plan-meta-secondary"> · {formattedCMSignedDate}</span></p>
+                                        </div>
+                                    </template>
+                                    <template lwc:if={activePlan.peerSupportName}>
+                                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                                            <p class="plan-meta-label">Peer Support</p>
+                                            <p class="plan-meta-value">{activePlan.peerSupportName}<span class="plan-meta-secondary"> · {formattedPSSignedDate}</span></p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
                     </template>
                     <template lwc:else>
                         <p class="slds-text-color_weak">No Care Plan record found for this Case.</p>
@@ -82,49 +122,31 @@
             </lightning-card>
 
             <!-- ── Active Treatment Plan ─────────────────────────── -->
-            <lightning-card title="Active Treatment Plan" icon-name="standard:document"
-                class="slds-m-top_medium">
+            <lightning-card class="slds-m-top_medium">
+                <div slot="title" class="board-card-title">
+                    <lightning-icon icon-name="utility:preview" size="x-small" class="board-card-title__icon"></lightning-icon>
+                    <span>Active Treatment Plan</span>
+                </div>
                 <div class="slds-p-around_medium">
                     <template lwc:if={hasActivePlan}>
                         <div class="active-plan-section">
-                            <div class="slds-grid slds-gutters slds-wrap slds-m-bottom_small">
-                                <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-3">
-                                    <h3 class="slds-text-heading_small">{activePlan.name}</h3>
-                                    <p class="slds-text-color_weak slds-text-body_small">
-                                        Started {formattedActivePlanStart}
-                                    </p>
-                                    <div class="slds-grid slds-gutters slds-m-top_small">
-                                        <template lwc:if={activePlan.caseManagerName}>
-                                            <div class="slds-col">
-                                                <p class="slds-text-body_small slds-text-color_weak">Case Manager</p>
-                                                <p>{activePlan.caseManagerName}
-                                                    <span class="slds-text-color_weak"> · {formattedCMSignedDate}</span>
-                                                </p>
-                                            </div>
-                                        </template>
-                                        <template lwc:if={activePlan.peerSupportName}>
-                                            <div class="slds-col">
-                                                <p class="slds-text-body_small slds-text-color_weak">Peer Support</p>
-                                                <p>{activePlan.peerSupportName}
-                                                    <span class="slds-text-color_weak"> · {formattedPSSignedDate}</span>
-                                                </p>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-text-align_right">
-                                    <template lwc:if={activePlan.documentId}>
-                                        <lightning-button
-                                            label="View Document"
-                                            icon-name="utility:preview"
-                                            onclick={handleViewActivePlanDocument}
-                                            class="slds-m-bottom_x-small">
-                                        </lightning-button>
-                                    </template>
+                            <div class="active-plan-banner">
+                                <p class="active-plan-banner__eyebrow">Current signed plan</p>
+                                <h3 class="active-plan-banner__title">{activePlan.name}</h3>
+                                <p class="active-plan-banner__subtext">Open the most recent Treatment Plan document from the Case summary.</p>
+                                <template lwc:if={activePlan.documentId}>
+                                    <lightning-button
+                                        label="View Document"
+                                        icon-name="utility:preview"
+                                        onclick={handleViewActivePlanDocument}
+                                        class="active-plan-banner__action">
+                                    </lightning-button>
+                                </template>
+                                <template lwc:else>
                                     <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">
-                                        Next Assessment: {formattedNextAssessment}
+                                        No generated document is linked to the active Treatment Plan yet.
                                     </p>
-                                </div>
+                                </template>
                             </div>
                         </div>
                     </template>
@@ -140,17 +162,39 @@
             </lightning-card>
 
             <!-- ── Treatment Plan History ─────────────────────────── -->
-            <lightning-card title="Treatment Plan History" icon-name="utility:list"
-                class="slds-m-top_medium">
+            <lightning-card class="slds-m-top_medium">
+                <div slot="title" class="board-card-title">
+                    <lightning-icon icon-name="utility:list" size="x-small" class="board-card-title__icon"></lightning-icon>
+                    <span>Treatment Plan History</span>
+                </div>
                 <div class="slds-p-around_medium">
                     <template lwc:if={hasHistory}>
                         <lightning-datatable
                             key-field="id"
-                            data={boardData.treatmentPlanHistory}
+                            data={paginatedHistory}
                             columns={historyColumns}
                             hide-checkbox-column
                             onrowaction={handleRowAction}>
                         </lightning-datatable>
+                        <template lwc:if={showHistoryPagination}>
+                            <div class="history-pagination slds-m-top_small">
+                                <lightning-button-icon
+                                    icon-name="utility:chevronleft"
+                                    alternative-text="Previous page"
+                                    title="Previous page"
+                                    onclick={handlePreviousHistoryPage}
+                                    disabled={isFirstHistoryPage}>
+                                </lightning-button-icon>
+                                <span class="history-pagination__label">{historyPageLabel}</span>
+                                <lightning-button-icon
+                                    icon-name="utility:chevronright"
+                                    alternative-text="Next page"
+                                    title="Next page"
+                                    onclick={handleNextHistoryPage}
+                                    disabled={isLastHistoryPage}>
+                                </lightning-button-icon>
+                            </div>
+                        </template>
                     </template>
                     <template lwc:else>
                         <p class="slds-text-color_weak">No Treatment Plans found for this Case.</p>

@@ -1,0 +1,202 @@
+<template>
+    <template lwc:if={showModal}>
+        <section
+            role="dialog"
+            tabindex="-1"
+            aria-modal="true"
+            aria-labelledby="inbox-ir-modal-heading"
+            class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container modal-container">
+
+                <header class="slds-modal__header slds-theme_alert-texture">
+                    <lightning-button-icon
+                        class="slds-modal__close"
+                        icon-name="utility:close"
+                        alternative-text="Close"
+                        variant="bare-inverse"
+                        onclick={closeModal}>
+                    </lightning-button-icon>
+                    <h2 id="inbox-ir-modal-heading" class="slds-text-heading_medium">
+                        <lightning-icon icon-name="standard:incident" size="small" class="slds-m-right_x-small"></lightning-icon>
+                        New Incident Report
+                    </h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+                    <!-- Success state -->
+                    <template lwc:if={submitSuccess}>
+                        <div class="success-panel slds-p-around_medium">
+                            <lightning-icon icon-name="utility:success" size="large" class="slds-m-bottom_small success-icon"></lightning-icon>
+                            <h3 class="slds-text-heading_small slds-m-bottom_small">Incident Report Saved</h3>
+                            <p class="slds-text-body_regular slds-m-bottom_medium">The record has been created.</p>
+                            <template lwc:if={resultContentDocumentId}>
+                                <p class="slds-text-body_regular slds-m-bottom_medium">
+                                    The incident report document has been generated and attached to the record.
+                                </p>
+                                <lightning-button
+                                    variant="brand"
+                                    label="View Document"
+                                    icon-name="utility:preview"
+                                    onclick={handleViewDocument}
+                                    class="slds-m-right_small">
+                                </lightning-button>
+                            </template>
+                            <template lwc:if={docGenError}>
+                                <p class="slds-text-color_error slds-text-body_small">
+                                    Note: Document generation encountered an issue — {docGenError}
+                                </p>
+                            </template>
+                            <lightning-button
+                                variant="neutral"
+                                label="Close"
+                                onclick={closeModal}
+                                class="slds-m-top_small">
+                            </lightning-button>
+                        </div>
+                    </template>
+
+                    <!-- Form state (no account picker — pre-scoped to Case) -->
+                    <template lwc:else>
+                        <div class="slds-grid slds-wrap slds-gutters_small">
+
+                            <!-- Incident Type -->
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                                <lightning-combobox
+                                    label="Incident Type"
+                                    placeholder="Select type..."
+                                    value={incidentType}
+                                    options={incidentTypeOptions}
+                                    required
+                                    onchange={handleIncidentTypeChange}>
+                                </lightning-combobox>
+                            </div>
+
+                            <!-- Date -->
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                                <lightning-input
+                                    type="date"
+                                    label="Incident Date"
+                                    value={incidentDate}
+                                    required
+                                    onchange={handleDateChange}>
+                                </lightning-input>
+                            </div>
+
+                            <!-- Time -->
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                                <lightning-input
+                                    type="time"
+                                    label="Incident Time"
+                                    value={incidentTime}
+                                    required
+                                    onchange={handleTimeChange}>
+                                </lightning-input>
+                            </div>
+
+                            <!-- Other Staff Present -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                <lightning-input
+                                    type="text"
+                                    label="Other Staff Present"
+                                    value={otherStaffPresent}
+                                    max-length="250"
+                                    onchange={handleOtherStaffPresentChange}>
+                                </lightning-input>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                <lightning-textarea
+                                    label="Description"
+                                    value={description}
+                                    max-length="5000"
+                                    onchange={handleDescriptionChange}>
+                                </lightning-textarea>
+                            </div>
+
+                            <!-- Emergency Services Involved -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                <lightning-input
+                                    type="checkbox"
+                                    label="Emergency Services Involved"
+                                    checked={emergencyServicesInvolved}
+                                    onchange={handleEmergencyServicesChange}>
+                                </lightning-input>
+                            </div>
+
+                            <!-- Emergency Services Details (shown when emergency checked) -->
+                            <template lwc:if={emergencyServicesInvolved}>
+                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                    <lightning-textarea
+                                        label="Emergency Services Details"
+                                        value={emergencyServicesDetails}
+                                        max-length="5000"
+                                        placeholder="Which agencies responded, officer names/badge numbers, report numbers, actions taken..."
+                                        onchange={handleEmergencyDetailsChange}>
+                                    </lightning-textarea>
+                                </div>
+                            </template>
+
+                            <!-- Notify Care Team (hidden when emergency is checked — auto-notifies) -->
+                            <template lwc:if={showNotifyCareTeam}>
+                                <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                                    <lightning-input
+                                        type="checkbox"
+                                        label="Notify Care Team"
+                                        checked={notifyCareTeam}
+                                        onchange={handleNotifyCareTeamChange}>
+                                    </lightning-input>
+                                </div>
+                            </template>
+
+                            <!-- Signature -->
+                            <div class="slds-col slds-size_1-of-1 slds-m-top_small">
+                                <p class="slds-form-element__label">
+                                    <abbr class="slds-required" title="required">*</abbr> Staff Signature
+                                </p>
+                                <c-signature-pad
+                                    hide-controls
+                                    enable-saved-signature
+                                    title="Sign below">
+                                </c-signature-pad>
+                            </div>
+
+                        </div>
+
+                        <template lwc:if={saveError}>
+                            <p class="slds-text-color_error slds-m-top_x-small">{saveError}</p>
+                        </template>
+
+                        <template lwc:if={saving}>
+                            <div class="slds-m-top_small">
+                                <lightning-spinner alternative-text="Generating report..." size="small"></lightning-spinner>
+                                <span class="slds-m-left_small slds-text-body_small">Creating record and generating document…</span>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+
+                <template lwc:if={showFormFooter}>
+                    <footer class="slds-modal__footer">
+                        <lightning-button
+                            variant="neutral"
+                            label="Cancel"
+                            onclick={closeModal}
+                            disabled={saving}>
+                        </lightning-button>
+                        <lightning-button
+                            variant="brand"
+                            label="Submit"
+                            icon-name="utility:save"
+                            onclick={handleSubmit}
+                            disabled={saving}
+                            class="slds-m-left_small">
+                        </lightning-button>
+                    </footer>
+                </template>
+
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

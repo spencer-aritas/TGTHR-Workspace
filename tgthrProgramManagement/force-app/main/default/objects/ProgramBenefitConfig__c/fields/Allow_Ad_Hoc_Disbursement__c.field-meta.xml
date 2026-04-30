@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Allow_Ad_Hoc_Disbursement__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When checked, staff can create single ad hoc disbursements for this benefit from the Program Census or Case page.</description>
+    <externalId>false</externalId>
+    <label>Allow Ad Hoc Disbursement</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

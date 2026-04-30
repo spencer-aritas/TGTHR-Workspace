@@ -194,7 +194,8 @@ global with sharing class ProgramEnrollmentService {
                 'Street Outreach Encounter',
                 String.valueOf(Date.today()),
                 false,
-                caseId != null ? String.valueOf(caseId) : null
+                caseId != null ? String.valueOf(caseId) : null,
+                false
             );
             interactionId = String.isNotBlank(interactionIdStr) ? Id.valueOf(interactionIdStr) : null;
             System.debug('Created interaction: ' + interactionId);

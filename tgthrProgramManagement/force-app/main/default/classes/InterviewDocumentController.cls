@@ -659,6 +659,9 @@ public with sharing class InterviewDocumentController {
             if (interview == null || interview.get('Completed_On__c') == null) {
                 continue;
             }
+            if (!isInterviewFullySigned(interview)) {
+                continue;
+            }
 
             DocumentInfo info = buildDocumentInfoFromInterview(interview, doc, false);
             if (info == null) {
@@ -714,7 +717,7 @@ public with sharing class InterviewDocumentController {
     }
 
     private static DocumentInfo buildDocumentInfoFromInterview(SObject interview, SObject doc, Boolean isFallback) {
-        if (interview == null || interview.get('Completed_On__c') == null) {
+        if (interview == null || interview.get('Completed_On__c') == null || !isInterviewFullySigned(interview)) {
             return null;
         }
 
