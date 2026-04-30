@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Counts_Toward_Attendance__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, disbursements count toward program attendance/session metrics in reporting.</description>
+    <externalId>false</externalId>
+    <label>Counts Toward Attendance</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Interview_Auto_Disbursement__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, selecting this benefit in an interview automatically creates a BenefitDisbursement on interview submission.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Auto-creates a disbursement when the interview is submitted with this benefit selected.</inlineHelpText>
+    <label>Interview Auto-Disbursement</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

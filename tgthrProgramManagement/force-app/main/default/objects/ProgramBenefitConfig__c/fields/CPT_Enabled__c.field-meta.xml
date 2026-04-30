@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CPT_Enabled__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, the CPT code selector is available when recording a disbursement or interview service for this benefit.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Requires Is Billable to also be checked for billing export inclusion.</inlineHelpText>
+    <label>CPT Enabled</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

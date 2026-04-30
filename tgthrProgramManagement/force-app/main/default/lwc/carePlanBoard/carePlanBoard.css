@@ -1,9 +1,84 @@
 .care-plan-board {
 }
 
+.board-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.board-card-title__icon {
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+
 .active-plan-section {
     border-left: 4px solid #2e844a;
     padding-left: 1rem;
+}
+
+.active-plan-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 180px;
+    border: 1px solid #d8e6dc;
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, #f5fbf7 0%, #ffffff 100%);
+    padding: 1.5rem;
+}
+
+.active-plan-banner__eyebrow {
+    margin: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #5b6d61;
+}
+
+.active-plan-banner__title {
+    margin: 0.35rem 0 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #163025;
+}
+
+.active-plan-banner__subtext {
+    margin: 0.4rem 0 0;
+    max-width: 32rem;
+    color: #4f6358;
+}
+
+.active-plan-banner__action {
+    margin-top: 1rem;
+}
+
+.plan-meta-panel {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5ece7;
+}
+
+.plan-meta-grid {
+    row-gap: 0.75rem;
+}
+
+.plan-meta-label {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #5b6d61;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.plan-meta-value {
+    margin: 0.2rem 0 0;
+    color: #1f2f25;
+}
+
+.plan-meta-secondary {
+    color: #5b6d61;
 }
 
 .due-soon-text {
@@ -18,4 +93,24 @@
     white-space: pre-line;
     font-size: 0.875rem;
     color: #444;
+}
+
+.history-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.history-pagination__label {
+    font-size: 0.75rem;
+    color: #5b6d61;
+    min-width: 5.5rem;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .history-pagination {
+        justify-content: center;
+    }
 }

@@ -1,0 +1,166 @@
+<template>
+    <lightning-card title={cardTitle} icon-name="standard:groups">
+        <template if:false={isCurrentUserOnTeam}>
+            <lightning-button
+                slot="actions"
+                label="Quick Add Yourself"
+                icon-name="utility:adduser"
+                onclick={handleQuickAddSelf}
+                class="slds-m-right_x-small"
+            ></lightning-button>
+        </template>
+        <lightning-button
+            slot="actions"
+            label="Update Care Team"
+            icon-name="utility:edit"
+            onclick={handleOpenAddModal}
+        ></lightning-button>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="slds-p-around_medium slds-align_absolute-center">
+                <lightning-spinner alternative-text="Loading…" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- Members list -->
+        <template if:false={isLoading}>
+            <template if:true={hasMembers}>
+                <div class="slds-p-horizontal_small slds-p-bottom_small">
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped">
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th scope="col"><div class="slds-truncate">Name</div></th>
+                                <th scope="col"><div class="slds-truncate">Role / Title</div></th>
+                                <th scope="col" style="width: 3rem;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={members} for:item="member">
+                                <tr key={member.id}>
+                                    <td>
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <span class="ctc-avatar slds-m-right_x-small">{member.initials}</span>
+                                            <span class="slds-truncate">{member.userName}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="slds-truncate">{member.displayRole}</div>
+                                    </td>
+                                    <td>
+                                        <lightning-button-icon
+                                            icon-name="utility:close"
+                                            variant="bare"
+                                            size="small"
+                                            alternative-text="Remove"
+                                            data-memberid={member.id}
+                                            data-membername={member.userName}
+                                            onclick={handleRemoveMember}
+                                        ></lightning-button-icon>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+            <template if:false={hasMembers}>
+                <div class="slds-p-around_medium slds-align_absolute-center slds-text-color_weak">
+                    <div class="slds-text-align_center">
+                        <lightning-icon icon-name="utility:groups" size="large" class="slds-m-bottom_small" style="opacity: 0.4;"></lightning-icon>
+                        <p>No Care Team members assigned yet.</p>
+                        <p class="slds-text-body_small slds-m-top_xx-small">Click "Update Care Team" to add members.</p>
+                    </div>
+                </div>
+            </template>
+        </template>
+    </lightning-card>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         ADD MEMBERS MODAL
+    ═══════════════════════════════════════════════════════════════ -->
+    <template if:true={showAddModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" onclick={handleCloseModal}>
+                        <lightning-icon icon-name="utility:close" size="small" variant="inverse"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 class="slds-text-heading_medium">Update Care Team</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium" style="min-height: 20rem;">
+                    <!-- Search input -->
+                    <lightning-input
+                        type="search"
+                        label="Search Users"
+                        placeholder="Type a name to search…"
+                        value={searchTerm}
+                        onchange={handleSearchChange}
+                    ></lightning-input>
+
+                    <!-- Selected users pills -->
+                    <template if:true={hasSelectedUsers}>
+                        <div class="slds-m-top_small">
+                            <p class="slds-text-title slds-m-bottom_xx-small">Selected ({selectedCount}):</p>
+                            <lightning-pill-container>
+                                <template for:each={selectedUsers} for:item="user">
+                                    <lightning-pill
+                                        key={user.id}
+                                        label={user.name}
+                                        data-userid={user.id}
+                                        onremove={handleRemoveSelected}
+                                    ></lightning-pill>
+                                </template>
+                            </lightning-pill-container>
+                        </div>
+                    </template>
+
+                    <!-- Search results -->
+                    <template if:true={isSearching}>
+                        <div class="slds-m-top_medium slds-align_absolute-center">
+                            <lightning-spinner alternative-text="Searching…" size="small"></lightning-spinner>
+                        </div>
+                    </template>
+                    <template if:false={isSearching}>
+                        <template if:true={hasSearchResults}>
+                            <ul class="slds-listbox slds-listbox_vertical slds-m-top_small ctc-search-results">
+                                <template for:each={searchResults} for:item="user">
+                                    <li key={user.id}
+                                        class="slds-listbox__item ctc-search-item"
+                                        data-userid={user.id}
+                                        onclick={handleSelectUser}>
+                                        <div class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small slds-p-around_x-small">
+                                            <span class="slds-media__figure">
+                                                <lightning-icon icon-name="standard:user" size="small"></lightning-icon>
+                                            </span>
+                                            <span class="slds-media__body">
+                                                <span class="slds-listbox__option-text slds-listbox__option-text_entity">
+                                                    {user.name}
+                                                </span>
+                                                <span class="slds-listbox__option-meta slds-listbox__option-meta_entity">
+                                                    {user.title}
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseModal}></lightning-button>
+                    <lightning-button
+                        label={addButtonLabel}
+                        variant="brand"
+                        disabled={addDisabled}
+                        onclick={handleAddMembers}
+                        class="slds-m-left_x-small"
+                    ></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

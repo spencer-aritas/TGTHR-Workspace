@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Program Benefit Config</label>
+    <pluralLabel>Program Benefit Configs</pluralLabel>
+    <nameField>
+        <label>Config Name</label>
+        <type>Text</type>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ReadWrite</sharingModel>
+    <description>Program-scoped feature configuration for a Benefit. Controls how a Benefit behaves across Census, Interview, disbursement, billing, and documentation features within the EHR package. One record per active Benefit. When a Benefit is replaced via BenefitReplacementService, a new config is cloned and the old one is deactivated.</description>
+</CustomObject>

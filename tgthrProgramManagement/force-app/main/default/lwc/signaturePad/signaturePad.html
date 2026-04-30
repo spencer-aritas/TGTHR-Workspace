@@ -1,28 +1,116 @@
 <template>
     <div class="signature-container">
         <h3>{title}</h3>
-        <canvas class="signature-canvas"></canvas>
-        <template if:true={loadError}>
-            <p class="slds-text-color_error slds-m-top_small">{loadError}</p>
-        </template>
-        <template if:false={hideControls}>
-            <div class="signature-controls slds-m-top_small">
-                <lightning-button
-                    label="Clear"
-                    onclick={handleClear}
-                    variant="neutral"
-                    disabled={isSaving}>
-                </lightning-button>
-                <lightning-button
-                    label="Save Signature"
-                    onclick={handleSave}
-                    variant="brand"
-                    disabled={isEmptyOrSaving}>
-                </lightning-button>
-                <template if:true={isSaving}>
-                    <lightning-spinner alternative-text="Saving signature" size="small"></lightning-spinner>
-                </template>
+
+        <!-- Loading state -->
+        <template if:true={isLoadingSignature}>
+            <div class="slds-align_absolute-center slds-p-around_medium">
+                <lightning-spinner alternative-text="Loading signature" size="small"></lightning-spinner>
             </div>
+        </template>
+
+        <template if:false={isLoadingSignature}>
+            <!-- Mode selector -->
+            <template if:true={showModeSelector}>
+                <div class="slds-m-bottom_small">
+                    <lightning-radio-group
+                        name="signatureMode"
+                        label="Signature Method"
+                        options={modeOptions}
+                        value={signatureMode}
+                        onchange={handleModeChange}
+                        type="button"
+                        variant="label-hidden">
+                    </lightning-radio-group>
+                </div>
+            </template>
+
+            <!-- Draw mode -->
+            <template if:true={isDrawMode}>
+                <canvas class="signature-canvas"></canvas>
+                <template if:true={showSaveAsDefault}>
+                    <div class="slds-m-top_x-small">
+                        <lightning-input
+                            type="checkbox"
+                            label="Save as my default signature"
+                            checked={saveAsDefault}
+                            onchange={handleSaveAsDefaultChange}>
+                        </lightning-input>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Saved signature mode -->
+            <template if:true={isSavedMode}>
+                <div class="signature-preview-container">
+                    <img src={savedSignatureUrl} alt="Your saved signature" class="signature-preview-image" />
+                </div>
+                <div class="slds-m-top_small">
+                    <lightning-input
+                        type="checkbox"
+                        label="I acknowledge this is my signature and authorize its use for this document"
+                        checked={signatureAcknowledged}
+                        onchange={handleAcknowledgementChange}>
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Upload mode -->
+            <template if:true={isUploadMode}>
+                <template if:true={uploadedImageData}>
+                    <div class="signature-preview-container">
+                        <img src={uploadedSignatureUrl} alt="Uploaded signature" class="signature-preview-image" />
+                    </div>
+                    <div class="slds-m-top_small">
+                        <lightning-button
+                            label="Choose Different Image"
+                            variant="neutral"
+                            onclick={handleClearUpload}
+                            icon-name="utility:refresh">
+                        </lightning-button>
+                    </div>
+                </template>
+                <template if:false={uploadedImageData}>
+                    <div class="signature-upload-area">
+                        <lightning-icon icon-name="utility:upload" size="medium" class="slds-m-bottom_small"></lightning-icon>
+                        <p class="slds-text-body_regular slds-m-bottom_small">Upload an image of your signature</p>
+                        <lightning-input
+                            type="file"
+                            label="Signature Image"
+                            accept=".png,.jpg,.jpeg"
+                            onchange={handleFileUpload}
+                            variant="label-hidden">
+                        </lightning-input>
+                        <p class="slds-text-body_small slds-text-color_weak slds-m-top_x-small">PNG or JPG, max 1 MB</p>
+                    </div>
+                </template>
+            </template>
+
+            <!-- Error -->
+            <template if:true={loadError}>
+                <p class="slds-text-color_error slds-m-top_small">{loadError}</p>
+            </template>
+
+            <!-- Controls -->
+            <template if:false={hideControls}>
+                <div class="signature-controls slds-m-top_small">
+                    <lightning-button
+                        label="Clear"
+                        onclick={handleClear}
+                        variant="neutral"
+                        disabled={isSaving}>
+                    </lightning-button>
+                    <lightning-button
+                        label="Save Signature"
+                        onclick={handleSave}
+                        variant="brand"
+                        disabled={isEmptyOrSaving}>
+                    </lightning-button>
+                    <template if:true={isSaving}>
+                        <lightning-spinner alternative-text="Saving signature" size="small"></lightning-spinner>
+                    </template>
+                </div>
+            </template>
         </template>
     </div>
 </template>

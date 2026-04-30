@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Signing Request</label>
+    <pluralLabel>Signing Requests</pluralLabel>
+    <nameField>
+        <type>AutoNumber</type>
+        <label>Signing Request Number</label>
+        <displayFormat>SR-{00000}</displayFormat>
+    </nameField>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <sharingModel>ReadWrite</sharingModel>
+    <description>Persistent store for PWA signing requests. Tracks the lifecycle of signature requests from creation through completion, replacing the in-memory store.</description>
+</CustomObject>

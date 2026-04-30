@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Available_for_Case_Management__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, Case Management staff can select this benefit in disbursement, interview, and note workflows.</description>
+    <externalId>false</externalId>
+    <label>Available for Case Management</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

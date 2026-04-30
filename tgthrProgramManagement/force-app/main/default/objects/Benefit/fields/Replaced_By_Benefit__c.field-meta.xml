@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Replaced_By_Benefit__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>When this Benefit is superseded, this field points to the new Benefit that replaced it. Populated automatically by BenefitReplacementService when a Replace action is performed.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Populated automatically when this benefit is replaced. Click to navigate to the active replacement.</inlineHelpText>
+    <label>Replaced By Benefit</label>
+    <referenceTo>Benefit</referenceTo>
+    <relationshipLabel>Replaces Benefits</relationshipLabel>
+    <relationshipName>Replaces_Benefits</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

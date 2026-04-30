@@ -130,7 +130,7 @@ public with sharing class CaseFormDocumentController {
      * Create a new CaseFormDocument__c record linking metadata to an uploaded file.
      *
      * @param caseId              Case record ID
-    * @param formType            'ROI', 'Consent Form', or 'Disclosure Form'
+    * @param formType            'ROI', 'Consent Form', 'Disclosure Form', or 'Other'
     * @param agencyId            Optional account lookup metadata
      * @param docDate             Effective date of the form
     * @param consentType         Subtype text (required for ROI and Consent Form)

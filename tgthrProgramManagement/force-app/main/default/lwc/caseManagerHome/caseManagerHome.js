@@ -14,6 +14,10 @@ import completeIntakeEnrollment from '@salesforce/apex/CaseManagerHomeController
 import getClientProfile      from '@salesforce/apex/CaseManagerHomeController.getClientProfile';
 import updateClientProfile   from '@salesforce/apex/CaseManagerHomeController.updateClientProfile';
 import getClientIntakeStatus from '@salesforce/apex/CaseManagerHomeController.getClientIntakeStatus';
+import getPendingDropIns     from '@salesforce/apex/CaseManagerHomeController.getPendingDropIns';
+import searchPersonAccounts  from '@salesforce/apex/CaseManagerHomeController.searchPersonAccounts';
+import resolveDropInMatchExisting from '@salesforce/apex/CaseManagerHomeController.resolveDropInMatchExisting';
+import resolveDropInNewPerson from '@salesforce/apex/CaseManagerHomeController.resolveDropInNewPerson';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import generateInterviewDocumentByInterviewId from '@salesforce/apex/InterviewDocumentService.generateDocumentByInterviewId';
 
@@ -92,6 +96,24 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     // ── Photo capture modal state ───────────────────────────────────────────
     @track showPhotoCapture = false;
 
+    // ── Pending drop-in queue (kiosk new-visitor tasks) ─────────────────────
+    @track pendingDropIns = [];
+    @track isLoadingPendingDropIns = false;
+    @track showMatchExistingModal = false;
+    @track matchTaskId = null;
+    @track matchSearchTerm = '';
+    @track matchSearchResults = [];
+    @track matchSelectedAccountId = null;
+    @track matchSelectedAccountName = '';
+    @track isMatchSearching = false;
+    @track isResolvingMatch = false;
+    @track isResolvingNewPerson = false;
+    _matchSearchTimer = null;
+
+    // ── Drop-in shell resolution modal ──────────────────────────────────────
+    @track showDropInShellModal = false;
+    @track dropInShellInteractionId = null;
+
     // ── Intake modal state ──────────────────────────────────────────────────
     @track showIntakeStep1 = false;
     @track showIntakeStep2 = false;
@@ -118,6 +140,13 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     @track isLoadingProfile = false;
     @track isSavingProfile = false;
     @track profileError = '';
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LIFECYCLE
+    // ─────────────────────────────────────────────────────────────────────────
+    connectedCallback() {
+        this._loadPendingDropIns();
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // WIRE: load caseload on connect
@@ -159,6 +188,19 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     get clientCountLabel() {
         const n = this.filteredCases.length;
         return `(${n})`;
+    }
+
+    get hasPendingDropIns() {
+        return this.pendingDropIns.length > 0;
+    }
+
+    get pendingDropInsCountLabel() {
+        const n = this.pendingDropIns.length;
+        return `${n} Pending`;
+    }
+
+    get matchConfirmDisabled() {
+        return !this.matchSelectedAccountId || this.isResolvingMatch;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -218,6 +260,8 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
         this.profileError = '';
         this.isLoadingProfile = false;
         this.isSavingProfile = false;
+        this._dropInDemoAccountId = null;
+        this._dropInDemoCaseId    = null;
     }
 
     handleProfileDemographicsChange(event) {
@@ -241,13 +285,19 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
         try {
             const profileData = demographicCapture.getData();
             this.profileDemographicsData = { ...profileData };
+            const targetAccountId = this._dropInDemoAccountId || this.selectedClient?.accountId;
             await updateClientProfile({
-                accountId: this.selectedClient.accountId,
+                accountId: targetAccountId,
                 demographicsJson: JSON.stringify(profileData)
             });
             this.closeProfileModal();
             this.showToast('Success', 'Client profile updated.', 'success');
-            await this.refreshCasesAndReselect(this.selectedClient.caseId);
+            if (this._dropInDemoAccountId) {
+                this._dropInDemoAccountId = null;
+                this._dropInDemoCaseId    = null;
+            } else {
+                await this.refreshCasesAndReselect(this.selectedClient.caseId);
+            }
         } catch (error) {
             console.error('CaseManagerHome: profile save error', error);
             this.profileError = error?.body?.message || error?.message || 'Unable to update client profile.';
@@ -373,6 +423,197 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
                 console.error('CaseManagerHome: incidents error', err);
             })
             .finally(() => { this.isLoadingIncidents = false; });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // HANDLERS: pending drop-in queue
+    // ─────────────────────────────────────────────────────────────────────────
+    _loadPendingDropIns() {
+        this.isLoadingPendingDropIns = true;
+        getPendingDropIns()
+            .then(data => {
+                this.pendingDropIns = (data || []).map(item => {
+                    const isShell = item.kind === 'SHELL';
+                    return {
+                        ...item,
+                        rowKey         : isShell ? item.interactionId : item.taskId,
+                        formattedDate  : item.date
+                            ? new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
+                                  .format(new Date(item.date + 'T00:00:00Z'))
+                            : '',
+                        isShell        : isShell,
+                        isTask         : !isShell,
+                        isSuspicious   : (item.priority === 'High'),
+                        isNew          : !!(item.description || '').includes('NEW PARTICIPANT'),
+                        isIncomplete   : !!(item.description || '').includes('No email'),
+                        flagLabel      : this._buildPendingFlag(item)
+                    };
+                });
+            })
+            .catch(err => {
+                console.error('CaseManagerHome: getPendingDropIns error', err);
+            })
+            .finally(() => { this.isLoadingPendingDropIns = false; });
+    }
+
+    _buildPendingFlag(item) {
+        if (item.kind === 'SHELL')                                   return 'Fill in details';
+        if (item.priority === 'High')                                return '⚠ Verify Identity';
+        if ((item.description || '').includes('No email'))           return 'Incomplete';
+        return 'New Visitor';
+    }
+
+    handleFillInShell(event) {
+        const interactionId = event.currentTarget.dataset.interactionid;
+        if (!interactionId) return;
+        this.dropInShellInteractionId = interactionId;
+        this.showDropInShellModal = true;
+    }
+
+    closeDropInShellModal() {
+        this.showDropInShellModal = false;
+        this.dropInShellInteractionId = null;
+    }
+
+    handleDropInShellSaved() {
+        // Refresh the queue so a published shell drops off the list.
+        this._loadPendingDropIns();
+    }
+
+    handleDropInShellResolved() {
+        this._loadPendingDropIns();
+        this.closeDropInShellModal();
+    }
+
+    async handleDropInShellOpenDemographics(event) {
+        const accountId = event.detail?.accountId;
+        const caseId    = event.detail?.caseId;
+        if (!accountId) return;
+        // Reuse the existing profile modal.
+        this.profileError = '';
+        this.profileAccountData = {};
+        this.profileFormData = {};
+        this.profileDemographicsData = {};
+        this.showProfileModal = true;
+        this.isLoadingProfile = true;
+        // Stash the kiosk account/case so save targets the right record.
+        this._dropInDemoAccountId = accountId;
+        this._dropInDemoCaseId    = caseId;
+        try {
+            const data = await getClientProfile({ accountId });
+            this.profileAccountData = data || {};
+            this.profileFormData = {
+                ...(data || {}),
+                Referral_Source_Name: data?.Referral_Source_Name || ''
+            };
+        } catch (error) {
+            this.profileError = error?.body?.message || error?.message || 'Unable to load profile.';
+        } finally {
+            this.isLoadingProfile = false;
+        }
+    }
+
+    // Path A — visitor already has a record
+    handleMatchExisting(event) {
+        this.matchTaskId = event.currentTarget.dataset.taskid;
+        this.matchSearchTerm = '';
+        this.matchSearchResults = [];
+        this.matchSelectedAccountId = null;
+        this.matchSelectedAccountName = '';
+        this.showMatchExistingModal = true;
+    }
+
+    closeMatchExistingModal() {
+        this.showMatchExistingModal = false;
+        this.matchTaskId = null;
+        this.matchSearchTerm = '';
+        this.matchSearchResults = [];
+        this.matchSelectedAccountId = null;
+        this.matchSelectedAccountName = '';
+        this.isResolvingMatch = false;
+    }
+
+    handleMatchSearch(event) {
+        this.matchSearchTerm = event.target.value;
+        this.matchSelectedAccountId = null;
+        this.matchSelectedAccountName = '';
+        clearTimeout(this._matchSearchTimer);
+        if (this.matchSearchTerm.length < 2) {
+            this.matchSearchResults = [];
+            return;
+        }
+        this._matchSearchTimer = setTimeout(() => {
+            this.isMatchSearching = true;
+            searchPersonAccounts({ searchTerm: this.matchSearchTerm })
+                .then(results => { this.matchSearchResults = results || []; })
+                .catch(() => { this.matchSearchResults = []; })
+                .finally(() => { this.isMatchSearching = false; });
+        }, 300);
+    }
+
+    handleMatchSelectAccount(event) {
+        this.matchSelectedAccountId = event.currentTarget.dataset.accountid;
+        this.matchSelectedAccountName = event.currentTarget.dataset.accountname;
+        this.matchSearchResults = [];
+        this.matchSearchTerm = this.matchSelectedAccountName;
+    }
+
+    async handleConfirmMatchExisting() {
+        if (!this.matchSelectedAccountId || !this.matchTaskId) return;
+        this.isResolvingMatch = true;
+        try {
+            await resolveDropInMatchExisting({
+                taskId           : this.matchTaskId,
+                correctAccountId : this.matchSelectedAccountId,
+                staffUserId      : null
+            });
+            this.showToast('Success', 'Check-in matched. Disbursement and interaction note created.', 'success');
+            this.closeMatchExistingModal();
+            this._loadPendingDropIns();
+        } catch (err) {
+            const msg = err?.body?.message || err?.message || 'Resolve failed.';
+            this.showToast('Error', msg, 'error');
+        } finally {
+            this.isResolvingMatch = false;
+        }
+    }
+
+    // Path B — accept as new person, launch intake
+    async handleNewPerson(event) {
+        const taskId = event.currentTarget.dataset.taskid;
+        this.isResolvingNewPerson = true;
+        try {
+            const result = await resolveDropInNewPerson({ taskId });
+            this._loadPendingDropIns();
+            if (result?.caseId && result?.accountId) {
+                try {
+                    const intakeStatus = await getClientIntakeStatus({
+                        caseId    : result.caseId,
+                        accountId : result.accountId
+                    });
+                    if (intakeStatus?.templateVersionId) {
+                        this.intakeCaseId            = result.caseId;
+                        this.intakeTemplateVersionId  = intakeStatus.templateVersionId;
+                        this.intakeResumeInterviewId  = intakeStatus.pendingInterviewId || null;
+                        this.intakeClientName         = intakeStatus.clientName || 'New Visitor';
+                        this.intakeTemplateLabel      = intakeStatus.templateLabel || 'Intake';
+                        this.intakeAllowDemographicsEditing = true;
+                        this.showIntakeStep2 = true;
+                    } else {
+                        this.showToast('Intake Ready', 'Task resolved. Open the case to complete intake.', 'info');
+                    }
+                } catch (_) {
+                    this.showToast('Resolved', 'Task marked complete. Open the case to continue intake.', 'success');
+                }
+            } else {
+                this.showToast('Resolved', 'Task marked complete.', 'success');
+            }
+        } catch (err) {
+            const msg = err?.body?.message || err?.message || 'Resolve failed.';
+            this.showToast('Error', msg, 'error');
+        } finally {
+            this.isResolvingNewPerson = false;
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

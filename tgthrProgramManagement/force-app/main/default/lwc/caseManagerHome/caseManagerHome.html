@@ -33,6 +33,60 @@
 
     <!-- ── Left sidebar: client card list ───────────────────────────── -->
     <div class="cmh-sidebar">
+
+      <!-- ── Pending Check-Ins banner ─────────────────────────────── -->
+      <template if:true={hasPendingDropIns}>
+        <div class="cmh-pending-section">
+          <div class="cmh-pending-section__header">
+            <lightning-icon icon-name="utility:clock" size="x-small" class="cmh-pending-section__icon"></lightning-icon>
+            <span class="cmh-pending-section__title">Pending Check-Ins</span>
+            <span class="cmh-badge cmh-badge--warning">{pendingDropInsCountLabel}</span>
+          </div>
+          <template for:each={pendingDropIns} for:item="pending">
+            <div key={pending.rowKey} class="cmh-pending-card">
+              <div class="cmh-pending-card__header">
+                <span class="cmh-pending-card__name">{pending.accountName}</span>
+                <span class="cmh-badge cmh-badge--flag">{pending.flagLabel}</span>
+              </div>
+              <div class="cmh-pending-card__date">{pending.formattedDate}</div>
+              <div class="cmh-pending-card__actions">
+                <template if:true={pending.isTask}>
+                  <lightning-button
+                    label="Match to Existing"
+                    icon-name="utility:search"
+                    size="small"
+                    data-taskid={pending.taskId}
+                    onclick={handleMatchExisting}
+                  ></lightning-button>
+                  <lightning-button
+                    label="New Person"
+                    variant="brand"
+                    icon-name="utility:add"
+                    size="small"
+                    data-taskid={pending.taskId}
+                    onclick={handleNewPerson}
+                    disabled={isResolvingNewPerson}
+                  ></lightning-button>
+                </template>
+                <template if:true={pending.isShell}>
+                  <lightning-button
+                    label="Fill In Details"
+                    variant="brand"
+                    icon-name="utility:edit"
+                    size="small"
+                    data-interactionid={pending.interactionId}
+                    onclick={handleFillInShell}
+                  ></lightning-button>
+                </template>
+              </div>
+            </div>
+          </template>
+          <template if:true={isLoadingPendingDropIns}>
+            <lightning-spinner alternative-text="Loading pending check-ins…" size="small"></lightning-spinner>
+          </template>
+        </div>
+      </template>
+      <!-- ─────────────────────────────────────────────────────────── -->
       <template if:false={isLoadingCases}>
         <template if:true={filteredCases.length}>
           <template for:each={filteredCases} for:item="client">
@@ -345,6 +399,86 @@
   <!-- ══════════════════════════════════════════════════════════════════════
        INTAKE MODAL — Step 1: Pre-Intake Form
   ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       DROP-IN SHELL RESOLUTION MODAL (Pending Check-In — Fill In Details)
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <template if:true={showDropInShellModal}>
+    <c-drop-in-shell-modal
+      interaction-id={dropInShellInteractionId}
+      onclose={closeDropInShellModal}
+      onsaved={handleDropInShellSaved}
+      onreparented={handleDropInShellResolved}
+      onbaddata={handleDropInShellResolved}
+      onopendemographics={handleDropInShellOpenDemographics}>
+    </c-drop-in-shell-modal>
+  </template>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MATCH TO EXISTING MODAL (Pending Check-In resolution — Path A)
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <template if:true={showMatchExistingModal}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open" aria-label="Match to Existing Client">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+            title="Close" onclick={closeMatchExistingModal}>
+            <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">Match to Existing Client</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <p class="slds-m-bottom_small slds-text-body_small">
+            Search for the existing client record this visitor belongs to.
+            A Drop-In Day disbursement and interaction note will be created on the matched account.
+          </p>
+          <lightning-input
+            label="Search by name"
+            placeholder="Start typing a name…"
+            value={matchSearchTerm}
+            onchange={handleMatchSearch}
+            autocomplete="off"
+          ></lightning-input>
+          <template if:true={isMatchSearching}>
+            <lightning-spinner alternative-text="Searching…" size="small" class="slds-m-top_small"></lightning-spinner>
+          </template>
+          <template if:true={matchSearchResults.length}>
+            <ul class="cmh-match-results slds-m-top_small">
+              <template for:each={matchSearchResults} for:item="acct">
+                <li key={acct.accountId}
+                    class="cmh-match-result-item"
+                    data-accountid={acct.accountId}
+                    data-accountname={acct.name}
+                    onclick={handleMatchSelectAccount}>
+                  <span class="cmh-match-result-name">{acct.name}</span>
+                  <template if:true={acct.email}>
+                    <span class="cmh-match-result-email">{acct.email}</span>
+                  </template>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <template if:true={matchSelectedAccountName}>
+            <div class="cmh-match-selected slds-m-top_small">
+              <lightning-icon icon-name="utility:check" size="x-small" variant="success"></lightning-icon>
+              <span class="slds-m-left_x-small">Selected: <strong>{matchSelectedAccountName}</strong></span>
+            </div>
+          </template>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button label="Cancel" onclick={closeMatchExistingModal}></lightning-button>
+          <lightning-button
+            label="Confirm Match"
+            variant="brand"
+            icon-name="utility:check"
+            icon-position="right"
+            onclick={handleConfirmMatchExisting}
+            disabled={matchConfirmDisabled}
+          ></lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
   <!-- ══════════════════════════════════════════════════════════════════════
        WEBCAM PHOTO CAPTURE MODAL
   ═══════════════════════════════════════════════════════════════════════ -->

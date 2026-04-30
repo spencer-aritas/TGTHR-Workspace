@@ -11,26 +11,28 @@
 
     <template if:false={isLoading}>
         <template if:false={error}>
-            <div class="slds-box slds-theme_shade slds-m-bottom_medium">
-                <div class="slds-grid slds-wrap slds-gutters_small">
-                    <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
-                        <span class="slds-text-title_caps">Interaction Date</span>
-                        <p class="slds-text-body_regular">{formattedInteractionDate}</p>
+            <template if:true={showInteractionMeta}>
+                <section class="interaction-meta-panel slds-m-bottom_medium" aria-label="Interaction metadata">
+                    <div class="interaction-meta-grid">
+                        <article class="interaction-meta-item">
+                            <span class="interaction-meta-label">Interaction Date</span>
+                            <p class="interaction-meta-value">{formattedInteractionDate}</p>
+                        </article>
+                        <article class="interaction-meta-item">
+                            <span class="interaction-meta-label">Start Time ({mountainTimeZoneLabel})</span>
+                            <p class="interaction-meta-value">{formattedInteractionStartTime}</p>
+                        </article>
+                        <article class="interaction-meta-item">
+                            <span class="interaction-meta-label">End Time ({mountainTimeZoneLabel})</span>
+                            <p class="interaction-meta-value">{formattedInteractionEndTime}</p>
+                        </article>
+                        <article class="interaction-meta-item">
+                            <span class="interaction-meta-label">Created On ({mountainTimeZoneLabel})</span>
+                            <p class="interaction-meta-value">{formattedCreatedDate}</p>
+                        </article>
                     </div>
-                    <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
-                        <span class="slds-text-title_caps">Interaction Start Time ({mountainTimeZoneLabel})</span>
-                        <p class="slds-text-body_regular">{formattedInteractionStartTime}</p>
-                    </div>
-                    <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
-                        <span class="slds-text-title_caps">Interaction End Time ({mountainTimeZoneLabel})</span>
-                        <p class="slds-text-body_regular">{formattedInteractionEndTime}</p>
-                    </div>
-                    <div class="slds-col slds-size_1-of-2 slds-p-vertical_x-small">
-                        <span class="slds-text-title_caps">Created On ({mountainTimeZoneLabel})</span>
-                        <p class="slds-text-body_regular">{formattedCreatedDate}</p>
-                    </div>
-                </div>
-            </div>
+                </section>
+            </template>
 
             <!-- Care Plan Details (Interview/Treatment Plan) -->
             <template if:true={showCarePlanDetails}>
@@ -130,11 +132,11 @@
                 <!-- Client Response -->
                 <template if:true={noteData.responseAndProgress}>
                     <div class="slds-m-bottom_medium">
-                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">
-                            <lightning-icon icon-name="utility:trending" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small detail-section-heading">
+                            <lightning-icon icon-name="utility:note" size="x-small" class="slds-m-right_x-small"></lightning-icon>
                             Client Response
                         </h3>
-                        <div class="slds-box slds-box_x-small">
+                        <div class="slds-box slds-box_x-small detail-section-box">
                             <lightning-formatted-rich-text value={noteData.responseAndProgress}></lightning-formatted-rich-text>
                         </div>
                     </div>
@@ -143,11 +145,11 @@
                 <!-- Plan -->
                 <template if:true={noteData.plan}>
                     <div class="slds-m-bottom_medium">
-                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">
-                            <lightning-icon icon-name="utility:checklist" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small detail-section-heading">
+                            <lightning-icon icon-name="utility:note" size="x-small" class="slds-m-right_x-small"></lightning-icon>
                             Plan
                         </h3>
-                        <div class="slds-box slds-box_x-small">
+                        <div class="slds-box slds-box_x-small detail-section-box">
                             <lightning-formatted-rich-text value={noteData.plan}></lightning-formatted-rich-text>
                         </div>
                     </div>
@@ -232,11 +234,11 @@
                 <!-- Diagnoses -->
                 <template if:true={hasDiagnoses}>
                     <div class="slds-m-bottom_medium">
-                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">
-                            <lightning-icon icon-name="utility:topic" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small detail-section-heading">
+                            <lightning-icon icon-name="utility:summary" size="x-small" class="slds-m-right_x-small"></lightning-icon>
                             Diagnoses
                         </h3>
-                        <div class="slds-box slds-box_x-small">
+                        <div class="slds-box slds-box_x-small detail-section-box">
                             <template for:each={noteData.diagnoses} for:item="diagnosis">
                                 <div key={diagnosis.code} class="slds-p-bottom_x-small">
                                     <div class="slds-text-body_regular">
@@ -257,12 +259,11 @@
                 <!-- Goals Worked On -->
                 <template if:true={showInterviewGoals}>
                     <div class="slds-m-bottom_medium">
-                        <div class="slds-box slds-box_x-small">
-                            <div class="slds-text-title_caps slds-m-bottom_x-small">
-                                <lightning-icon icon-name="utility:goals" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                                <template if:true={isInterview}>Treatment Plan Goals</template>
-                                <template if:false={isInterview}>Goals Worked On</template>
-                            </div>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small detail-section-heading">
+                            <lightning-icon icon-name="utility:list" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                            {goalsSectionTitle}
+                        </h3>
+                        <div class="slds-box slds-box_x-small detail-section-box">
                             <template for:each={noteData.goals} for:item="goal">
                                 <div key={goal.name} class="slds-p-bottom_small slds-border_bottom slds-m-bottom_small">
                                     <div class="slds-text-body_regular"><strong>{goal.name}</strong></div>
@@ -299,11 +300,11 @@
                 <!-- Benefits/Services Provided -->
                 <template if:true={hasBenefits}>
                     <div class="slds-m-bottom_medium">
-                        <h3 class="slds-text-heading_small slds-m-bottom_x-small">
-                            <lightning-icon icon-name="utility:gift" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                        <h3 class="slds-text-heading_small slds-m-bottom_x-small detail-section-heading">
+                            <lightning-icon icon-name="utility:description" size="x-small" class="slds-m-right_x-small"></lightning-icon>
                             Services Provided
                         </h3>
-                        <div class="slds-box slds-box_x-small services-provided-box">
+                        <div class="slds-box slds-box_x-small detail-section-box services-provided-box">
                             <div class="slds-text-body_small text-muted services-provided-summary">{benefitCountLabel}</div>
                             <div class="services-provided-grid">
                                 <template for:each={enrichedBenefits} for:item="benefit">
@@ -393,6 +394,29 @@
                         </div>
                     </div>
                 </template>
+
+                <template if:true={showCompletedFooterInteractionMeta}>
+                    <section class="interaction-meta-panel slds-m-bottom_medium" aria-label="Interaction metadata">
+                        <div class="interaction-meta-grid">
+                            <article class="interaction-meta-item">
+                                <span class="interaction-meta-label">Interaction Date</span>
+                                <p class="interaction-meta-value">{formattedInteractionDate}</p>
+                            </article>
+                            <article class="interaction-meta-item">
+                                <span class="interaction-meta-label">Start Time ({mountainTimeZoneLabel})</span>
+                                <p class="interaction-meta-value">{formattedInteractionStartTime}</p>
+                            </article>
+                            <article class="interaction-meta-item">
+                                <span class="interaction-meta-label">End Time ({mountainTimeZoneLabel})</span>
+                                <p class="interaction-meta-value">{formattedInteractionEndTime}</p>
+                            </article>
+                            <article class="interaction-meta-item">
+                                <span class="interaction-meta-label">Created On ({mountainTimeZoneLabel})</span>
+                                <p class="interaction-meta-value">{formattedCreatedDate}</p>
+                            </article>
+                        </div>
+                    </section>
+                </template>
                 
                 <!-- Signatures -->
                 <div class="slds-m-bottom_medium">
@@ -425,7 +449,7 @@
                                 <div class="slds-text-title_caps slds-text-color_weak">Manager Co-Signature</div>
                                 <div class="slds-m-top_xx-small">
                                     <template if:true={showManagerApprovalStatus}>
-                                        <template if:true={noteData.managerSigned}>
+                                        <template if:true={hasManagerSignature}>
                                             <div class="slds-grid slds-grid_vertical-align-center">
                                                 <lightning-icon icon-name="utility:success" size="x-small" variant="success" class="slds-m-right_xx-small"></lightning-icon>
                                                 <div>
@@ -434,7 +458,7 @@
                                                 </div>
                                             </div>
                                         </template>
-                                        <template if:false={noteData.managerSigned}>
+                                        <template if:true={showManagerApprovalPending}>
                                             <div class="slds-grid slds-grid_vertical-align-center">
                                                 <lightning-icon icon-name="utility:warning" size="x-small" variant="warning" class="slds-m-right_xx-small"></lightning-icon>
                                                 <div class="slds-text-body_small text-muted">Pending approval</div>
@@ -442,10 +466,7 @@
                                         </template>
                                     </template>
                                     <template if:false={showManagerApprovalStatus}>
-                                        <div class="slds-grid slds-grid_vertical-align-center">
-                                            <lightning-icon icon-name="utility:dash" size="x-small" class="slds-m-right_xx-small"></lightning-icon>
-                                            <div class="slds-text-body_small text-muted">No approval requested</div>
-                                        </div>
+                                        <div class="slds-text-body_small text-muted">{managerApprovalDisplayLabel}</div>
                                     </template>
                                 </div>
                             </div>

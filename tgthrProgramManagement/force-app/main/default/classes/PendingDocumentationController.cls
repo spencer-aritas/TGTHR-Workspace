@@ -100,8 +100,8 @@ public with sharing class PendingDocumentationController {
                 .get('InteractionSummary').getDescribe().fields.getMap();
             // Build query for documentation-purpose InteractionSummary records only.
             // Standalone interactions must stay in the Interactions tab flow.
-            // Include Interview wrappers (Interview__c != null) so template-driven docs
-            // like Treatment Plans / Intake interviews remain visible in pending docs.
+            // Interview-linked records (Treatment Plans, Intakes) are handled by
+            // getUnsignedInterviews() and must NOT appear here to avoid duplicates.
             String query = 'SELECT Id, Name, Date_of_Interaction__c, InteractionPurpose, Interview__c' +
                           buildInteractionSummaryOptionalSelectClause(new List<String>{ 'Start_Time__c', 'Completed_On__c', 'Signed_Date__c' }) +
                           ', CreatedDate, ' +
@@ -112,8 +112,7 @@ public with sharing class PendingDocumentationController {
                           'Action_Escalated_By__c, Action_Escalated_By__r.Name, Action_Notes__c ' +
                           'FROM InteractionSummary ' +
                           'WHERE RelatedRecordId = :caseId ' +
-                          'AND (InteractionPurpose IN (\'Clinical Note\', \'Case Note\', \'Case Notes\', \'Peer Note\') ' +
-                          'OR (InteractionPurpose = \'Interview\' AND Interview__c != null)) ' +
+                          'AND InteractionPurpose IN (\'Clinical Note\', \'Case Note\', \'Case Notes\', \'Peer Note\') ' +
                           'AND (Status = \'Published\' OR Status = null) ' +
                           'ORDER BY CreatedDate DESC ' +
                           'LIMIT 50';
@@ -1426,11 +1425,10 @@ public with sharing class PendingDocumentationController {
                 Object managerSignedObj = record.get('Manager_Signed__c');
                 dto.managerSigned = managerSignedObj != null ? (Boolean)managerSignedObj : false;
                 dto.managerSignedDate = toDateFromTemporal(record.get('Manager_Signed_Date__c'));
-                dto.managerSignedBy = (String)record.getSObject('Manager_Approver__r')?.get('Name');
+                dto.managerSignedBy = (dto.managerSigned == true || dto.managerSignedDate != null)
+                    ? (String)record.getSObject('Manager_Approver__r')?.get('Name')
+                    : null;
                 dto.lateEntryManagerApprovalRequired = isLateEntryManagerApprovalRequired(record, false);
-                if (!dto.requiresManagerApproval && (dto.managerSigned || dto.managerSignedDate != null || String.isNotBlank(dto.managerSignedBy))) {
-                    dto.requiresManagerApproval = true;
-                }
 
                 // Try to get the attached document — PDF primary, DOCX as Word source
                 try {
@@ -1651,7 +1649,9 @@ public with sharing class PendingDocumentationController {
                 Object managerSignedObj = record.get('Manager_Signed__c');
                 dto.managerSigned = managerSignedObj != null ? (Boolean)managerSignedObj : false;
                 dto.managerSignedDate = toDateFromTemporal(record.get('Manager_Signed_Date__c'));
-                dto.managerSignedBy = (String)record.getSObject('Manager_Approver__r')?.get('Name');
+                dto.managerSignedBy = (dto.managerSigned == true || dto.managerSignedDate != null)
+                    ? (String)record.getSObject('Manager_Approver__r')?.get('Name')
+                    : null;
                 Object caseManagerSignedObj = record.get('CaseManager_Signed__c');
                 dto.caseManagerSigned = caseManagerSignedObj != null ? (Boolean)caseManagerSignedObj : false;
                 Datetime caseManagerSignedDt = (Datetime)record.get('Date_CaseManager_Signed__c');
@@ -1663,9 +1663,6 @@ public with sharing class PendingDocumentationController {
                 dto.peerSupportSignedDate = peerSupportSignedDt != null ? peerSupportSignedDt.date() : null;
                 dto.peerSupportSignedBy = (String)record.getSObject('PeerSupport_Signed_By__r')?.get('Name');
                 dto.lateEntryManagerApprovalRequired = isLateEntryManagerApprovalRequired(record, true);
-                if (!dto.requiresManagerApproval && (dto.managerSigned || dto.managerSignedDate != null || String.isNotBlank(dto.managerSignedBy))) {
-                    dto.requiresManagerApproval = true;
-                }
 
                 // Try to get the attached document for Interview — PDF primary, DOCX as Word source.
                 // Docgen uploads attach to the InteractionSummary when available.
@@ -2253,7 +2250,7 @@ public with sharing class PendingDocumentationController {
                 }
 
                 record.put('Manager_Signed__c', false);
-                record.put('Requires_Manager_Approval__c', false); // Remove from manager queue — re-routing handled by updateInterviewSignatures
+                record.put('Requires_Manager_Approval__c', true);
                 // Manager_Approver__c is intentionally preserved so re-signing routes back to the same approver
 
                 // Track rejection reason on the Interview (mirrors Interaction pattern)
@@ -2263,6 +2260,9 @@ public with sharing class PendingDocumentationController {
                 }
                 if (iFields.containsKey('manager_rejection_reason__c')) {
                     record.put('Manager_Rejection_Reason__c', rejectionReason);
+                }
+                if (iFields.containsKey('completed_on__c')) {
+                    record.put('Completed_On__c', null);
                 }
 
                 // Clear all multi-signature fields so the plan re-enters the full signing chain.
@@ -3958,27 +3958,28 @@ public with sharing class PendingDocumentationController {
 
                 if (requiresManagerApproval == true) {
                     interview.put('Status__c', DocumentStatus.INTERVIEW_SUBMITTED); // waiting for manager co-sign
-                    if (interview.get('Completed_On__c') == null) {
-                        interview.put('Completed_On__c', Datetime.now());
-                    }
+                    interview.put('Completed_On__c', null);
                 } else {
                     interview.put('Status__c', DocumentStatus.INTERVIEW_SIGNED); // all sigs done, no further approval needed
-                    if (interview.get('Completed_On__c') == null) {
-                        interview.put('Completed_On__c', Datetime.now());
-                    }
+                    interview.put('Completed_On__c', Datetime.now());
                 }
             } else {
                 // Still pending signatures
                 interview.put('Status__c', DocumentStatus.INTERVIEW_IN_PROGRESS);
-                if (interview.get('Completed_On__c') == null) {
-                    interview.put('Completed_On__c', Datetime.now());
-                }
+                interview.put('Completed_On__c', null);
             }
             
             update interview;
             
             // Regenerate the document and attempt Treatment Plan activation
             if (cmComplete && psComplete && clinicianComplete) {
+                // ── Auto-add signers to the Case's Care Team ───────────────
+                try {
+                    CareTeamService.addTreatmentPlanSigners(interviewId);
+                } catch (Exception careTeamEx) {
+                    System.debug('⚠️ Care Team auto-add failed (non-fatal): ' + careTeamEx.getMessage());
+                }
+
                 Boolean requiresApproval = (Boolean) interview.get('Requires_Manager_Approval__c');
 
                 // CM+PS are now done and manager approval is pending — notify the manager NOW

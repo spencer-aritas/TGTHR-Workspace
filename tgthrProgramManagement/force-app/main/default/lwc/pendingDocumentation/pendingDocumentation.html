@@ -22,8 +22,8 @@
                                                     <div class="slds-text-heading_small slds-truncate">{item.title}</div>
                                                     <div class="slds-text-body_small text-muted">{item.subtitle}</div>
                                                     <div class="slds-text-body_small text-muted">Owner: {item.ownerDisplay}</div>
-                                                    <template if:true={item.referenceNumber}>
-                                                        <div class="slds-text-body_small text-muted">{item.referenceNumber}</div>
+                                                    <template if:true={item.referenceDisplay}>
+                                                        <div class="slds-text-body_small pending-reference">{item.referenceDisplay}</div>
                                                     </template>
                                                     <template if:true={item.pendingReason}>
                                                         <div class="slds-text-body_small"><strong>Reason:</strong> {item.pendingReason}</div>

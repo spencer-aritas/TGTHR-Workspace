@@ -1,0 +1,487 @@
+<template>
+    <lightning-card title="Program Services" icon-name="standard:work_order">
+        <div slot="actions">
+            <lightning-button-group>
+                <lightning-button
+                    label="Add Service"
+                    icon-name="utility:add"
+                    onclick={handleAddService}
+                    disabled={isLoading}
+                ></lightning-button>
+                <lightning-button
+                    label="Refresh"
+                    icon-name="utility:refresh"
+                    onclick={handleRefresh}
+                    variant="neutral"
+                    disabled={isLoading}
+                ></lightning-button>
+            </lightning-button-group>
+        </div>
+
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+
+            <!-- Error banner -->
+            <template if:true={errorMessage}>
+                <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-bottom_small" role="alert">
+                    <lightning-icon icon-name="utility:error" variant="inverse" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                    {errorMessage}
+                </div>
+            </template>
+
+            <!-- Loading spinner (first load only) -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-p-around_large">
+                    <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+
+                <lightning-tabset active-tab-value={activeTab} onactive={handleTabChange}>
+
+                    <!-- ══ ACTIVE SERVICES TAB ══════════════════════════════ -->
+                    <lightning-tab label="Active Services" value="active">
+
+                        <template if:true={hasBenefits}>
+                            <p class="slds-text-body_small slds-text-color_weak slds-m-vertical_x-small">
+                                {activeBenefitCount} active · {retiredBenefitCount} retired
+                            </p>
+
+                            <!-- Filter bar -->
+                            <div class="filter-bar">
+                                <lightning-input
+                                    type="search"
+                                    placeholder="Filter by name, type, or unit…"
+                                    value={filterText}
+                                    onchange={handleFilterChange}
+                                    variant="label-hidden"
+                                ></lightning-input>
+                            </div>
+
+                            <!-- Benefit cards -->
+                            <div class="benefit-grid">
+                                <template for:each={filteredBenefits} for:item="b">
+                                    <div key={b.benefitId} class="benefit-card">
+
+                                        <!-- Name + type badge -->
+                                        <div class="card-header">
+                                            <span class="card-name">{b.benefitName}</span>
+                                            <span class="type-badge">{b.benefitTypeName}</span>
+                                        </div>
+
+                                        <!-- UoM / quantity / duration pills -->
+                                        <div class="card-meta">
+                                            <template if:true={b.unitName}>
+                                                <span class="meta-pill">{b.unitName}</span>
+                                            </template>
+                                            <template if:true={b.defaultDisbursementQty}>
+                                                <span class="meta-pill">Qty&nbsp;{b.defaultDisbursementQty}</span>
+                                            </template>
+                                            <template if:true={b.defaultDurationMinutes}>
+                                                <span class="meta-pill">{b.defaultDurationMinutes}&nbsp;min</span>
+                                            </template>
+                                        </div>
+
+                                        <!-- Channel availability badges -->
+                                        <div class="card-channels">
+                                            <span class={b.clinicalClass}>Clinical</span>
+                                            <span class={b.caseMgmtClass}>Case Mgmt</span>
+                                            <span class={b.peerClass}>Peer</span>
+                                            <span class={b.programEngagementClass}>Census</span>
+                                        </div>
+                                        <!-- Housing benefit tag (auto-disbursed to residents) -->
+                                        <template if:true={b.availableForHousing}>
+                                            <div class="card-housing-tag">⌂ Housing Benefit</div>
+                                        </template>
+
+                                        <!-- Action buttons -->
+                                        <div class="card-actions">
+                                            <lightning-button-icon
+                                                icon-name="utility:edit"
+                                                size="small"
+                                                variant="border-filled"
+                                                title="Edit service details (name, channels, UoM)"
+                                                alternative-text="Edit"
+                                                data-id={b.benefitId}
+                                                onclick={handleEditClick}
+                                            ></lightning-button-icon>
+                                            <lightning-button-icon
+                                                icon-name="utility:replace"
+                                                size="small"
+                                                variant="border-filled"
+                                                title="Change Benefit Type — creates a new record"
+                                                alternative-text="Change Type"
+                                                data-id={b.benefitId}
+                                                onclick={handleReplaceClick}
+                                            ></lightning-button-icon>
+                                            <lightning-button-icon
+                                                icon-name="utility:ban"
+                                                size="small"
+                                                variant="border-filled"
+                                                title="Retire this service permanently"
+                                                alternative-text="Retire"
+                                                icon-class="slds-icon-text-error"
+                                                data-id={b.benefitId}
+                                                onclick={handleRetireClick}
+                                            ></lightning-button-icon>
+                                        </div>
+
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template if:false={hasBenefits}>
+                            <template if:true={programId}>
+                                <div class="slds-p-around_large slds-text-align_center">
+                                    <p class="slds-text-heading_small slds-m-bottom_x-small">No active services configured</p>
+                                    <p class="slds-text-body_small slds-text-color_weak">Click "Add Service" to add the first benefit to this program.</p>
+                                </div>
+                            </template>
+                            <template if:false={programId}>
+                                <div class="slds-p-around_large slds-text-align_center">
+                                    <p class="slds-text-heading_small slds-m-bottom_x-small">No program selected</p>
+                                    <p class="slds-text-body_small slds-text-color_weak">Place this component on a Program record page.</p>
+                                </div>
+                            </template>
+                        </template>
+
+                    </lightning-tab>
+
+                    <!-- ══ RETIRED / REPLACED TAB ═══════════════════════════ -->
+                    <lightning-tab label="Retired / Replaced" value="history">
+                        <template if:true={hasHistoryError}>
+                            <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_error slds-m-around_small" role="alert">
+                                <lightning-icon icon-name="utility:error" variant="inverse" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                {historyErrorMessage}
+                            </div>
+                        </template>
+                        <template if:true={hasHistoryBenefits}>
+                            <lightning-datatable
+                                key-field="benefitId"
+                                data={historyBenefits}
+                                columns={historyColumns}
+                                hide-checkbox-column
+                            ></lightning-datatable>
+                        </template>
+                        <template if:false={hasHistoryBenefits}>
+                            <p class="slds-text-body_regular slds-p-around_medium slds-text-color_weak">No retired or replaced services.</p>
+                        </template>
+                    </lightning-tab>
+
+                </lightning-tabset>
+
+            </template>
+
+        </div>
+    </lightning-card>
+
+    <!-- ══ EDIT SERVICE MODAL ═══════════════════════════════════════════════ -->
+    <template if:true={showEditModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseEdit}>
+                        <lightning-icon icon-name="utility:close" variant="inverse" size="small"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title">Edit Service</h2>
+                    <p class="slds-m-top_xx-small slds-text-body_small" style="color:rgba(255,255,255,0.8)">
+                        Updates this record in place — no history is created.
+                        Use "Change Type" to change the Benefit Type instead.
+                    </p>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-input
+                        label="Service Name"
+                        value={editForm.benefitName}
+                        onchange={handleEditFormChange}
+                        data-field="benefitName"
+                        required
+                    ></lightning-input>
+                    <lightning-combobox
+                        label="Unit of Measure"
+                        value={editForm.unitName}
+                        options={unitOptions}
+                        onchange={handleEditFormChange}
+                        data-field="unitName"
+                        class="slds-m-top_small"
+                        field-level-help="How disbursements are counted and reported"
+                    ></lightning-combobox>
+                    <div class="slds-grid slds-gutters slds-m-top_small">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                type="number"
+                                label="Default Quantity"
+                                min="0"
+                                step="0.5"
+                                value={editForm.defaultDisbursementQty}
+                                onchange={handleEditFormChange}
+                                data-field="defaultDisbursementQty"
+                                field-level-help="Units disbursed per encounter"
+                            ></lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input
+                                type="number"
+                                label="Default Duration (min)"
+                                min="0"
+                                step="5"
+                                value={editForm.defaultDurationMinutes}
+                                onchange={handleEditFormChange}
+                                data-field="defaultDurationMinutes"
+                                field-level-help="Typical duration in minutes (time-based UoMs only)"
+                            ></lightning-input>
+                        </div>
+                    </div>
+                    <fieldset class="slds-form-element slds-m-top_medium">
+                        <legend class="slds-form-element__label slds-form-element__legend">
+                            Disbursement Channels
+                        </legend>
+                        <div class="slds-form-element__control">
+                            <div class="slds-grid slds-gutters_x-small slds-wrap">
+                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                                    <lightning-input type="checkbox" label="Clinical"
+                                        checked={editForm.availableForClinical}
+                                        onchange={handleEditFormChange}
+                                        data-field="availableForClinical"
+                                    ></lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                                    <lightning-input type="checkbox" label="Case Management"
+                                        checked={editForm.availableForCaseManagement}
+                                        onchange={handleEditFormChange}
+                                        data-field="availableForCaseManagement"
+                                    ></lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                                    <lightning-input type="checkbox" label="Peer"
+                                        checked={editForm.availableForPeer}
+                                        onchange={handleEditFormChange}
+                                        data-field="availableForPeer"
+                                    ></lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <lightning-input type="checkbox" label="Census / Program Engagement"
+                                        checked={editForm.availableForProgramEngagement}
+                                        onchange={handleEditFormChange}
+                                        data-field="availableForProgramEngagement"
+                                        field-level-help="Controls Census Board visibility and Program Engagement disbursements"
+                                    ></lightning-input>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="slds-form-element slds-m-top_small">
+                        <legend class="slds-form-element__label slds-form-element__legend">Housing</legend>
+                        <div class="slds-form-element__control">
+                            <lightning-input type="checkbox"
+                                label="Housing Benefit (auto-disbursed daily to enrolled residents)"
+                                checked={editForm.availableForHousing}
+                                onchange={handleEditFormChange}
+                                data-field="availableForHousing"
+                                field-level-help="Marks this as a Housing Benefit — automatically disbursed once daily to all residents of housing programs (1440 Pine, Nest 56, emergency shelter)"
+                            ></lightning-input>
+                        </div>
+                    </fieldset>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseEdit} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button label="Save Changes" variant="brand" onclick={handleConfirmEdit}
+                        disabled={editSaving}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- ══ ADD SERVICE MODAL ════════════════════════════════════════════════ -->
+    <template if:true={showAddModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseAdd}>
+                        <lightning-icon icon-name="utility:close" variant="inverse" size="small"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title">Add Service to Program</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-input
+                        label="Service Name"
+                        value={addForm.benefitName}
+                        onchange={handleAddFormChange}
+                        data-field="benefitName"
+                        required
+                    ></lightning-input>
+                    <lightning-combobox
+                        label="Benefit Type"
+                        value={addForm.benefitTypeName}
+                        options={benefitTypeOptions}
+                        onchange={handleAddFormChange}
+                        data-field="benefitTypeName"
+                        class="slds-m-top_small"
+                    ></lightning-combobox>
+                    <lightning-combobox
+                        label="Unit of Measure"
+                        value={addForm.unitName}
+                        options={unitOptions}
+                        onchange={handleAddFormChange}
+                        data-field="unitName"
+                        class="slds-m-top_small"
+                    ></lightning-combobox>
+                    <div class="slds-grid slds-gutters slds-m-top_small">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input type="number" label="Default Quantity" min="0" step="0.5"
+                                value={addForm.defaultDisbursementQty}
+                                onchange={handleAddFormChange}
+                                data-field="defaultDisbursementQty"
+                            ></lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-input type="number" label="Default Duration (min)" min="0" step="5"
+                                value={addForm.defaultDurationMinutes}
+                                onchange={handleAddFormChange}
+                                data-field="defaultDurationMinutes"
+                            ></lightning-input>
+                        </div>
+                    </div>
+                    <fieldset class="slds-form-element slds-m-top_medium">
+                        <legend class="slds-form-element__label slds-form-element__legend">Disbursement Channels</legend>
+                        <div class="slds-form-element__control">
+                            <div class="slds-grid slds-gutters_x-small slds-wrap">
+                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                                    <lightning-input type="checkbox" label="Clinical" checked={addForm.availableForClinical}
+                                        onchange={handleAddFormChange} data-field="availableForClinical"></lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                                    <lightning-input type="checkbox" label="Case Management" checked={addForm.availableForCaseManagement}
+                                        onchange={handleAddFormChange} data-field="availableForCaseManagement"></lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <lightning-input type="checkbox" label="Peer" checked={addForm.availableForPeer}
+                                        onchange={handleAddFormChange} data-field="availableForPeer"></lightning-input>
+                                </div>
+                                <div class="slds-col slds-size_1-of-2">
+                                    <lightning-input type="checkbox" label="Census / Program Engagement" checked={addForm.availableForProgramEngagement}
+                                        onchange={handleAddFormChange} data-field="availableForProgramEngagement"></lightning-input>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset class="slds-form-element slds-m-top_small">
+                        <legend class="slds-form-element__label slds-form-element__legend">Housing</legend>
+                        <div class="slds-form-element__control">
+                            <lightning-input type="checkbox"
+                                label="Housing Benefit (auto-disbursed daily to enrolled residents)"
+                                checked={addForm.availableForHousing}
+                                onchange={handleAddFormChange}
+                                data-field="availableForHousing"
+                            ></lightning-input>
+                        </div>
+                    </fieldset>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseAdd} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button label="Add Service" variant="brand" onclick={handleConfirmAdd}
+                        disabled={addSaving}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- ══ CHANGE TYPE MODAL (Replace) ══════════════════════════════════════ -->
+    <template if:true={showReplaceModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseReplace}>
+                        <lightning-icon icon-name="utility:close" variant="inverse" size="small"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title">Change Benefit Type</h2>
+                    <p class="slds-m-top_xx-small slds-text-body_small" style="color:rgba(255,255,255,0.8)">
+                        This retires the current record and creates a new one. Use only when the Benefit Type must change.
+                        To update channels, name, or UoM — use Edit instead.
+                    </p>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-m-bottom_small">
+                        <strong>Current service:</strong> {selectedBenefit.benefitName}
+                        <span class="slds-badge slds-m-left_x-small">{selectedBenefit.benefitTypeName}</span>
+                    </p>
+                    <lightning-input
+                        label="New Service Name"
+                        value={replaceForm.newBenefitName}
+                        onchange={handleReplaceFormChange}
+                        data-field="newBenefitName"
+                        field-level-help="Leave blank to keep the current name"
+                    ></lightning-input>
+                    <lightning-combobox
+                        label="New Benefit Type"
+                        value={replaceForm.newBenefitTypeName}
+                        options={benefitTypeOptions}
+                        onchange={handleReplaceFormChange}
+                        data-field="newBenefitTypeName"
+                        required
+                        class="slds-m-top_small"
+                    ></lightning-combobox>
+                    <template if:true={replaceForm.preflightLoading}>
+                        <div class="slds-m-top_small slds-text-body_small slds-text-color_weak">
+                            <lightning-spinner size="x-small" alternative-text="Checking" class="slds-m-right_x-small"></lightning-spinner>
+                            Checking for open assignments…
+                        </div>
+                    </template>
+                    <template if:true={replaceForm.openAssignmentWarning}>
+                        <div class="slds-notify slds-notify_alert slds-theme_alert-texture slds-theme_warning slds-m-top_small" role="alert">
+                            <strong>{replaceForm.openAssignmentCount}</strong> open assignment(s) exist on this service.
+                            <lightning-input type="checkbox"
+                                label="Migrate open assignments to the new benefit"
+                                checked={replaceForm.migrateOpenAssignments}
+                                onchange={handleReplaceFormChange}
+                                data-field="migrateOpenAssignments"
+                                class="slds-m-top_x-small"
+                            ></lightning-input>
+                        </div>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseReplace} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button label="Change Type" variant="brand" onclick={handleConfirmReplace}
+                        disabled={replaceConfirmDisabled}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- ══ RETIRE CONFIRMATION MODAL ════════════════════════════════════════ -->
+    <template if:true={showRetireModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCloseRetire}>
+                        <lightning-icon icon-name="utility:close" variant="inverse" size="small"></lightning-icon>
+                    </button>
+                    <h2 class="slds-modal__title">Retire Service</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p>Are you sure you want to retire <strong>{selectedBenefit.benefitName}</strong>?</p>
+                    <p class="slds-text-body_small slds-text-color_weak slds-m-top_small">
+                        This service will no longer appear in disbursement pickers, Census Board, or Interview flows.
+                        All historical records and disbursements remain untouched.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={handleCloseRetire} class="slds-m-right_x-small"></lightning-button>
+                    <lightning-button label="Retire" variant="destructive" onclick={handleConfirmRetire}
+                        disabled={retireSaving}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>

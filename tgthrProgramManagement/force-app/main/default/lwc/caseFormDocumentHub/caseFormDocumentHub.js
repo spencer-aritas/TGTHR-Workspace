@@ -20,13 +20,15 @@ function fmtDate(isoStr) {
 const FORM_TYPE_LABELS = {
     ROI: 'ROI',
     'Consent Form': 'Consent',
-    'Disclosure Form': 'Mandatory Disclosure'
+    'Disclosure Form': 'Mandatory Disclosure',
+    Other: 'Other'
 };
 
 const FORM_TYPE_OPTIONS = [
     { label: 'ROI', value: 'ROI' },
     { label: 'Consent Form', value: 'Consent Form' },
-    { label: 'Mandatory Disclosure', value: 'Disclosure Form' }
+    { label: 'Mandatory Disclosure', value: 'Disclosure Form' },
+    { label: 'Other', value: 'Other' }
 ];
 
 const CONSENT_SUBTYPE_OPTIONS = [
@@ -37,7 +39,8 @@ const CONSENT_SUBTYPE_OPTIONS = [
 ];
 
 const DOCUMENT_COLUMNS = [
-        { label: 'Document Name', fieldName: 'title', type: 'text' },
+    { label: 'Name', fieldName: 'userDocName', type: 'text' },
+    { label: 'Document Name', fieldName: 'title', type: 'text' },
     { label: 'Date', fieldName: 'documentDate', type: 'text',
       cellAttributes: { alignment: 'left' } },
     {
@@ -91,6 +94,7 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
 
     @track formType = 'ROI';
     @track subType = '';
+    @track docName = '';
     @track documentDate = todayISO();
 
     _contentDocumentId = null;
@@ -113,12 +117,19 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
         return this.documents.filter((d) => d.formType === 'Disclosure Form' || d.formType === 'Mandatory Disclosure');
     }
 
+    get otherDocuments() {
+        return this.documents.filter((d) => d.formType === 'Other');
+    }
+
     get activeTabDocuments() {
         if (this.activeTab === 'Consent Form') {
             return this.consentDocuments;
         }
         if (this.activeTab === 'Disclosure Form') {
             return this.mandatoryDisclosureDocuments;
+        }
+        if (this.activeTab === 'Other') {
+            return this.otherDocuments;
         }
         return this.roiDocuments;
     }
@@ -129,6 +140,9 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
         }
         if (this.activeTab === 'Disclosure Form') {
             return 'Mandatory Disclosure';
+        }
+        if (this.activeTab === 'Other') {
+            return 'Other';
         }
         return 'ROI';
     }
@@ -145,12 +159,24 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
         return this.formType === 'Consent Form';
     }
 
+    get isDisclosure() {
+        return this.formType === 'Disclosure Form';
+    }
+
+    get isOther() {
+        return this.formType === 'Other';
+    }
+
     get showSubtypeText() {
         return this.isRoi;
     }
 
     get showSubtypePicklist() {
         return this.isConsent;
+    }
+
+    get showNameField() {
+        return this.isDisclosure || this.isOther;
     }
 
     get saveButtonLabel() {
@@ -162,7 +188,7 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
     }
 
     get isModalDirty() {
-        return this._contentDocumentId || this.subType?.trim() || this.documentDate !== todayISO() || this.formType !== 'ROI';
+        return this._contentDocumentId || this.subType?.trim() || this.docName?.trim() || this.documentDate !== todayISO() || this.formType !== 'ROI';
     }
 
     // ─── Lifecycle ───────────────────────────────────────────────────────────
@@ -219,10 +245,17 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
             const partyLabel = r.agencyName || this._defaultClientName || 'Client';
             const typeLabel = subType || formTypeLabel;
 
+            // userDocName: for ROI → Type of ROI, for Consent → Type, for Disclosure/Other → Name stored in consentType
+            let userDocName = '';
+            if (r.formType === 'ROI' || r.formType === 'Consent Form' || r.formType === 'Disclosure Form' || r.formType === 'Mandatory Disclosure' || r.formType === 'Other') {
+                userDocName = r.consentType || '';
+            }
+
             return {
                 ...r,
                 formTypeLabel,
                 subType,
+                userDocName,
                 displayName: `${typeLabel} - ${partyLabel}`,
                 documentDate: fmtDate(r.documentDate)
             };
@@ -258,6 +291,7 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
         this.formType = evt.detail.value;
         this.saveError = null;
         this.subType = '';
+        this.docName = '';
     }
 
     handleTabActive(evt) {
@@ -266,6 +300,11 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
 
     handleSubtypeChange(evt) {
         this.subType = evt.detail.value;
+        this.saveError = null;
+    }
+
+    handleDocNameChange(evt) {
+        this.docName = evt.detail.value;
         this.saveError = null;
     }
 
@@ -304,18 +343,28 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
             this.saveError = 'Type is required for Consent Forms.';
             return;
         }
+        if ((this.isDisclosure || this.isOther) && !this.docName?.trim()) {
+            this.saveError = 'Name is required.';
+            return;
+        }
         if (!this._contentDocumentId) {
             this.saveError = 'Please upload a document file before saving.';
             return;
         }
 
         this.saving = true;
+
+        // For Disclosure/Other, store the Name in the consentType param
+        const consentTypeValue = (this.isDisclosure || this.isOther)
+            ? this.docName?.trim() || null
+            : this.subType?.trim() || null;
+
         saveFormDocument({
             caseId: this.recordId,
             formType: this.formType,
             agencyId: null,
             docDate: this.documentDate,
-            consentType: this.subType?.trim() || null,
+            consentType: consentTypeValue,
             contentDocumentId: this._contentDocumentId
         })
             .then(() => {
@@ -334,6 +383,7 @@ export default class CaseFormDocumentHub extends NavigationMixin(LightningElemen
     _resetModalForm() {
         this.formType = 'ROI';
         this.subType = '';
+        this.docName = '';
         this.documentDate = todayISO();
         this._contentDocumentId = null;
         this._uploadedFileName = '';

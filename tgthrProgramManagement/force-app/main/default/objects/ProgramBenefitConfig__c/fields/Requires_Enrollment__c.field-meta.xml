@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Requires_Enrollment__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>When checked, a participant must have an active ProgramEnrollment in the owning Program before a disbursement can be recorded.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Uncheck only for benefits that can be delivered to walk-in or unenrolled participants.</inlineHelpText>
+    <label>Requires Enrollment</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

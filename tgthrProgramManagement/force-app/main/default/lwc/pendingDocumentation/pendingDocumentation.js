@@ -362,10 +362,12 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             items.push(this.buildPendingItem('Draft', item));
         });
 
-        return items.map(item => ({
-            ...item,
-            itemClass: `pending-item ${item.key === this.selectedPendingKey ? 'pending-item-selected' : ''}${item.lateEntryManagerApprovalRequired ? ' pending-item-late-entry' : ''}`
-        }));
+        return items
+            .sort((leftItem, rightItem) => this.comparePendingItems(leftItem, rightItem))
+            .map(item => ({
+                ...item,
+                itemClass: `pending-item ${item.key === this.selectedPendingKey ? 'pending-item-selected' : ''}${item.lateEntryManagerApprovalRequired ? ' pending-item-late-entry' : ''}`
+            }));
     }
 
     buildPendingItem(kind, item) {
@@ -376,15 +378,14 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         const badge = this.getBadgeConfig(kind, item);
         const statusBadge = this.getStatusBadgeConfig(item, kind);
         const actionBadge = this.getActionBadgeConfig(item, kind);
-        const fallbackReference =
-            !item.referenceNumber && recordType === 'Interview' && (item.sourceRecordId || item.id)
-                ? `Interview ID: ${String(item.sourceRecordId || item.id).slice(-6)}`
-                : null;
+        const referenceDisplay = this.getReferenceDisplay(kind, item);
 
         return {
             key,
             kind,
             recordType,
+            sortPriority: this.getPendingSortPriority(kind, item),
+            sortTimestamp: this.getPendingSortTimestamp(item),
             title: item.displayTitle || item.name || 'Document',
             subtitle: item.dateDisplay || item.lastModifiedDisplay || 'No date',
             ownerDisplay: item.ownerDisplay || item.ownerName || 'Unknown',
@@ -428,8 +429,108 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             templateVersionId: item.templateVersionId,
             caseId: item.caseId,
             id: item.id,
-            referenceNumber: item.referenceNumber || fallbackReference
+            referenceDisplay
         };
+    }
+
+    getReferenceDisplay(kind, item) {
+        if (item?.referenceNumber) {
+            return item.referenceNumber;
+        }
+
+        if (kind === 'Draft') {
+            return 'IDOC assigned after submission';
+        }
+
+        return 'IDOC unavailable';
+    }
+
+    comparePendingItems(leftItem, rightItem) {
+        const priorityDifference = (leftItem?.sortPriority ?? Number.MAX_SAFE_INTEGER) - (rightItem?.sortPriority ?? Number.MAX_SAFE_INTEGER);
+        if (priorityDifference !== 0) {
+            return priorityDifference;
+        }
+
+        const timestampDifference = (rightItem?.sortTimestamp ?? 0) - (leftItem?.sortTimestamp ?? 0);
+        if (timestampDifference !== 0) {
+            return timestampDifference;
+        }
+
+        return (leftItem?.title || '').localeCompare(rightItem?.title || '');
+    }
+
+    getPendingSortPriority(kind, item) {
+        const hasPendingCaseManager = item?.caseManagerAssignedToId && !item?.caseManagerSigned;
+        const hasPendingPeerSupport = item?.peerSupportAssignedToId && !item?.peerSupportSigned;
+        const hasUnsignedPrimarySignatures = kind !== 'Interview' && (item?.staffSigned === false || item?.clientSigned === false);
+        const hasDirectAction = item?.canApproveAsManager || item?.canSignAsCaseManager || item?.canSignAsPeerSupport;
+
+        if (item?.requiresManagerApproval && !item?.managerSigned) {
+            return hasDirectAction ? 10 : 20;
+        }
+        if (hasPendingCaseManager || hasPendingPeerSupport) {
+            return hasDirectAction ? 30 : 40;
+        }
+        if (hasUnsignedPrimarySignatures) {
+            return 50;
+        }
+        if (kind === 'Draft') {
+            return 60;
+        }
+        if (item?.managerRejected) {
+            return 70;
+        }
+        if (item?.actionRequired) {
+            return item?.canClearAction || item?.canRecallAction ? 80 : 90;
+        }
+        if (item?.isEditLocked || item?.isOverdue) {
+            return 100;
+        }
+        return 110;
+    }
+
+    getPendingSortTimestamp(item) {
+        const candidates = [
+            item?.lastModifiedDate,
+            item?.dateOfInteraction,
+            item?.completedDate,
+            item?.createdDate
+        ];
+
+        for (const candidate of candidates) {
+            const timestamp = this.parsePendingTimestamp(candidate);
+            if (timestamp !== null) {
+                return timestamp;
+            }
+        }
+
+        return 0;
+    }
+
+    parsePendingTimestamp(value) {
+        if (!value) {
+            return null;
+        }
+
+        if (value instanceof Date) {
+            const directTimestamp = value.getTime();
+            return Number.isNaN(directTimestamp) ? null : directTimestamp;
+        }
+
+        const parsedTimestamp = Date.parse(value);
+        if (!Number.isNaN(parsedTimestamp)) {
+            return parsedTimestamp;
+        }
+
+        if (typeof value === 'string') {
+            const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (dateOnlyMatch) {
+                const normalizedTimestamp = Date.parse(`${dateOnlyMatch[1]}-${dateOnlyMatch[2]}-${dateOnlyMatch[3]}T00:00:00`);
+                return Number.isNaN(normalizedTimestamp) ? null : normalizedTimestamp;
+            }
+        }
+
+        return null;
     }
 
     getBadgeConfig(kind, item) {

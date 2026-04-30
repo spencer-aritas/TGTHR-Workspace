@@ -6,6 +6,8 @@ import TREATMENT_PLAN_UPDATED from '@salesforce/messageChannel/TreatmentPlanUpda
 import getTreatmentPlanBoardData from '@salesforce/apex/TreatmentPlanBoardController.getTreatmentPlanBoardData';
 import { refreshApex } from '@salesforce/apex';
 
+const HISTORY_PAGE_SIZE = 5;
+
 const HISTORY_COLUMNS = [
     {
         label: 'Name',
@@ -36,6 +38,7 @@ export default class CarePlanBoard extends NavigationMixin(LightningElement) {
 
     @track boardData   = null;
     @track isLoading   = true;
+    @track historyPage = 1;
 
     _wiredResult;
     _subscription = null;
@@ -68,6 +71,7 @@ export default class CarePlanBoard extends NavigationMixin(LightningElement) {
         const { data, error } = result;
         if (data) {
             this.boardData = data;
+            this.historyPage = 1;
         } else if (error) {
             this.showToast('Error', 'Failed to load Care Plan data: ' + this.reduceErrors(error), 'error');
         }
@@ -94,6 +98,37 @@ export default class CarePlanBoard extends NavigationMixin(LightningElement) {
 
     get hasHistory() {
         return (this.boardData?.treatmentPlanHistory?.length || 0) > 0;
+    }
+
+    get historyItems() {
+        return this.boardData?.treatmentPlanHistory || [];
+    }
+
+    get totalHistoryPages() {
+        return Math.max(1, Math.ceil(this.historyItems.length / HISTORY_PAGE_SIZE));
+    }
+
+    get paginatedHistory() {
+        const startIndex = (this.historyPage - 1) * HISTORY_PAGE_SIZE;
+        return this.historyItems.slice(startIndex, startIndex + HISTORY_PAGE_SIZE);
+    }
+
+    get showHistoryPagination() {
+        return this.historyItems.length > HISTORY_PAGE_SIZE;
+    }
+
+    get isFirstHistoryPage() {
+        return this.historyPage <= 1;
+    }
+
+    get isLastHistoryPage() {
+        return this.historyPage >= this.totalHistoryPages;
+    }
+
+    get historyPageLabel() {
+        const start = this.historyItems.length === 0 ? 0 : ((this.historyPage - 1) * HISTORY_PAGE_SIZE) + 1;
+        const end = Math.min(this.historyPage * HISTORY_PAGE_SIZE, this.historyItems.length);
+        return `${start}-${end} of ${this.historyItems.length}`;
     }
 
     // Care Plan consent icons
@@ -171,6 +206,18 @@ export default class CarePlanBoard extends NavigationMixin(LightningElement) {
                 type: 'standard__recordPage',
                 attributes: { recordId: row.id, objectApiName: 'Interview__c', actionName: 'view' }
             });
+        }
+    }
+
+    handlePreviousHistoryPage() {
+        if (!this.isFirstHistoryPage) {
+            this.historyPage -= 1;
+        }
+    }
+
+    handleNextHistoryPage() {
+        if (!this.isLastHistoryPage) {
+            this.historyPage += 1;
         }
     }
 

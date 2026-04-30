@@ -1,0 +1,297 @@
+<template>
+  <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-label={interactionTitle}>
+    <div class="slds-modal__container cmh-shell-modal">
+      <header class="slds-modal__header">
+        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleClose}>
+          <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+        </button>
+        <h2 class="slds-modal__title">{interactionTitle}</h2>
+        <p class="slds-text-body_small slds-text-color_weak">
+          Kiosk-created on {formattedDate}
+        </p>
+      </header>
+
+      <div class="slds-modal__content slds-p-around_medium cmh-shell-modal__content">
+
+        <template if:true={loading}>
+          <div class="cmh-shell-modal__loading">
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+          </div>
+        </template>
+
+        <template if:false={loading}>
+          <template if:true={errorMessage}>
+            <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+              {errorMessage}
+            </div>
+          </template>
+
+          <!-- ─── Notes ──────────────────────────────────────────── -->
+          <div class="cmh-shell-section">
+            <h3 class="cmh-shell-section__title">Visit Notes</h3>
+            <lightning-textarea
+              label="What happened during this visit?"
+              value={notes}
+              onchange={handleNotesChange}
+              max-length="32000"
+              variant="label-hidden">
+            </lightning-textarea>
+          </div>
+
+          <!-- ─── Purpose ────────────────────────────────────────── -->
+          <div class="cmh-shell-section">
+            <h3 class="cmh-shell-section__title">Interaction Purpose</h3>
+            <lightning-combobox
+              label="Purpose"
+              value={purpose}
+              options={purposeOptions}
+              onchange={handlePurposeChange}
+              variant="label-hidden">
+            </lightning-combobox>
+          </div>
+
+          <!-- ─── Services Rendered ──────────────────────────────── -->
+          <div class="cmh-shell-section">
+            <h3 class="cmh-shell-section__title">Services Rendered</h3>
+
+            <template if:true={hasDisbursements}>
+              <ul class="cmh-disb-list">
+                <template for:each={disbursements} for:item="d">
+                  <li key={d.id} class="cmh-disb-item">
+                    <div class="cmh-disb-item__main">
+                      <span class="cmh-disb-item__name">{d.benefit}</span>
+                      <template if:true={d.typeName}>
+                        <span class="cmh-disb-item__type">{d.typeName}</span>
+                      </template>
+                    </div>
+                    <lightning-button-icon
+                      icon-name="utility:delete"
+                      variant="bare"
+                      alternative-text="Remove"
+                      data-disbid={d.id}
+                      onclick={handleRemoveDisbursement}>
+                    </lightning-button-icon>
+                  </li>
+                </template>
+              </ul>
+            </template>
+            <template if:false={hasDisbursements}>
+              <p class="slds-text-color_weak slds-m-bottom_x-small">No services on this check-in yet.</p>
+            </template>
+
+            <template if:true={hasBenefitsAvailable}>
+              <p class="slds-text-body_small slds-m-top_small slds-m-bottom_xx-small">Tap to add services for this visit:</p>
+              <div class="cmh-benefit-chips">
+                <template for:each={benefitOptions} for:item="b">
+                  <button
+                    key={b.id}
+                    type="button"
+                    class={b.chipClass}
+                    title={b.title}
+                    data-benefitid={b.id}
+                    onclick={handleToggleBenefit}>
+                    <template if:true={b.locked}>
+                      <lightning-icon icon-name="utility:check" size="xx-small" class="slds-m-right_xx-small"></lightning-icon>
+                    </template>
+                    {b.name}
+                    <template if:true={b.typeName}>
+                      <span class="cmh-benefit-chip__type">· {b.typeName}</span>
+                    </template>
+                  </button>
+                </template>
+              </div>
+              <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                Selected services will be added when you click <strong>Save Draft</strong> or <strong>Save &amp; Publish</strong>.
+              </p>
+            </template>
+            <template if:false={hasBenefitsAvailable}>
+              <p class="slds-text-color_weak">No active benefits configured for this program.</p>
+            </template>
+          </div>
+
+          <!-- ─── Care Team ──────────────────────────────────────── -->
+          <div class="cmh-shell-section">
+            <h3 class="cmh-shell-section__title">Care Team</h3>
+            <template if:true={hasCareTeam}>
+              <ul class="cmh-careteam-list">
+                <template for:each={careTeam} for:item="m">
+                  <li key={m.id} class="cmh-careteam-item">
+                    <lightning-icon icon-name="standard:user" size="x-small"></lightning-icon>
+                    <span class="cmh-careteam-item__name">{m.userName}</span>
+                    <template if:true={m.title}>
+                      <span class="cmh-careteam-item__title">· {m.title}</span>
+                    </template>
+                  </li>
+                </template>
+              </ul>
+            </template>
+
+            <div class="cmh-careteam-search slds-m-top_x-small">
+              <lightning-input
+                type="search"
+                label="Add Care Team member"
+                placeholder="Search by name or email…"
+                value={userSearchTerm}
+                onchange={handleUserSearchChange}
+                variant="label-hidden">
+              </lightning-input>
+              <template if:true={hasUserSearchResults}>
+                <ul class="cmh-careteam-results">
+                  <template for:each={userSearchResults} for:item="u">
+                    <li key={u.id} class="cmh-careteam-result">
+                      <div>
+                        <strong>{u.name}</strong>
+                        <template if:true={u.title}>
+                          <span class="slds-text-color_weak"> · {u.title}</span>
+                        </template>
+                      </div>
+                      <lightning-button
+                        label="Add"
+                        size="small"
+                        data-userid={u.id}
+                        onclick={handleAddUser}
+                        disabled={addingUsers}>
+                      </lightning-button>
+                    </li>
+                  </template>
+                </ul>
+              </template>
+            </div>
+          </div>
+
+          <!-- ─── Resolution actions ─────────────────────────────── -->
+          <div class="cmh-shell-section cmh-shell-section--actions">
+            <h3 class="cmh-shell-section__title">If something's wrong</h3>
+            <div class="slds-grid slds-gutters_small slds-wrap">
+              <lightning-button
+                label="Update Demographics…"
+                icon-name="utility:identity"
+                onclick={handleOpenDemographics}>
+              </lightning-button>
+              <lightning-button
+                label="Wrong Person — Re-parent…"
+                icon-name="utility:user"
+                onclick={handleOpenReparent}>
+              </lightning-button>
+              <lightning-button
+                label="Bad Data / Fake Name…"
+                icon-name="utility:warning"
+                onclick={handleOpenBadData}>
+              </lightning-button>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <footer class="slds-modal__footer">
+        <lightning-button label="Cancel" onclick={handleClose} disabled={saving}></lightning-button>
+        <lightning-button label="Save Draft" onclick={handleSaveDraft} disabled={saving}></lightning-button>
+        <lightning-button
+          label="Save & Publish"
+          variant="brand"
+          onclick={handleSavePublish}
+          disabled={saving}>
+        </lightning-button>
+      </footer>
+    </div>
+  </section>
+  <div class="slds-backdrop slds-backdrop_open"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SUB-MODAL: Re-parent
+  ═══════════════════════════════════════════════════════════════ -->
+  <template if:true={showReparentSubmodal}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open" aria-label="Re-parent Check-In">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseReparent}>
+            <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">Re-parent Check-In</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <p class="slds-m-bottom_small">
+            Find the correct person. The check-in will be moved to their open case,
+            and the kiosk-created person/case will be cleaned up.
+          </p>
+          <lightning-input
+            type="search"
+            label="Search Person Accounts"
+            placeholder="Type a name…"
+            value={reparentSearchTerm}
+            onchange={handleReparentSearchChange}>
+          </lightning-input>
+          <template if:true={hasReparentResults}>
+            <ul class="cmh-reparent-results slds-m-top_x-small">
+              <template for:each={reparentResultsList} for:item="r">
+                <li key={r.accountId} class="cmh-reparent-result"
+                    data-accountid={r.accountId}
+                    data-accountname={r.displayName}
+                    onclick={handleReparentSelectAccount}>
+                  <strong>{r.displayName}</strong>
+                  <template if:true={r.email}>
+                    <span class="slds-text-color_weak"> · {r.email}</span>
+                  </template>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <template if:true={reparentSelectedId}>
+            <p class="slds-m-top_small">
+              Selected: <strong>{reparentSelectedName}</strong>
+            </p>
+          </template>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button label="Cancel" onclick={handleCloseReparent} disabled={reparentBusy}></lightning-button>
+          <lightning-button
+            label="Move Check-In"
+            variant="brand"
+            onclick={handleReparentConfirm}
+            disabled={reparentConfirmDisabled}>
+          </lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SUB-MODAL: Bad Data
+  ═══════════════════════════════════════════════════════════════ -->
+  <template if:true={showBadDataSubmodal}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open" aria-label="Mark as Bad Data">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleCloseBadData}>
+            <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">Mark as Bad Data</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <p class="slds-m-bottom_small">
+            This will cancel the check-in and close the case. Use this when the
+            visitor refused to identify or entered an obviously fake name.
+          </p>
+          <lightning-textarea
+            label="Reason"
+            placeholder="e.g. refused name, gave fake name 'John Doe'…"
+            value={badDataReason}
+            onchange={handleBadDataReasonChange}
+            required>
+          </lightning-textarea>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button label="Cancel" onclick={handleCloseBadData} disabled={badDataBusy}></lightning-button>
+          <lightning-button
+            label="Mark as Bad Data"
+            variant="destructive"
+            onclick={handleBadDataConfirm}
+            disabled={badDataBusy}>
+          </lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+</template>

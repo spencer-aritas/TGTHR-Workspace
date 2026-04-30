@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Census_Eligible__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, disbursements of this benefit are counted in Program Census metrics.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Check to include this benefit in Census counts and dashboards.</inlineHelpText>
+    <label>Is Census Eligible</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

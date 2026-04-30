@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Case__c</fullName>
+    <label>Case</label>
+    <type>MasterDetail</type>
+    <referenceTo>Case</referenceTo>
+    <relationshipLabel>Care Team Members</relationshipLabel>
+    <relationshipName>Care_Team_Members</relationshipName>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <writeRequiresMasterRead>true</writeRequiresMasterRead>
+    <relationshipOrder>0</relationshipOrder>
+    <description>The Case this Care Team Member belongs to</description>
+</CustomField>

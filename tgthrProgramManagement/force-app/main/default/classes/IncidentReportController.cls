@@ -15,13 +15,16 @@ public with sharing class IncidentReportController {
     // ─── DTOs ──────────────────────────────────────────────────────────────────
 
     public class IncidentRequest {
-        @AuraEnabled public String accountId;
-        @AuraEnabled public String incidentType;      // ComplaintType picklist value
-        @AuraEnabled public String incidentTypeLabel; // Display label for auto-generated subject
-        @AuraEnabled public String description;
-        @AuraEnabled public String incidentDate;      // ISO "YYYY-MM-DD"
-        @AuraEnabled public String incidentTime;      // "HH:MM" from lightning-input type=time
-        @AuraEnabled public String otherStaffPresent;
+        @AuraEnabled public String  accountId;
+        @AuraEnabled public String  incidentType;      // ComplaintType picklist value
+        @AuraEnabled public String  incidentTypeLabel; // Display label for auto-generated subject
+        @AuraEnabled public String  description;
+        @AuraEnabled public String  incidentDate;      // ISO "YYYY-MM-DD"
+        @AuraEnabled public String  incidentTime;      // "HH:MM" from lightning-input type=time
+        @AuraEnabled public String  otherStaffPresent;
+        @AuraEnabled public Boolean notifyCareTeam;            // Send bell notification to Care Team
+        @AuraEnabled public Boolean emergencyServicesInvolved; // Emergency services responded
+        @AuraEnabled public String  emergencyServicesDetails;  // Details about emergency response
     }
 
     public class IncidentResult {
@@ -120,6 +123,21 @@ public with sharing class IncidentReportController {
                 complaint.put('Other_Staff_Present__c', req.otherStaffPresent.left(250));
             }
 
+            // Emergency services fields
+            Boolean isEmergency = req.emergencyServicesInvolved == true;
+            if (fields.containsKey('emergency_services_involved__c')) {
+                complaint.put('Emergency_Services_Involved__c', isEmergency);
+            }
+            if (isEmergency && fields.containsKey('emergency_services_details__c') && String.isNotBlank(req.emergencyServicesDetails)) {
+                complaint.put('Emergency_Services_Details__c', req.emergencyServicesDetails.left(5000));
+            }
+
+            // Care Team notification — always true when emergency services involved
+            Boolean careTeamFlag = isEmergency || req.notifyCareTeam == true;
+            if (fields.containsKey('notify_care_team__c')) {
+                complaint.put('Notify_Care_Team__c', careTeamFlag);
+            }
+
             try {
                 insert complaint;
             } catch (DmlException dme) {
@@ -128,6 +146,42 @@ public with sharing class IncidentReportController {
 
             IncidentResult result = new IncidentResult();
             result.recordId = complaint.Id;
+
+            // Send Care Team notifications after DML
+            if (careTeamFlag) {
+                User currentUser = [SELECT Name FROM User WHERE Id = :UserInfo.getUserId()];
+                String notifTitle = isEmergency
+                    ? '\u26A0\uFE0F Emergency Incident Report'
+                    : 'Care Team Alert: Incident Report';
+                String notifBody = currentUser.Name + ' filed an incident report for ' + lastName
+                    + ' (' + typeLabel + ') on ' + formatDateMMDDYYYY(incDate) + '.';
+                if (isEmergency) {
+                    notifBody += ' EMERGENCY SERVICES WERE INVOLVED.';
+                }
+
+                CareTeamNotificationService.notifyCareTeam(
+                    accId, complaint.Id, notifTitle, notifBody
+                );
+
+                // Emergency: also create follow-up Tasks for each Care Team member
+                if (isEmergency) {
+                    String taskSubject = 'Follow Up: Emergency Incident - ' + lastName + ' - ' + typeLabel;
+                    String taskDesc = 'Emergency services were involved in an incident reported by '
+                        + currentUser.Name + ' on ' + formatDateMMDDYYYY(incDate) + '.\n\n'
+                        + 'Incident Type: ' + typeLabel + '\n';
+                    if (String.isNotBlank(req.description)) {
+                        taskDesc += 'Description: ' + req.description.left(2000) + '\n';
+                    }
+                    if (String.isNotBlank(req.emergencyServicesDetails)) {
+                        taskDesc += 'Emergency Details: ' + req.emergencyServicesDetails.left(2000) + '\n';
+                    }
+                    CareTeamNotificationService.createCareTeamTasks(
+                        accId, complaint.Id, UserInfo.getUserId(),
+                        taskSubject, taskDesc
+                    );
+                }
+            }
+
             return result;
 
         } catch (AuraHandledException ahe) {

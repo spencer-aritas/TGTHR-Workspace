@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Mobile_Available__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, this benefit can be disbursed or documented from the mobile (PWA) interface.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Check to expose this benefit in mobile and kiosk interfaces.</inlineHelpText>
+    <label>Is Mobile Available</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

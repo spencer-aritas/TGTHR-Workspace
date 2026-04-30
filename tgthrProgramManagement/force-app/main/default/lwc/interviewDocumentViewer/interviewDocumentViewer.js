@@ -285,26 +285,6 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
     }
     
     /**
-     * Navigate to previous document
-     */
-    handlePrevious() {
-        const currentIndex = this.documents.findIndex(d => d.id === this.selectedDocumentId);
-        if (currentIndex > 0) {
-            this.selectDocument(this.documents[currentIndex - 1].id);
-        }
-    }
-    
-    /**
-     * Navigate to next document
-     */
-    handleNext() {
-        const currentIndex = this.documents.findIndex(d => d.id === this.selectedDocumentId);
-        if (currentIndex < this.documents.length - 1) {
-            this.selectDocument(this.documents[currentIndex + 1].id);
-        }
-    }
-    
-    /**
      * Download the selected document (handles both Interview docs and Notes)
      */
     async handleDownload() {

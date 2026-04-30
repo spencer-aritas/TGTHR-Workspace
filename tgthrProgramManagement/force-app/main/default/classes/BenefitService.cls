@@ -13,34 +13,30 @@ public with sharing class BenefitService {
     }
   }
 
-  // Get available benefit types (categories) directly from BenefitType records
+  // Get available benefit types (categories) directly from BenefitType records.
+  // Delegates to BenefitReplacementService.getActiveBenefitsForProgram to ensure
+  // Replaced/Retired benefits are excluded regardless of how IsActive was set.
   @AuraEnabled(cacheable=true)
   public static List<Map<String, String>> getBenefitTypes(String programId) {
     try {
-        System.debug('getBenefitTypes called with programId: ' + programId);
         List<Map<String, String>> benefitTypes = new List<Map<String, String>>();
-        if (String.isBlank(programId)) {
-            System.debug('ProgramId is blank. Returning empty list.');
-            return benefitTypes;
-        }
+        if (String.isBlank(programId)) return benefitTypes;
 
-        // Return distinct BenefitType id/name pairs for active benefits in the program
-        String query = 'SELECT BenefitType__r.Id btId, BenefitType__r.Name btName FROM Benefit WHERE ProgramId = :programId AND IsActive = true GROUP BY BenefitType__r.Id, BenefitType__r.Name ORDER BY BenefitType__r.Name';
-        System.debug('SOQL Query: ' + query);
-        List<AggregateResult> ars = Database.query(query);
-        System.debug('Query Results: ' + ars);
+        // Derive distinct BenefitType pairs from the lifecycle-aware resolver
+        List<BenefitReplacementService.BenefitOption> opts =
+            BenefitReplacementService.getActiveBenefitsForProgram(Id.valueOf(programId), null);
 
-        for (AggregateResult ar : ars) {
-            Object idObj = ar.get('btId');
-            Object nameObj = ar.get('btName');
-            if (nameObj == null) {
-                continue;
+        Map<String, String> seen = new Map<String, String>(); // typeName → typeId
+        for (BenefitReplacementService.BenefitOption o : opts) {
+            if (String.isBlank(o.benefitTypeName)) continue;
+            if (!seen.containsKey(o.benefitTypeName)) {
+                seen.put(o.benefitTypeName, o.benefitTypeId != null ? String.valueOf(o.benefitTypeId) : o.benefitTypeName);
             }
-            String label = String.valueOf(nameObj);
-            String value = idObj == null ? label : String.valueOf(idObj);
-            benefitTypes.add(
-                new Map<String, String>{ 'label' => label, 'value' => value }
-            );
+        }
+        List<String> sortedNames = new List<String>(seen.keySet());
+        sortedNames.sort();
+        for (String name : sortedNames) {
+            benefitTypes.add(new Map<String, String>{ 'label' => name, 'value' => seen.get(name) });
         }
         return benefitTypes;
     } catch (Exception e) {
@@ -49,7 +45,9 @@ public with sharing class BenefitService {
     }
   }
 
-  // Get benefits for a specific benefit type and program - direct from Benefit records
+  // Get benefits for a specific benefit type and program.
+  // Routes through the lifecycle-aware resolver so Replaced/Retired benefits
+  // never surface in pickers regardless of prior data state.
   @AuraEnabled(cacheable=true)
   public static List<Map<String, String>> getBenefits(
     String benefitType,
@@ -57,28 +55,23 @@ public with sharing class BenefitService {
   ) {
     try {
       List<Map<String, String>> out = new List<Map<String, String>>();
-      if (String.isBlank(programId))
-        return out;
+      if (String.isBlank(programId)) return out;
 
-      String query = 'SELECT Id, Name FROM Benefit WHERE ProgramId = :programId AND IsActive = true';
-      if (String.isNotBlank(benefitType)) {
-        if (benefitType.length() == 15 || benefitType.length() == 18) {
-          query += ' AND BenefitType__c = :benefitType';
-        } else {
-          String likePattern = '%' + benefitType + '%';
-          query += ' AND Name LIKE :likePattern';
-        }
-      }
-      query += ' ORDER BY Name LIMIT 200';
+      List<BenefitReplacementService.BenefitOption> opts =
+          BenefitReplacementService.getActiveBenefitsForProgram(Id.valueOf(programId), null);
 
-      List<SObject> benefitRecords = Database.query(query);
-      for (SObject b : benefitRecords) {
-        out.add(
-          new Map<String, String>{
-            'label' => String.valueOf(b.get('Name')),
-            'value' => String.valueOf(b.get('Id'))
+      for (BenefitReplacementService.BenefitOption o : opts) {
+        if (String.isNotBlank(benefitType)) {
+          // Filter by BenefitType Id (18-char) or name substring
+          Boolean typeMatch = false;
+          if ((benefitType.length() == 15 || benefitType.length() == 18) && o.benefitTypeId != null) {
+            typeMatch = String.valueOf(o.benefitTypeId) == benefitType;
+          } else {
+            typeMatch = o.benefitTypeName != null && o.benefitTypeName.toLowerCase().contains(benefitType.toLowerCase());
           }
-        );
+          if (!typeMatch) continue;
+        }
+        out.add(new Map<String, String>{ 'label' => o.label, 'value' => o.value });
       }
       return out;
     } catch (Exception e) {

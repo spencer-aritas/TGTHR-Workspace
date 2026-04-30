@@ -26,6 +26,9 @@ export default class NewIncidentReportCard extends NavigationMixin(LightningElem
     @track incidentDate      = todayISO();
     @track incidentTime      = '';
     @track otherStaffPresent = '';
+    @track notifyCareTeam            = false;
+    @track emergencyServicesInvolved = false;
+    @track emergencyServicesDetails  = '';
 
     // ── UI state ──────────────────────────────────────────────────────────────
     @track incidentTypeOptions = [];
@@ -80,6 +83,9 @@ export default class NewIncidentReportCard extends NavigationMixin(LightningElem
         this.incidentDate        = todayISO();
         this.incidentTime        = '';
         this.otherStaffPresent   = '';
+        this.notifyCareTeam            = false;
+        this.emergencyServicesInvolved = false;
+        this.emergencyServicesDetails  = '';
         this.saveError           = null;
         this.saving              = false;
         this.submitSuccess       = false;
@@ -121,6 +127,26 @@ export default class NewIncidentReportCard extends NavigationMixin(LightningElem
         this.otherStaffPresent = evt.detail.value;
     }
 
+    handleEmergencyServicesChange(evt) {
+        this.emergencyServicesInvolved = evt.target.checked;
+        // Emergency always notifies care team; remove standalone option
+        if (this.emergencyServicesInvolved) {
+            this.notifyCareTeam = false;
+        }
+    }
+
+    handleEmergencyDetailsChange(evt) {
+        this.emergencyServicesDetails = evt.detail.value;
+    }
+
+    handleNotifyCareTeamChange(evt) {
+        this.notifyCareTeam = evt.target.checked;
+    }
+
+    get showNotifyCareTeam() {
+        return !this.emergencyServicesInvolved;
+    }
+
     // ─── Submit ───────────────────────────────────────────────────────────────
 
     async handleSubmit() {
@@ -151,13 +177,16 @@ export default class NewIncidentReportCard extends NavigationMixin(LightningElem
 
         try {
             const requestJson = JSON.stringify({
-                accountId:         this.accountId,
-                incidentType:      this.incidentType,
-                incidentTypeLabel: this.incidentTypeLabel,
-                description:       this.description,
-                incidentDate:      this.incidentDate,
-                incidentTime:      this.incidentTime,
-                otherStaffPresent: this.otherStaffPresent
+                accountId:                  this.accountId,
+                incidentType:               this.incidentType,
+                incidentTypeLabel:          this.incidentTypeLabel,
+                description:                this.description,
+                incidentDate:               this.incidentDate,
+                incidentTime:               this.incidentTime,
+                otherStaffPresent:          this.otherStaffPresent,
+                notifyCareTeam:             this.notifyCareTeam,
+                emergencyServicesInvolved:  this.emergencyServicesInvolved,
+                emergencyServicesDetails:   this.emergencyServicesDetails
             });
 
             // Step 1: create the record (DML only — no callout)

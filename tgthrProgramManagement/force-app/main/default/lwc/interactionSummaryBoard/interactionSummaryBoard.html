@@ -86,13 +86,15 @@
     <template if:true={selected}>
       <div class="slds-m-top_medium slds-p-top_medium conversation-section">
       <div class="thread">
-        <div class="thread-header">
-          <div class="conversation-title">
-            <h3 class="slds-text-heading_small slds-m-right_x-small">
-              Interaction History with {selected.Account_Name}
-            </h3>
+        <div class="section-header section-header--interactions">
+          <div class="section-header__left">
+            <lightning-icon icon-name="standard:note" size="small" class="section-header__icon"></lightning-icon>
+            <div class="section-header__text">
+              <h3 class="section-header__title">Interaction History</h3>
+              <span class="section-header__subtitle">{selected.Account_Name}</span>
+            </div>
           </div>
-          <div class="action-buttons">
+          <div class="section-header__actions">
             <lightning-button 
               variant="neutral" 
               label="New" 
@@ -130,9 +132,9 @@
           <article key={n.Id} class={n.noteClass}>
             <div class="note-meta">
               <div class="staff-info-container">
-                <span class="date">{n.Date_of_Interaction__c}</span>
-                <span class="staff">{n.NoteTypeLabel}</span>
-                <span class="staff">
+                <span class="note-meta__date">{n.Date_of_Interaction__c}</span>
+                <span class="note-meta__purpose">{n.NoteTypeLabel}</span>
+                <span class="note-meta__staff">
                   {n.CreatedBy_Name}
                   <lightning-icon 
                     icon-name="utility:new_window" 
@@ -152,14 +154,15 @@
                   <lightning-badge label="Pending Approval" class="slds-badge_warning slds-m-left_small"></lightning-badge>
                 </template>
               </div>
-              <div class="action-buttons">
-                <lightning-button 
-                  variant="neutral"
-                  label="View Details" 
-                  class="view-details-btn slds-m-right_xx-small" 
+              <div class="note-meta__actions">
+                <lightning-button-icon 
+                  icon-name="utility:preview"
+                  alternative-text="View Details"
+                  title="View Details" 
+                  class="note-action-btn" 
                   data-recordid={n.Id}
                   onclick={openDetailView}>
-                </lightning-button>
+                </lightning-button-icon>
                 <lightning-button 
                   variant="brand" 
                   label="Follow Up" 
@@ -221,13 +224,17 @@
           </div>
         </div>
 
-        <!-- Incidents (keep growing this section with other related cards later) -->
+        <!-- Incidents -->
         <template if:true={incidents.length}>
-          <div class="thread-header incidents-header">
-            <div class="conversation-title">
-              <h3 class="slds-text-heading_small">Incident Report History for {selected.Account_Name}</h3>
+          <div class="section-header section-header--incidents">
+            <div class="section-header__left">
+              <lightning-icon icon-name="standard:case" size="small" class="section-header__icon"></lightning-icon>
+              <div class="section-header__text">
+                <h3 class="section-header__title">Incident Reports</h3>
+                <span class="section-header__subtitle">{selected.Account_Name}</span>
+              </div>
             </div>
-            <div class="action-buttons">
+            <div class="section-header__actions">
               <lightning-button 
                 variant="neutral" 
                 label="New" 
@@ -262,11 +269,11 @@
           
           <!-- Incident Reports List -->
           <template for:each={incidentsDisplayedRecords} for:item="i">
-            <article key={i.Id} class="note">
+            <article key={i.Id} class="note note--incident">
               <div class="note-meta">
                 <div class="staff-info-container">
-                  <span class="date">{i.date}</span>
-                  <span class="staff">
+                  <span class="note-meta__date">{i.date}</span>
+                  <span class="note-meta__staff">
                     {i.staff}
                     <lightning-icon 
                       icon-name="utility:new_window" 
@@ -279,14 +286,10 @@
                     </lightning-icon>
                   </span>
                 </div>
-                <!-- Add an empty action-buttons div to maintain consistent layout -->
-                <div class="action-buttons">
-                  <!-- No buttons needed, just for alignment -->
-                </div>
               </div>
               <div class="note-content">
-                <div class="title slds-text-heading_small slds-m-bottom_xx-small">{i.title}</div>
-                <div class="body">{i.body}</div>
+                <div class="note-content__title">{i.title}</div>
+                <div class="note-content__body">{i.body}</div>
               </div>
             </article>
           </template>
@@ -465,6 +468,21 @@
                           label="Flag for case manager attention"
                           name="notify-case-manager"
                           checked={notifyCaseManager}
+                          onchange={handleFieldChange}>
+                        </lightning-input>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Notify Care Team checkbox -->
+                  <div class="slds-form-element slds-m-top_medium">
+                    <div class="slds-form-element__control">
+                      <div class="slds-checkbox">
+                        <lightning-input 
+                          type="checkbox"
+                          label="Notify Care Team"
+                          name="notify-care-team"
+                          checked={notifyCareTeam}
                           onchange={handleFieldChange}>
                         </lightning-input>
                       </div>

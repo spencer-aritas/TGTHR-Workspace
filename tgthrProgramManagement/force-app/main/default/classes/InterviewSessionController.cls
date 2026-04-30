@@ -867,11 +867,17 @@ public with sharing class InterviewSessionController {
                 
                 if (hasPendingMultiSignatures) {
                     putIfFieldExists(interview, 'Status__c', DocumentStatus.INTERVIEW_IN_PROGRESS);
+                    putIfFieldExists(interview, 'Completed_On__c', null);
                     System.debug('✅ Interview marked In Progress - pending multi-signatures');
-                } else {
-                    // All required signatures are collected or no multi-signatures needed
+                } else if (hasPendingManagerApproval) {
                     putIfFieldExists(interview, 'Status__c', DocumentStatus.INTERVIEW_SUBMITTED);
-                    System.debug('✅ Interview marked Submitted - all signatures collected');
+                    putIfFieldExists(interview, 'Completed_On__c', null);
+                    System.debug('✅ Interview marked Submitted - awaiting manager co-sign');
+                } else {
+                    // All required signatures are collected and no further approvals remain.
+                    putIfFieldExists(interview, 'Status__c', DocumentStatus.INTERVIEW_SIGNED);
+                    putIfFieldExists(interview, 'Completed_On__c', Datetime.now());
+                    System.debug('✅ Interview marked Signed - all required signatures collected');
                 }
                 
                 update interview;
@@ -2089,7 +2095,6 @@ public with sharing class InterviewSessionController {
             }
         }
         putIfFieldExists(interview, 'Started_On__c', startedOn);
-        putIfFieldExists(interview, 'Completed_On__c', Datetime.now());
         if (requiresManagerApproval == true) {
             putIfFieldExists(interview, 'Requires_Manager_Approval__c', true);
             putIfFieldExists(interview, 'Manager_Approver__c', managerApproverId);

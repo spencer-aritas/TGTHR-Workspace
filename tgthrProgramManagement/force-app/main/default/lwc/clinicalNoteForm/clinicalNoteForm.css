@@ -210,9 +210,16 @@ lightning-accordion-section [data-section] {
 
 .actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--lwc-spacingSmall, 0.75rem);
     justify-content: flex-end;
+    align-items: flex-start;
     margin-top: var(--lwc-spacingLarge, 1.5rem);
+}
+
+.actions .slds-notify {
+    flex: 1 1 100%;
+    margin-bottom: 0;
 }
 
 .actions lightning-button {

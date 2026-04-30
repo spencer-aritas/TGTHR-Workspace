@@ -24,8 +24,7 @@ export default class NewInteractionSummaryCard extends NavigationMixin(Lightning
 
     // ── UI state ───────────────────────────────────────────────────────────
     @track saveError  = null;
-    @track saving     = false;
-
+    @track saving     = false;    @track notifyCareTeam = false;
     // ── Result ────────────────────────────────────────────────────────────────
     @track resultRecordId           = null;
     @track resultRecordName         = null;
@@ -61,6 +60,7 @@ export default class NewInteractionSummaryCard extends NavigationMixin(Lightning
         this.saveError              = null;
         this.saving                 = false;
         this.submitSuccess          = false;
+        this.notifyCareTeam         = false;
         this.resultRecordId         = null;
         this.resultRecordName       = null;
         this.resultContentDocumentId = null;
@@ -88,6 +88,10 @@ export default class NewInteractionSummaryCard extends NavigationMixin(Lightning
         this.notes = evt.detail.value;
     }
 
+    handleNotifyCareTeamChange(evt) {
+        this.notifyCareTeam = evt.target.checked;
+    }
+
     // ─── Submit ───────────────────────────────────────────────────────────────
 
     handleSubmit() {
@@ -108,7 +112,8 @@ export default class NewInteractionSummaryCard extends NavigationMixin(Lightning
             accountId:       this.accountId,
             interactionDate: this.interactionDate,
             interactionTime: this.interactionTime,
-            notes:           this.notes
+            notes:           this.notes,
+            notifyCareTeam:  this.notifyCareTeam
         });
 
         let createdRecordId;

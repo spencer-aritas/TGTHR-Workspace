@@ -623,3 +623,118 @@
 .cmh-intake-session {
     min-height: 60vh;
 }
+
+/* ── Pending Drop-In Check-Ins section ───────────────────────────────────── */
+.cmh-pending-section {
+    margin: 0.5rem 0 0.75rem;
+    border: 1.5px solid #f9a825;
+    border-radius: 8px;
+    background: #fffde7;
+    overflow: hidden;
+}
+
+.cmh-pending-section__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #fff8e1;
+    border-bottom: 1px solid #f9a825;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #5d4037;
+}
+
+.cmh-pending-section__title {
+    flex: 1;
+}
+
+.cmh-badge--warning {
+    background: #f9a825;
+    color: #fff;
+}
+
+.cmh-badge--flag {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.cmh-pending-card {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #fce082;
+}
+
+.cmh-pending-card:last-child {
+    border-bottom: none;
+}
+
+.cmh-pending-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 2px;
+}
+
+.cmh-pending-card__name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cmh-pending-card__date {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-bottom: 0.4rem;
+}
+
+.cmh-pending-card__actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+/* ── Match-to-existing search results ────────────────────────────────────── */
+.cmh-match-results {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.cmh-match-result-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f2f2;
+    transition: background 0.15s;
+}
+
+.cmh-match-result-item:last-child { border-bottom: none; }
+
+.cmh-match-result-item:hover { background: #f3f2f2; }
+
+.cmh-match-result-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.cmh-match-result-email {
+    font-size: 0.75rem;
+    color: #706e6b;
+}
+
+.cmh-match-selected {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    background: #d8f6df;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}

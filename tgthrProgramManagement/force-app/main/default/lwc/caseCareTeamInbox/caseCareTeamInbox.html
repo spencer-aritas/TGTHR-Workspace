@@ -1,0 +1,192 @@
+<template>
+  <lightning-card>
+    <!-- Header -->
+    <div slot="title" class="inbox-header">
+      <lightning-icon icon-name="standard:email" size="small" class="slds-m-right_x-small"></lightning-icon>
+      <span class="inbox-title">Care Team Inbox</span>
+    </div>
+    <div slot="actions">
+      <lightning-button-icon
+        icon-name="utility:refresh"
+        alternative-text="Refresh"
+        onclick={handleRefresh}
+        class="slds-m-right_xx-small">
+      </lightning-button-icon>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class={tabAllClass} data-tab="all" onclick={handleTabClick}>
+        All <span class="tab-count">{totalCount}</span>
+      </button>
+      <div class="tab-group">
+        <button class={tabInteractionsClass} data-tab="interactions" onclick={handleTabClick}>
+          Interactions <span class="tab-count">{interactionCount}</span>
+        </button>
+        <lightning-button-icon
+          icon-name="utility:add"
+          alternative-text="New Interaction"
+          title="New Interaction"
+          size="small"
+          class="tab-add-btn"
+          onclick={handleNewInteraction}>
+        </lightning-button-icon>
+      </div>
+      <div class="tab-group">
+        <button class={tabIncidentsClass} data-tab="incidents" onclick={handleTabClick}>
+          Incidents <span class="tab-count">{incidentCount}</span>
+        </button>
+        <lightning-button-icon
+          icon-name="utility:add"
+          alternative-text="New Incident"
+          title="New Incident"
+          size="small"
+          class="tab-add-btn"
+          onclick={handleNewIncident}>
+        </lightning-button-icon>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <template lwc:if={isLoading}>
+      <div class="slds-align_absolute-center slds-p-around_large">
+        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+      </div>
+    </template>
+
+    <!-- Feed -->
+    <template lwc:if={hasFeedItems}>
+      <div class="inbox-feed">
+        <template for:each={feedItems} for:item="item">
+          <div key={item.Id} class={item.cardClass}>
+            <!-- Card header row -->
+            <div class="card-header">
+              <template lwc:if={item.isUnread}>
+                <span class="unread-dot"></span>
+              </template>
+              <lightning-icon
+                icon-name={item.icon}
+                size="x-small"
+                class="type-icon">
+              </lightning-icon>
+              <div class="card-summary">
+                <span class={item.badgeClass}>{item.badgeLabel}</span>
+                <span class="card-date">{item.dateDisplay}</span>
+                <template lwc:if={item.staff}>
+                  <span class="card-staff">— {item.staff}</span>
+                </template>
+              </div>
+              <div class="card-header-actions">
+                <template lwc:if={item.isUnread}>
+                  <lightning-button-icon
+                    icon-name="utility:check"
+                    alternative-text="Mark Read"
+                    title="Mark Read"
+                    size="small"
+                    data-id={item.Id}
+                    data-type={item.itemType}
+                    onclick={handleMarkRead}>
+                  </lightning-button-icon>
+                </template>
+                <lightning-button
+                  label="Follow Up"
+                  variant="brand"
+                  size="small"
+                  data-id={item.Id}
+                  data-type={item.itemType}
+                  onclick={handleOpenFollowUp}>
+                </lightning-button>
+              </div>
+            </div>
+
+            <!-- Inline content -->
+            <template lwc:if={item.notes}>
+              <div class="card-body">
+                <lightning-formatted-rich-text value={item.notes}></lightning-formatted-rich-text>
+              </div>
+            </template>
+
+            <template lwc:if={item.subject}>
+              <div class="card-body">
+                <span class="detail-label">{item.subject}</span>
+                <template lwc:if={item.description}>
+                  <div class="detail-body">{item.description}</div>
+                </template>
+              </div>
+            </template>
+
+            <template lwc:if={item.isEmergency}>
+              <div class="card-body emergency-detail">
+                <span class="detail-label">⚠ Emergency Services Details</span>
+                <div class="detail-body">{item.emergencyDetails}</div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- Empty state -->
+    <template lwc:if={showEmptyState}>
+      <div class="empty-state">
+        <lightning-icon icon-name="utility:inbox" size="large" class="empty-icon"></lightning-icon>
+        <p class="empty-text">No activity yet</p>
+        <p class="empty-subtext">Interactions and incidents for this participant will appear here.</p>
+      </div>
+    </template>
+  </lightning-card>
+
+  <!-- Follow-Up Modal -->
+  <template lwc:if={followUpOpen}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" onclick={handleCloseFollowUp}>
+            <lightning-icon icon-name="utility:close" size="small" variant="inverse"></lightning-icon>
+            <span class="slds-assistive-text">Close</span>
+          </button>
+          <h2 class="slds-text-heading_medium">Follow Up</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <lightning-combobox
+            label="Purpose"
+            value={followUpPurpose}
+            options={purposeOptions}
+            onchange={handleFollowUpPurposeChange}
+            class="slds-m-bottom_small">
+          </lightning-combobox>
+          <lightning-textarea
+            label="Notes"
+            value={followUpNotes}
+            onchange={handleFollowUpNotesChange}
+            placeholder="Enter follow-up notes..."
+            class="slds-m-bottom_small">
+          </lightning-textarea>
+          <div class="slds-text-color_weak slds-text-body_small slds-m-bottom_small">
+            ✓ The Care Team will be automatically notified of this follow-up.
+          </div>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button label="Cancel" onclick={handleCloseFollowUp} class="slds-m-right_x-small"></lightning-button>
+          <lightning-button
+            label="Log Follow-Up"
+            variant="brand"
+            onclick={handleSubmitFollowUp}
+            disabled={followUpSaveDisabled}>
+          </lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+
+  <!-- Inbox-scoped create modals (pre-bound to Case Account) -->
+  <c-inbox-new-interaction
+    account-id={accountId}
+    oninteractioncreated={handleRecordCreated}>
+  </c-inbox-new-interaction>
+  <c-inbox-new-incident
+    account-id={accountId}
+    onincidentcreated={handleRecordCreated}>
+  </c-inbox-new-incident>
+</template>

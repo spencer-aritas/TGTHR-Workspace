@@ -1,7 +1,8 @@
 <template>
-    <lightning-card icon-name="standard:diagnosis" class="diagnosis-summary-card">
+    <lightning-card class="diagnosis-summary-card">
         <!-- Header with title and refresh button -->
-        <h2 slot="title">
+        <h2 slot="title" class="diagnosis-card-title">
+            <lightning-icon icon-name="utility:record" size="x-small" class="diagnosis-card-title__icon"></lightning-icon>
             <span class="slds-text-heading_small">{cardTitle}</span>
         </h2>
         <lightning-button-icon 

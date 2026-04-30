@@ -2,6 +2,55 @@
     color: #706e6b;
 }
 
+.interaction-meta-panel {
+    border: 1px solid #d8dde6;
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9fb 100%);
+    padding: 0.75rem;
+}
+
+.interaction-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.6rem;
+}
+
+.interaction-meta-item {
+    border-radius: 0.6rem;
+    background: #ffffff;
+    border: 1px solid #e5e8ec;
+    padding: 0.65rem 0.8rem;
+    min-width: 0;
+}
+
+.interaction-meta-label {
+    display: block;
+    color: #5f6a7a;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.interaction-meta-value {
+    margin-top: 0.3rem;
+    color: #181818;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.detail-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.detail-section-box {
+    border-radius: 0.6rem;
+}
+
 .ssrs-card {
     background-color: rgba(249, 168, 37, 0.12);
     border: 1px solid rgba(249, 168, 37, 0.4);
@@ -78,4 +127,14 @@
 .services-provided-card__value {
     color: #181818;
     font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+    .interaction-meta-panel {
+        padding: 0.6rem;
+    }
+
+    .interaction-meta-grid {
+        grid-template-columns: 1fr;
+    }
 }

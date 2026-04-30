@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Is_Interview_Enabled__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, this benefit appears as a selectable service action in Interview templates assigned to the same program.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Check to make this benefit available in interview service action pickers.</inlineHelpText>
+    <label>Is Interview Enabled</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

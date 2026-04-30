@@ -996,7 +996,8 @@ public with sharing class BenefitDisbursementService {
                 purpose,
                 interactionDate,
                 true,
-                caseId != null ? String.valueOf(caseId) : null
+                caseId != null ? String.valueOf(caseId) : null,
+                false
               );
               System.debug(
                 'Created InteractionSummary for account ' +

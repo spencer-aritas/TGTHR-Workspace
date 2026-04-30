@@ -23,6 +23,11 @@
                 <default>false</default>
                 <label>Disclosure Form</label>
             </value>
+            <value>
+                <fullName>Other</fullName>
+                <default>false</default>
+                <label>Other</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

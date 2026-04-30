@@ -1,0 +1,54 @@
+.cmh-shell-modal { max-width: 880px; }
+.cmh-shell-modal__content { min-height: 320px; max-height: 70vh; overflow-y: auto; }
+.cmh-shell-modal__loading { display: flex; align-items: center; justify-content: center; min-height: 280px; }
+
+.cmh-shell-section {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+.cmh-shell-section:last-child { border-bottom: none; }
+.cmh-shell-section--actions { background: #fafafa; padding: 1rem; border-radius: 0.25rem; margin-top: 0.5rem; }
+.cmh-shell-section__title {
+  font-weight: 600; font-size: 0.875rem; color: #444;
+  margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.cmh-disb-list { list-style: none; padding: 0; margin: 0; }
+.cmh-disb-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.4rem 0.6rem; background: #f3f7fb; border-radius: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+.cmh-disb-item__name { font-weight: 600; }
+.cmh-disb-item__type { color: #666; font-size: 0.8125rem; margin-left: 0.5rem; }
+
+.cmh-benefit-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cmh-benefit-chip {
+  border: 1px solid #d0d6df; background: #fff; padding: 0.35rem 0.7rem;
+  border-radius: 999px; font-size: 0.875rem; cursor: pointer; transition: all 0.15s;
+}
+.cmh-benefit-chip:hover { background: #f0f4f9; }
+.cmh-benefit-chip--selected { background: #0176d3; color: #fff; border-color: #0176d3; }
+.cmh-benefit-chip--selected .cmh-benefit-chip__type { color: rgba(255,255,255,0.85); }
+.cmh-benefit-chip--locked {
+  background: #2e844a; color: #fff; border-color: #2e844a; cursor: default;
+}
+.cmh-benefit-chip--locked .cmh-benefit-chip__type { color: rgba(255,255,255,0.85); }
+.cmh-benefit-chip__type { color: #666; font-size: 0.75rem; margin-left: 0.25rem; }
+
+.cmh-careteam-list { list-style: none; padding: 0; margin: 0 0 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.cmh-careteam-item { display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.5rem; background: #f7f7f7; border-radius: 0.25rem; }
+.cmh-careteam-item__name { font-weight: 600; }
+.cmh-careteam-item__title { color: #666; }
+
+.cmh-careteam-results,
+.cmh-reparent-results {
+  list-style: none; padding: 0; margin: 0.4rem 0 0;
+  border: 1px solid #e0e0e0; border-radius: 0.25rem; max-height: 200px; overflow-y: auto;
+}
+.cmh-careteam-result, .cmh-reparent-result {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.4rem 0.6rem; border-bottom: 1px solid #efefef; cursor: pointer;
+}
+.cmh-careteam-result:last-child, .cmh-reparent-result:last-child { border-bottom: none; }
+.cmh-reparent-result:hover { background: #f0f4f9; }
