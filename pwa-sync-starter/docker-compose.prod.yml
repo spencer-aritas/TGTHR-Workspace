@@ -72,6 +72,9 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - DUCKDB_PATH=/app/data/tgthr_program_data.duckdb
+      - GOTENBERG_URL=http://gotenberg:3000
+    depends_on:
+      - gotenberg
     volumes:
       - type: bind
         source: ../tgthr-docgen/data
@@ -116,6 +119,21 @@ services:
       - web
       - api
       - docgen
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    networks:
+      - app_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   app_net:
