@@ -26,12 +26,16 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    env_file:
+      # Loads SF_{BENEFITS,PROD}_JWT_* and SF_JWT_PRIVATE_KEY from
+      # pwa-sync-starter/.env so settings.py picks them up regardless
+      # of which SF_ENV is selected.
+      - .env
     environment:
       - TZ=America/Denver
-      - SF_ENV=benefits
+      - SF_ENV=prod
       - SF_BENEFITS_JWT_LOGIN_URL=https://tgthrnpc--benefits.sandbox.lightning.force.com/
       - APP_BASE_URL=https://outreachintake.aritasconsulting.com
-      - SF_JWT_PRIVATE_KEY=${SF_JWT_PRIVATE_KEY}
       - DB_PATH=/app/data/app.duckdb
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
@@ -39,6 +43,10 @@ services:
       - type: bind
         source: ./server/data
         target: /app/data
+      - type: bind
+        source: ./jwt_private.key
+        target: /app/jwt_private.key
+        read_only: true
 
     networks:
       - app_net
