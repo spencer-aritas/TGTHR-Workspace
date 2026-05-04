@@ -79,6 +79,10 @@ services:
       - type: bind
         source: ../tgthr-docgen/documents
         target: /app/documents
+      - type: bind
+        source: ./jwt_private.key
+        target: /app/jwt_private.key
+        read_only: true
     networks:
       - app_net
     restart: unless-stopped
