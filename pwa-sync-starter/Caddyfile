@@ -9,7 +9,7 @@
 		}
 	}
 	
-	handle /docgen/* {
+	handle_path /docgen/* {
 		reverse_proxy docgen:8000
 	}
 	
@@ -53,7 +53,7 @@ outreachintake.aritasconsulting.com {
 	}
 	
 	# Handle docgen requests
-	handle /docgen/* {
+	handle_path /docgen/* {
 		reverse_proxy docgen:8000 {
 			transport http {
 				dial_timeout 10s
