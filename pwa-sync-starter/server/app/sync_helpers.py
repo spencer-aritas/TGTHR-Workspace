@@ -117,8 +117,12 @@ def upsert_programs(db: DuckClient, rows: List[dict]) -> Dict[str, str]:
         id_to_uuid[r["Id"]] = p_uuid
 
         db.execute("""
-            INSERT OR REPLACE INTO programs (uuid, sfid, name, last_modified_date)
+            INSERT INTO programs (uuid, sfid, name, last_modified_date)
             VALUES (?, ?, ?, ?)
+            ON CONFLICT (uuid) DO UPDATE SET
+                sfid = EXCLUDED.sfid,
+                name = EXCLUDED.name,
+                last_modified_date = EXCLUDED.last_modified_date
         """, (p_uuid, r.get("Id"), r.get("Name"), r.get("LastModifiedDate")))
     return id_to_uuid
 
@@ -139,9 +143,17 @@ def upsert_participants(db: DuckClient, rows: List[dict]) -> Dict[str, str]:
         id_to_uuid[a["Id"]] = pa_uuid
 
         db.execute("""
-            INSERT OR REPLACE INTO participants
+            INSERT INTO participants
                 (uuid, sfid, first_name, last_name, preferred_name, email, phone, date_of_birth, updated_at)
             VALUES (?, ?, ?, ?, NULL, ?, ?, ?, ?)
+            ON CONFLICT (uuid) DO UPDATE SET
+                sfid = EXCLUDED.sfid,
+                first_name = EXCLUDED.first_name,
+                last_name = EXCLUDED.last_name,
+                email = EXCLUDED.email,
+                phone = EXCLUDED.phone,
+                date_of_birth = EXCLUDED.date_of_birth,
+                updated_at = EXCLUDED.updated_at
         """, (
             pa_uuid,
             a.get("Id"),
@@ -207,10 +219,20 @@ def upsert_enrollments(
         # Insert/replace locally
         db.execute(
             """
-            INSERT OR REPLACE INTO program_enrollments
+            INSERT INTO program_enrollments
                 (uuid, sfid, program_id, enrollee_id,
                  start_date, end_date, status, entered_hmis, exited_hmis, last_modified_date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (uuid) DO UPDATE SET
+                sfid = EXCLUDED.sfid,
+                program_id = EXCLUDED.program_id,
+                enrollee_id = EXCLUDED.enrollee_id,
+                start_date = EXCLUDED.start_date,
+                end_date = EXCLUDED.end_date,
+                status = EXCLUDED.status,
+                entered_hmis = EXCLUDED.entered_hmis,
+                exited_hmis = EXCLUDED.exited_hmis,
+                last_modified_date = EXCLUDED.last_modified_date
             """,
             (
                 enr_uuid,
