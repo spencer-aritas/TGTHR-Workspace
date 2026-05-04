@@ -23,7 +23,7 @@ services:
       - SF_ENV=benefits
       - SF_BENEFITS_JWT_LOGIN_URL=https://tgthrnpc--benefits.sandbox.lightning.force.com/
       - APP_BASE_URL=https://localhost
-      - SF_JWT_PRIVATE_KEY=${SF_JWT_PRIVATE_KEY}
+      - SF_JWT_PRIVATE_KEY=${SF_JWT_PRIVATE_KEY:-}
       - DB_PATH=/app/data/app.duckdb
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app

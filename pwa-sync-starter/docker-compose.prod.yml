@@ -36,6 +36,7 @@ services:
       - SF_ENV=prod
       - SF_BENEFITS_JWT_LOGIN_URL=https://tgthrnpc--benefits.sandbox.lightning.force.com/
       - APP_BASE_URL=https://outreachintake.aritasconsulting.com
+      - DOCGEN_BASE_URL=http://docgen:8000
       - DB_PATH=/app/data/app.duckdb
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
@@ -90,7 +91,7 @@ services:
       - app_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
