@@ -68,8 +68,9 @@ services:
       context: ../tgthr-docgen
       dockerfile: Dockerfile
     env_file:
-      - ../tgthr-docgen/.env
+      - .env
     environment:
+      - SF_ENV=prod
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - DUCKDB_PATH=/app/data/tgthr_program_data.duckdb
