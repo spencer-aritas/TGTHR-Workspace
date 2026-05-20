@@ -55,13 +55,22 @@ export default class NoteDetailDisplay extends LightningElement {
         }
     }
 
+    // Interview__c key prefix differs per org (prod: a0z, benefits-sandbox: a0q).
+    // InteractionSummary is a standard object: always 8BV.
+    // Hardcoding only the sandbox prefix previously caused prod to receive the wrong
+    // recordType and "Note not found" errors when viewing Comprehensive Assessments,
+    // surfacing as the generic "couldn't get the assessments because of an internal error" toast.
+    // List BOTH known prefixes so this works regardless of which org we're deployed to.
+    static INTERVIEW_KEY_PREFIXES = ['a0z', 'a0q'];
+    static INTERACTION_SUMMARY_KEY_PREFIXES = ['8BV'];
+
     getEffectiveRecordType() {
         if (!this.recordId) return this.recordType;
         const idPrefix = this.recordId.substring(0, 3);
-        if (this.recordType === 'Interaction' && idPrefix === 'a0q') {
+        if (this.recordType === 'Interaction' && NoteDetailDisplay.INTERVIEW_KEY_PREFIXES.includes(idPrefix)) {
             return 'Interview';
         }
-        if (this.recordType === 'Interview' && idPrefix === '8BV') {
+        if (this.recordType === 'Interview' && NoteDetailDisplay.INTERACTION_SUMMARY_KEY_PREFIXES.includes(idPrefix)) {
             return 'Interaction';
         }
         return this.recordType;
