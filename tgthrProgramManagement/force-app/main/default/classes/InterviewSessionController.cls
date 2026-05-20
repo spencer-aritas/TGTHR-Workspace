@@ -2011,9 +2011,9 @@ public with sharing class InterviewSessionController {
         summary.put('MeetingNotes', meetingNotes);
         // Note: Date_of_Interaction__c is the correct field, not ServiceDate
         
-        // Set POS__c (location) if provided
+        // Set Place_of_Service__c (location) if provided
         if (String.isNotBlank(location)) {
-            putIfFieldExists(summary, 'POS__c', location);
+            putIfFieldExists(summary, 'Place_of_Service__c', location);
         }
 
         if (interpreterUsed != null) {
@@ -2687,7 +2687,6 @@ public with sharing class InterviewSessionController {
             putAccountFieldIfProvided(acc, demographics, 'Translator_Needed__pc', validationErrors);
             putAccountFieldIfProvided(acc, demographics, 'Referral_Source__c', validationErrors);
             putAccountFieldIfProvided(acc, demographics, 'Gender_Identity__pc', validationErrors);
-            putAccountFieldIfProvided(acc, demographics, 'PersonGenderIdentity', validationErrors, 'Gender_Identity__pc');
             putAccountFieldIfProvided(acc, demographics, 'Gender_Identity_Other_Description__pc', validationErrors);
             putAccountFieldIfProvided(acc, demographics, 'PersonPronouns', validationErrors);
             putAccountFieldIfProvided(acc, demographics, 'Pronouns_Other_Description__pc', validationErrors);
@@ -4236,7 +4235,7 @@ public with sharing class InterviewSessionController {
             try {
                 List<SObject> summaries = Database.query(
                     'SELECT Id, Date_of_Interaction__c, Start_Time__c, End_Time__c, ' +
-                    'MeetingNotes, POS__c, Interpreter_Used__c ' +
+                    'MeetingNotes, Place_of_Service__c, Interpreter_Used__c ' +
                     'FROM InteractionSummary WHERE Id = :interactionSummaryId LIMIT 1'
                 );
                 if (!summaries.isEmpty()) {
@@ -4258,7 +4257,7 @@ public with sharing class InterviewSessionController {
                     }
 
                     resp.interactionInput.meetingNotes = (String) s.get('MeetingNotes');
-                    resp.interactionInput.location = (String) s.get('POS__c');
+                    resp.interactionInput.location = (String) s.get('Place_of_Service__c');
 
                     Object interpreterVal = s.get('Interpreter_Used__c');
                     if (interpreterVal != null) {
