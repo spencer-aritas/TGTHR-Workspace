@@ -24,7 +24,7 @@ import logSignatureEvent from '@salesforce/apex/RecordAccessService.logSignature
 import getSsrsAssessmentResponses from '@salesforce/apex/SSRSAssessmentController.getSsrsAssessmentResponses';
 import loadRecalledInterview from '@salesforce/apex/InterviewSessionController.loadRecalledInterview';
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
-import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
+import POS_FIELD from '@salesforce/schema/InteractionSummary.Place_of_Service__c';
 
 const STEPS = ['interaction', 'demographics', 'interview', 'review'];
 const DRAFT_TYPE = 'Interview';
