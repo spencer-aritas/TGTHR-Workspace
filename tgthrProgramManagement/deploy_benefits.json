@@ -1,0 +1,1671 @@
+{
+  "status": 0,
+  "result": {
+    "checkOnly": true,
+    "completedDate": "2026-05-15T21:29:33.000Z",
+    "createdBy": "005VY000003VsDh",
+    "createdByName": "Spencer Essey",
+    "createdDate": "2026-05-15T21:28:49.000Z",
+    "details": {
+      "componentSuccesses": [
+        {
+          "changed": true,
+          "componentType": "ApexClass",
+          "created": false,
+          "createdDate": "2026-05-15T21:29:01.000Z",
+          "deleted": false,
+          "fileName": "classes/InteractionSummaryService.cls",
+          "fullName": "InteractionSummaryService",
+          "id": "01pRT000001guObYAI",
+          "success": true
+        },
+        {
+          "changed": true,
+          "componentType": "LightningComponentBundle",
+          "created": false,
+          "createdDate": "2026-05-15T21:29:03.000Z",
+          "deleted": false,
+          "fileName": "lwc/interactionSummaryBoard",
+          "fullName": "interactionSummaryBoard",
+          "id": "0RbRT000000RD2n0AG",
+          "success": true
+        },
+        {
+          "changed": true,
+          "componentType": "",
+          "created": false,
+          "createdDate": "2026-05-15T21:29:03.000Z",
+          "deleted": false,
+          "fileName": "package.xml",
+          "fullName": "package.xml",
+          "success": true
+        }
+      ],
+      "runTestResult": {
+        "codeCoverage": [
+          {
+            "id": "01pRT000001guObYAI",
+            "locationsNotCovered": [
+              {
+                "column": 0,
+                "line": 101,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 132,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 133,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 134,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 135,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 149,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 150,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 151,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 152,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 153,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 154,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 156,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 157,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 208,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 209,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 212,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 213,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 214,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 215,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 230,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 231,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 291,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 292,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 303,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 308,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 309,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 331,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 332,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 351,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 418,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 419,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 420,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 432,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 433,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 447,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 448,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 449,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 450,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 451,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 452,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 482,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 550,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 551,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 552,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 553,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 554,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 555,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 556,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 557,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 558,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 559,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 560,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 561,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 562,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 626,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 627,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 628,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 635,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 636,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 637,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 656,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 657,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 658,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 660,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 661,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 662,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 663,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 664,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 665,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 666,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 667,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 668,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 670,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 671,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 672,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 673,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 674,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 675,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 676,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 679,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 680,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 715,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 716,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 717,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 768,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 769,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 784,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 785,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 790,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 872,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 891,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 892,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 907,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 909,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 930,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 936,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 975,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 976,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1063,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1064,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1065,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1066,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1067,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1068,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1070,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1071,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1181,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1182,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1183,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1185,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1202,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1208,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1211,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1212,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1213,
+                "numExecutions": 0,
+                "time": -1
+              },
+              {
+                "column": 0,
+                "line": 1215,
+                "numExecutions": 0,
+                "time": -1
+              }
+            ],
+            "name": "InteractionSummaryService",
+            "namespace": null,
+            "numLocations": 662,
+            "numLocationsNotCovered": 116,
+            "type": "Class",
+            "dmlInfo": [],
+            "methodInfo": [],
+            "soqlInfo": [],
+            "soslInfo": []
+          }
+        ],
+        "flowCoverage": [
+          {
+            "elementsNotCovered": [
+              "hide_interaction_summaries",
+              "hide_benefit_assignments",
+              "hide_incident_reports",
+              "hide_program_enrollments"
+            ],
+            "flowId": "301VY00000BtQhv",
+            "flowName": "Account_Hide_Past_Participant_Records",
+            "flowNamespace": null,
+            "numElements": 9,
+            "numElementsNotCovered": 4,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "count_active_housing_disbursements",
+              "update_spots_currently_filled",
+              "get_disbursements_related_to_this_benefit"
+            ],
+            "flowId": "301VY00000B6EbR",
+            "flowName": "Benefit",
+            "flowNamespace": null,
+            "numElements": 3,
+            "numElementsNotCovered": 3,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_quantity_to_match"
+            ],
+            "flowId": "301VY00000B6EbS",
+            "flowName": "Benefit_Disbursement_Count_Nights_of_Housing",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_actual_completion_date"
+            ],
+            "flowId": "301VY00000B6EbT",
+            "flowName": "Benefit_Disbursement_Set_Actual_Completion_Date_to_End_Date",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "add_start_and_end_dates"
+            ],
+            "flowId": "301VY00000B6EbU",
+            "flowName": "Benefit_Disbursement_Set_Start_and_End_Dates_If_Blank",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "set_disbursement_quantity"
+            ],
+            "flowId": "301VY00000B6EbV",
+            "flowName": "Benefit_Disbursement_populate_Disbursed_Quantity",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "close_benefit_assgnments"
+            ],
+            "flowId": "301VY00000IlvgP",
+            "flowName": "Care_Plan_Status_Complete_Close_Benefit_Assignments",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "add_contact_case_participant_to_collection",
+              "prepare_contact_case_participant"
+            ],
+            "flowId": "301VY00000B6EbW",
+            "flowName": "Case_Add_Case_Participants",
+            "flowNamespace": null,
+            "numElements": 8,
+            "numElementsNotCovered": 2,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "flowId": "301VY00000B6EbX",
+            "flowName": "Case_Copy_Person_Account_to_Contact",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 0,
+            "processType": "AutoLaunchedFlow",
+            "elementsNotCovered": []
+          },
+          {
+            "elementsNotCovered": [
+              "set_naming_format"
+            ],
+            "flowId": "301VY00000B6EbY",
+            "flowName": "Case_Program_Naming_Format",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "flowId": "301VY00000B6EbZ",
+            "flowName": "Case_Subject_Naming_Format",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 0,
+            "processType": "AutoLaunchedFlow",
+            "elementsNotCovered": []
+          },
+          {
+            "elementsNotCovered": [
+              "dpe_tgthr_aggregate_benefit_assignment_and_benefit_disbursement",
+              "wait_for_5_minutes",
+              "dpe_tgthr_aggregate_program_enrollment"
+            ],
+            "flowId": "301VY00000FelcJ",
+            "flowName": "DPE_Scheduled_DPE_Jobs",
+            "flowNamespace": null,
+            "numElements": 3,
+            "numElementsNotCovered": 3,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_diagnosis_name_field"
+            ],
+            "flowId": "301VY00000B6Ebb",
+            "flowName": "Diagnosis_Update_Name",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "approved_info"
+            ],
+            "flowId": "301VY00000IDqsw",
+            "flowName": "Enhancement_Approved",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_due_date"
+            ],
+            "flowId": "301VY00000IVgWt",
+            "flowName": "Enhancement_Due_Date",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "set_completed_date"
+            ],
+            "flowId": "301VY00000Dh2qH",
+            "flowName": "Enhancement_Set_Completed_Date",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "check_if_parent_has_any_open_child_enhancement",
+              "set_parent_enhancement_em_stage_completed",
+              "get_all_the_open_child_enhancements_for_the_parent"
+            ],
+            "flowId": "301VY00000FMLGW",
+            "flowName": "Enhancement_Set_Parent_Enhancement_Stage",
+            "flowNamespace": null,
+            "numElements": 3,
+            "numElementsNotCovered": 3,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "set_sprint_start_date"
+            ],
+            "flowId": "301VY00000Dh2FB",
+            "flowName": "Enhancement_Set_Sprint_Start_Date",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "send_email_notification"
+            ],
+            "flowId": "301VY00000IDPRO",
+            "flowName": "Enhancement_notify_about_new_records",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "add_requested_by"
+            ],
+            "flowId": "301VY00000FMNQN",
+            "flowName": "Enhancement_populate_Requested_By",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_name"
+            ],
+            "flowId": "301VY00000B6Ebc",
+            "flowName": "Evaluation_Name",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "get_the_source_shelter_id",
+              "get_transitional_living_program_id",
+              "get_the_source_outreach_id",
+              "get_chase_house_id",
+              "get_the_source_drop_in",
+              "get_1440_pine_housing_id",
+              "get_nest_56_id"
+            ],
+            "flowId": "301VY00000MVtA5",
+            "flowName": "Get_Program_Information",
+            "flowNamespace": null,
+            "numElements": 7,
+            "numElementsNotCovered": 7,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_completed_date",
+              "update_status_if_blank_and_new_record",
+              "update_start_date",
+              "update_status_to_not_started"
+            ],
+            "flowId": "301VY00000B6Ebd",
+            "flowName": "Goal_Assignments",
+            "flowNamespace": null,
+            "numElements": 4,
+            "numElementsNotCovered": 4,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_interaction_summary_title"
+            ],
+            "flowId": "301VY00000Cu9OJ",
+            "flowName": "Interaction_Summary_Set_Naming_Format_from_Shift_Log",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "set_program_from_shift_log"
+            ],
+            "flowId": "301VY00000EhDOZ",
+            "flowName": "Interaction_Summary_Set_Program_from_Shift_Log",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "flowId": "301VY00000GTo9v",
+            "flowName": "Program_Enrollment_Update_IsActive_based_on_Status",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 0,
+            "processType": "AutoLaunchedFlow",
+            "elementsNotCovered": []
+          },
+          {
+            "elementsNotCovered": [
+              "update_applied_to_awaiting_intake"
+            ],
+            "flowId": "301VY00000GTkfp",
+            "flowName": "Program_Enrollment_Update_Status",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "set_parent_flag_on_parent_enhancement"
+            ],
+            "flowId": "301VY00000FMVsa",
+            "flowName": "Set_Parent_Enhancement",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          },
+          {
+            "elementsNotCovered": [
+              "update_sprint_name"
+            ],
+            "flowId": "301VY00000D8oky",
+            "flowName": "Sprint_Naming_Convention",
+            "flowNamespace": null,
+            "numElements": 1,
+            "numElementsNotCovered": 1,
+            "processType": "AutoLaunchedFlow"
+          }
+        ],
+        "numFailures": 0,
+        "numTestsRun": 34,
+        "successes": [
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testCreateInteractionDirectly",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 889
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testCreateInteractionDirectly_BadDate",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 2336
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testCreateInteractionDirectly_NotifyTrue",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 990
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testCreateInteractionDirectly_NullOptionals",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1010
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testCreateInteractionDirectly_RelatedIsInteractionSummary",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1102
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testCreateInteractionDirectly_WithCaseRelated",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1249
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetActiveProgramEnrollments",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1070
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetActiveProgramEnrollmentsByProgramId",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1747
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetActiveProgramEnrollmentsByProgramId_AwaitingFallback",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1366
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetActiveProgramEnrollmentsByProgramId_Null",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 65
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetProgramEnrollments",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1044
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetProgramEnrollmentsByProgramId",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 924
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetRecentEngagements",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 485
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetRecentEngagementsByProgramId",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 332
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetRecentEngagements_InvalidDateFormat",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 139
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetRecentEngagements_MaxRowsBoundary",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 171
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetRecentEngagements_ProgramNotFound",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 57
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testGetRecentEngagements_WithExplicitDates",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 316
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testMarkAddressed",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 998
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testMarkAddressed_Deep",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 966
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecent",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 254
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecentByProgramId",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 259
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecentByProgramId_NullId",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 59
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecentByProgramId_WithData",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 360
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecentDisbursementsByProgramId",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 88
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecentDisbursementsByProgramId_WithCoreData",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 910
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecentIncidents",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 896
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecentIncidents_NullAccount",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 62
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecent_NonexistentProgram",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 65
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testRecent_NullProgram",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 68
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testThread",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1161
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testThread_NullAccount",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 54
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testThread_WithInteraction",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 938
+          },
+          {
+            "id": "01pRT000001idUvYAI",
+            "methodName": "testThread_WithLinkedInterview",
+            "name": "InteractionSummaryServiceTest",
+            "namespace": null,
+            "testCategory": {
+              "$": {
+                "xsi:nil": "true"
+              }
+            },
+            "time": 1499
+          }
+        ],
+        "totalTime": 24163,
+        "codeCoverageWarnings": [],
+        "failures": [],
+        "flowCoverageWarnings": []
+      },
+      "componentFailures": []
+    },
+    "done": true,
+    "id": "0AfRT00000I4Haz0AF",
+    "ignoreWarnings": false,
+    "lastModifiedDate": "2026-05-15T21:29:33.000Z",
+    "numberComponentErrors": 0,
+    "numberComponentsDeployed": 2,
+    "numberComponentsTotal": 2,
+    "numberFiles": "28",
+    "numberTestErrors": 0,
+    "numberTestsCompleted": 34,
+    "numberTestsTotal": 34,
+    "rollbackOnError": true,
+    "runTestsEnabled": true,
+    "startDate": "2026-05-15T21:29:00.000Z",
+    "status": "Succeeded",
+    "success": true,
+    "zipSize": 178806,
+    "files": [
+      {
+        "fullName": "InteractionSummaryService",
+        "type": "ApexClass",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\classes\\InteractionSummaryService.cls"
+      },
+      {
+        "fullName": "InteractionSummaryService",
+        "type": "ApexClass",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\classes\\InteractionSummaryService.cls-meta.xml"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\handleTabChange.js"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\handleTabChange.js.ignored"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.css.new"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.html.new"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.ascii"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.bak"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.bak2"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.beforecleanup"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.beforedeleting"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.clean"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.flowcleaning"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.flowcleanup"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.minimal"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.new"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.original"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.test"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\backups\\interactionSummaryBoard.js.tmp"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\interactionSummaryBoard.css"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\interactionSummaryBoard.html"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\interactionSummaryBoard.js"
+      },
+      {
+        "fullName": "interactionSummaryBoard",
+        "type": "LightningComponentBundle",
+        "state": "Changed",
+        "filePath": "D:\\Projects\\TGTHR-Workspace\\tgthrProgramManagement\\force-app\\main\\default\\lwc\\interactionSummaryBoard\\interactionSummaryBoard.js-meta.xml"
+      }
+    ],
+    "zipFileCount": 24,
+    "deployUrl": "https://tgthrnpc--benefits.sandbox.my.salesforce.com/lightning/setup/DeployStatus/page?address=%2Fchangemgmt%2FmonitorDeploymentsDetails.apexp%3FasyncId%3D0AfRT00000I4Haz0AF%26retURL%3D%252Fchangemgmt%252FmonitorDeployment.apexp"
+  },
+  "warnings": []
+}

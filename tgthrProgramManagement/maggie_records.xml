@@ -1,0 +1,2067 @@
+<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">
+  <Obj RefId="0">
+    <TN RefId="0">
+      <T>Selected.System.Management.Automation.PSCustomObject</T>
+      <T>System.Management.Automation.PSCustomObject</T>
+      <T>System.Object</T>
+    </TN>
+    <MS>
+      <Obj N="attributes" RefId="1">
+        <TN RefId="1">
+          <T>System.Management.Automation.PSCustomObject</T>
+          <T>System.Object</T>
+        </TN>
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GuKn4AK</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000GuKn4AK</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Drop in 4/21/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-21</S>
+      <DT N="CreatedDate">2026-04-21T17:23:53-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="2">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="3">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="4">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="5">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct presented to Drop in with neutral affect.  Ct ate a meal and watched TV in the space.  Ct stated she did not have trouble with her new phone at all overnight and it worked appropriately.  Ct had a meeting and phone call with case manager and was making a plan for the rest of her week.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <Nil N="Program__c" />
+    </MS>
+  </Obj>
+  <Obj RefId="6">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="7">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GuMP4A0</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000GuMP4A0</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Drop in 4/21/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-21</S>
+      <DT N="CreatedDate">2026-04-21T17:26:08-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="8">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="9">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="10">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="11">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived with his dog to the Drop in Center today in a positive mood.  Ct ate a meal with us and utilized the wifi to do work on his personal laptop.  Ct was informed that while in the space, he must keep an eye on is dog and that will not be a staff responsibility.  Ct was receptive to the feedback and left the center after about 2 hours&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="12">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="13">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GuO14AK</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000GuO14AK</S>
+      <S N="AccountId">001VY00000CGXapYAH</S>
+      <S N="Name">Drop in 4/21/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-21</S>
+      <DT N="CreatedDate">2026-04-21T17:28:30-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="14">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="15">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="16">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="17">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to the drop in center in the afternoon with positive and friendly affect, as evidenced by his light tone and stated excitement to see the space.  Ct had a meal and was chatting with the staff and volunteers.  Ct accessed the clothing closet and took some donations home with him.  Ct stayed with us till end of day.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="18">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="19">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GwBJ4A0</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000GwBJ4A0</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Drop in 4/22/2026</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-22</S>
+      <DT N="CreatedDate">2026-04-22T16:33:00-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="20">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="21">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="22">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="23">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in in good spirits, she knew she had a meeting in the afternoon with her adoption case worker, Diane Haussler 720-280-9517.  Ct ate a meal, took a shower, and did laundry before her meeting at 3:30pm.  Ct spoke with her case manager briefly and then was taken off site with Diane.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="24">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="25">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GwCv4AK</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000GwCv4AK</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Drop in 4/22/2026</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-22</S>
+      <DT N="CreatedDate">2026-04-22T16:35:38-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="26">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="27">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="28">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="29">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to the drop in center with his dog in the afternoon.  Ct appeared neutral in affect, as evidenced by slumped shoulders and less talkative energy.  Ct was able to take a shower and do some work on his computer while here with us.  Ct ate a meal and had some snacks.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="30">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="31">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000Gxov4AC</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000Gxov4AC</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Drop in 4/23/2026</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-23</S>
+      <DT N="CreatedDate">2026-04-23T17:24:07-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="32">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="33">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="34">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="35">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in center with a neutral affect.  Ct expressed she was waiting for a check from Social Security so we checked the mailbox and it had not yet arrived.  Ct spent the day in the center, ate lunch, watched a movie and Taylor Swift.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <Nil N="Program__c" />
+    </MS>
+  </Obj>
+  <Obj RefId="36">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="37">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H4K94AK</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000H4K94AK</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Drop in 4/28/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-28</S>
+      <DT N="CreatedDate">2026-04-28T16:58:24-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="38">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="39">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="40">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="41">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived at the center in good spirits, stating she had a doctors appointment in the early afternoon.  YSS (Maggie) drove Ct to Denver to go to her OBGYN appointment.  All was well and Ct was able to get the Nexplanon birth control implanted during the appointment.  Drove back to Boulder and Ct enjoyed a meal, took a shower, and planned for the rest of her week.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="42">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="43">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H4Ll4AK</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000H4Ll4AK</S>
+      <S N="AccountId">001VY00000CGXapYAH</S>
+      <S N="Name">Drop in 4/28/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-28</S>
+      <DT N="CreatedDate">2026-04-28T17:00:23-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="44">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="45">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="46">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="47">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to Drop in in the afternoon.  Ct had lunch and worked on school work with YSS (Emma).  Ct appeared in good spirits, as evidenced by positive tone, talkative with staff, and working hard on his goals.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="48">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="49">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H5zN4AS</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000H5zN4AS</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Drop in 4/29/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-29</S>
+      <DT N="CreatedDate">2026-04-29T17:12:42-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="50">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="51">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000002UFYBYA4</S>
+      <Obj N="LastModifiedBy" RefId="52">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="53">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000002UFYBYA4</S>
+            </MS>
+          </Obj>
+          <S N="Name">Cate Buck</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in in a quiet mood. Inquired about mail she was expecting and when we checked the mailbox her SS check was there. Ct was excited, as evidenced by jumping for joy and screaming excitedly. Ct wanted to go to King Soopers to cash the check but due to her not having a real ID yet, she was unable to do so. Ct returned to center visably upset, as evidenced by slumped shoulders, not engaging in conversation. Ct purchased snacks from the Circle K and took a nap on the couch. &lt;/p&gt;&lt;p&gt;ADDENDUM: CM Cate drove client to attempt to cash her social security checks. Enroute we discussed the very real possibility of client being unable to accomplish this, as she only had a paper copy from the DMV. Preferred not call in advance. After King Soopers we drove to Chase bank. Client was educated in the life skill of opening a bank account &amp;amp; was observed interacting with the bank staff by asking questions. Was advised that she would need to return with her real state ID or passport-cb.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="54">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="55">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H60z4AC</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000H60z4AC</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Drop in 4/29/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-04-29</S>
+      <DT N="CreatedDate">2026-04-29T17:14:43-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="56">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="57">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="58">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="59">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in in the afternoon, no notable changes in attitude, neutral.  Ct put his dog in the crate we had set up outside and came into the center for a shower and enjoyed a meal.  Ct left after his meal.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="60">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="61">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H9Of4AK</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000H9Of4AK</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Drop In 5/1/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-01</S>
+      <DT N="CreatedDate">2026-05-01T17:16:20-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="62">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="63">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="64">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="65">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in feeling agitated, as evidenced by tone and topic of conversation.  Ct was worried about the report that was made and interactions with the police.  Assured client that her name was not mentioned in the report and we made the report out of our mandated reporter responsibility.  Ct was able to deescalate and enjoy her time in drop in.  Ct had lunch with us and prepared herself for her visit tomorrow with her child.  Ct left drop in and headed to All Roads for the night.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <Nil N="Program__c" />
+    </MS>
+  </Obj>
+  <Obj RefId="66">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="67">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H9QH4A0</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000H9QH4A0</S>
+      <S N="AccountId">001VY00000CGSpsYAH</S>
+      <S N="Name">Drop in 5/1/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-01</S>
+      <DT N="CreatedDate">2026-05-01T17:19:16-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="68">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="69">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="70">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="71">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in center after her school day.  Worked on some artwork with the staff and volunteers while also showing off her photography.   Ct expressed concerns that a neighbor of hers is trying to get her family evicted from her apartment.  Ct was hoping to chat with CM about these concerns, YSS assured client she would inform case manager about this concern and follow back up with her next week or whenever she is available next.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <Nil N="Program__c" />
+    </MS>
+  </Obj>
+  <Obj RefId="72">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="73">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H9Rt4AK</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000H9Rt4AK</S>
+      <S N="AccountId">001VY00000CGXapYAH</S>
+      <S N="Name">Phone Call</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-01</S>
+      <DT N="CreatedDate">2026-05-01T17:23:28-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="74">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="75">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="76">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="77">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct called the drop in center in the afternoon with concerns about the phone he had just ordered had been stolen off his porch.  Ct was encouraged to follow up with whomever he purchased the phone from in order to secure a refund or other assistance.  Ct also expressed concerns that he had not gotten his monthly bus pass.  Assured Ct that we could assist him with bus passes whenever he is here with us.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="78">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="79">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HBtV4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HBtV4AW</S>
+      <S N="AccountId">001VY00000CGSpsYAH</S>
+      <S N="Name">Drop in 5/4/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-04</S>
+      <DT N="CreatedDate">2026-05-04T17:21:54-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="80">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="81">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="82">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="83">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in in the late afternoon, Ct expressed being happy to be here and to spend time.  Ct was in good spirits, and spoke about going to see her sisters recital this evening with family. Had some snacks and spoke with other participants.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="84">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="85">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HDqT4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HDqT4AW</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Drop in 5/5/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-05</S>
+      <DT N="CreatedDate">2026-05-05T15:35:50-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="86">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="87">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="88">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="89">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in with his dog and Ct understood the policy of keeping the dogs outside, despite the weather.  Ct was able to get his dog into the crate and staff provided blankets and food for Ct&amp;#39;s dog, Bear  Bear was whining and barking outside a majority of the time and client left soon after arriving in order to get his dog.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="90">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="91">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HDvJ4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HDvJ4AW</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Drop in 5/5/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-05</S>
+      <DT N="CreatedDate">2026-05-05T16:38:44-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="92">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="93">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="94">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="95">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived early to drop-in and requested to check the mail as she is still awaiting receipt of her real ID.  Ct spent the morning watching Disney movies and remained mostly to herself.  During the shift, while her phone was charging, her phone began ringing loudly which was disruptive to others in the space. Ct was asked to answer her phone or to mute it, which she did not want to do.  Another staff member got up and muted her phone, which upset the Ct and she expressed not wanting anyone to touch her phone.  Ct began speaking negatively about the staff who had touched her phone and was becoming agitated. When staff attempted to set a boundary with her about muting the phone and not speaking negatively about the staff, Ct was unreceptive.  Later in the day, Ct was feeling sad about her interactions earlier, as evidenced by tears and dialog around not feeling wanted anywhere.  Staff and CM assured Ct that she was welcome and wanted in the space.  Ct continued to watch movies for the remained of the day and was able to communicate how she was feeling.  Ongoing communication will be attempted with Ct to set appropriate boundaries around what is appropriate to say while she is in the space.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="96">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="97">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HDwv4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HDwv4AG</S>
+      <S N="AccountId">001VY00000CGXapYAH</S>
+      <S N="Name">Drop in 5/5/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-05</S>
+      <DT N="CreatedDate">2026-05-05T17:22:50-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="98">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="99">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="100">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="101">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in center in positive affect, as evidenced by tall posture and typical talkative energy.  Ct had a meal with us and worked with YSS Emma on an essay for school during her tutoring hours.  Ct inquired about clothing closet and staff implemented a boundary with him about how often he can access the clothing and that it should be used only for him, not friends or family.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="102">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="103">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HFp34AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HFp34AG</S>
+      <S N="AccountId">001VY00000Hf3BUYAZ</S>
+      <S N="Name">Ward, Sasha - 05/06/2026 - Maggie Reed</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-06</S>
+      <DT N="CreatedDate">2026-05-06T17:36:07-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="104">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="105">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000003VsDhYAK</S>
+      <Obj N="LastModifiedBy" RefId="106">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="107">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000003VsDhYAK</S>
+            </MS>
+          </Obj>
+          <S N="Name">Spencer Essey</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">Ct arrived to drop in to celebrate her birthday.  Ct was anxious to check the mail in anticipation of her ID being delivered, which it was not.  Ct enjoyed her birthday cake and was able to enjoy a meal with us in the early afternoon.  Ct became more agitated as the afternoon progressed and requested to speak with YSS (Maggie) privately.  During this discussion we set the boundary again about being respectful of staff and respecting the space.  Ct expressed increased concerns about an individual making threats against her and reported being followed by an unknown individual.  Ct expressed concerns for her safety, and the safety of others and it was determined that a police report would be necessary.  Ct and YSS made a report via the police non-emergency line and continued ongoing safety planning.  Ct is planning to go to All Roads for overnight shelter and will return to The Source in the morning.</S>
+      <S N="RelatedRecordId">500VY00000Ft9BkYAJ</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="108">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="109">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HHvh4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HHvh4AG</S>
+      <S N="AccountId">001VY00000INIxyYAH</S>
+      <S N="Name">Drop in 5/7/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-07</S>
+      <DT N="CreatedDate">2026-05-07T17:10:41-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="110">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="111">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="112">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="113">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct presented at drop in with neutral affect, was able to enjoy a meal with us as well as take many leftovers home for himself.  Ct spoke of his family and being happy to be involved with his brothers child&amp;#39;s life.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="114">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="115">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJmD4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HJmD4AW</S>
+      <S N="AccountId">001VY00000INIxyYAH</S>
+      <S N="Name">Drop in 5/8/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-08</S>
+      <DT N="CreatedDate">2026-05-08T16:32:52-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="116">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="117">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="118">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="119">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct came to drop in for a quick visit.  Ct enjoyed a hot meal and spoke with team members.  &lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="120">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="121">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJnp4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HJnp4AG</S>
+      <S N="AccountId">001VY00000CGSsVYAX</S>
+      <S N="Name">Drop in 5/8/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-08</S>
+      <DT N="CreatedDate">2026-05-08T16:35:53-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="122">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="123">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="124">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="125">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in to do get a housing evaluation.  Ct was partnered up with CM Sandra and completed a full intake and housing assessment. Ct enjoyed a hot meal and socialized with friends who were also at drop in for the day.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="126">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="127">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJpR4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HJpR4AW</S>
+      <S N="AccountId">001VY00000CGXdKYAX</S>
+      <S N="Name">Drop in 5/8/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-08</S>
+      <DT N="CreatedDate">2026-05-08T16:55:22-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="128">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="129">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="130">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="131">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in as a support person for his friend.  Ct enjoyed a meal with us and played basketball in the yard&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="132">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="133">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJr34AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HJr34AG</S>
+      <S N="AccountId">001VY00000CGRnoYAH</S>
+      <S N="Name">Drop in 5/8/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-08</S>
+      <DT N="CreatedDate">2026-05-08T17:05:51-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="134">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="135">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="136">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="137">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in with supportive friend to reengage with CM Cate.  Ct was able to complete all necessary paperwork with his CM and enjoyed a hot meal while in the center.  Ct played basketball with his friends outside before leaving.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="138">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="139">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJsf4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HJsf4AG</S>
+      <S N="AccountId">001VY00000CGSsZYAX</S>
+      <S N="Name">Drop in 5/8/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-08</S>
+      <DT N="CreatedDate">2026-05-08T17:12:36-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="140">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="141">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="142">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="143">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct came into drop in center to get set up with a Case Manager.  Ct completed a full intake and was assigned to Sandra.  Ct was able to enjoy a hot meal before leaving with her grandma.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="144">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="145">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJuH4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HJuH4AW</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Drop in 5/8/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-08</S>
+      <DT N="CreatedDate">2026-05-08T17:17:22-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="146">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="147">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="148">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="149">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in with his dog.  Ct was agitated when he arrived, as evidenced by posture and tone.  Ct took a shower and spoke about doing laundry. It was too late in the afternoon to start his laundry so Ct agreed to do it on the following Monday.  Ct spoke about setting new goals with his CM in the following week as well.  Ct left and expressed appreciation to the staff.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="150">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="151">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMaP4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HMaP4AW</S>
+      <S N="AccountId">001VY00000CGSsdYAH</S>
+      <S N="Name">Drop in 5/11/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-11</S>
+      <DT N="CreatedDate">2026-05-11T15:53:22-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="152">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="153">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="154">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="155">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived at drop in with CM Cate.  Ct was quiet, ate a meal and grabbed some snacks.  Ct was able to check out the clothing closet and grabbed a few new items for himself.  Ct took a shower while with us and left the drop in center in good spirits.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="156">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="157">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMc14AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HMc14AG</S>
+      <S N="AccountId">001VY00000CGSsdYAH</S>
+      <S N="Name">Hamilton, Josiah - 05/11/2026 - Maggie Reed</S>
+      <S N="InteractionPurpose">Case Management</S>
+      <S N="Date_of_Interaction__c">2026-05-11</S>
+      <DT N="CreatedDate">2026-05-11T16:02:12-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="158">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="159">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="160">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="161">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000BVqbyYAD</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="162">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="163">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMdd4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HMdd4AG</S>
+      <S N="AccountId">001VY00000CGSpsYAH</S>
+      <S N="Name">Drop in 5/11/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-11</S>
+      <DT N="CreatedDate">2026-05-11T16:47:49-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="164">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="165">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="166">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="167">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in in the afternoon, talking excitedly about her new classes at school.  Ct was able to enjoy some snacks and drinks with us.  When CM Cate arrived back at the center, they called the social security office together to make an appointment for ct to get her SS card.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="168">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="169">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMfF4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HMfF4AW</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Drop in 5/11/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-11</S>
+      <DT N="CreatedDate">2026-05-11T16:49:44-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="170">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="171">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="172">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="173">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in center with his dog in the afternoon.  Because the space was calm, dog was allowed to be inside while Ct took a shower.  Ct enjoyed a meal with us, accessed the clothing resources, and seemed to be in good spirits.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="174">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="175">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOYz4AO</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HOYz4AO</S>
+      <S N="AccountId">001VY00000oJJdGYAW</S>
+      <S N="Name">Interview - 5/12/2026</S>
+      <S N="InteractionPurpose">Interview</S>
+      <S N="Date_of_Interaction__c">2026-05-12</S>
+      <DT N="CreatedDate">2026-05-12T14:27:43-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="176">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="177">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="178">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="179">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000mNGrmYAG</S>
+      <Nil N="Program__c" />
+    </MS>
+  </Obj>
+  <Obj RefId="180">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="181">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOsL4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HOsL4AW</S>
+      <S N="AccountId">001VY00000oJJdGYAW</S>
+      <S N="Name">Drop In  5/12/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-12</S>
+      <DT N="CreatedDate">2026-05-12T16:45:41-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="182">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="183">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000003VsDhYAK</S>
+      <Obj N="LastModifiedBy" RefId="184">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="185">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000003VsDhYAK</S>
+            </MS>
+          </Obj>
+          <S N="Name">Spencer Essey</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to the drop in center in a mental daze, as evidenced by eyes glazed over, not engaging in conversation, seemed very distracted.  Ct disclosed a few diagnoses to staff, including schizophrenia and PTSD.  Ct was experiencing heavy auditory hallucinations and having conversations to herself.  Staff was able to complete a basic intake, as Ct requested a case manager and expressed the desire to get an updated ID with her preferred name and gender markers.  Had a brief discussion with Ct about getting her connected to Rocky Mountain Equality.  Ct was not in a state to have coherent conversations so staff decided not to engaged in any goal setting or further case management until Ct was in a more coherent state of mind.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="186">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="187">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOtx4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HOtx4AG</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Drop in 5/12/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-12</S>
+      <DT N="CreatedDate">2026-05-12T16:51:05-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="188">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="189">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="190">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="191">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in with his dog, who was set up in an inside kennel.  Ct was able to play games on his personal laptop and enjoyed a hot meal with us.  Spoke with Ct about getting his dog vaccinated, in accordance with the pet policy, and Ct was receptive.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="192">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="193">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOvZ4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HOvZ4AW</S>
+      <S N="AccountId">001VY00000CGXapYAH</S>
+      <S N="Name">Drop in 5/12/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-12</S>
+      <DT N="CreatedDate">2026-05-12T16:56:01-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="194">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="195">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="196">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="197">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in disappointed about not yet getting his GED/High school diploma.  Ct had been working diligently on an essay in order to pass the English section of his course and his teacher has not yet given him a passing grade.  Ct had a meal with us and put on a comfort TV show.  When YSS Emma returned from outreach, Ct went on a walk to clear his head and they worked on his essay briefly before the end of the day.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="198">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="199">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HRev4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HRev4AG</S>
+      <S N="AccountId">001VY00000CGSsdYAH</S>
+      <S N="Name">Hamilton, Josiah - 05/13/2026 - Maggie Reed</S>
+      <S N="InteractionPurpose">Case Management</S>
+      <S N="Date_of_Interaction__c">2026-05-13</S>
+      <DT N="CreatedDate">2026-05-13T16:44:49-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="200">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="201">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="202">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="203">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000BVqbyYAD</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="204">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="205">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HRew4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HRew4AG</S>
+      <S N="AccountId">001VY00000CGRo9YAH</S>
+      <S N="Name">Allnutt, Nathan - 05/13/2026 - Maggie Reed</S>
+      <S N="InteractionPurpose">Case Management</S>
+      <S N="Date_of_Interaction__c">2026-05-13</S>
+      <DT N="CreatedDate">2026-05-13T16:44:49-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="206">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="207">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="208">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="209">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000BI356YAD</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="210">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="211">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HRex4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HRex4AG</S>
+      <S N="AccountId">001VY00000CGSpsYAH</S>
+      <S N="Name">Hauser, Peyton - 05/13/2026 - Maggie Reed</S>
+      <S N="InteractionPurpose">Case Management</S>
+      <S N="Date_of_Interaction__c">2026-05-13</S>
+      <DT N="CreatedDate">2026-05-13T16:44:49-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="212">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="213">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="214">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="215">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000BI43DYAT</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="216">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="217">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HSj34AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HSj34AG</S>
+      <S N="AccountId">001VY00000oJJdGYAW</S>
+      <S N="Name">Drop in 5/14/26</S>
+      <S N="InteractionPurpose">Communication Log</S>
+      <S N="Date_of_Interaction__c">2026-05-14</S>
+      <DT N="CreatedDate">2026-05-14T13:40:24-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="218">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="219">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000003VsDhYAK</S>
+      <Obj N="LastModifiedBy" RefId="220">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="221">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000003VsDhYAK</S>
+            </MS>
+          </Obj>
+          <S N="Name">Spencer Essey</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in center, appeared to be more coherent as evidenced by less responsive to internal stimuli and able to engage in more conversation with staff.  Ct was hoping to do a housing assessment with her case manager, but due to the business of the day, the CM was unable to complete a housing assessment and Ct will return to drop in center on a different day to do that.  Ct was able to work with YSS Maggie on getting a secured email address and reaching out to Rocky Mountain Equality to get assistance with name change on identification documents.  Ct enjoyed a meal with us and took a shower before leaving drop in to head to Samaritan house in Denver for the evening&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="222">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="223">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT7F4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HT7F4AW</S>
+      <S N="AccountId">001VY00000CGSsZYAX</S>
+      <S N="Name">Dombrowsky, Eloise - 05/14/2026 - Maggie Reed</S>
+      <S N="InteractionPurpose">Case Management</S>
+      <S N="Date_of_Interaction__c">2026-05-14</S>
+      <DT N="CreatedDate">2026-05-14T15:18:19-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="224">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="225">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="226">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="227">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000mEk92YAC</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="228">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="229">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT7G4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HT7G4AW</S>
+      <S N="AccountId">001VY00000CGSsdYAH</S>
+      <S N="Name">Hamilton, Josiah - 05/14/2026 - Maggie Reed</S>
+      <S N="InteractionPurpose">Case Management</S>
+      <S N="Date_of_Interaction__c">2026-05-14</S>
+      <DT N="CreatedDate">2026-05-14T15:18:19-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="230">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="231">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="232">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="233">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000BVqbyYAD</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="234">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="235">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT7H4AW</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HT7H4AW</S>
+      <S N="AccountId">001VY00000CGXapYAH</S>
+      <S N="Name">Goering, Josiah - 05/14/2026 - Maggie Reed</S>
+      <S N="InteractionPurpose">Case Management</S>
+      <S N="Date_of_Interaction__c">2026-05-14</S>
+      <DT N="CreatedDate">2026-05-14T15:18:20-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="236">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="237">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="238">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="239">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <Nil N="MeetingNotes" />
+      <S N="RelatedRecordId">500VY00000ko5ekYAA</S>
+      <S N="Program__c">11WVY000005ea9y2AA</S>
+    </MS>
+  </Obj>
+  <Obj RefId="240">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="241">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT8r4AG</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HT8r4AG</S>
+      <S N="AccountId">001VY00000CGSsZYAX</S>
+      <S N="Name">Drop in 5/14/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-14</S>
+      <DT N="CreatedDate">2026-05-14T15:42:40-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="242">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="243">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="244">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="245">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct attended drop in to get assistance from her CM to get her birth certificate.  CM Sandra was able to prov ide that assistance and had Ct use one of the Source laptops to complete the online forms.  Ct hung out in the drop in center with other cts, socialized with staff, then left for the day.  Above all, seed to be in good spirits as evidenced by posture, tone, and accomplishing case goals.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+  <Obj RefId="246">
+    <TNRef RefId="0" />
+    <MS>
+      <Obj N="attributes" RefId="247">
+        <TNRef RefId="1" />
+        <MS>
+          <S N="type">InteractionSummary</S>
+          <S N="url">/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HTK94AO</S>
+        </MS>
+      </Obj>
+      <S N="Id">8BVVY000000HTK94AO</S>
+      <S N="AccountId">001VY00000CGSsdYAH</S>
+      <S N="Name">Drop in 5/14/26</S>
+      <Nil N="InteractionPurpose" />
+      <S N="Date_of_Interaction__c">2026-05-14</S>
+      <DT N="CreatedDate">2026-05-14T17:07:44-06:00</DT>
+      <S N="CreatedById">005VY000007BTAkYAO</S>
+      <Obj N="CreatedBy" RefId="248">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="249">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="LastModifiedById">005VY000007BTAkYAO</S>
+      <Obj N="LastModifiedBy" RefId="250">
+        <TNRef RefId="1" />
+        <MS>
+          <Obj N="attributes" RefId="251">
+            <TNRef RefId="1" />
+            <MS>
+              <S N="type">User</S>
+              <S N="url">/services/data/v66.0/sobjects/User/005VY000007BTAkYAO</S>
+            </MS>
+          </Obj>
+          <S N="Name">Maggie Reed</S>
+        </MS>
+      </Obj>
+      <S N="MeetingNotes">&lt;p&gt;Ct arrived to drop in in the morning, in good spirits.  Ct was able to complete his full intake forms on his own and was able to meet with CM Sandra to go over goals.  Ct enjoyed a meal, was able to take some leftovers with him when he left.  Ct played music, played basketball outside with YSS Maggie.&lt;/p&gt;</S>
+      <Nil N="RelatedRecordId" />
+      <S N="Program__c">11WVY000000GC212AG</S>
+    </MS>
+  </Obj>
+</Objs>

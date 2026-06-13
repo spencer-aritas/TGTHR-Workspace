@@ -1,0 +1,1312 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GuKn4AK"
+        },
+        "Id": "8BVVY000000GuKn4AK",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Drop in 4/21/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-21",
+        "CreatedDate": "2026-04-21T23:23:53.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct presented to Drop in with neutral affect.  Ct ate a meal and watched TV in the space.  Ct stated she did not have trouble with her new phone at all overnight and it worked appropriately.  Ct had a meeting and phone call with case manager and was making a plan for the rest of her week.</p>",
+        "RelatedRecordId": null,
+        "Program__c": null
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GuMP4A0"
+        },
+        "Id": "8BVVY000000GuMP4A0",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Drop in 4/21/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-21",
+        "CreatedDate": "2026-04-21T23:26:08.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived with his dog to the Drop in Center today in a positive mood.  Ct ate a meal with us and utilized the wifi to do work on his personal laptop.  Ct was informed that while in the space, he must keep an eye on is dog and that will not be a staff responsibility.  Ct was receptive to the feedback and left the center after about 2 hours</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GuO14AK"
+        },
+        "Id": "8BVVY000000GuO14AK",
+        "AccountId": "001VY00000CGXapYAH",
+        "Name": "Drop in 4/21/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-21",
+        "CreatedDate": "2026-04-21T23:28:30.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to the drop in center in the afternoon with positive and friendly affect, as evidenced by his light tone and stated excitement to see the space.  Ct had a meal and was chatting with the staff and volunteers.  Ct accessed the clothing closet and took some donations home with him.  Ct stayed with us till end of day.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GwBJ4A0"
+        },
+        "Id": "8BVVY000000GwBJ4A0",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Drop in 4/22/2026",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-22",
+        "CreatedDate": "2026-04-22T22:33:00.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in in good spirits, she knew she had a meeting in the afternoon with her adoption case worker, Diane Haussler 720-280-9517.  Ct ate a meal, took a shower, and did laundry before her meeting at 3:30pm.  Ct spoke with her case manager briefly and then was taken off site with Diane.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000GwCv4AK"
+        },
+        "Id": "8BVVY000000GwCv4AK",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Drop in 4/22/2026",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-22",
+        "CreatedDate": "2026-04-22T22:35:38.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to the drop in center with his dog in the afternoon.  Ct appeared neutral in affect, as evidenced by slumped shoulders and less talkative energy.  Ct was able to take a shower and do some work on his computer while here with us.  Ct ate a meal and had some snacks.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000Gxov4AC"
+        },
+        "Id": "8BVVY000000Gxov4AC",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Drop in 4/23/2026",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-23",
+        "CreatedDate": "2026-04-23T23:24:07.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in center with a neutral affect.  Ct expressed she was waiting for a check from Social Security so we checked the mailbox and it had not yet arrived.  Ct spent the day in the center, ate lunch, watched a movie and Taylor Swift.</p>",
+        "RelatedRecordId": null,
+        "Program__c": null
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H4K94AK"
+        },
+        "Id": "8BVVY000000H4K94AK",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Drop in 4/28/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-28",
+        "CreatedDate": "2026-04-28T22:58:24.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived at the center in good spirits, stating she had a doctors appointment in the early afternoon.  YSS (Maggie) drove Ct to Denver to go to her OBGYN appointment.  All was well and Ct was able to get the Nexplanon birth control implanted during the appointment.  Drove back to Boulder and Ct enjoyed a meal, took a shower, and planned for the rest of her week.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H4Ll4AK"
+        },
+        "Id": "8BVVY000000H4Ll4AK",
+        "AccountId": "001VY00000CGXapYAH",
+        "Name": "Drop in 4/28/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-28",
+        "CreatedDate": "2026-04-28T23:00:23.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to Drop in in the afternoon.  Ct had lunch and worked on school work with YSS (Emma).  Ct appeared in good spirits, as evidenced by positive tone, talkative with staff, and working hard on his goals.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H5zN4AS"
+        },
+        "Id": "8BVVY000000H5zN4AS",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Drop in 4/29/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-29",
+        "CreatedDate": "2026-04-29T23:12:42.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000002UFYBYA4",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000002UFYBYA4"
+          },
+          "Name": "Cate Buck"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in in a quiet mood. Inquired about mail she was expecting and when we checked the mailbox her SS check was there. Ct was excited, as evidenced by jumping for joy and screaming excitedly. Ct wanted to go to King Soopers to cash the check but due to her not having a real ID yet, she was unable to do so. Ct returned to center visably upset, as evidenced by slumped shoulders, not engaging in conversation. Ct purchased snacks from the Circle K and took a nap on the couch. </p><p>ADDENDUM: CM Cate drove client to attempt to cash her social security checks. Enroute we discussed the very real possibility of client being unable to accomplish this, as she only had a paper copy from the DMV. Preferred not call in advance. After King Soopers we drove to Chase bank. Client was educated in the life skill of opening a bank account &amp; was observed interacting with the bank staff by asking questions. Was advised that she would need to return with her real state ID or passport-cb.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H60z4AC"
+        },
+        "Id": "8BVVY000000H60z4AC",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Drop in 4/29/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-04-29",
+        "CreatedDate": "2026-04-29T23:14:43.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in in the afternoon, no notable changes in attitude, neutral.  Ct put his dog in the crate we had set up outside and came into the center for a shower and enjoyed a meal.  Ct left after his meal.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H9Of4AK"
+        },
+        "Id": "8BVVY000000H9Of4AK",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Drop In 5/1/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-01",
+        "CreatedDate": "2026-05-01T23:16:20.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in feeling agitated, as evidenced by tone and topic of conversation.  Ct was worried about the report that was made and interactions with the police.  Assured client that her name was not mentioned in the report and we made the report out of our mandated reporter responsibility.  Ct was able to deescalate and enjoy her time in drop in.  Ct had lunch with us and prepared herself for her visit tomorrow with her child.  Ct left drop in and headed to All Roads for the night.</p>",
+        "RelatedRecordId": null,
+        "Program__c": null
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H9QH4A0"
+        },
+        "Id": "8BVVY000000H9QH4A0",
+        "AccountId": "001VY00000CGSpsYAH",
+        "Name": "Drop in 5/1/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-01",
+        "CreatedDate": "2026-05-01T23:19:16.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in center after her school day.  Worked on some artwork with the staff and volunteers while also showing off her photography.   Ct expressed concerns that a neighbor of hers is trying to get her family evicted from her apartment.  Ct was hoping to chat with CM about these concerns, YSS assured client she would inform case manager about this concern and follow back up with her next week or whenever she is available next.</p>",
+        "RelatedRecordId": null,
+        "Program__c": null
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000H9Rt4AK"
+        },
+        "Id": "8BVVY000000H9Rt4AK",
+        "AccountId": "001VY00000CGXapYAH",
+        "Name": "Phone Call",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-01",
+        "CreatedDate": "2026-05-01T23:23:28.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct called the drop in center in the afternoon with concerns about the phone he had just ordered had been stolen off his porch.  Ct was encouraged to follow up with whomever he purchased the phone from in order to secure a refund or other assistance.  Ct also expressed concerns that he had not gotten his monthly bus pass.  Assured Ct that we could assist him with bus passes whenever he is here with us.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HBtV4AW"
+        },
+        "Id": "8BVVY000000HBtV4AW",
+        "AccountId": "001VY00000CGSpsYAH",
+        "Name": "Drop in 5/4/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-04",
+        "CreatedDate": "2026-05-04T23:21:54.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in in the late afternoon, Ct expressed being happy to be here and to spend time.  Ct was in good spirits, and spoke about going to see her sisters recital this evening with family. Had some snacks and spoke with other participants.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HDqT4AW"
+        },
+        "Id": "8BVVY000000HDqT4AW",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Drop in 5/5/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-05",
+        "CreatedDate": "2026-05-05T21:35:50.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in with his dog and Ct understood the policy of keeping the dogs outside, despite the weather.  Ct was able to get his dog into the crate and staff provided blankets and food for Ct&#39;s dog, Bear  Bear was whining and barking outside a majority of the time and client left soon after arriving in order to get his dog.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HDvJ4AW"
+        },
+        "Id": "8BVVY000000HDvJ4AW",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Drop in 5/5/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-05",
+        "CreatedDate": "2026-05-05T22:38:44.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived early to drop-in and requested to check the mail as she is still awaiting receipt of her real ID.  Ct spent the morning watching Disney movies and remained mostly to herself.  During the shift, while her phone was charging, her phone began ringing loudly which was disruptive to others in the space. Ct was asked to answer her phone or to mute it, which she did not want to do.  Another staff member got up and muted her phone, which upset the Ct and she expressed not wanting anyone to touch her phone.  Ct began speaking negatively about the staff who had touched her phone and was becoming agitated. When staff attempted to set a boundary with her about muting the phone and not speaking negatively about the staff, Ct was unreceptive.  Later in the day, Ct was feeling sad about her interactions earlier, as evidenced by tears and dialog around not feeling wanted anywhere.  Staff and CM assured Ct that she was welcome and wanted in the space.  Ct continued to watch movies for the remained of the day and was able to communicate how she was feeling.  Ongoing communication will be attempted with Ct to set appropriate boundaries around what is appropriate to say while she is in the space.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HDwv4AG"
+        },
+        "Id": "8BVVY000000HDwv4AG",
+        "AccountId": "001VY00000CGXapYAH",
+        "Name": "Drop in 5/5/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-05",
+        "CreatedDate": "2026-05-05T23:22:50.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in center in positive affect, as evidenced by tall posture and typical talkative energy.  Ct had a meal with us and worked with YSS Emma on an essay for school during her tutoring hours.  Ct inquired about clothing closet and staff implemented a boundary with him about how often he can access the clothing and that it should be used only for him, not friends or family.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HFp34AG"
+        },
+        "Id": "8BVVY000000HFp34AG",
+        "AccountId": "001VY00000Hf3BUYAZ",
+        "Name": "Ward, Sasha - 05/06/2026 - Maggie Reed",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-06",
+        "CreatedDate": "2026-05-06T23:36:07.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000003VsDhYAK",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000003VsDhYAK"
+          },
+          "Name": "Spencer Essey"
+        },
+        "MeetingNotes": "Ct arrived to drop in to celebrate her birthday.  Ct was anxious to check the mail in anticipation of her ID being delivered, which it was not.  Ct enjoyed her birthday cake and was able to enjoy a meal with us in the early afternoon.  Ct became more agitated as the afternoon progressed and requested to speak with YSS (Maggie) privately.  During this discussion we set the boundary again about being respectful of staff and respecting the space.  Ct expressed increased concerns about an individual making threats against her and reported being followed by an unknown individual.  Ct expressed concerns for her safety, and the safety of others and it was determined that a police report would be necessary.  Ct and YSS made a report via the police non-emergency line and continued ongoing safety planning.  Ct is planning to go to All Roads for overnight shelter and will return to The Source in the morning.",
+        "RelatedRecordId": "500VY00000Ft9BkYAJ",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HHvh4AG"
+        },
+        "Id": "8BVVY000000HHvh4AG",
+        "AccountId": "001VY00000INIxyYAH",
+        "Name": "Drop in 5/7/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-07",
+        "CreatedDate": "2026-05-07T23:10:41.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct presented at drop in with neutral affect, was able to enjoy a meal with us as well as take many leftovers home for himself.  Ct spoke of his family and being happy to be involved with his brothers child&#39;s life.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJmD4AW"
+        },
+        "Id": "8BVVY000000HJmD4AW",
+        "AccountId": "001VY00000INIxyYAH",
+        "Name": "Drop in 5/8/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-08",
+        "CreatedDate": "2026-05-08T22:32:52.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct came to drop in for a quick visit.  Ct enjoyed a hot meal and spoke with team members.  </p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJnp4AG"
+        },
+        "Id": "8BVVY000000HJnp4AG",
+        "AccountId": "001VY00000CGSsVYAX",
+        "Name": "Drop in 5/8/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-08",
+        "CreatedDate": "2026-05-08T22:35:53.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in to do get a housing evaluation.  Ct was partnered up with CM Sandra and completed a full intake and housing assessment. Ct enjoyed a hot meal and socialized with friends who were also at drop in for the day.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJpR4AW"
+        },
+        "Id": "8BVVY000000HJpR4AW",
+        "AccountId": "001VY00000CGXdKYAX",
+        "Name": "Drop in 5/8/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-08",
+        "CreatedDate": "2026-05-08T22:55:22.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in as a support person for his friend.  Ct enjoyed a meal with us and played basketball in the yard</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJr34AG"
+        },
+        "Id": "8BVVY000000HJr34AG",
+        "AccountId": "001VY00000CGRnoYAH",
+        "Name": "Drop in 5/8/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-08",
+        "CreatedDate": "2026-05-08T23:05:51.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in with supportive friend to reengage with CM Cate.  Ct was able to complete all necessary paperwork with his CM and enjoyed a hot meal while in the center.  Ct played basketball with his friends outside before leaving.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJsf4AG"
+        },
+        "Id": "8BVVY000000HJsf4AG",
+        "AccountId": "001VY00000CGSsZYAX",
+        "Name": "Drop in 5/8/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-08",
+        "CreatedDate": "2026-05-08T23:12:36.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct came into drop in center to get set up with a Case Manager.  Ct completed a full intake and was assigned to Sandra.  Ct was able to enjoy a hot meal before leaving with her grandma.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HJuH4AW"
+        },
+        "Id": "8BVVY000000HJuH4AW",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Drop in 5/8/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-08",
+        "CreatedDate": "2026-05-08T23:17:22.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in with his dog.  Ct was agitated when he arrived, as evidenced by posture and tone.  Ct took a shower and spoke about doing laundry. It was too late in the afternoon to start his laundry so Ct agreed to do it on the following Monday.  Ct spoke about setting new goals with his CM in the following week as well.  Ct left and expressed appreciation to the staff.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMaP4AW"
+        },
+        "Id": "8BVVY000000HMaP4AW",
+        "AccountId": "001VY00000CGSsdYAH",
+        "Name": "Drop in 5/11/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-11",
+        "CreatedDate": "2026-05-11T21:53:22.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived at drop in with CM Cate.  Ct was quiet, ate a meal and grabbed some snacks.  Ct was able to check out the clothing closet and grabbed a few new items for himself.  Ct took a shower while with us and left the drop in center in good spirits.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMc14AG"
+        },
+        "Id": "8BVVY000000HMc14AG",
+        "AccountId": "001VY00000CGSsdYAH",
+        "Name": "Hamilton, Josiah - 05/11/2026 - Maggie Reed",
+        "InteractionPurpose": "Case Management",
+        "Date_of_Interaction__c": "2026-05-11",
+        "CreatedDate": "2026-05-11T22:02:12.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000BVqbyYAD",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMdd4AG"
+        },
+        "Id": "8BVVY000000HMdd4AG",
+        "AccountId": "001VY00000CGSpsYAH",
+        "Name": "Drop in 5/11/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-11",
+        "CreatedDate": "2026-05-11T22:47:49.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in in the afternoon, talking excitedly about her new classes at school.  Ct was able to enjoy some snacks and drinks with us.  When CM Cate arrived back at the center, they called the social security office together to make an appointment for ct to get her SS card.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HMfF4AW"
+        },
+        "Id": "8BVVY000000HMfF4AW",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Drop in 5/11/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-11",
+        "CreatedDate": "2026-05-11T22:49:44.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in center with his dog in the afternoon.  Because the space was calm, dog was allowed to be inside while Ct took a shower.  Ct enjoyed a meal with us, accessed the clothing resources, and seemed to be in good spirits.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOYz4AO"
+        },
+        "Id": "8BVVY000000HOYz4AO",
+        "AccountId": "001VY00000oJJdGYAW",
+        "Name": "Interview - 5/12/2026",
+        "InteractionPurpose": "Interview",
+        "Date_of_Interaction__c": "2026-05-12",
+        "CreatedDate": "2026-05-12T20:27:43.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000mNGrmYAG",
+        "Program__c": null
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOsL4AW"
+        },
+        "Id": "8BVVY000000HOsL4AW",
+        "AccountId": "001VY00000oJJdGYAW",
+        "Name": "Drop In  5/12/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-12",
+        "CreatedDate": "2026-05-12T22:45:41.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000003VsDhYAK",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000003VsDhYAK"
+          },
+          "Name": "Spencer Essey"
+        },
+        "MeetingNotes": "<p>Ct arrived to the drop in center in a mental daze, as evidenced by eyes glazed over, not engaging in conversation, seemed very distracted.  Ct disclosed a few diagnoses to staff, including schizophrenia and PTSD.  Ct was experiencing heavy auditory hallucinations and having conversations to herself.  Staff was able to complete a basic intake, as Ct requested a case manager and expressed the desire to get an updated ID with her preferred name and gender markers.  Had a brief discussion with Ct about getting her connected to Rocky Mountain Equality.  Ct was not in a state to have coherent conversations so staff decided not to engaged in any goal setting or further case management until Ct was in a more coherent state of mind.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOtx4AG"
+        },
+        "Id": "8BVVY000000HOtx4AG",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Drop in 5/12/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-12",
+        "CreatedDate": "2026-05-12T22:51:05.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in with his dog, who was set up in an inside kennel.  Ct was able to play games on his personal laptop and enjoyed a hot meal with us.  Spoke with Ct about getting his dog vaccinated, in accordance with the pet policy, and Ct was receptive.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HOvZ4AW"
+        },
+        "Id": "8BVVY000000HOvZ4AW",
+        "AccountId": "001VY00000CGXapYAH",
+        "Name": "Drop in 5/12/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-12",
+        "CreatedDate": "2026-05-12T22:56:01.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in disappointed about not yet getting his GED/High school diploma.  Ct had been working diligently on an essay in order to pass the English section of his course and his teacher has not yet given him a passing grade.  Ct had a meal with us and put on a comfort TV show.  When YSS Emma returned from outreach, Ct went on a walk to clear his head and they worked on his essay briefly before the end of the day.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HRev4AG"
+        },
+        "Id": "8BVVY000000HRev4AG",
+        "AccountId": "001VY00000CGSsdYAH",
+        "Name": "Hamilton, Josiah - 05/13/2026 - Maggie Reed",
+        "InteractionPurpose": "Case Management",
+        "Date_of_Interaction__c": "2026-05-13",
+        "CreatedDate": "2026-05-13T22:44:49.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000BVqbyYAD",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HRew4AG"
+        },
+        "Id": "8BVVY000000HRew4AG",
+        "AccountId": "001VY00000CGRo9YAH",
+        "Name": "Allnutt, Nathan - 05/13/2026 - Maggie Reed",
+        "InteractionPurpose": "Case Management",
+        "Date_of_Interaction__c": "2026-05-13",
+        "CreatedDate": "2026-05-13T22:44:49.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000BI356YAD",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HRex4AG"
+        },
+        "Id": "8BVVY000000HRex4AG",
+        "AccountId": "001VY00000CGSpsYAH",
+        "Name": "Hauser, Peyton - 05/13/2026 - Maggie Reed",
+        "InteractionPurpose": "Case Management",
+        "Date_of_Interaction__c": "2026-05-13",
+        "CreatedDate": "2026-05-13T22:44:49.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000BI43DYAT",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HSj34AG"
+        },
+        "Id": "8BVVY000000HSj34AG",
+        "AccountId": "001VY00000oJJdGYAW",
+        "Name": "Drop in 5/14/26",
+        "InteractionPurpose": "Communication Log",
+        "Date_of_Interaction__c": "2026-05-14",
+        "CreatedDate": "2026-05-14T19:40:24.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000003VsDhYAK",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000003VsDhYAK"
+          },
+          "Name": "Spencer Essey"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in center, appeared to be more coherent as evidenced by less responsive to internal stimuli and able to engage in more conversation with staff.  Ct was hoping to do a housing assessment with her case manager, but due to the business of the day, the CM was unable to complete a housing assessment and Ct will return to drop in center on a different day to do that.  Ct was able to work with YSS Maggie on getting a secured email address and reaching out to Rocky Mountain Equality to get assistance with name change on identification documents.  Ct enjoyed a meal with us and took a shower before leaving drop in to head to Samaritan house in Denver for the evening</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT7F4AW"
+        },
+        "Id": "8BVVY000000HT7F4AW",
+        "AccountId": "001VY00000CGSsZYAX",
+        "Name": "Dombrowsky, Eloise - 05/14/2026 - Maggie Reed",
+        "InteractionPurpose": "Case Management",
+        "Date_of_Interaction__c": "2026-05-14",
+        "CreatedDate": "2026-05-14T21:18:19.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000mEk92YAC",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT7G4AW"
+        },
+        "Id": "8BVVY000000HT7G4AW",
+        "AccountId": "001VY00000CGSsdYAH",
+        "Name": "Hamilton, Josiah - 05/14/2026 - Maggie Reed",
+        "InteractionPurpose": "Case Management",
+        "Date_of_Interaction__c": "2026-05-14",
+        "CreatedDate": "2026-05-14T21:18:19.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000BVqbyYAD",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT7H4AW"
+        },
+        "Id": "8BVVY000000HT7H4AW",
+        "AccountId": "001VY00000CGXapYAH",
+        "Name": "Goering, Josiah - 05/14/2026 - Maggie Reed",
+        "InteractionPurpose": "Case Management",
+        "Date_of_Interaction__c": "2026-05-14",
+        "CreatedDate": "2026-05-14T21:18:20.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": null,
+        "RelatedRecordId": "500VY00000ko5ekYAA",
+        "Program__c": "11WVY000005ea9y2AA"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HT8r4AG"
+        },
+        "Id": "8BVVY000000HT8r4AG",
+        "AccountId": "001VY00000CGSsZYAX",
+        "Name": "Drop in 5/14/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-14",
+        "CreatedDate": "2026-05-14T21:42:40.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct attended drop in to get assistance from her CM to get her birth certificate.  CM Sandra was able to prov ide that assistance and had Ct use one of the Source laptops to complete the online forms.  Ct hung out in the drop in center with other cts, socialized with staff, then left for the day.  Above all, seed to be in good spirits as evidenced by posture, tone, and accomplishing case goals.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      },
+      {
+        "attributes": {
+          "type": "InteractionSummary",
+          "url": "/services/data/v66.0/sobjects/InteractionSummary/8BVVY000000HTK94AO"
+        },
+        "Id": "8BVVY000000HTK94AO",
+        "AccountId": "001VY00000CGSsdYAH",
+        "Name": "Drop in 5/14/26",
+        "InteractionPurpose": null,
+        "Date_of_Interaction__c": "2026-05-14",
+        "CreatedDate": "2026-05-14T23:07:44.000+0000",
+        "CreatedById": "005VY000007BTAkYAO",
+        "CreatedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "LastModifiedById": "005VY000007BTAkYAO",
+        "LastModifiedBy": {
+          "attributes": {
+            "type": "User",
+            "url": "/services/data/v66.0/sobjects/User/005VY000007BTAkYAO"
+          },
+          "Name": "Maggie Reed"
+        },
+        "MeetingNotes": "<p>Ct arrived to drop in in the morning, in good spirits.  Ct was able to complete his full intake forms on his own and was able to meet with CM Sandra to go over goals.  Ct enjoyed a meal, was able to take some leftovers with him when he left.  Ct played music, played basketball outside with YSS Maggie.</p>",
+        "RelatedRecordId": null,
+        "Program__c": "11WVY000000GC212AG"
+      }
+    ],
+    "totalSize": 42,
+    "done": true
+  },
+  "warnings": []
+}

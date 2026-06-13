@@ -97,7 +97,7 @@
               id="clinical-modal-heading"
               class="slds-modal__title slds-hyphenate"
             >
-              Clinical Benefit Details
+              {clinicalModalTitle}
             </h2>
           </header>
           <div
@@ -110,7 +110,7 @@
                   <div class="slds-form-element__control">
                     <lightning-radio-group
                       name="clinicalNoteOption"
-                      label="How would you like to enter case notes?"
+                      label="How would you like to enter notes?"
                       options={clinicalNoteOptions}
                       value={clinicalNoteOption}
                       onchange={handleClinicalNoteOptionChange}
@@ -121,27 +121,22 @@
               </div>
             </template>
 
-            <!-- Single Case Notes Input -->
+            <!-- Single Note Input -->
             <template if:true={showSingleCaseNotesInput}>
               <div class="slds-form slds-form_stacked slds-p-bottom_medium">
                 <div class="slds-form-element slds-m-bottom_medium">
-                  <label class="slds-form-element__label" for="singleCaseNotes"
-                    >Case Notes</label
-                  >
-                  <div class="slds-form-element__control">
-                    <lightning-textarea
-                      id="singleCaseNotes"
-                      value={singleCaseNotes}
-                      onchange={handleSingleCaseNotesChange}
-                      rows="4"
-                      placeholder="Enter case notes for all participants"
-                    ></lightning-textarea>
-                  </div>
+                  <lightning-textarea
+                    id="singleCaseNotes"
+                    label="Note"
+                    value={singleCaseNotes}
+                    onchange={handleSingleCaseNotesChange}
+                    placeholder="Enter a note for all participants (published to Meeting Notes on the Interaction Summary)"
+                  ></lightning-textarea>
                 </div>
               </div>
             </template>
 
-            <!-- Individual Case Notes Inputs -->
+            <!-- Individual Note Inputs -->
             <template if:true={showIndividualCaseNotesInputs}>
               <div class="slds-form slds-form_stacked slds-p-bottom_medium">
                 <div class="slds-form-element slds-m-bottom_medium">
@@ -153,21 +148,14 @@
                       key={participantNote.id}
                       class="slds-form-element slds-p-bottom_small"
                     >
-                      <label
-                        class="slds-form-element__label"
-                        for="caseNotes-{participantNote.id}"
-                        >{participantNote.name}</label
-                      >
-                      <div class="slds-form-element__control">
-                        <lightning-textarea
-                          id="caseNotes-{participantNote.id}"
-                          value={participantNote.caseNotes}
-                          onchange={handleIndividualCaseNotesChange}
-                          data-id={participantNote.id}
-                          rows="3"
-                          placeholder="Enter case notes"
-                        ></lightning-textarea>
-                      </div>
+                      <lightning-textarea
+                        id="caseNotes-{participantNote.id}"
+                        label={participantNote.name}
+                        value={participantNote.caseNotes}
+                        onchange={handleIndividualCaseNotesChange}
+                        data-id={participantNote.id}
+                        placeholder="Enter a note"
+                      ></lightning-textarea>
                     </div>
                   </template>
                 </div>
@@ -328,7 +316,7 @@
               </h3>
               <div class="table-container">
               <lightning-datatable
-              key-field="accountId"
+              key-field="enrollmentId"
               data={rows}
               columns={columns}
               max-row-selection="500"
@@ -556,6 +544,7 @@
                           data-id={enrollment.accountId}
                           data-enrollment-id={enrollment.enrollmentId}
                           data-account-id={enrollment.accountId}
+                          data-case-id={enrollment.caseId}
                           >{enrollment.residentName}</a
                         >
                       </div>

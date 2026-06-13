@@ -1,0 +1,28 @@
+diff --git a/.tmp-diff/sandbox/ISC.cls b/.tmp-diff/prod/ISC.cls
+index 022450a4..dd100cfa 100644
+--- a/.tmp-diff/sandbox/ISC.cls
++++ b/.tmp-diff/prod/ISC.cls
+@@ -2012,7 +2012,7 @@ public with sharing class InterviewSessionController {
+         // Note: Date_of_Interaction__c is the correct field, not ServiceDate
+         
+-        // Set POS__c (location) if provided
++        // Set Place_of_Service__c (location) if provided
+         if (String.isNotBlank(location)) {
+-            putIfFieldExists(summary, 'POS__c', location);
++            putIfFieldExists(summary, 'Place_of_Service__c', location);
+         }
+ 
+@@ -4236,5 +4236,5 @@ public with sharing class InterviewSessionController {
+                 List<SObject> summaries = Database.query(
+                     'SELECT Id, Date_of_Interaction__c, Start_Time__c, End_Time__c, ' +
+-                    'MeetingNotes, POS__c, Interpreter_Used__c ' +
++                    'MeetingNotes, Place_of_Service__c, Interpreter_Used__c ' +
+                     'FROM InteractionSummary WHERE Id = :interactionSummaryId LIMIT 1'
+                 );
+@@ -4258,5 +4258,5 @@ public with sharing class InterviewSessionController {
+ 
+                     resp.interactionInput.meetingNotes = (String) s.get('MeetingNotes');
+-                    resp.interactionInput.location = (String) s.get('POS__c');
++                    resp.interactionInput.location = (String) s.get('Place_of_Service__c');
+ 
+                     Object interpreterVal = s.get('Interpreter_Used__c');

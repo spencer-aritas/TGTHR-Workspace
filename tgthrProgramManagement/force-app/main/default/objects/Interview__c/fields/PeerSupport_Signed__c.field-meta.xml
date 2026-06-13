@@ -3,8 +3,8 @@
     <fullName>PeerSupport_Signed__c</fullName>
     <defaultValue>false</defaultValue>
     <description>Indicates if the Peer Support has signed this interview/treatment plan</description>
-    <externalId>false</externalId>
     <label>Peer Support Signed</label>
     <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Checkbox</type>
 </CustomField>

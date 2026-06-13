@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Completion_Method__c</fullName>
-    <label>Completion Method</label>
     <description>Records how this interview was completed following EHR completion hierarchy.</description>
     <inlineHelpText>Indicates whether completion was via both signatures, staff signature only, or manual completion without signatures.</inlineHelpText>
-    <type>Picklist</type>
+    <label>Completion Method</label>
     <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
     <valueSet>
         <restricted>true</restricted>
         <valueSetDefinition>
@@ -24,6 +26,24 @@
                 <fullName>Completed_Without_Signatures</fullName>
                 <default>false</default>
                 <label>Manual Completion</label>
+            </value>
+            <value>
+                <fullName>Both Signed</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Both Signed</label>
+            </value>
+            <value>
+                <fullName>Completed Without Signatures</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Completed Without Signatures</label>
+            </value>
+            <value>
+                <fullName>Signed Staff Only</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Signed Staff Only</label>
             </value>
         </valueSetDefinition>
     </valueSet>

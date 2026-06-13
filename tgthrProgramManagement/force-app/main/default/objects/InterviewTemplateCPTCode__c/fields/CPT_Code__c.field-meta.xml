@@ -2,7 +2,6 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>CPT_Code__c</fullName>
     <description>Approved CPT code for this interview template. Values are restricted to the supported billing policy catalog.</description>
-    <externalId>false</externalId>
     <inlineHelpText>Select one approved CPT code from the billing policy catalog.</inlineHelpText>
     <label>CPT Code</label>
     <required>true</required>

@@ -4,4 +4,2212 @@
     <active>true</active>
     <description>Discharge Assessment - captures exit data, outcomes, and next steps when participant leaves program.</description>
     <label>Discharge</label>
+    <picklistValues>
+        <picklist>Assessment_Type__c</picklist>
+        <values>
+            <fullName>Behavioral Health</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Suicidal Ideation</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Well Check</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Birth_Control__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Abuse_Relationship_Signs__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Budgeting_Planning__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Education_Program_Advice__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Extended_Foster_Care__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Food_Labels__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Internet_Safety__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Job_Training_Research__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Laundry__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Mental_Health_Coping__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Online_Banking__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Permanency_Goal__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Planner_Calendar__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Proud_Life_Direction__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Research_Skills__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Respect_Differences__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Responsible_Civic_Voice__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Safe_Sex_Info__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Support_System_Belief__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Transportation_Safety__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>CLS_Work_Documents__c</picklist>
+        <values>
+            <fullName>Mostly No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly Yes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Chronic_Health_Condition_Long_Term__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Chronic_Health_Condition__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Chronic_Homelessness_Qualifier__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Data Not Collected</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Pending Verification</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Community_Familiarity__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Not Familiar</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Somewhat Familiar</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Very Familiar</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Contributing_Factors_to_Homelessness__c</picklist>
+        <values>
+            <fullName>Aging Out of Foster Care</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Death of Parent%2FGuardian</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Disability</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Domestic Violence</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Eviction</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Family Couldn%27t Afford Housing</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Gender Identity%2FSexual Orientation</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Immigration Status</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Incarceration</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Job Loss%2FUnemployment</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Lost Housing Assistance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mental Health Issues</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Natural Disaster</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Physical Health Issues</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Relationship Issues with Family</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Sexual%2FPhysical Abuse</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Substance Use</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Controllability_of_Thoughts__c</picklist>
+        <values>
+            <fullName>Can control thoughts with a lot of difficulty</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Can control thoughts with little difficulty</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Can control thoughts with some difficulty</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Does not attempt to control thoughts</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Easily able to control thoughts</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Unable to control thoughts</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Coping_Skills__c</picklist>
+        <values>
+            <fullName>Being alone</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Deep breathing</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Drawing%2FWriting</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Going for a walk</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Listening to music</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Talking to someone</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Critical_Issues_Facing__c</picklist>
+        <values>
+            <fullName>Childcare Needs</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Chronic Health Condition</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Criminal Record%2FJustice Involvement</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Developmental Disability</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Domestic Violence%2FSafety Concerns</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Lack of ID%2FDocumentation</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Language Barriers</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mental Health Issues</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No Health Insurance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No Income</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Physical Disability</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Poor Credit%2FRental History</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Substance Use</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Transportation Barriers</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Trauma%2FPTSD</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Unemployment</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Currently_Fleeing_DV__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Data Not Collected</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Currently_in_School__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>DV_Experience__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Data Not Collected</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>DV_How_Long_Ago__c</picklist>
+        <values>
+            <fullName>3 to 6 months ago</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>6 months to 1 year ago</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>More than 1 year ago</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Within the past 3 months</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Deterrents_from_Acting__c</picklist>
+        <values>
+            <fullName>Deterrents definitely did not stop you</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Deterrents definitely stopped you from attempting suicide</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Deterrents most likely did not stop you</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Deterrents probably stopped you</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Does not apply</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Uncertain that deterrents stopped you</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Developmental_Disability_Long_Term__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Developmental_Disability__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Duration_of_Thoughts__c</picklist>
+        <values>
+            <fullName>1-4 hours%2Fa lot of the time</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>4-8 hours%2Fmost of the day</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Fleeting - few seconds or minutes</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Less than 1 hour%2Fsome of the time</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>More than 8 hours%2Fpersistent or continuous</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Education_Level__c</picklist>
+        <values>
+            <fullName>Associate degree</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Bachelor%27s degree</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Graduate degree</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>High school diploma%2FGED</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Less than high school</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Some college</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Some high school</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Employment_Type__c</picklist>
+        <values>
+            <fullName>Day Labor</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>W-2 Employee</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Eviction_History__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>First_Attempt_Lethality__c</picklist>
+        <values>
+            <fullName>0</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>3</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>4</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>5</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>First_Attempt_Potential_Lethality__c</picklist>
+        <values>
+            <fullName>0 %3D Behavior not likely to result in injury</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1 %3D Behavior likely to result in injury but not likely to cause death</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2 %3D Behavior likely to result in death despite available medical care</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Foster_Care_Duration__c</picklist>
+        <values>
+            <fullName>1-3 years</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>3-5%2B years</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Less than one year</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Foster_Care_History__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Frequency__c</picklist>
+        <values>
+            <fullName>2-5 times a week</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Daily or almost daily</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Less than once a week</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Many times each day</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Once a week</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>HIV_AIDS_Status__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Health_Insurance__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Client refused</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Medicaid</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Medicare</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No Insurance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Private Insurance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>VA Medical</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Income_Source__c</picklist>
+        <values>
+            <fullName>Alimony</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Child Support</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Earned Income</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>General Assistance</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No Income</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Pension</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Private Disability</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Retirement %28Social Security%29</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>SSDI</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>SSI</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>TANF</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Unemployment</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Veteran%27s Disability</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Worker%27s Comp</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Interested_in_GED__c</picklist>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Juvenile_Justice_Duration__c</picklist>
+        <values>
+            <fullName>1-3 years</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>3-5%2B years</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Less than one year</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Juvenile_Justice_Involvement__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Last_Grade_Completed__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Less than grade 5</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Some College</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Last_Permanent_Address_Type__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Data not collected</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Legal_System_Involvement__c</picklist>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Length_of_Stay_Prior_Situation__c</picklist>
+        <values>
+            <fullName>90 days or more%2C but less than one year</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Data not collected</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>One month or more%2C but less than 90 days</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>One night or less</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>One week or more%2C but less than one month</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>One year or longer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Two to six nights</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Life_Skills_Needs__c</picklist>
+        <values>
+            <fullName>Budgeting</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Cleaning</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Cooking</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Education</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Employment</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Grocery Shopping</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Healthcare</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Housing</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Legal</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Transportation</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Lifetime_Most_Severe_Ideation__c</picklist>
+        <values>
+            <fullName>0</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>3</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>4</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>5</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Affect__c</picklist>
+        <values>
+            <fullName>Constricted</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Flat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Full</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Labile</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Appearance__c</picklist>
+        <values>
+            <fullName>Bizarre</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Disheveled</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Inappropriate</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Neat</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Attention__c</picklist>
+        <values>
+            <fullName>Distracted</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Normal</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Behavior__c</picklist>
+        <values>
+            <fullName>Aggressive</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Agitated</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Bizarre</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Cooperative</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Guarded</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Hyperactive</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Paranoid</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Stereotyped</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Withdrawn</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Delusions__c</picklist>
+        <values>
+            <fullName>Grandiose</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>None</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Paranoid</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Religious</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Eye_Contact__c</picklist>
+        <values>
+            <fullName>Avoidant</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Intense</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Normal</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Hallucinations__c</picklist>
+        <values>
+            <fullName>Auditory</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>None</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Visual</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Homicidality__c</picklist>
+        <values>
+            <fullName>Aggressive</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Intent</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>None</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Plan</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Insight__c</picklist>
+        <values>
+            <fullName>Fair</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Good</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Poor</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Judgment__c</picklist>
+        <values>
+            <fullName>Fair</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Good</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Poor</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Memory_Impairment__c</picklist>
+        <values>
+            <fullName>Long-Term</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>None</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Short-Term</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Mood__c</picklist>
+        <values>
+            <fullName>Angry</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Anxious</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Depressed</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Euphoric</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Euthymic</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Irritable</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Motor_Activity__c</picklist>
+        <values>
+            <fullName>Normal</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Restless</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Slowed</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Tics</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Orientation_Impairment__c</picklist>
+        <values>
+            <fullName>None</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Object</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Person</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Place</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Time</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Perception_Other__c</picklist>
+        <values>
+            <fullName>Depersonalization</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Derealization</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>None</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Speech__c</picklist>
+        <values>
+            <fullName>Impoverished</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Normal</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Pressured</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Tangential</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>MSE_Suicidality__c</picklist>
+        <values>
+            <fullName>Ideation</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Intent</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>None</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Plan</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Self-Harm</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Mental_Health_Disability_Long_Term__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Mental_Health_Disability__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Most_Lethal_Actual_Lethality__c</picklist>
+        <values>
+            <fullName>0</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>3</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>4</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>5</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Most_Lethal_Potential_Lethality__c</picklist>
+        <values>
+            <fullName>0 %3D Behavior not likely to result in injury</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1 %3D Behavior likely to result in injury but not likely to cause death</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2 %3D Behavior likely to result in death despite available medical care</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Most_Recent_Actual_Lethality__c</picklist>
+        <values>
+            <fullName>0</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>3</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>4</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>5</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Most_Recent_Potential_Lethality__c</picklist>
+        <values>
+            <fullName>0 %3D Behavior not likely to result in injury</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1 %3D Behavior likely to result in injury but not likely to cause death</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2 %3D Behavior likely to result in death despite available medical care</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Non_Cash_Benefits__c</picklist>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Public Housing</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>On_Probation_Parole__c</picklist>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Physical_Disability_Long_Term__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Physical_Disability__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Pregnant__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Previous_Lease_Experience__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Reason_for_Ideation__c</picklist>
+        <values>
+            <fullName>Completely to end or stop the pain %28you couldn%27t go on living with the pain or how you were feeling%29</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Completely to get attention%2C revenge or a reaction from others</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Does not apply</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Equally to get attention%2C revenge or a reaction from others%2C and to end%2Fstop the pain</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly to end or stop the pain %28you couldn%27t go on living with the pain or how you were feeling%29</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Mostly to get attention%2C revenge or a reaction from others</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Recent_Most_Severe_Ideation__c</picklist>
+        <values>
+            <fullName>0</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>1</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>2</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>3</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>4</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>5</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Restraining_Orders__c</picklist>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Self_Harm_History__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Status__c</picklist>
+        <values>
+            <fullName>Cancelled</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Completed</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>In Progress</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Paused</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Substance_Use_Disability_Long_Term__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Prefers Not to Answer</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Substance_Use_Disability__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Substance_Use_Frequency__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Daily</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Monthly</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Weekly</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Suicide_History__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Client refused</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>No</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Yes</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Times_Homeless_Past_3_Years__c</picklist>
+        <values>
+            <fullName>Client doesn%27t know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Data not collected</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Four or more times</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>One time</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Three times</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Two times</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Trauma_Triggers__c</picklist>
+        <values>
+            <fullName>Loud noises</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Warning_Signs__c</picklist>
+        <values>
+            <fullName>Other</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+    <picklistValues>
+        <picklist>Where_Stayed_Last_Night__c</picklist>
+        <values>
+            <fullName>Client Doesn%27t Know</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Safe Haven</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
 </RecordType>

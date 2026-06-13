@@ -1,0 +1,40 @@
+diff --git a/.tmp-diff/sandbox/CNC.cls b/.tmp-diff/prod/CNC.cls
+index 5ec5803a..03b310b0 100644
+--- a/.tmp-diff/sandbox/CNC.cls
++++ b/.tmp-diff/prod/CNC.cls
+@@ -136,7 +136,7 @@ public with sharing class ClinicalNoteController {
+         Map<String, Object> noteData = new Map<String, Object>();
+         
+         String query = 'SELECT Id, Date_of_Interaction__c, Start_Time__c, End_Time__c, ' +
+-                       'Interpreter_Used__c, POS__c, MeetingNotes, Description_of_Services__c, ' +
++                       'Interpreter_Used__c, Place_of_Service__c, MeetingNotes, Description_of_Services__c, ' +
+                        'Response_and_Progress__c, Plan__c, ' +
+                        'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, Manager_Rejected__c, Status ' +
+                        'FROM InteractionSummary WHERE Id = :interactionId';
+@@ -156,7 +156,7 @@ public with sharing class ClinicalNoteController {
+         if (endDt != null) noteData.put('endTime', endDt.format('HH:mm'));
+         
+         noteData.put('interpreterUsed', note.get('Interpreter_Used__c'));
+-        noteData.put('pos', note.get('POS__c'));
++        noteData.put('pos', note.get('Place_of_Service__c'));
+         noteData.put('reason', note.get('MeetingNotes'));
+         noteData.put('services', note.get('Description_of_Services__c'));
+         noteData.put('response', note.get('Response_and_Progress__c'));
+@@ -1181,7 +1181,7 @@ public with sharing class ClinicalNoteController {
+                 summary.put('MeetingNotes', request.reason);
+                 
+                 putIfFieldExists(summary, 'Interpreter_Used__c', request.interpreterUsed);
+-                putIfFieldExists(summary, 'POS__c', request.pos);
++                putIfFieldExists(summary, 'Place_of_Service__c', request.pos);
+                 putIfFieldExists(summary, 'Description_of_Services__c', request.services);
+                 putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
+                 putIfFieldExists(summary, 'Plan__c', request.plan);
+@@ -1295,7 +1295,7 @@ public with sharing class ClinicalNoteController {
+                 summary.put('MeetingNotes', request.reason);
+                 
+                 putIfFieldExists(summary, 'Interpreter_Used__c', request.interpreterUsed);
+-                putIfFieldExists(summary, 'POS__c', request.pos);
++                putIfFieldExists(summary, 'Place_of_Service__c', request.pos);
+                 putIfFieldExists(summary, 'Description_of_Services__c', request.services);
+                 putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
+                 putIfFieldExists(summary, 'Plan__c', request.plan);

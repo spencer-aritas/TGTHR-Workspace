@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Intake</fullName>
+        <default>false</default>
+        <label>Intake</label>
+    </customValue>
+    <customValue>
+        <fullName>Assessment</fullName>
+        <default>false</default>
+        <label>Assessment</label>
+    </customValue>
+    <customValue>
+        <fullName>Treatment Plan</fullName>
+        <default>false</default>
+        <label>Treatment Plan</label>
+    </customValue>
+    <customValue>
+        <fullName>Discharge</fullName>
+        <default>false</default>
+        <label>Discharge</label>
+    </customValue>
+    <customValue>
+        <fullName>Other</fullName>
+        <default>false</default>
+        <label>Other</label>
+    </customValue>
+    <masterLabel>Template Category</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

@@ -159,6 +159,10 @@ global with sharing class ProgramEnrollmentService {
             String createdByUserId = (String) rawData.get('createdByUserId');
             System.debug('About to create validation tasks for ' + disbursementIds.size() + ' disbursements');
             for (Id disbursementId : disbursementIds) {
+                if (Limits.getDmlStatements() >= Limits.getLimitDmlStatements() - 10) {
+                    System.debug('DML limit approaching (' + Limits.getDmlStatements() + '/' + Limits.getLimitDmlStatements() + '), skipping remaining task creation');
+                    break;
+                }
                 try {
                     TaskService.TaskCreationDTO taskDto = new TaskService.TaskCreationDTO(
                         disbursementId,
@@ -301,113 +305,110 @@ global with sharing class ProgramEnrollmentService {
     }
     
     private static List<Id> createBenefitDisbursementsUsingService(Id accountId, Id programId, Id enrollmentId, PwaEncounter e) {
-        System.debug('Creating benefit disbursements using BenefitDisbursementService for account: ' + accountId + ', program: ' + programId);
+        System.debug('Creating benefit disbursements (bulkified) for account: ' + accountId + ', program: ' + programId);
         List<Id> disbursementIds = new List<Id>();
-        
+
         try {
-            // Get all active benefits for the program
+            // 1) Get all active benefits for the program (1 SOQL)
             String benefitQuery = 'SELECT Id FROM Benefit WHERE ProgramId = :programId AND IsActive = true';
             List<SObject> benefits = Database.query(benefitQuery);
             System.debug('Found ' + benefits.size() + ' benefits for program');
-            
             if (benefits.isEmpty()) return disbursementIds;
-            
-            // Create disbursements for each benefit using the proven service pattern
+
+            List<Id> benefitIds = new List<Id>();
             for (SObject benefit : benefits) {
-                Id benefitId = (Id) benefit.get('Id');
-                System.debug('Processing benefit: ' + benefitId);
-                
-                try {
-                    // Create a custom disbursement since BenefitDisbursementService doesn't set the right datetime fields
-                    List<BenefitDisbursementService.DisburseResult> results = createCustomDisbursement(
-                        accountId,
-                        benefitId,
-                        programId,
-                        enrollmentId
-                    );
-                    
-                    // Collect successful disbursement IDs
-                    for (BenefitDisbursementService.DisburseResult result : results) {
-                        if (result.success && result.disbursementId != null) {
-                            disbursementIds.add(result.disbursementId);
-                            System.debug('Created disbursement: ' + result.disbursementId + ' for benefit: ' + benefitId);
-                        } else {
-                            System.debug('Failed to create disbursement for benefit ' + benefitId + ': ' + result.message);
-                        }
+                benefitIds.add((Id) benefit.get('Id'));
+            }
+
+            // 2) Bulk-query existing BenefitAssignments for this account + all benefit IDs (1 SOQL)
+            Map<Id, Id> assignmentIdByBenefitId = new Map<Id, Id>();
+            try {
+                String aQuery = 'SELECT Id, BenefitId FROM BenefitAssignment WHERE EnrolleeId = :accountId AND BenefitId IN :benefitIds';
+                for (SObject ba : Database.query(aQuery)) {
+                    assignmentIdByBenefitId.put((Id) ba.get('BenefitId'), (Id) ba.get('Id'));
+                }
+            } catch (Exception ex) {
+                System.debug('Error querying existing assignments: ' + ex.getMessage());
+            }
+
+            // 3) Get the best active ProgramEnrollment for this account (1 SOQL)
+            Id peId = null;
+            try {
+                String peQuery = 'SELECT Id FROM ProgramEnrollment WHERE AccountId = :accountId AND ProgramId = :programId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY LastModifiedDate DESC LIMIT 1';
+                List<SObject> pes = Database.query(peQuery);
+                if (!pes.isEmpty()) {
+                    peId = (Id) pes[0].get('Id');
+                }
+            } catch (Exception ex) {
+                System.debug('Error querying ProgramEnrollment: ' + ex.getMessage());
+            }
+            if (peId == null) peId = enrollmentId; // fallback to the just-created enrollment
+
+            // 4) Create missing BenefitAssignments in bulk (0 or 1 DML)
+            List<SObject> newAssignments = new List<SObject>();
+            List<Id> newAssignmentBenefitIds = new List<Id>();
+            if (peId != null) {
+                for (Id benefitId : benefitIds) {
+                    if (!assignmentIdByBenefitId.containsKey(benefitId)) {
+                        SObject ba = Schema.getGlobalDescribe().get('BenefitAssignment').newSObject();
+                        ba.put('EnrolleeId', accountId);
+                        ba.put('BenefitId', benefitId);
+                        ba.put('ProgramEnrollmentId', peId);
+                        ba.put('ParentRecordId', peId);
+                        ba.put('Status', 'Active');
+                        ba.put('StartDateTime', Date.today());
+                        newAssignments.add(ba);
+                        newAssignmentBenefitIds.add(benefitId);
                     }
-                } catch (Exception ex) {
-                    System.debug('Error creating disbursement for benefit ' + benefitId + ': ' + ex.getMessage());
                 }
             }
-            
-            System.debug('Successfully created ' + disbursementIds.size() + ' disbursements using service');
-            
+            if (!newAssignments.isEmpty()) {
+                Database.SaveResult[] srs = Database.insert(newAssignments, false);
+                for (Integer i = 0; i < srs.size(); i++) {
+                    if (srs[i].isSuccess()) {
+                        assignmentIdByBenefitId.put(newAssignmentBenefitIds[i], srs[i].getId());
+                    } else {
+                        System.debug('Failed to create BenefitAssignment for benefit ' + newAssignmentBenefitIds[i] + ': ' + srs[i].getErrors());
+                    }
+                }
+            }
+
+            // 5) Create BenefitDisbursements in bulk (0 or 1 DML)
+            Datetime now = Datetime.now();
+            Datetime endTime = now.addMinutes(15);
+            List<SObject> disbursements = new List<SObject>();
+            for (Id benefitId : benefitIds) {
+                Id assignmentId = assignmentIdByBenefitId.get(benefitId);
+                if (assignmentId == null) continue;
+                SObject d = Schema.getGlobalDescribe().get('BenefitDisbursement').newSObject();
+                d.put('BenefitAssignmentId', assignmentId);
+                d.put('ProgramEnrollmentId', peId != null ? peId : enrollmentId);
+                d.put('StartDate', now);
+                d.put('EndDate', endTime);
+                d.put('ActualCompletionDate', now);
+                d.put('DisbursedQuantity', 1);
+                d.put('Description', 'Street Outreach Intake');
+                disbursements.add(d);
+            }
+            if (!disbursements.isEmpty()) {
+                Database.SaveResult[] srs = Database.insert(disbursements, false);
+                for (Integer i = 0; i < srs.size(); i++) {
+                    if (srs[i].isSuccess()) {
+                        disbursementIds.add(srs[i].getId());
+                    } else {
+                        System.debug('Failed to create BenefitDisbursement: ' + srs[i].getErrors());
+                    }
+                }
+            }
+
+            System.debug('Created ' + disbursementIds.size() + ' disbursements (bulkified)');
+
         } catch (Exception ex) {
             System.debug('Error in createBenefitDisbursementsUsingService: ' + ex.getMessage());
             System.debug('Stack trace: ' + ex.getStackTraceString());
         }
-        
+
         return disbursementIds;
-    }
-    
-    private static List<BenefitDisbursementService.DisburseResult> createCustomDisbursement(Id accountId, Id benefitId, Id programId, Id enrollmentId) {
-        List<BenefitDisbursementService.DisburseResult> results = new List<BenefitDisbursementService.DisburseResult>();
-        
-        try {
-            // First ensure benefit assignment exists using the service
-            Map<String, Boolean> assignmentResults = BenefitDisbursementService.createMissingBenefitAssignments(
-                new List<String>{ String.valueOf(accountId) },
-                String.valueOf(benefitId),
-                String.valueOf(programId),
-                null
-            );
-            
-            // Get the benefit assignment
-            String assignmentQuery = 'SELECT Id FROM BenefitAssignment WHERE EnrolleeId = :accountId AND BenefitId = :benefitId LIMIT 1';
-            List<SObject> assignments = Database.query(assignmentQuery);
-            
-            if (assignments.isEmpty()) {
-                BenefitDisbursementService.DisburseResult result = new BenefitDisbursementService.DisburseResult();
-                result.accountId = accountId;
-                result.success = false;
-                result.message = 'No benefit assignment found';
-                results.add(result);
-                return results;
-            }
-            
-            Id assignmentId = (Id) assignments[0].get('Id');
-            
-            // Create disbursement with correct datetime fields
-            Datetime now = Datetime.now();
-            Datetime endTime = now.addMinutes(15);
-            
-            SObject disbursement = Schema.getGlobalDescribe().get('BenefitDisbursement').newSObject();
-            disbursement.put('BenefitAssignmentId', assignmentId);
-            disbursement.put('ProgramEnrollmentId', enrollmentId);
-            disbursement.put('StartDate', now); // StartDate = NOW (datetime field)
-            disbursement.put('EndDate', endTime); // EndDate = NOW + 15 minutes (datetime field)
-            disbursement.put('ActualCompletionDate', now); // ActualCompletionDate = NOW
-            disbursement.put('DisbursedQuantity', 1);
-            disbursement.put('Description', 'Street Outreach Intake');
-            
-            insert disbursement;
-            
-            BenefitDisbursementService.DisburseResult result = new BenefitDisbursementService.DisburseResult();
-            result.accountId = accountId;
-            result.success = true;
-            result.disbursementId = (Id) disbursement.get('Id');
-            result.message = 'Created';
-            results.add(result);
-            
-        } catch (Exception ex) {
-            BenefitDisbursementService.DisburseResult result = new BenefitDisbursementService.DisburseResult();
-            result.accountId = accountId;
-            result.success = false;
-            result.message = 'Error: ' + ex.getMessage();
-            results.add(result);
-        }
-        
-        return results;
     }
     
     /**

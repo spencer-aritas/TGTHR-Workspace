@@ -1,0 +1,1 @@
+Schema.DescribeSObjectResult d = Schema.getGlobalDescribe().get('Benefit').getDescribe(); for(String fn : d.fields.getMap().keySet()) { Schema.DisplayType dt = d.fields.getMap().get(fn).getDescribe().getType(); if(dt == Schema.DisplayType.REFERENCE) System.debug('LOOKUP: ' + fn); }

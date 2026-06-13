@@ -70,6 +70,24 @@
                 <default>false</default>
                 <label>Datetime</label>
             </value>
+            <value>
+                <fullName>File</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>File</label>
+            </value>
+            <value>
+                <fullName>Score</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Score</label>
+            </value>
+            <value>
+                <fullName>Signature</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Signature</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

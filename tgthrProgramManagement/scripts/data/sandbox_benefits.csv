@@ -1,0 +1,163 @@
+Id,Name,NPSP_ID__c,UUID__c,ProgramId,Program.UUID__c,BenefitTypeId,BenefitType.NPSP_ID__c,IsActive,BenefitStatus,CPT_Code__c,Default_Disbursement_Quantity__c,Default_Duration_c__c,Housing_Capacity__c,Is_a_Housing_Benefit__c,Spots_Currently_Filled__c,Available_for_Housing__c,Available_for_Program_Engagement__c,Available_for_Case_Management__c,Available_for_Clinical__c,Available_for_Peer__c,Lifecycle_State__c
+0jiRT0000000Y9lYAE,BIPOC Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000SdbYAE,BIPOC Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhrYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000SgGYAU,BIPOC Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhrYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000SgDYAU,Bus pass,,,11WVY000000GC3d2AG,,0jhRT0000000PhpYAE,,true,Active,,5,60,,false,,false,false,true,true,true,
+0jiRT0000000SdYYAU,Bus pass,,,11WVY000000GC6r2AG,,0jhRT0000000PhpYAE,,false,Active,,5,,,false,,false,false,true,true,true,Replaced
+0jiRT0000000Y9mYAE,Bus pass,,,11WVY000000GC6r2AG,,0jhRT0000000PhpYAE,,true,Active,,1,,,false,,true,false,true,true,true,Active
+0jiRT0000000SfeYAE,Case Management Meeting,,,11WVY000000GC3d2AG,,0jhRT0000000PhdYAE,,false,Active,,1,60,,false,,false,false,true,true,false,
+0jiRT0000000SdAYAU,Case Management Meeting,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,false,Active,,1,60,,false,,false,false,false,false,false,
+0jiRT0000000Y9nYAE,Community Engagement,,,11WVY000000GC6r2AG,,0jhRT0000000TTTYA2,,true,Active,,1,60,,false,,true,false,false,true,false,Active
+0jiRT0000000SfxYAE,Community Engagement,,,11WVY000000GC3d2AG,,0jhRT0000000PhmYAE,,true,Active,,4,60,,false,,false,false,false,true,false,
+0jiRT0000000SdsYAE,Community Engagement,,,11WVY000000GC6r2AG,,0jhRT0000000PhmYAE,,false,Active,,4,240,,false,,false,false,false,true,false,Replaced
+0jiRT0000000SfdYAE,Community Resource Navigation,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,false,true,
+0jiRT0000000Sd9YAE,Community Resource Navigation,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,false,Active,,1,60,,false,,false,false,true,false,true,Replaced
+0jiRT0000000Y9oYAE,Community Resource Navigation,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,true,Active
+0jiRT0000000Sd7YAE,Conflict Resolution Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,true,false,true,true,true,
+0jiRT0000000SfbYAE,Conflict Resolution Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000UhFYAU,Crisis Intervention,,,11WRT0000017pV32AI,,0jhRT0000000PhdYAE,,true,Active,H2011,1,15,,false,,true,true,true,true,false,
+0jiRT0000000ZXFYA2,Diag B,,,11WRT000001XPWv2AO,,0jhRT0000000YOHYA2,,true,Active,,,,,false,,false,false,false,false,false,Active
+0jiRT0000000Y4vYAE,Drop-In Day,,,11WRT0000017pV32AI,,0jhRT0000000PhdYAE,,true,Active,,1,120,,false,,false,false,false,false,false,
+0jiRT0000000SfkYAE,Education,,,11WVY000000GC3d2AG,,0jhRT0000000PhaYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000SdGYAU,Education,,,11WVY000000GC6r2AG,,0jhRT0000000PhaYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000Y9pYAE,Education,,,11WVY000000GC6r2AG,,0jhRT0000000TTRYA2,,true,Active,,1,,,false,,true,false,true,false,false,Active
+0jiRT0000000Y9qYAE,Education Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SfSYAU,Education Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhaYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000ScyYAE,Education Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhaYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000SdEYAU,"Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",,,11WVY000000GC6r2AG,,0jhRT0000000PhqYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000SfiYAE,"Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",,,11WVY000000GC3d2AG,,0jhRT0000000PhqYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000Y9rYAE,"Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000Sd8YAE,Emotional Processing,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,true,false,true,true,true,
+0jiRT0000000SfcYAE,Emotional Processing,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000Y9sYAE,Employment Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,true,Active
+0jiRT0000000Sd0YAE,Employment Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhbYAE,,false,Active,,1,60,,false,,false,false,true,false,true,Replaced
+0jiRT0000000SfUYAU,Employment Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhbYAE,,true,Active,,1,60,,false,,false,false,true,false,true,
+0jiRT0000000SdMYAU,Eviction/ Mutual Rescission Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000Y9tYAE,Eviction/ Mutual Rescission Support,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SfrYAE,Eviction/ Mutual Rescission Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000SgAYAU,External Medical Provider,,,11WVY000000GC3d2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000YBNYA2,External Medical Provider,,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SdWYAU,External Medical Provider,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000Sg9YAE,External Professional Team,,,11WVY000000GC3d2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000Y9uYAE,External Professional Team,,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SdVYAU,External Professional Team,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000SdXYAU,External Therapy Provider,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,false,Active,,1,60,,false,,true,true,true,true,false,Replaced
+0jiRT0000000SgBYAU,External Therapy Provider,,,11WVY000000GC3d2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,false,false,true,true,false,
+0jiRT0000000Y9vYAE,External Therapy Provider,,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,true,false,true,true,false,Active
+0jiRT0000000SdUYAU,Family Reunification Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000Y9wYAE,Family Reunification Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000Sg8YAE,Family Reunification Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000SfTYAU,Financial Education and Navigation,,,11WVY000000GC3d2AG,,0jhRT0000000PhaYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000SczYAE,Financial Education and Navigation,,,11WVY000000GC6r2AG,,0jhRT0000000PhaYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000Y9xYAE,Financial Education and Navigation,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000Y9yYAE,Food Access,,,11WVY000000GC6r2AG,,0jhRT0000000PhmYAE,,true,Active,,1,60,,false,,true,false,true,false,true,Active
+0jiRT0000000Sg6YAE,Food Access,,,11WVY000000GC3d2AG,,0jhRT0000000PhmYAE,,true,Active,,4,60,,false,,false,false,true,false,true,
+0jiRT0000000SdxYAE,Food Access,,,11WVY000000GC6r2AG,,0jhRT0000000PhmYAE,,false,Active,,4,240,,false,,false,false,true,false,true,Replaced
+0jiRT0000000SfgYAE,Food Pantry Access - Onsite,,,11WVY000000GC3d2AG,,0jhRT0000000PheYAE,,true,Active,,1,,,false,,true,false,true,true,true,
+0jiRT0000000SdCYAU,Food Pantry Access - Onsite,,,11WVY000000GC6r2AG,,0jhRT0000000PheYAE,,true,Active,,1,,,false,,true,false,true,true,true,
+0jiRT0000000SfzYAE,GED Group,,,11WVY000000GC3d2AG,,0jhRT0000000PhaYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000Y9zYAE,GED Group,,,11WVY000000GC6r2AG,,0jhRT0000000TTTYA2,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000SdRYAU,GED Group,,,11WVY000000GC6r2AG,,0jhRT0000000PhaYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000SgLYAU,Group Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhsYAE,,true,Active,,1,60,,false,,false,false,false,true,false,
+0jiRT0000000SdgYAE,Group Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhsYAE,,false,Active,,1,60,,false,,false,false,false,true,false,Replaced
+0jiRT0000000YA0YAM,Group Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhrYAE,,true,Active,,1,60,,false,,true,false,false,true,false,Active
+0jiRT0000000YA1YAM,Housekeeping,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,false,true,Active
+0jiRT0000000SfsYAE,Housekeeping,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,false,true,
+0jiRT0000000SdNYAU,Housekeeping,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,false,true,Replaced
+0jiRT0000000ScxYAE,Housing,,,11WVY000000GC6r2AG,,0jhRT0000000PhZYAU,,true,Active,,1,,42,true,0,true,true,true,true,true,
+0jiRT0000000SfRYAU,Housing,,,11WVY000000GC3d2AG,,0jhRT0000000PhZYAU,,true,Active,,1,,56,true,0,false,false,true,true,true,
+0jiRT0000000SgJYAU,Individual Session,,,11WVY000000GC3d2AG,,0jhRT0000000PhrYAE,,true,Active,,1,240,,false,,false,false,false,true,false,
+0jiRT0000000SdeYAE,Individual Session,,,11WVY000000GC6r2AG,,0jhRT0000000PhrYAE,,true,Active,,1,60,,false,,true,false,false,true,false,
+0jiRT0000000SdyYAE,Individual Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhmYAE,,true,Active,,1,60,,false,,true,false,true,true,true,
+0jiRT0000000Sg7YAE,Individual Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhmYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000SfvYAE,Initial Planning Meeting,,,11WVY000000GC3d2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,false,false,true,false,true,
+0jiRT0000000SdqYAE,Initial Planning Meeting,,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,false,Active,,1,60,,false,,false,false,true,false,true,Replaced
+0jiRT0000000YA2YAM,Initial Planning Meeting (goal setting),,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,true,Active
+0jiRT0000000YA3YAM,Lease Violation Meeting,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SfoYAE,Lease Violation Meeting,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000SdJYAU,Lease Violation Meeting,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000SfWYAU,Legal Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhaYAE,,true,Active,,1,60,,false,,false,false,true,false,true,
+0jiRT0000000Sd2YAE,Legal Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhaYAE,,false,Active,,1,60,,false,,true,true,true,false,true,Replaced
+0jiRT0000000YA4YAM,Legal Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,true,false,true,false,true,Active
+0jiRT0000000SdcYAE,LGBTQIA Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhrYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000SgHYAU,LGBTQIA Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhrYAE,,true,Active,,1,240,,false,,false,false,true,true,true,
+0jiRT0000000YA5YAM,LGBTQIA Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000SdQYAU,Life Skills Group,,,11WVY000000GC6r2AG,,0jhRT0000000PheYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000SfyYAE,Life Skills Group,,,11WVY000000GC3d2AG,,0jhRT0000000PheYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000YA6YAM,Life Skills Group,,,11WVY000000GC6r2AG,,0jhRT0000000TTTYA2,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000SfhYAE,Meal Provided,,,11WVY000000GC3d2AG,,0jhRT0000000PheYAE,,false,Active,,1,,,false,,true,false,false,false,false,
+0jiRT0000000SdDYAU,Meal Provided,,,11WVY000000GC6r2AG,,0jhRT0000000PheYAE,,false,Active,,1,,,false,,false,false,false,false,false,
+0jiRT0000000SgCYAU,"Medical, Legal, or Employment",,,11WVY000000GC3d2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000SdzYAE,"Medical, Legal, or Employment",,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000YA7YAM,"Medical, Legal, or Employment",,,11WVY000000GC6r2AG,,0jhRT0000000PhpYAE,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000YA8YAM,Mental Health,,,11WVY000000GC6r2AG,,0jhRT0000000TTRYA2,,true,Active,,1,,,false,,true,false,true,true,false,Active
+0jiRT0000000SdFYAU,Mental Health,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,false,Active,,1,60,,false,,false,false,true,true,false,Replaced
+0jiRT0000000SfjYAE,Mental Health,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,true,false,
+0jiRT0000000SfVYAU,Mental Health Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000Sd1YAE,Mental Health Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,true,false,true,true,true,
+0jiRT0000000SfuYAE,Move Out Assistance,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000YA9YAM,Move Out Assistance,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SdPYAU,Move Out Assistance,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000SfmYAE,Other supports,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000YAAYA2,Other supports,,,11WVY000000GC6r2AG,,0jhRT0000000TTRYA2,,true,Active,,1,,,false,,true,false,true,false,false,Active
+0jiRT0000000SdHYAU,Other supports,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000UirYAE,Outreach Engagement,,,11WRT0000017pV32AI,,0jhRT0000000PhdYAE,,true,Active,H0023,1,15,,false,,false,false,true,true,false,
+0jiRT0000000YABYA2,Parenting Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SfZYAU,Parenting Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000Sd5YAE,Parenting Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000SduYAE,Peer Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhlYAE,,false,Active,,1,60,,false,,false,false,false,false,true,Replaced
+0jiRT0000000SddYAE,Peer Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhsYAE,,false,Active,,1,60,,false,,false,false,false,false,true,Replaced
+0jiRT0000000YACYA2,Peer Support,,,11WVY000000GC6r2AG,,0jhRT0000000TTSYA2,,true,Active,,1,60,,false,,true,false,false,false,true,Active
+0jiRT0000000SgIYAU,Peer Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhsYAE,,true,Active,,1,240,,false,,false,false,false,false,true,
+0jiRT0000000Sg2YAE,Peer Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhlYAE,,true,Active,,1,,,false,,false,false,false,false,true,
+0jiRT0000000YBOYA2,Peer Support Group,,,11WVY000000GC6r2AG,,0jhRT0000000TTSYA2,,true,Active,,1,60,,false,,true,false,false,false,true,Active
+0jiRT0000000SdpYAE,Physical Health,,,11WVY000000GC6r2AG,,0jhRT0000000PhiYAE,,false,Active,,1,60,,false,,false,false,true,true,false,Replaced
+0jiRT0000000YADYA2,Physical Health,,,11WVY000000GC6r2AG,,0jhRT0000000TTRYA2,,true,Active,,1,,,false,,true,false,true,false,false,Active
+0jiRT0000000SflYAE,Physical Health,,,11WVY000000GC3d2AG,,0jhRT0000000PhiYAE,,true,Active,,1,60,,false,,false,false,true,true,false,
+0jiRT0000000SdwYAE,Physical/Mental Wellness - Community Outing,,,11WVY000000GC6r2AG,,0jhRT0000000PhmYAE,,true,Active,,4,240,,false,,true,false,true,true,true,
+0jiRT0000000Sg5YAE,Physical/Mental Wellness - Community Outing,,,11WVY000000GC3d2AG,,0jhRT0000000PhmYAE,,true,Active,,4,60,,false,,false,false,true,true,true,
+0jiRT0000000SffYAE,Point Store Access,,,11WVY000000GC3d2AG,,0jhRT0000000PheYAE,,true,Active,,1,,,false,,true,false,true,true,true,
+0jiRT0000000SdBYAU,Point Store Access,,,11WVY000000GC6r2AG,,0jhRT0000000PheYAE,,true,Active,,1,,,false,,true,false,true,true,true,
+0jiRT0000000SdaYAE,Police Interaction- Arrest,,,11WVY000000GC6r2AG,,0jhRT0000000PhqYAE,,false,Active,,4,240,,false,,false,false,true,true,true,Replaced
+0jiRT0000000SgFYAU,Police Interaction- Arrest,,,11WVY000000GC3d2AG,,0jhRT0000000PhqYAE,,true,Active,,4,60,,false,,false,false,true,true,true,
+0jiRT0000000YAEYA2,Police Interaction- Arrest,,,11WVY000000GC6r2AG,,0jhRT0000000PhqYAE,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000SgEYAU,Police Interaction- General Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhqYAE,,true,Active,,4,240,,false,,false,false,true,true,true,
+0jiRT0000000YAFYA2,Police Interaction- General Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhqYAE,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000SdZYAU,Police Interaction- General Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhqYAE,,false,Active,,4,240,,false,,false,false,true,true,true,Replaced
+0jiRT0000000YAGYA2,Pre-Lease Violation Support,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000SfnYAE,Pre-Lease Violation Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000SdIYAU,Pre-Lease Violation Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000Sg4YAE,Prosocial,,,11WVY000000GC3d2AG,,0jhRT0000000PhmYAE,,false,Active,,4,240,,false,,false,false,false,false,false,
+0jiRT0000000SdvYAE,Prosocial,,,11WVY000000GC6r2AG,,0jhRT0000000PhmYAE,,false,Active,,4,240,,false,,false,false,false,false,false,
+0jiRT0000000SfXYAU,Public Benefits Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhaYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000Sd3YAE,Public Benefits Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhaYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000YAHYA2,Public Benefits Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SfqYAE,Rental Assistance with Budget,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000SdLYAU,Rental Assistance with Budget,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000YAIYA2,Rental Assistance with Budget,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SdtYAE,Resident Advisory Council,,,11WVY000000GC6r2AG,,0jhRT0000000PhlYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced
+0jiRT0000000YAJYA2,Resident Advisory Council,,,11WVY000000GC6r2AG,,0jhRT0000000TTTYA2,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000Sg1YAE,Resident Advisory Council,,,11WVY000000GC3d2AG,,0jhRT0000000PhlYAE,,true,Active,,1,60,,false,,false,false,true,true,true,
+0jiRT0000000UkTYAU,Screening/Assessment,,,11WRT0000017pV32AI,,0jhRT0000000PhdYAE,,true,Active,H0002,1,15,,false,,false,false,true,true,false,
+0jiRT0000000Sd6YAE,Substance Use Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,true,false,false,true,false,
+0jiRT0000000SgKYAU,Substance Use Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhrYAE,,true,Active,,1,60,,false,,false,false,false,true,false,
+0jiRT0000000SdfYAE,Substance Use Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhrYAE,,true,Active,,1,60,,false,,true,false,false,true,false,
+0jiRT0000000SfaYAE,Substance Use Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,false,false,false,true,false,
+0jiRT0000000SfpYAE,Tenant Retention Plan,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000SdKYAU,Tenant Retention Plan,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000YAKYA2,Tenant Retention Plan,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000Sg3YAE,Therapeutic Group,,,11WVY000000GC3d2AG,,0jhRT0000000PhsYAE,,true,Active,,1,240,,false,,false,false,false,true,false,
+0jiRT0000000YALYA2,Therapeutic Group,,,11WVY000000GC6r2AG,,0jhRT0000000PhrYAE,,true,Active,,1,60,,false,,true,false,false,true,false,Active
+0jiRT0000000SdTYAU,Therapeutic Group,,,11WVY000000GC6r2AG,,0jhRT0000000PhsYAE,,false,Active,,1,60,,false,,false,false,false,true,false,Replaced
+0jiRT0000000SdrYAE,Updates and Progress,,,11WVY000000GC6r2AG,,0jhRT0000000PhoYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000SfwYAE,Updates and Progress,,,11WVY000000GC3d2AG,,0jhRT0000000PhoYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000YAMYA2,Updates and Progress (goal setting),,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SfYYAU,Vital Document Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhaYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000Sd4YAE,Vital Document Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhaYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000YANYA2,Vital Document Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhdYAE,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000SdOYAU,Voucher Support,,,11WVY000000GC6r2AG,,0jhRT0000000PhjYAE,,false,Active,,1,60,,false,,false,false,true,false,false,Replaced
+0jiRT0000000SftYAE,Voucher Support,,,11WVY000000GC3d2AG,,0jhRT0000000PhjYAE,,true,Active,,1,60,,false,,false,false,true,false,false,
+0jiRT0000000YAOYA2,Voucher Support,,,11WVY000000GC6r2AG,,0jhRT0000000TTUYA2,,true,Active,,1,60,,false,,true,false,true,false,false,Active
+0jiRT0000000YAPYA2,"Wellness, Mental Health, Mindfulness and Meditation Group",,,11WVY000000GC6r2AG,,0jhRT0000000TTTYA2,,true,Active,,1,60,,false,,true,false,true,true,true,Active
+0jiRT0000000Sg0YAE,"Wellness, Mental Health, Mindfulness and Meditation Group",,,11WVY000000GC3d2AG,,0jhRT0000000PhcYAE,,true,Active,,1,60,,false,,true,true,true,true,true,
+0jiRT0000000SdSYAU,"Wellness, Mental Health, Mindfulness and Meditation Group",,,11WVY000000GC6r2AG,,0jhRT0000000PhcYAE,,false,Active,,1,60,,false,,false,false,true,true,true,Replaced

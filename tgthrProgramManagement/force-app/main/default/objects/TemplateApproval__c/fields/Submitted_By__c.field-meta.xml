@@ -3,7 +3,6 @@
     <fullName>Submitted_By__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>User who submitted the template for approval</description>
-    <externalId>false</externalId>
     <inlineHelpText>The creator/publisher who submitted this template</inlineHelpText>
     <label>Submitted By</label>
     <referenceTo>User</referenceTo>

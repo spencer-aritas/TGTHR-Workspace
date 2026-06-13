@@ -3,5 +3,8 @@
     <fullName>Last_Review_Date__c</fullName>
     <description>The date this treatment plan was last reviewed and activated.</description>
     <label>Last Review Date</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Date</type>
 </CustomField>

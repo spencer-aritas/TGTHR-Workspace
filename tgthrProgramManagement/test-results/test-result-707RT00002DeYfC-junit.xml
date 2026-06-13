@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="force.apex" timestamp="2026-04-07T14:45:22.000Z" hostname="https://tgthrnpc--benefits.sandbox.my.salesforce.com" tests="54" failures="3"  errors="0"  time="14.68">
+        <properties>
+            <property name="outcome" value="Failed"/>
+            <property name="testsRan" value="54"/>
+            <property name="passing" value="51"/>
+            <property name="failing" value="3"/>
+            <property name="skipped" value="0"/>
+            <property name="passRate" value="94%"/>
+            <property name="failRate" value="6%"/>
+            <property name="testStartTime" value="Tue Apr 07 2026 8:45:22 AM"/>
+            <property name="testSetupTimeInMs" value="6267"/>
+            <property name="testExecutionTime" value="14.68 s"/>
+            <property name="testTotalTime" value="20.95 s"/>
+            <property name="commandTime" value="0.24 s"/>
+            <property name="hostname" value="https://tgthrnpc--benefits.sandbox.my.salesforce.com"/>
+            <property name="orgId" value="00DRT000008A0Oj2AK"/>
+            <property name="username" value="sessey@tgthr.org.benefits"/>
+            <property name="testRunId" value="707RT00002DeYfC"/>
+            <property name="userId" value="005VY000003VsDhYAK"/>
+        </properties>
+        <testcase name="testDeleteDiagnosis" classname="DiagnosisSummaryControllerTest" time="1.18">
+        </testcase>
+        <testcase name="testDeleteDiagnosis_NullId" classname="DiagnosisSummaryControllerTest" time="0.04">
+            <failure message="System.AssertException: Assertion Failed: Expected AuraHandledException"><![CDATA[Class.DiagnosisSummaryControllerTest.testDeleteDiagnosis_NullId: line 142, column 1]]></failure>
+        </testcase>
+        <testcase name="testDiagnosisDtoFields" classname="DiagnosisSummaryControllerTest" time="0.00">
+        </testcase>
+        <testcase name="testDiagnosisResponseFields" classname="DiagnosisSummaryControllerTest" time="0.00">
+        </testcase>
+        <testcase name="testGetDiagnosesForAccount_NullId" classname="DiagnosisSummaryControllerTest" time="0.13">
+        </testcase>
+        <testcase name="testGetDiagnosesForAccount_WithAccount" classname="DiagnosisSummaryControllerTest" time="0.12">
+        </testcase>
+        <testcase name="testGetDiagnosesForCase_NullId" classname="DiagnosisSummaryControllerTest" time="0.01">
+        </testcase>
+        <testcase name="testGetDiagnosesForCase_WithCase" classname="DiagnosisSummaryControllerTest" time="0.12">
+        </testcase>
+        <testcase name="testUpdateDiagnosis" classname="DiagnosisSummaryControllerTest" time="0.09">
+        </testcase>
+        <testcase name="testUpdateDiagnosis_NullId" classname="DiagnosisSummaryControllerTest" time="0.05">
+            <failure message="System.AssertException: Assertion Failed: Expected AuraHandledException"><![CDATA[Class.DiagnosisSummaryControllerTest.testUpdateDiagnosis_NullId: line 107, column 1]]></failure>
+        </testcase>
+        <testcase name="testActivationResultDto" classname="TreatmentPlanActivationServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testClearActivePlanIfRecalled" classname="TreatmentPlanActivationServiceTest" time="0.11">
+        </testcase>
+        <testcase name="testClearActivePlanIfRecalled_NullId" classname="TreatmentPlanActivationServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testFinalizeTreatmentPlan" classname="TreatmentPlanActivationServiceTest" time="0.24">
+        </testcase>
+        <testcase name="testFinalizeTreatmentPlan_NullId" classname="TreatmentPlanActivationServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testForceTreatmentPlanActivation" classname="TreatmentPlanActivationServiceTest" time="0.20">
+        </testcase>
+        <testcase name="testPreCheckIsAmendment" classname="TreatmentPlanActivationServiceTest" time="0.06">
+        </testcase>
+        <testcase name="testPreCheckIsAmendment_NullId" classname="TreatmentPlanActivationServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testNotifyActionItem_NullParams" classname="PendingDocNotificationServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testNotifyApproverOfCoSignRequest_3Param" classname="PendingDocNotificationServiceTest" time="0.04">
+        </testcase>
+        <testcase name="testNotifyApproverOfCoSignRequest_5Param" classname="PendingDocNotificationServiceTest" time="0.08">
+        </testcase>
+        <testcase name="testNotifyApprover_NullParams" classname="PendingDocNotificationServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testNotifyDocumentationDeadline" classname="PendingDocNotificationServiceTest" time="0.04">
+        </testcase>
+        <testcase name="testNotifySubmitterOfApproval" classname="PendingDocNotificationServiceTest" time="0.03">
+        </testcase>
+        <testcase name="testNotifySubmitterOfRejection" classname="PendingDocNotificationServiceTest" time="0.03">
+        </testcase>
+        <testcase name="testNotifyUserOfActionItem_4Param" classname="PendingDocNotificationServiceTest" time="0.03">
+        </testcase>
+        <testcase name="testNotifyUserOfActionItem_6Param" classname="PendingDocNotificationServiceTest" time="0.04">
+        </testcase>
+        <testcase name="testSendPendingDocNotificationToCurrentUser" classname="PendingDocNotificationServiceTest" time="0.13">
+        </testcase>
+        <testcase name="testSendPendingDocNotificationsToAllUsers" classname="PendingDocNotificationServiceTest" time="0.06">
+        </testcase>
+        <testcase name="testCheckRecordLockStatus" classname="RecordAccessServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testCheckRecordLockStatusNullInput" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testCheckRecordLockStatus_WithInteraction" classname="RecordAccessServiceTest" time="3.75">
+        </testcase>
+        <testcase name="testCheckRecordLockStatus_WithInterview" classname="RecordAccessServiceTest" time="1.12">
+        </testcase>
+        <testcase name="testGetCuriosityBrowseReport" classname="RecordAccessServiceTest" time="0.04">
+        </testcase>
+        <testcase name="testGetRecordAuditTrail" classname="RecordAccessServiceTest" time="0.02">
+        </testcase>
+        <testcase name="testGetRecordAuditTrailNullInput" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testGetRecordAuditTrail_AfterAccess" classname="RecordAccessServiceTest" time="0.86">
+        </testcase>
+        <testcase name="testLogAmendmentMissingReason" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testLogAmendmentNullRecordId" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testLogAmendment_SupervisorOverride" classname="RecordAccessServiceTest" time="0.92">
+        </testcase>
+        <testcase name="testLogAmendment_WithRealRecord" classname="RecordAccessServiceTest" time="0.87">
+        </testcase>
+        <testcase name="testLogRecordAccess" classname="RecordAccessServiceTest" time="0.14">
+        </testcase>
+        <testcase name="testLogRecordAccessNullInput" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testLogRecordAccessWithPii" classname="RecordAccessServiceTest" time="0.77">
+        </testcase>
+        <testcase name="testLogRecordAccessWithPii_NullPii" classname="RecordAccessServiceTest" time="0.77">
+        </testcase>
+        <testcase name="testLogRecordAccess_WithCase" classname="RecordAccessServiceTest" time="0.78">
+        </testcase>
+        <testcase name="testLogRecordAccess_WithRealAccount" classname="RecordAccessServiceTest" time="0.79">
+        </testcase>
+        <testcase name="testLogSignatureEvent" classname="RecordAccessServiceTest" time="0.85">
+        </testcase>
+        <testcase name="testLogSignatureEvent_NullParams" classname="RecordAccessServiceTest" time="0.01">
+            <failure message="System.AuraHandledException: Script-thrown exception"><![CDATA[Class.RecordAccessService.logSignatureEvent: line 215, column 1
+Class.RecordAccessServiceTest.testLogSignatureEvent_NullParams: line 225, column 1]]></failure>
+        </testcase>
+        <testcase name="testPiiFieldCategories" classname="RecordAccessServiceTest" time="0.01">
+        </testcase>
+    </testsuite>
+</testsuites>

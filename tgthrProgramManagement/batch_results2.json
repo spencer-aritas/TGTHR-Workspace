@@ -1,0 +1,1450 @@
+{
+  "status": 0,
+  "result": {
+    "summary": {
+      "failRate": "0%",
+      "failing": 0,
+      "hostname": "https://tgthrnpc--benefits.sandbox.my.salesforce.com",
+      "orgId": "00DRT000008A0Oj2AK",
+      "outcome": "Passed",
+      "passRate": "100%",
+      "passing": 93,
+      "skipped": 0,
+      "testRunId": "707RT00002Di689",
+      "testStartTime": "2026-04-08T03:10:12.000Z",
+      "testsRan": 93,
+      "userId": "005VY000003VsDhYAK",
+      "username": "sessey@tgthr.org.benefits",
+      "commandTime": "281 ms",
+      "testExecutionTime": "10140 ms",
+      "testTotalTime": "21455 ms"
+    },
+    "tests": [
+      {
+        "Id": "07MRT00000TFFKb2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildAuthorSignedWhereClause_EmptyFieldMap",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 49,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildAuthorSignedWhereClause_EmptyFieldMap"
+      },
+      {
+        "Id": "07MRT00000TFFKc2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildAuthorSignedWhereClause_WithFields",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 241,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildAuthorSignedWhereClause_WithFields"
+      },
+      {
+        "Id": "07MRT00000TFFKd2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildAuthorSignedWhereClause_WithPrefix",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 30,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildAuthorSignedWhereClause_WithPrefix"
+      },
+      {
+        "Id": "07MRT00000TFFKe2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildClausesWithNullPrefix",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 36,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildClausesWithNullPrefix"
+      },
+      {
+        "Id": "07MRT00000TFFKf2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildFullySignedWhereClause_EmptyFieldMap",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 9,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildFullySignedWhereClause_EmptyFieldMap"
+      },
+      {
+        "Id": "07MRT00000TFFKg2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildFullySignedWhereClause_WithFields",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 28,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildFullySignedWhereClause_WithFields"
+      },
+      {
+        "Id": "07MRT00000TFFKh2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildPendingRequiredSignaturesWhereClause_EmptyFieldMap",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 7,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildPendingRequiredSignaturesWhereClause_EmptyFieldMap"
+      },
+      {
+        "Id": "07MRT00000TFFKi2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBuildPendingRequiredSignaturesWhereClause_WithFields",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 31,
+        "FullName": "NoteSignatureLifecycleServiceTest.testBuildPendingRequiredSignaturesWhereClause_WithFields"
+      },
+      {
+        "Id": "07MRT00000TFFKj2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testHasField_ExistingField",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 26,
+        "FullName": "NoteSignatureLifecycleServiceTest.testHasField_ExistingField"
+      },
+      {
+        "Id": "07MRT00000TFFKk2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testHasField_NonExistingField",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 27,
+        "FullName": "NoteSignatureLifecycleServiceTest.testHasField_NonExistingField"
+      },
+      {
+        "Id": "07MRT00000TFFKl2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testIsAuthorSigned_NoSignatureFields",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 48,
+        "FullName": "NoteSignatureLifecycleServiceTest.testIsAuthorSigned_NoSignatureFields"
+      },
+      {
+        "Id": "07MRT00000TFFKm2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testIsAuthorSigned_WithInterviewFields",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 64,
+        "FullName": "NoteSignatureLifecycleServiceTest.testIsAuthorSigned_WithInterviewFields"
+      },
+      {
+        "Id": "07MRT00000TFFKn2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testIsFullySigned_UnsignedNote",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 48,
+        "FullName": "NoteSignatureLifecycleServiceTest.testIsFullySigned_UnsignedNote"
+      },
+      {
+        "Id": "07MRT00000TFFKo2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testIsPendingRequiredSignatures_UnsignedNote",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 44,
+        "FullName": "NoteSignatureLifecycleServiceTest.testIsPendingRequiredSignatures_UnsignedNote"
+      },
+      {
+        "Id": "07MRT00000TFFKp2AP",
+        "QueueItemId": "709RT00000GWO7dYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testWithInterviewFields",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5ZYAS",
+          "Name": "NoteSignatureLifecycleServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 29,
+        "FullName": "NoteSignatureLifecycleServiceTest.testWithInterviewFields"
+      },
+      {
+        "Id": "07MRT00000TFFJE2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluateInteractionSummary_InMemory",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 336,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluateInteractionSummary_InMemory"
+      },
+      {
+        "Id": "07MRT00000TFFJF2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluateInterview_InMemoryInterview",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 39,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluateInterview_InMemoryInterview"
+      },
+      {
+        "Id": "07MRT00000TFFJG2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluate_HardLocked",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluate_HardLocked"
+      },
+      {
+        "Id": "07MRT00000TFFJH2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluate_Locked",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluate_Locked"
+      },
+      {
+        "Id": "07MRT00000TFFJI2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluate_NullDatetime",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluate_NullDatetime"
+      },
+      {
+        "Id": "07MRT00000TFFJJ2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluate_Overdue",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluate_Overdue"
+      },
+      {
+        "Id": "07MRT00000TFFJK2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluate_RecentService",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluate_RecentService"
+      },
+      {
+        "Id": "07MRT00000TFFJL2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testEvaluate_ReminderDue",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 11,
+        "FullName": "DocumentationDeadlineServiceTest.testEvaluate_ReminderDue"
+      },
+      {
+        "Id": "07MRT00000TFFJM2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testIsAuthorCompletionWithinWindow_NullParams",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testIsAuthorCompletionWithinWindow_NullParams"
+      },
+      {
+        "Id": "07MRT00000TFFJN2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testIsAuthorCompletionWithinWindow_OutsideWindow",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testIsAuthorCompletionWithinWindow_OutsideWindow"
+      },
+      {
+        "Id": "07MRT00000TFFJO2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testIsAuthorCompletionWithinWindow_WithinWindow",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testIsAuthorCompletionWithinWindow_WithinWindow"
+      },
+      {
+        "Id": "07MRT00000TFFJP2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testProcessInterviewLocks",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 66,
+        "FullName": "DocumentationDeadlineServiceTest.testProcessInterviewLocks"
+      },
+      {
+        "Id": "07MRT00000TFFJQ2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testProcessNoteLocks",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 24,
+        "FullName": "DocumentationDeadlineServiceTest.testProcessNoteLocks"
+      },
+      {
+        "Id": "07MRT00000TFFJR2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testRequiresManagerEscalation_LateEntry",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testRequiresManagerEscalation_LateEntry"
+      },
+      {
+        "Id": "07MRT00000TFFJS2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testRequiresManagerEscalation_NullParams",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testRequiresManagerEscalation_NullParams"
+      },
+      {
+        "Id": "07MRT00000TFFJT2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testRequiresManagerEscalation_OnTimeEntry",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 11,
+        "FullName": "DocumentationDeadlineServiceTest.testRequiresManagerEscalation_OnTimeEntry"
+      },
+      {
+        "Id": "07MRT00000TFFJU2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveAuthorCompletionDateTime_NullInterview",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 11,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveAuthorCompletionDateTime_NullInterview"
+      },
+      {
+        "Id": "07MRT00000TFFJV2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveAuthorCompletionDateTime_NullNote",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveAuthorCompletionDateTime_NullNote"
+      },
+      {
+        "Id": "07MRT00000TFFJW2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveAuthorCompletion_InterviewWithCompletedOn",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 32,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveAuthorCompletion_InterviewWithCompletedOn"
+      },
+      {
+        "Id": "07MRT00000TFFJX2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveAuthorCompletion_NoteWithCompletedOn",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 30,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveAuthorCompletion_NoteWithCompletedOn"
+      },
+      {
+        "Id": "07MRT00000TFFJY2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveInteractionServiceDateTime_Null",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveInteractionServiceDateTime_Null"
+      },
+      {
+        "Id": "07MRT00000TFFJZ2A5",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveInteractionServiceDateTime_WithDate",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 32,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveInteractionServiceDateTime_WithDate"
+      },
+      {
+        "Id": "07MRT00000TFFJa2AP",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveInterviewServiceDateTime_Null",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 9,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveInterviewServiceDateTime_Null"
+      },
+      {
+        "Id": "07MRT00000TFFJb2AP",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testResolveInterviewServiceDateTime_WithStartedOn",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 29,
+        "FullName": "DocumentationDeadlineServiceTest.testResolveInterviewServiceDateTime_WithStartedOn"
+      },
+      {
+        "Id": "07MRT00000TFFJc2AP",
+        "QueueItemId": "709RT00000GWO7eYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSendDeadlineNotifications",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5VYAS",
+          "Name": "DocumentationDeadlineServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 37,
+        "FullName": "DocumentationDeadlineServiceTest.testSendDeadlineNotifications"
+      },
+      {
+        "Id": "07MRT00000TFFIz2AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testDTOInstantiation",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 67,
+        "FullName": "ICD10CodeControllerTest.testDTOInstantiation"
+      },
+      {
+        "Id": "07MRT00000TFFJ02AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetCategories",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 277,
+        "FullName": "ICD10CodeControllerTest.testGetCategories"
+      },
+      {
+        "Id": "07MRT00000TFFJ12AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetChildCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 241,
+        "FullName": "ICD10CodeControllerTest.testGetChildCodes"
+      },
+      {
+        "Id": "07MRT00000TFFJ22AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetChildCodes_NonExistentParent",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 229,
+        "FullName": "ICD10CodeControllerTest.testGetChildCodes_NonExistentParent"
+      },
+      {
+        "Id": "07MRT00000TFFJ32AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetCodeByValue",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 256,
+        "FullName": "ICD10CodeControllerTest.testGetCodeByValue"
+      },
+      {
+        "Id": "07MRT00000TFFJ42AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetCodeByValue_NonExistent",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 20,
+        "FullName": "ICD10CodeControllerTest.testGetCodeByValue_NonExistent"
+      },
+      {
+        "Id": "07MRT00000TFFJ52AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetCodeHierarchy",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 323,
+        "FullName": "ICD10CodeControllerTest.testGetCodeHierarchy"
+      },
+      {
+        "Id": "07MRT00000TFFJ62AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetFrequentlyUsedCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 247,
+        "FullName": "ICD10CodeControllerTest.testGetFrequentlyUsedCodes"
+      },
+      {
+        "Id": "07MRT00000TFFJ72AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetTopLevelCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 200,
+        "FullName": "ICD10CodeControllerTest.testGetTopLevelCodes"
+      },
+      {
+        "Id": "07MRT00000TFFJ82AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetTopLevelCodes_EmptyCategory",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 221,
+        "FullName": "ICD10CodeControllerTest.testGetTopLevelCodes_EmptyCategory"
+      },
+      {
+        "Id": "07MRT00000TFFJ92AP",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSearchCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 220,
+        "FullName": "ICD10CodeControllerTest.testSearchCodes"
+      },
+      {
+        "Id": "07MRT00000TFFJA2A5",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSearchCodes_ShortTerm",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 232,
+        "FullName": "ICD10CodeControllerTest.testSearchCodes_ShortTerm"
+      },
+      {
+        "Id": "07MRT00000TFFJB2A5",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSearchCodes_WithCategory",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 220,
+        "FullName": "ICD10CodeControllerTest.testSearchCodes_WithCategory"
+      },
+      {
+        "Id": "07MRT00000TFFJC2A5",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testValidateCodeSelection",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 211,
+        "FullName": "ICD10CodeControllerTest.testValidateCodeSelection"
+      },
+      {
+        "Id": "07MRT00000TFFJD2A5",
+        "QueueItemId": "709RT00000GWO7fYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testValidateCodeSelection_Null",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5XYAS",
+          "Name": "ICD10CodeControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 11,
+        "FullName": "ICD10CodeControllerTest.testValidateCodeSelection_Null"
+      },
+      {
+        "Id": "07MRT00000TFCrT2AX",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testDTOInstantiation",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 4,
+        "FullName": "GoalAssignmentControllerTest.testDTOInstantiation"
+      },
+      {
+        "Id": "07MRT00000TFCrU2AX",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testDeleteGoalAssignment",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 1837,
+        "FullName": "GoalAssignmentControllerTest.testDeleteGoalAssignment"
+      },
+      {
+        "Id": "07MRT00000TFCrV2AX",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetGoalAssignments",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 52,
+        "FullName": "GoalAssignmentControllerTest.testGetGoalAssignments"
+      },
+      {
+        "Id": "07MRT00000TFCrW2AX",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetGoalAssignmentsLive",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 35,
+        "FullName": "GoalAssignmentControllerTest.testGetGoalAssignmentsLive"
+      },
+      {
+        "Id": "07MRT00000TFCrX2AX",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetGoalAssignments_NoGoals",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 37,
+        "FullName": "GoalAssignmentControllerTest.testGetGoalAssignments_NoGoals"
+      },
+      {
+        "Id": "07MRT00000TFCrY2AX",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSaveGoalAssignment_InvalidJson",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 7,
+        "FullName": "GoalAssignmentControllerTest.testSaveGoalAssignment_InvalidJson"
+      },
+      {
+        "Id": "07MRT00000TFCrZ2AX",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSaveGoalAssignment_MinimalJson",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 288,
+        "FullName": "GoalAssignmentControllerTest.testSaveGoalAssignment_MinimalJson"
+      },
+      {
+        "Id": "07MRT00000TFCra2AH",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSaveGoalAssignment_NewGoal",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 204,
+        "FullName": "GoalAssignmentControllerTest.testSaveGoalAssignment_NewGoal"
+      },
+      {
+        "Id": "07MRT00000TFCrb2AH",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testSaveGoalAssignment_UpdateExisting",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 250,
+        "FullName": "GoalAssignmentControllerTest.testSaveGoalAssignment_UpdateExisting"
+      },
+      {
+        "Id": "07MRT00000TFCrc2AH",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testUpdateCarePlanDetails",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 185,
+        "FullName": "GoalAssignmentControllerTest.testUpdateCarePlanDetails"
+      },
+      {
+        "Id": "07MRT00000TFCrd2AH",
+        "QueueItemId": "709RT00000GWO7gYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testUpdateCarePlanDetails_NullDates",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5WYAS",
+          "Name": "GoalAssignmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 160,
+        "FullName": "GoalAssignmentControllerTest.testUpdateCarePlanDetails_NullDates"
+      },
+      {
+        "Id": "07MRT00000TFFME2A5",
+        "QueueItemId": "709RT00000GWO7hYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testBoardDataDTO_Instantiation",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5bYAC",
+          "Name": "TreatmentPlanBoardControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 12,
+        "FullName": "TreatmentPlanBoardControllerTest.testBoardDataDTO_Instantiation"
+      },
+      {
+        "Id": "07MRT00000TFFMF2A5",
+        "QueueItemId": "709RT00000GWO7hYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testCarePlanSummaryDTO_Instantiation",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5bYAC",
+          "Name": "TreatmentPlanBoardControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 4,
+        "FullName": "TreatmentPlanBoardControllerTest.testCarePlanSummaryDTO_Instantiation"
+      },
+      {
+        "Id": "07MRT00000TFFMG2A5",
+        "QueueItemId": "709RT00000GWO7hYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testCaseHasActiveTreatmentPlan",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5bYAC",
+          "Name": "TreatmentPlanBoardControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 72,
+        "FullName": "TreatmentPlanBoardControllerTest.testCaseHasActiveTreatmentPlan"
+      },
+      {
+        "Id": "07MRT00000TFFMH2A5",
+        "QueueItemId": "709RT00000GWO7hYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testForceTreatmentPlanActivation_NoInterview",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5bYAC",
+          "Name": "TreatmentPlanBoardControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 56,
+        "FullName": "TreatmentPlanBoardControllerTest.testForceTreatmentPlanActivation_NoInterview"
+      },
+      {
+        "Id": "07MRT00000TFFMI2A5",
+        "QueueItemId": "709RT00000GWO7hYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testForceTreatmentPlanActivation_WithInterview",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5bYAC",
+          "Name": "TreatmentPlanBoardControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 639,
+        "FullName": "TreatmentPlanBoardControllerTest.testForceTreatmentPlanActivation_WithInterview"
+      },
+      {
+        "Id": "07MRT00000TFFMJ2A5",
+        "QueueItemId": "709RT00000GWO7hYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetTreatmentPlanBoardData",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5bYAC",
+          "Name": "TreatmentPlanBoardControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 71,
+        "FullName": "TreatmentPlanBoardControllerTest.testGetTreatmentPlanBoardData"
+      },
+      {
+        "Id": "07MRT00000TFFMK2A5",
+        "QueueItemId": "709RT00000GWO7hYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testTreatmentPlanSummaryDTO_Instantiation",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5bYAC",
+          "Name": "TreatmentPlanBoardControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 3,
+        "FullName": "TreatmentPlanBoardControllerTest.testTreatmentPlanSummaryDTO_Instantiation"
+      },
+      {
+        "Id": "07MRT00000TFAci2AH",
+        "QueueItemId": "709RT00000GWO7iYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetSsrsAssessmentResponses_NoAssessment",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5aYAC",
+          "Name": "SSRSAssessmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 39,
+        "FullName": "SSRSAssessmentControllerTest.testGetSsrsAssessmentResponses_NoAssessment"
+      },
+      {
+        "Id": "07MRT00000TFAcj2AH",
+        "QueueItemId": "709RT00000GWO7iYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetSsrsAssessmentResponses_WithAssessment",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5aYAC",
+          "Name": "SSRSAssessmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 720,
+        "FullName": "SSRSAssessmentControllerTest.testGetSsrsAssessmentResponses_WithAssessment"
+      },
+      {
+        "Id": "07MRT00000TFAck2AH",
+        "QueueItemId": "709RT00000GWO7iYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testHeaderDTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5aYAC",
+          "Name": "SSRSAssessmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 4,
+        "FullName": "SSRSAssessmentControllerTest.testHeaderDTO"
+      },
+      {
+        "Id": "07MRT00000TFAcl2AH",
+        "QueueItemId": "709RT00000GWO7iYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testInitAssessment_NewAssessment",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5aYAC",
+          "Name": "SSRSAssessmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 35,
+        "FullName": "SSRSAssessmentControllerTest.testInitAssessment_NewAssessment"
+      },
+      {
+        "Id": "07MRT00000TFAcm2AH",
+        "QueueItemId": "709RT00000GWO7iYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testInitAssessment_WithExistingAssessment",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5aYAC",
+          "Name": "SSRSAssessmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 83,
+        "FullName": "SSRSAssessmentControllerTest.testInitAssessment_WithExistingAssessment"
+      },
+      {
+        "Id": "07MRT00000TFAcn2AH",
+        "QueueItemId": "709RT00000GWO7iYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testInitResponse_DTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5aYAC",
+          "Name": "SSRSAssessmentControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 3,
+        "FullName": "SSRSAssessmentControllerTest.testInitResponse_DTO"
+      },
+      {
+        "Id": "07MRT00000TF3oD2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testCreateInteraction_MissingAccount",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 19,
+        "FullName": "NewInteractionControllerTest.testCreateInteraction_MissingAccount"
+      },
+      {
+        "Id": "07MRT00000TF3oE2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testCreateInteraction_MissingTime",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 13,
+        "FullName": "NewInteractionControllerTest.testCreateInteraction_MissingTime"
+      },
+      {
+        "Id": "07MRT00000TF3oF2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testCreateInteraction_NoDate",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 398,
+        "FullName": "NewInteractionControllerTest.testCreateInteraction_NoDate"
+      },
+      {
+        "Id": "07MRT00000TF3oG2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testCreateInteraction_NoPurpose",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 97,
+        "FullName": "NewInteractionControllerTest.testCreateInteraction_NoPurpose"
+      },
+      {
+        "Id": "07MRT00000TF3oH2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testCreateInteraction_ValidRequest",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 112,
+        "FullName": "NewInteractionControllerTest.testCreateInteraction_ValidRequest"
+      },
+      {
+        "Id": "07MRT00000TF3oI2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testGetInteractionPurposes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 53,
+        "FullName": "NewInteractionControllerTest.testGetInteractionPurposes"
+      },
+      {
+        "Id": "07MRT00000TF3oJ2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testInteractionRequestDTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 8,
+        "FullName": "NewInteractionControllerTest.testInteractionRequestDTO"
+      },
+      {
+        "Id": "07MRT00000TF3oK2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testInteractionResultDTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 7,
+        "FullName": "NewInteractionControllerTest.testInteractionResultDTO"
+      },
+      {
+        "Id": "07MRT00000TF3oL2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testTriggerDocGen_Error",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 77,
+        "FullName": "NewInteractionControllerTest.testTriggerDocGen_Error"
+      },
+      {
+        "Id": "07MRT00000TF3oM2AT",
+        "QueueItemId": "709RT00000GWO7jYAH",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002Di689YAB",
+        "MethodName": "testTriggerDocGen_Success",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Lo5YYAS",
+          "Name": "NewInteractionControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 77,
+        "FullName": "NewInteractionControllerTest.testTriggerDocGen_Success"
+      }
+    ]
+  },
+  "warnings": []
+}

@@ -247,7 +247,11 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             this.loadInterviewDocInfo(this.selectedPendingKey);
         }
 
-        this.autoOpenPendingItem();
+        // NOTE: Auto-opening pending items on tab load was locking users out of the
+        // Pending Documentation tab — every click re-launched the most recent
+        // actionable interview/draft. The notification deep-link path
+        // (loadOpenRequest) already handles opening items when the user arrives
+        // from a bell-icon notification, so we no longer auto-open here.
     }
 
     async loadOpenRequest() {
@@ -1354,6 +1358,8 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
 
     startInterviewAmendment(item) {
         const interviewId = item?.sourceRecordId || item?.id;
+        const caseId = item?.caseId;
+        const templateVersionId = item?.templateVersionId;
         if (!interviewId) {
             return;
         }
@@ -1369,18 +1375,20 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             return;
         }
         
-        // Navigate to the Interview record to start amendment workflow
-        // The Interview record page should have an "Amend" action that creates the amendment
+        if (!caseId || !templateVersionId) {
+            this.showToast('Amendment Unavailable', 'Missing Case or template information needed to start the amendment workflow.', 'error');
+            return;
+        }
+
+        const vfPageUrl = `/apex/InterviewSession?caseId=${caseId}&templateVersionId=${templateVersionId}&interviewId=${interviewId}&startStep=interview`;
         this[NavigationMixin.Navigate]({
-            type: 'standard__recordPage',
+            type: 'standard__webPage',
             attributes: {
-                recordId: interviewId,
-                objectApiName: 'Interview__c',
-                actionName: 'view'
+                url: vfPageUrl
             }
         });
-        
-        this.showToast('Amendment Started', 'Navigate to the Interview record and use the Amend action to create a formal amendment.', 'info');
+
+        this.showToast('Amendment Started', 'Opening the interview amendment workflow.', 'info');
     }
     
     // Modal handlers

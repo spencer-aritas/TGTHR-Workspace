@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Employment_Status__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Current employment status.</inlineHelpText>
     <label>Employment Status</label>
     <required>false</required>
@@ -12,16 +11,116 @@
         <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
-            <value><fullName>Employed Full-Time</fullName><default>false</default><label>Employed Full-Time</label></value>
-            <value><fullName>Employed Part-Time</fullName><default>false</default><label>Employed Part-Time</label></value>
-            <value><fullName>Self-Employed</fullName><default>false</default><label>Self-Employed</label></value>
-            <value><fullName>Gig Economy/Contract Work</fullName><default>false</default><label>Gig Economy/Contract Work</label></value>
-            <value><fullName>Unemployed - Seeking Work</fullName><default>false</default><label>Unemployed - Seeking Work</label></value>
-            <value><fullName>Unemployed - Not Seeking Work</fullName><default>false</default><label>Unemployed - Not Seeking Work</label></value>
-            <value><fullName>Retired</fullName><default>false</default><label>Retired</label></value>
-            <value><fullName>Student</fullName><default>false</default><label>Student</label></value>
-            <value><fullName>Disabled - Unable to Work</fullName><default>false</default><label>Disabled - Unable to Work</label></value>
-            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+            <value>
+                <fullName>Employed Full-Time</fullName>
+                <default>false</default>
+                <label>Employed Full-Time</label>
+            </value>
+            <value>
+                <fullName>Employed Part-Time</fullName>
+                <default>false</default>
+                <label>Employed Part-Time</label>
+            </value>
+            <value>
+                <fullName>Self-Employed</fullName>
+                <default>false</default>
+                <label>Self-Employed</label>
+            </value>
+            <value>
+                <fullName>Gig Economy/Contract Work</fullName>
+                <default>false</default>
+                <label>Gig Economy/Contract Work</label>
+            </value>
+            <value>
+                <fullName>Unemployed - Seeking Work</fullName>
+                <default>false</default>
+                <label>Unemployed - Seeking Work</label>
+            </value>
+            <value>
+                <fullName>Unemployed - Not Seeking Work</fullName>
+                <default>false</default>
+                <label>Unemployed - Not Seeking Work</label>
+            </value>
+            <value>
+                <fullName>Retired</fullName>
+                <default>false</default>
+                <label>Retired</label>
+            </value>
+            <value>
+                <fullName>Student</fullName>
+                <default>false</default>
+                <label>Student</label>
+            </value>
+            <value>
+                <fullName>Disabled - Unable to Work</fullName>
+                <default>false</default>
+                <label>Disabled - Unable to Work</label>
+            </value>
+            <value>
+                <fullName>Other</fullName>
+                <default>false</default>
+                <label>Other</label>
+            </value>
+            <value>
+                <fullName>Client Doesn&apos;t Know</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Client Doesn&apos;t Know</label>
+            </value>
+            <value>
+                <fullName>Data Not Collected</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Data Not Collected</label>
+            </value>
+            <value>
+                <fullName>Full-time (35+ hours/week)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Full-time (35+ hours/week)</label>
+            </value>
+            <value>
+                <fullName>Not in Labor Force</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Not in Labor Force</label>
+            </value>
+            <value>
+                <fullName>Part-time (less than 35 hours/week)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Part-time (less than 35 hours/week)</label>
+            </value>
+            <value>
+                <fullName>Prefers Not to Answer</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Prefers Not to Answer</label>
+            </value>
+            <value>
+                <fullName>Seasonal/Sporadic</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Seasonal/Sporadic</label>
+            </value>
+            <value>
+                <fullName>Seeking Employment</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Seeking Employment</label>
+            </value>
+            <value>
+                <fullName>Unable to Work</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Unable to Work</label>
+            </value>
+            <value>
+                <fullName>Unemployed</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Unemployed</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

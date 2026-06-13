@@ -244,7 +244,17 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     get shouldAutoRestoreDraft() {
-        return this.isIntakeMode === true && !this.effectiveInterviewId;
+        // Auto-restore (no confirm prompt) for intake-mode sessions, and when the
+        // user is editing a recalled interview – in the recall case the draft was
+        // created during this same edit cycle, so prompting "restore your previous
+        // progress?" would be confusing.
+        if (this.isIntakeMode === true && !this.effectiveInterviewId) {
+            return true;
+        }
+        if (this.effectiveInterviewId) {
+            return true;
+        }
+        return false;
     }
 
     get recordTypeId() {
@@ -331,6 +341,11 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             // looking for a draft – the recalled record IS the source of truth.
             if (this.effectiveInterviewId) {
                 await this.restoreRecalledInterview(this.effectiveInterviewId);
+                // ...then overlay any in-progress draft saved while editing the recalled
+                // interview. Without this, Save & Continue / Save & Close during a recall
+                // edit appears to succeed but the next reopen reloads only the original
+                // recalled record and silently discards the user's edits.
+                await this.checkForDraft();
             } else {
                 // Check for existing draft
                 await this.checkForDraft();

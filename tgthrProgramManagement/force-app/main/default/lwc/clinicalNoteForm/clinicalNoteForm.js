@@ -17,7 +17,7 @@ import getSigningAuthorities from '@salesforce/apex/PendingDocumentationControll
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
-import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
+import POS_FIELD from '@salesforce/schema/InteractionSummary.Place_of_Service__c';
 
 const DEFAULT_RICH_TEXT_FORMATS = ['bold', 'italic', 'underline', 'strike', 'list', 'link'];
 
@@ -155,7 +155,6 @@ export default class ClinicalNoteForm extends NavigationMixin(LightningElement) 
         { name: 'narrative', label: 'Notes' },
         { name: 'assessment', label: 'Risk Assessment' },
         { name: 'services', label: 'Services Provided' },
-        { name: 'codes', label: 'Diagnosis Codes' },
         { name: 'cptCodes', label: 'CPT Billing Codes' },
         { name: 'signature', label: 'Signature' }
     ];

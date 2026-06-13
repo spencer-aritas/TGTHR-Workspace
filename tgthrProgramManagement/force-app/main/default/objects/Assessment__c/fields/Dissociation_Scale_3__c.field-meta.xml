@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Dissociation_Scale_3__c</fullName>
     <externalId>false</externalId>
-    <inlineHelpText>Dissociation screening: I can't tell whether I am remembering or if it is happening. (0=Always, 10=Never)</inlineHelpText>
+    <inlineHelpText>Dissociation screening: I can&apos;t tell whether I am remembering or if it is happening. (0=Always, 10=Never)</inlineHelpText>
     <label>Dissociation Scale 3</label>
     <precision>2</precision>
     <required>false</required>

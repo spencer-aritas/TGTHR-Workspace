@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Fleeting - few seconds or minutes</fullName>
+        <default>false</default>
+        <label>Fleeting - few seconds or minutes</label>
+    </customValue>
+    <customValue>
+        <fullName>Less than 1 hour/some of the time</fullName>
+        <default>false</default>
+        <label>Less than 1 hour/some of the time</label>
+    </customValue>
+    <customValue>
+        <fullName>1-4 hours/a lot of the time</fullName>
+        <default>false</default>
+        <label>1-4 hours/a lot of the time</label>
+    </customValue>
+    <customValue>
+        <fullName>4-8 hours/most of the day</fullName>
+        <default>false</default>
+        <label>4-8 hours/most of the day</label>
+    </customValue>
+    <customValue>
+        <fullName>More than 8 hours/persistent or continuous</fullName>
+        <default>false</default>
+        <label>More than 8 hours/persistent or continuous</label>
+    </customValue>
+    <masterLabel>Duration</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Is_Locked__c</fullName>
-    <label>Is Locked</label>
+    <defaultValue>false</defaultValue>
     <description>Indicates if this interview is locked and cannot be edited (typically 72 hours after completion).</description>
     <inlineHelpText>When locked, this interview requires supervisor approval to amend. Set automatically by scheduled job.</inlineHelpText>
+    <label>Is Locked</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Checkbox</type>
-    <defaultValue>false</defaultValue>
 </CustomField>

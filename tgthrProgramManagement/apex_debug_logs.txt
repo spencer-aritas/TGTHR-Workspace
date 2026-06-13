@@ -1,0 +1,288 @@
+66.0 APEX_CODE,DEBUG;APEX_PROFILING,INFO
+Execute Anonymous: // Production cleanup for provided OD cohort:
+Execute Anonymous: // - Keep/ensure one active Outreach & Drop-In enrollment
+Execute Anonymous: // - Close active legacy The Source enrollments
+Execute Anonymous: // - Ensure one open Case exists (create only if none open)
+Execute Anonymous: 
+Execute Anonymous: Id OD_PROGRAM_ID = '11WVY000005ea9y2AA';
+Execute Anonymous: Set<Id> LEGACY_PROGRAM_IDS = new Set<Id>{
+Execute Anonymous:     '11WVY000000GC212AG', // The Source Drop-In
+Execute Anonymous:     '11WVY000000GC0P2AW'  // The Source Outreach
+Execute Anonymous: };
+Execute Anonymous: Id DEFAULT_OWNER_ID = '005VY000002UFYBYA4'; // Cate Buck
+Execute Anonymous: Date TODAY = Date.today();
+Execute Anonymous: 
+Execute Anonymous: Set<Id> accountIds = new Set<Id>{
+Execute Anonymous:     '001VY00000iS7bVYAS','001VY00000INIxyYAH','001VY00000kmzd1YAA','001VY00000CGSpMYAX',
+Execute Anonymous:     '001VY00000CGRo9YAH','001VY00000CGXapYAH','001VY00000CGRnoYAH','001VY00000Hf3BUYAZ',
+Execute Anonymous:     '001VY00000j2rEQYAY','001VY00000DQ0uXYAT','001VY00000CGSsVYAX','001VY00000cZWlWYAW',
+Execute Anonymous:     '001VY00000CGSsdYAH','001VY00000CGSpsYAH','001VY00000CGSp1YAH','001VY00000Yz8bOYAR',
+Execute Anonymous:     '001VY00000ChdaIYAR','001VY00000cKGyqYAG','001VY00000CRmJOYA1','001VY00000hoMmAYAU',
+Execute Anonymous:     '001VY00000jpJgFYAU','001VY00000nHEonYAG','001VY00000lqQGIYA2','001VY00000CGS3HYAX',
+Execute Anonymous:     '001VY00000CGIYJYA5','001VY00000UG7p3YAD','001VY00000CGSs0YAH','001VY00000CGSsZYAX',
+Execute Anonymous:     '001VY00000n9GXaYAM'
+Execute Anonymous: };
+Execute Anonymous: 
+Execute Anonymous: Map<Id, Account> accountsById = new Map<Id, Account>([
+Execute Anonymous:     SELECT Id, Name
+Execute Anonymous:     FROM Account
+Execute Anonymous:     WHERE Id IN :accountIds
+Execute Anonymous: ]);
+Execute Anonymous: 
+Execute Anonymous: List<Case> caseRows = [
+Execute Anonymous:     SELECT Id, AccountId, Status, CreatedDate
+Execute Anonymous:     FROM Case
+Execute Anonymous:     WHERE AccountId IN :accountIds
+Execute Anonymous:     ORDER BY AccountId, CreatedDate DESC
+Execute Anonymous: ];
+Execute Anonymous: 
+Execute Anonymous: Map<Id, List<Case>> openCasesByAccount = new Map<Id, List<Case>>();
+Execute Anonymous: for (Case c : caseRows) {
+Execute Anonymous:     if (c.Status == 'Closed') continue;
+Execute Anonymous:     if (!openCasesByAccount.containsKey(c.AccountId)) {
+Execute Anonymous:         openCasesByAccount.put(c.AccountId, new List<Case>());
+Execute Anonymous:     }
+Execute Anonymous:     openCasesByAccount.get(c.AccountId).add(c);
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: List<Case> casesToInsert = new List<Case>();
+Execute Anonymous: for (Id aid : accountIds) {
+Execute Anonymous:     List<Case> openCases = openCasesByAccount.get(aid);
+Execute Anonymous:     if (openCases == null || openCases.isEmpty()) {
+Execute Anonymous:         String accName = accountsById.containsKey(aid) ? accountsById.get(aid).Name : 'Participant';
+Execute Anonymous:         casesToInsert.add(new Case(
+Execute Anonymous:             AccountId = aid,
+Execute Anonymous:             OwnerId = DEFAULT_OWNER_ID,
+Execute Anonymous:             Status = 'New',
+Execute Anonymous:             Origin = 'Other',
+Execute Anonymous:             Subject = 'Outreach & Drop-In Case - ' + accName
+Execute Anonymous:         ));
+Execute Anonymous:     }
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: Integer casesInserted = 0;
+Execute Anonymous: Integer caseInsertErrors = 0;
+Execute Anonymous: if (!casesToInsert.isEmpty()) {
+Execute Anonymous:     Database.SaveResult[] caseResults = Database.insert(casesToInsert, false);
+Execute Anonymous:     for (Database.SaveResult sr : caseResults) {
+Execute Anonymous:         if (sr.isSuccess()) {
+Execute Anonymous:             casesInserted++;
+Execute Anonymous:         } else {
+Execute Anonymous:             caseInsertErrors++;
+Execute Anonymous:             for (Database.Error e : sr.getErrors()) {
+Execute Anonymous:                 System.debug('CASE_INSERT_ERROR: ' + e.getStatusCode() + ' - ' + e.getMessage());
+Execute Anonymous:             }
+Execute Anonymous:         }
+Execute Anonymous:     }
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: // Rebuild open-case map after inserts so new enrollments can point at a case.
+Execute Anonymous: caseRows = [
+Execute Anonymous:     SELECT Id, AccountId, Status, CreatedDate
+Execute Anonymous:     FROM Case
+Execute Anonymous:     WHERE AccountId IN :accountIds
+Execute Anonymous:     ORDER BY AccountId, CreatedDate DESC
+Execute Anonymous: ];
+Execute Anonymous: openCasesByAccount.clear();
+Execute Anonymous: for (Case c : caseRows) {
+Execute Anonymous:     if (c.Status == 'Closed') continue;
+Execute Anonymous:     if (!openCasesByAccount.containsKey(c.AccountId)) {
+Execute Anonymous:         openCasesByAccount.put(c.AccountId, new List<Case>());
+Execute Anonymous:     }
+Execute Anonymous:     openCasesByAccount.get(c.AccountId).add(c);
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: Map<Id, Id> canonicalCaseByAccount = new Map<Id, Id>();
+Execute Anonymous: for (Id aid : accountIds) {
+Execute Anonymous:     List<Case> openCases = openCasesByAccount.get(aid);
+Execute Anonymous:     if (openCases != null && !openCases.isEmpty()) {
+Execute Anonymous:         canonicalCaseByAccount.put(aid, openCases[0].Id); // most recent open case
+Execute Anonymous:     }
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: List<ProgramEnrollment> activeEnrollments = [
+Execute Anonymous:     SELECT Id, AccountId, ProgramId, IsActive, StartDate, EndDate, Case__c, CreatedDate
+Execute Anonymous:     FROM ProgramEnrollment
+Execute Anonymous:     WHERE AccountId IN :accountIds
+Execute Anonymous:       AND IsActive = true
+Execute Anonymous:       AND (ProgramId = :OD_PROGRAM_ID OR ProgramId IN :LEGACY_PROGRAM_IDS)
+Execute Anonymous:     ORDER BY AccountId, CreatedDate DESC
+Execute Anonymous: ];
+Execute Anonymous: 
+Execute Anonymous: Map<Id, List<ProgramEnrollment>> activeByAccount = new Map<Id, List<ProgramEnrollment>>();
+Execute Anonymous: for (ProgramEnrollment pe : activeEnrollments) {
+Execute Anonymous:     if (!activeByAccount.containsKey(pe.AccountId)) {
+Execute Anonymous:         activeByAccount.put(pe.AccountId, new List<ProgramEnrollment>());
+Execute Anonymous:     }
+Execute Anonymous:     activeByAccount.get(pe.AccountId).add(pe);
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: List<ProgramEnrollment> enrollmentsToClose = new List<ProgramEnrollment>();
+Execute Anonymous: List<ProgramEnrollment> enrollmentsToInsert = new List<ProgramEnrollment>();
+Execute Anonymous: 
+Execute Anonymous: for (Id aid : accountIds) {
+Execute Anonymous:     List<ProgramEnrollment> rows = activeByAccount.get(aid);
+Execute Anonymous:     if (rows == null) rows = new List<ProgramEnrollment>();
+Execute Anonymous: 
+Execute Anonymous:     List<ProgramEnrollment> odActive = new List<ProgramEnrollment>();
+Execute Anonymous:     for (ProgramEnrollment pe : rows) {
+Execute Anonymous:         if (pe.ProgramId == OD_PROGRAM_ID) {
+Execute Anonymous:             odActive.add(pe);
+Execute Anonymous:         }
+Execute Anonymous:         if (LEGACY_PROGRAM_IDS.contains(pe.ProgramId)) {
+Execute Anonymous:             pe.IsActive = false;
+Execute Anonymous:             pe.EndDate = TODAY;
+Execute Anonymous:             enrollmentsToClose.add(pe);
+Execute Anonymous:         }
+Execute Anonymous:     }
+Execute Anonymous: 
+Execute Anonymous:     if (odActive.isEmpty()) {
+Execute Anonymous:         ProgramEnrollment newPe = new ProgramEnrollment();
+Execute Anonymous:         newPe.AccountId = aid;
+Execute Anonymous:         newPe.ProgramId = OD_PROGRAM_ID;
+Execute Anonymous:         newPe.IsActive = true;
+Execute Anonymous:         newPe.StartDate = TODAY;
+Execute Anonymous:         newPe.Status = 'Enrolled';
+Execute Anonymous:         if (canonicalCaseByAccount.containsKey(aid)) {
+Execute Anonymous:             newPe.Case__c = canonicalCaseByAccount.get(aid);
+Execute Anonymous:         }
+Execute Anonymous:         enrollmentsToInsert.add(newPe);
+Execute Anonymous:     } else if (odActive.size() > 1) {
+Execute Anonymous:         // Keep the most recent OD enrollment only.
+Execute Anonymous:         for (Integer i = 1; i < odActive.size(); i++) {
+Execute Anonymous:             ProgramEnrollment dup = odActive[i];
+Execute Anonymous:             dup.IsActive = false;
+Execute Anonymous:             dup.EndDate = TODAY;
+Execute Anonymous:             enrollmentsToClose.add(dup);
+Execute Anonymous:         }
+Execute Anonymous:     }
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: Integer enrollmentsClosed = 0;
+Execute Anonymous: Integer closeErrors = 0;
+Execute Anonymous: if (!enrollmentsToClose.isEmpty()) {
+Execute Anonymous:     Database.SaveResult[] closeResults = Database.update(enrollmentsToClose, false);
+Execute Anonymous:     for (Database.SaveResult sr : closeResults) {
+Execute Anonymous:         if (sr.isSuccess()) {
+Execute Anonymous:             enrollmentsClosed++;
+Execute Anonymous:         } else {
+Execute Anonymous:             closeErrors++;
+Execute Anonymous:             for (Database.Error e : sr.getErrors()) {
+Execute Anonymous:                 System.debug('ENROLLMENT_CLOSE_ERROR: ' + e.getStatusCode() + ' - ' + e.getMessage());
+Execute Anonymous:             }
+Execute Anonymous:         }
+Execute Anonymous:     }
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: Integer enrollmentsInserted = 0;
+Execute Anonymous: Integer insertErrors = 0;
+Execute Anonymous: if (!enrollmentsToInsert.isEmpty()) {
+Execute Anonymous:     Database.SaveResult[] insertResults = Database.insert(enrollmentsToInsert, false);
+Execute Anonymous:     for (Database.SaveResult sr : insertResults) {
+Execute Anonymous:         if (sr.isSuccess()) {
+Execute Anonymous:             enrollmentsInserted++;
+Execute Anonymous:         } else {
+Execute Anonymous:             insertErrors++;
+Execute Anonymous:             for (Database.Error e : sr.getErrors()) {
+Execute Anonymous:                 System.debug('ENROLLMENT_INSERT_ERROR: ' + e.getStatusCode() + ' - ' + e.getMessage());
+Execute Anonymous:             }
+Execute Anonymous:         }
+Execute Anonymous:     }
+Execute Anonymous: }
+Execute Anonymous: 
+Execute Anonymous: System.debug('OD_CLEANUP_SUMMARY accounts=' + accountIds.size()
+Execute Anonymous:     + ', casesInserted=' + casesInserted
+Execute Anonymous:     + ', caseInsertErrors=' + caseInsertErrors
+Execute Anonymous:     + ', enrollmentsClosed=' + enrollmentsClosed
+Execute Anonymous:     + ', enrollmentCloseErrors=' + closeErrors
+Execute Anonymous:     + ', enrollmentsInserted=' + enrollmentsInserted
+Execute Anonymous:     + ', enrollmentInsertErrors=' + insertErrors);
+11:02:02.144 (144449084)|USER_INFO|[EXTERNAL]|005VY000003VsDh|sessey@tgthr.org|(GMT-06:00) Mountain Daylight Time (America/Denver)|GMT-06:00
+11:02:02.144 (144603143)|EXECUTION_STARTED
+11:02:02.144 (144660305)|CODE_UNIT_STARTED|[EXTERNAL]|execute_anonymous_apex
+11:02:02.144 (262378514)|CODE_UNIT_STARTED|[EXTERNAL]|Flow:ProgramEnrollment
+11:02:02.144 (288764768)|CODE_UNIT_FINISHED|Flow:ProgramEnrollment
+11:02:02.144 (316156282)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000000aWqz
+11:02:02.144 (316295547)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000000aWqz
+11:02:02.144 (316827191)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000000bFHp
+11:02:02.144 (316919730)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000000bFHp
+11:02:02.144 (317468122)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000000o7EP
+11:02:02.144 (317518065)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000000o7EP
+11:02:02.144 (317803229)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000000othF
+11:02:02.144 (317831736)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000000othF
+11:02:02.144 (318049676)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY0000010yq1
+11:02:02.144 (318088460)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY0000010yq1
+11:02:02.144 (318450879)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY0000011doL
+11:02:02.144 (318535638)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY0000011doL
+11:02:02.144 (318943080)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000001P4W5
+11:02:02.144 (318995480)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000001P4W5
+11:02:02.144 (319413345)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000001TRPF
+11:02:02.144 (319471063)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000001TRPF
+11:02:02.144 (319792931)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000001UaqH
+11:02:02.144 (319826439)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000001UaqH
+11:02:02.144 (321889361)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000001YFDl
+11:02:02.144 (322007484)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000001YFDl
+11:02:02.144 (322442776)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000001YGeT
+11:02:02.144 (322493434)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000001YGeT
+11:02:02.144 (322990627)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000002OnrF
+11:02:02.144 (323031839)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000002OnrF
+11:02:02.144 (323252555)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000002UlBd
+11:02:02.144 (323274524)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000002UlBd
+11:02:02.144 (323460490)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000002WN6n
+11:02:02.144 (323498079)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000002WN6n
+11:02:02.144 (323808273)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000002d0i9
+11:02:02.144 (323851887)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000002d0i9
+11:02:02.144 (324164069)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY00000365T7
+11:02:02.144 (324204856)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY00000365T7
+11:02:02.144 (324982201)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000003WCCt
+11:02:02.144 (325027925)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000003WCCt
+11:02:02.144 (325991693)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000003dgC9
+11:02:02.144 (326049692)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000003dgC9
+11:02:02.144 (326278127)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000003pCBt
+11:02:02.144 (326301167)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000003pCBt
+11:02:02.144 (326476266)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000003ynU7
+11:02:02.144 (326497381)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000003ynU7
+11:02:02.144 (326772435)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004B8Pp
+11:02:02.144 (326817743)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004B8Pp
+11:02:02.144 (327364463)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004KQth
+11:02:02.144 (327426161)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004KQth
+11:02:02.144 (327856406)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004SJTd
+11:02:02.144 (327943692)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004SJTd
+11:02:02.144 (328353543)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004f5d3
+11:02:02.144 (328410053)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004f5d3
+11:02:02.144 (328792359)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004f5iz
+11:02:02.144 (328843787)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004f5iz
+11:02:02.144 (329229993)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004haHF
+11:02:02.144 (329284306)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004haHF
+11:02:02.144 (329687818)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004o5IL
+11:02:02.144 (329743100)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004o5IL
+11:02:02.144 (330201499)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004o5Jx
+11:02:02.144 (330259564)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004o5Jx
+11:02:02.144 (330706286)|CODE_UNIT_STARTED|[EXTERNAL]|Validation:ProgramEnrollment:11XVY000004tkpV
+11:02:02.144 (330765946)|CODE_UNIT_FINISHED|Validation:ProgramEnrollment:11XVY000004tkpV
+11:02:02.144 (489722088)|CODE_UNIT_STARTED|[EXTERNAL]|Flow:ProgramEnrollment
+11:02:02.144 (489771605)|CODE_UNIT_FINISHED|Flow:ProgramEnrollment
+11:02:02.144 (489820910)|CODE_UNIT_STARTED|[EXTERNAL]|Flow:ProgramEnrollment
+11:02:02.144 (489830200)|CODE_UNIT_FINISHED|Flow:ProgramEnrollment
+11:02:02.144 (495322686)|USER_DEBUG|[192]|DEBUG|OD_CLEANUP_SUMMARY accounts=29, casesInserted=0, caseInsertErrors=0, enrollmentsClosed=29, enrollmentCloseErrors=0, enrollmentsInserted=0, enrollmentInsertErrors=0
+11:02:02.566 (566067423)|CUMULATIVE_LIMIT_USAGE
+11:02:02.566 (566067423)|LIMIT_USAGE_FOR_NS|(default)|
+  Number of SOQL queries: 4 out of 100
+  Number of query rows: 165 out of 50000
+  Number of SOSL queries: 0 out of 20
+  Number of DML statements: 1 out of 150
+  Number of Publish Immediate DML: 0 out of 150
+  Number of DML rows: 29 out of 10000
+  Maximum CPU time: 78 out of 10000
+  Maximum heap size: 0 out of 6000000
+  Number of callouts: 0 out of 100
+  Number of Email Invocations: 0 out of 10
+  Number of future calls: 0 out of 50
+  Number of queueable jobs added to the queue: 0 out of 50
+  Number of Mobile Apex push calls: 0 out of 10
+
+11:02:02.566 (566067423)|CUMULATIVE_LIMIT_USAGE_END
+
+11:02:02.144 (566242097)|CODE_UNIT_FINISHED|execute_anonymous_apex
+11:02:02.144 (566277764)|EXECUTION_FINISHED
+

@@ -1,0 +1,16 @@
+{
+  "name": "INVALID_TYPE",
+  "message": "sObject type 'ApexCodeCoverageAggregate' is not supported.",
+  "exitCode": 1,
+  "context": "DataSoqlQueryCommand",
+  "data": {
+    "message": "sObject type 'ApexCodeCoverageAggregate' is not supported.",
+    "errorCode": "INVALID_TYPE"
+  },
+  "stack": "INVALID_TYPE: sObject type 'ApexCodeCoverageAggregate' is not supported.\n    at SfCommandError.from (file:///C:/Users/koumo/AppData/Local/sf/client/2.123.1-d33a2e4/node_modules/@salesforce/sf-plugins-core/lib/SfCommandError.js:48:16)\n    at DataSoqlQueryCommand.catch (file:///C:/Users/koumo/AppData/Local/sf/client/2.123.1-d33a2e4/node_modules/@salesforce/sf-plugins-core/lib/sfCommand.js:332:47)\n    at DataSoqlQueryCommand._run (C:\\Users\\koumo\\AppData\\Local\\sf\\client\\2.123.1-d33a2e4\\node_modules\\@oclif\\core\\lib\\command.js:186:29)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Config.runCommand (C:\\Users\\koumo\\AppData\\Local\\sf\\client\\2.123.1-d33a2e4\\node_modules\\@oclif\\core\\lib\\config\\config.js:456:25)\n    at async run (C:\\Users\\koumo\\AppData\\Local\\sf\\client\\2.123.1-d33a2e4\\node_modules\\@oclif\\core\\lib\\main.js:97:16)\n    at async file:///C:/Users/koumo/AppData/Local/sf/client/2.123.1-d33a2e4/bin/run.js:15:1",
+  "cause": "INVALID_TYPE: sObject type 'ApexCodeCoverageAggregate' is not supported.\n    at HttpApi.getError (C:\\Users\\koumo\\AppData\\Local\\sf\\client\\2.123.1-d33a2e4\\node_modules\\@jsforce\\jsforce-node\\lib\\http-api.js:310:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\koumo\\AppData\\Local\\sf\\client\\2.123.1-d33a2e4\\node_modules\\@jsforce\\jsforce-node\\lib\\http-api.js:127:33\n    at async Query._execute (C:\\Users\\koumo\\AppData\\Local\\sf\\client\\2.123.1-d33a2e4\\node_modules\\@jsforce\\jsforce-node\\lib\\query.js:373:22)\n    at async C:\\Users\\koumo\\AppData\\Local\\sf\\client\\2.123.1-d33a2e4\\node_modules\\@jsforce\\jsforce-node\\lib\\query.js:305:17 {\n  data: {\n    message: \"sObject type 'ApexCodeCoverageAggregate' is not supported.\",\n    errorCode: 'INVALID_TYPE'\n  },\n  errorCode: 'INVALID_TYPE'\n}",
+  "warnings": [],
+  "code": "1",
+  "status": 1,
+  "commandName": "DataSoqlQueryCommand"
+}

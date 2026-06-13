@@ -389,7 +389,7 @@ global without sharing class DropInCheckInService {
                 'Drop-In Day check-in via The Source kiosk. Please fill in the details of this visit.');
             interaction.put('Date_of_Interaction__c', svcDate);
             interaction.put('Status',                 'In Progress');
-            interaction.put('POS__c',                 '27 - Outreach Site / Street');
+            interaction.put('Place_of_Service__c',     '27 - Outreach Site / Street');
             if (String.isNotBlank(staffUserId)) {
                 try { interaction.put('OwnerId', Id.valueOf(staffUserId)); } catch (Exception oe) {}
             }

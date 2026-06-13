@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Duration_of_Thoughts__c</fullName>
+    <inlineHelpText>When you have the thoughts how long do they last?</inlineHelpText>
+    <label>Duration of Thoughts</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>Duration</valueSetName>
+    </valueSet>
+</CustomField>

@@ -13,10 +13,57 @@ private class BenefitDisbursementServiceCoverageTest {
       'FROM Benefit ' +
       'WHERE IsActive = true ' +
       'AND Is_a_Housing_Benefit__c = true ' +
+      'AND Available_for_Program_Engagement__c = true ' +
       'AND Program.Housing_Program__c = true ' +
       'ORDER BY LastModifiedDate DESC ' +
       'LIMIT 1'
     );
+
+    if (benefits.isEmpty()) {
+      // Housing_Program__c is newly deployed — no programs are flagged yet.
+      // Create minimal test data so tests can run.
+      SObject program = Schema.getGlobalDescribe().get('Program').newSObject();
+      program.put('Name', 'BDS Coverage Housing Program ' + DateTime.now().getTime());
+      try { program.put('Status', 'Active'); } catch (Exception ignored) {}
+      try { program.put('Housing_Program__c', true); } catch (Exception ignored) {}
+      insert program;
+
+      // Reuse an existing BenefitType, or create a minimal one
+      Id btId;
+      try {
+        List<SObject> existingBTs = Database.query('SELECT Id FROM BenefitType LIMIT 1');
+        if (!existingBTs.isEmpty()) {
+          btId = (Id) existingBTs[0].get('Id');
+        }
+      } catch (Exception ignored) {}
+
+      if (btId == null) {
+        SObject bt = Schema.getGlobalDescribe().get('BenefitType').newSObject();
+        bt.put('Name', 'Housing Benefit Type ' + DateTime.now().getTime());
+        try { bt.put('Type', 'Service'); } catch (Exception ignored) {}
+        try { bt.put('ProcessType', 'ProgramManagement'); } catch (Exception ignored) {}
+        try {
+          List<SObject> uoms = Database.query('SELECT Id FROM UnitOfMeasure LIMIT 1');
+          if (!uoms.isEmpty()) bt.put('UnitofMeasureId', uoms[0].get('Id'));
+        } catch (Exception ignored) {}
+        try { insert bt; btId = (Id) bt.get('Id'); } catch (Exception ignored) {}
+      }
+
+      SObject benefit = Schema.getGlobalDescribe().get('Benefit').newSObject();
+      benefit.put('Name', 'Housing Voucher Test ' + DateTime.now().getTime());
+      benefit.put('ProgramId', (Id) program.get('Id'));
+      benefit.put('IsActive', true);
+      try { benefit.put('Is_a_Housing_Benefit__c', true); } catch (Exception ignored) {}
+      try { benefit.put('Available_for_Program_Engagement__c', true); } catch (Exception ignored) {}
+      if (btId != null) { try { benefit.put('BenefitTypeId', btId); } catch (Exception ignored) {} }
+      insert benefit;
+
+      // Re-query to populate relationship fields
+      benefits = Database.query(
+        'SELECT Id, ProgramId, Program.Name, BenefitType.Name ' +
+        'FROM Benefit WHERE Id = \'' + (Id) benefit.get('Id') + '\' LIMIT 1'
+      );
+    }
 
     System.assert(!benefits.isEmpty(), 'Expected at least one active housing benefit in org data');
 
@@ -25,7 +72,9 @@ private class BenefitDisbursementServiceCoverageTest {
     context.benefitId = (Id) benefit.get('Id');
     context.programId = (Id) benefit.get('ProgramId');
     context.programName = (String) benefit.getSObject('Program').get('Name');
-    context.eventType = (String) benefit.getSObject('BenefitType').get('Name');
+    context.eventType = benefit.getSObject('BenefitType') != null
+      ? (String) benefit.getSObject('BenefitType').get('Name')
+      : 'Housing';
     return context;
   }
 
@@ -46,21 +95,60 @@ private class BenefitDisbursementServiceCoverageTest {
   }
 
   private static Account createAccount(String label) {
-    Account account = new Account(Name = 'BDS Coverage ' + label + ' ' + DateTime.now().getTime());
+    // ProgramEnrollment.AccountId requires a PersonAccount in this org
+    RecordType personRt = null;
+    try {
+      personRt = [SELECT Id FROM RecordType WHERE SObjectType = 'Account' AND IsPersonType = true LIMIT 1];
+    } catch (Exception e) {
+      System.debug('PersonAccount RecordType not found: ' + e.getMessage());
+    }
+    Account account;
+    if (personRt != null) {
+      account = new Account(
+        RecordTypeId = personRt.Id,
+        LastName = 'BDSCov_' + label + '_' + DateTime.now().getTime()
+      );
+    } else {
+      account = new Account(Name = 'BDS Coverage ' + label + ' ' + DateTime.now().getTime());
+    }
     insert account;
-    return account;
+    return [SELECT Id, Name, FirstName, LastName FROM Account WHERE Id = :account.Id LIMIT 1];
   }
 
   private static SObject getRecentUnassignedHousingEnrollment(Id benefitId) {
+    // Resolve the benefit's programId first so the enrollment query is scoped to the same program
+    List<SObject> benefitRows = Database.query('SELECT ProgramId FROM Benefit WHERE Id = :benefitId LIMIT 1');
+    if (benefitRows.isEmpty()) {
+      System.assert(false, 'Could not find benefit to determine program for enrollment lookup');
+    }
+    Id programId = (Id) benefitRows[0].get('ProgramId');
+
     List<SObject> enrollments = Database.query(
       'SELECT Id, AccountId, Account.Name, ProgramId, Program.Name, StartDate ' +
       'FROM ProgramEnrollment ' +
       'WHERE Status = \'Enrolled\' ' +
-      'AND Program.Housing_Program__c = true ' +
+      'AND ProgramId = :programId ' +
       'AND AccountId NOT IN (SELECT EnrolleeId FROM BenefitAssignment WHERE BenefitId = :benefitId) ' +
       'ORDER BY StartDate DESC, LastModifiedDate DESC ' +
       'LIMIT 1'
     );
+
+    if (enrollments.isEmpty()) {
+      // Create a minimal enrolled participant for the housing program
+
+      Account account = createAccount('HousingParticipant');
+      SObject enrollment = Schema.getGlobalDescribe().get('ProgramEnrollment').newSObject();
+      enrollment.put('AccountId', account.Id);
+      enrollment.put('ProgramId', programId);
+      enrollment.put('Status', 'Enrolled');
+      enrollment.put('StartDate', Date.today().addDays(-30));
+      insert enrollment;
+
+      enrollments = Database.query(
+        'SELECT Id, AccountId, Account.Name, ProgramId, Program.Name, StartDate ' +
+        'FROM ProgramEnrollment WHERE Id = \'' + (Id) enrollment.get('Id') + '\' LIMIT 1'
+      );
+    }
 
     System.assert(!enrollments.isEmpty(), 'Expected an enrolled housing participant without an existing assignment');
     return enrollments[0];

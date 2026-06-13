@@ -1,0 +1,442 @@
+{
+  "status": 0,
+  "result": {
+    "summary": {
+      "failRate": "0%",
+      "failing": 0,
+      "hostname": "https://tgthrnpc--benefits.sandbox.my.salesforce.com",
+      "orgId": "00DRT000008A0Oj2AK",
+      "outcome": "Passed",
+      "passRate": "100%",
+      "passing": 28,
+      "skipped": 0,
+      "testRunId": "707RT00002DlyY2",
+      "testStartTime": "2026-04-08T15:39:28.000Z",
+      "testsRan": 28,
+      "userId": "005VY000003VsDhYAK",
+      "username": "sessey@tgthr.org.benefits",
+      "commandTime": "290 ms",
+      "testExecutionTime": "9784 ms",
+      "testTotalTime": "19029 ms"
+    },
+    "tests": [
+      {
+        "Id": "07MRT00000TH4co2AD",
+        "QueueItemId": "709RT00000GXKTNYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateAllQuestions",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd4YAC",
+          "Name": "Create1440PineIntakeQuestionsTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 6222,
+        "FullName": "Create1440PineIntakeQuestionsTest.testCreateAllQuestions"
+      },
+      {
+        "Id": "07MRT00000TH4cp2AD",
+        "QueueItemId": "709RT00000GXKTNYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateBatch1",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd4YAC",
+          "Name": "Create1440PineIntakeQuestionsTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 1088,
+        "FullName": "Create1440PineIntakeQuestionsTest.testCreateBatch1"
+      },
+      {
+        "Id": "07MRT00000TH4cq2AD",
+        "QueueItemId": "709RT00000GXKTNYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateBatch2",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd4YAC",
+          "Name": "Create1440PineIntakeQuestionsTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 478,
+        "FullName": "Create1440PineIntakeQuestionsTest.testCreateBatch2"
+      },
+      {
+        "Id": "07MRT00000TH4cr2AD",
+        "QueueItemId": "709RT00000GXKTNYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateBatch3",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd4YAC",
+          "Name": "Create1440PineIntakeQuestionsTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 744,
+        "FullName": "Create1440PineIntakeQuestionsTest.testCreateBatch3"
+      },
+      {
+        "Id": "07MRT00000TH4cs2AD",
+        "QueueItemId": "709RT00000GXKTNYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateBatch4",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd4YAC",
+          "Name": "Create1440PineIntakeQuestionsTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 506,
+        "FullName": "Create1440PineIntakeQuestionsTest.testCreateBatch4"
+      },
+      {
+        "Id": "07MRT00000TH4bB2AT",
+        "QueueItemId": "709RT00000GXKTOYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testGetActivePrograms",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001iJJKYA2",
+          "Name": "BenefitServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 95,
+        "FullName": "BenefitServiceTest.testGetActivePrograms"
+      },
+      {
+        "Id": "07MRT00000TH4bC2AT",
+        "QueueItemId": "709RT00000GXKTOYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testGetBenefitTypes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001iJJKYA2",
+          "Name": "BenefitServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 13,
+        "FullName": "BenefitServiceTest.testGetBenefitTypes"
+      },
+      {
+        "Id": "07MRT00000TH4bD2AT",
+        "QueueItemId": "709RT00000GXKTOYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testGetBenefits",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001iJJKYA2",
+          "Name": "BenefitServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 12,
+        "FullName": "BenefitServiceTest.testGetBenefits"
+      },
+      {
+        "Id": "07MRT00000TH4bE2AT",
+        "QueueItemId": "709RT00000GXKTOYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testGetBenefits_NullParams",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001iJJKYA2",
+          "Name": "BenefitServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 14,
+        "FullName": "BenefitServiceTest.testGetBenefits_NullParams"
+      },
+      {
+        "Id": "07MRT00000TH4bF2AT",
+        "QueueItemId": "709RT00000GXKTOYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testGetProgramIdByName",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001iJJKYA2",
+          "Name": "BenefitServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 24,
+        "FullName": "BenefitServiceTest.testGetProgramIdByName"
+      },
+      {
+        "Id": "07MRT00000TH4bG2AT",
+        "QueueItemId": "709RT00000GXKTOYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testGetProgramIdByName_NonExistent",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001iJJKYA2",
+          "Name": "BenefitServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 16,
+        "FullName": "BenefitServiceTest.testGetProgramIdByName_NonExistent"
+      },
+      {
+        "Id": "07MRT00000TH4eQ2AT",
+        "QueueItemId": "709RT00000GXKTPYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateBenefitAssignments",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd3YAC",
+          "Name": "BenefitAssignmentServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 58,
+        "FullName": "BenefitAssignmentServiceTest.testCreateBenefitAssignments"
+      },
+      {
+        "Id": "07MRT00000TH4eR2AT",
+        "QueueItemId": "709RT00000GXKTPYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateBenefitAssignments_InvalidAccount",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd3YAC",
+          "Name": "BenefitAssignmentServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 18,
+        "FullName": "BenefitAssignmentServiceTest.testCreateBenefitAssignments_InvalidAccount"
+      },
+      {
+        "Id": "07MRT00000TH4eS2AT",
+        "QueueItemId": "709RT00000GXKTPYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testCreateBenefitAssignments_NullAccount",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd3YAC",
+          "Name": "BenefitAssignmentServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 20,
+        "FullName": "BenefitAssignmentServiceTest.testCreateBenefitAssignments_NullAccount"
+      },
+      {
+        "Id": "07MRT00000TH4ZZ2A1",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testGetIncomeSourceRows",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 131,
+        "FullName": "SmallClassesCoverageTest.testGetIncomeSourceRows"
+      },
+      {
+        "Id": "07MRT00000TH4Za2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testIntakeIncomeRow_FullConstructor",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 12,
+        "FullName": "SmallClassesCoverageTest.testIntakeIncomeRow_FullConstructor"
+      },
+      {
+        "Id": "07MRT00000TH4Zb2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testIntakeIncomeRow_GetRows",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 18,
+        "FullName": "SmallClassesCoverageTest.testIntakeIncomeRow_GetRows"
+      },
+      {
+        "Id": "07MRT00000TH4Zc2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testIntakeIncomeRow_NoArgConstructor",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 12,
+        "FullName": "SmallClassesCoverageTest.testIntakeIncomeRow_NoArgConstructor"
+      },
+      {
+        "Id": "07MRT00000TH4Zd2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testInterviewLockScheduler",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 123,
+        "FullName": "SmallClassesCoverageTest.testInterviewLockScheduler"
+      },
+      {
+        "Id": "07MRT00000TH4Ze2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testPSEIntakeSeedAction_Seed",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 21,
+        "FullName": "SmallClassesCoverageTest.testPSEIntakeSeedAction_Seed"
+      },
+      {
+        "Id": "07MRT00000TH4Zf2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testPSEIntakeSeedAction_SeedNoCmdt",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 17,
+        "FullName": "SmallClassesCoverageTest.testPSEIntakeSeedAction_SeedNoCmdt"
+      },
+      {
+        "Id": "07MRT00000TH4Zg2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testPSEIntakeTypes_InnerClass",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 9,
+        "FullName": "SmallClassesCoverageTest.testPSEIntakeTypes_InnerClass"
+      },
+      {
+        "Id": "07MRT00000TH4Zh2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testPendingDocNotificationScheduler",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 69,
+        "FullName": "SmallClassesCoverageTest.testPendingDocNotificationScheduler"
+      },
+      {
+        "Id": "07MRT00000TH4Zi2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testSearchBusinessAccounts",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 45,
+        "FullName": "SmallClassesCoverageTest.testSearchBusinessAccounts"
+      },
+      {
+        "Id": "07MRT00000TH4Zj2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testSearchBusinessAccounts_Empty",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 10,
+        "FullName": "SmallClassesCoverageTest.testSearchBusinessAccounts_Empty"
+      },
+      {
+        "Id": "07MRT00000TH4Zk2AL",
+        "QueueItemId": "709RT00000GXKTQYA5",
+        "StackTrace": null,
+        "Message": null,
+        "AsyncApexJobId": "707RT00002DlyY2YAJ",
+        "MethodName": "testSearchBusinessAccounts_Null",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002Ltd5YAC",
+          "Name": "SmallClassesCoverageTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 9,
+        "FullName": "SmallClassesCoverageTest.testSearchBusinessAccounts_Null"
+      }
+    ]
+  },
+  "warnings": []
+}

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Place_of_Service__c</fullName>
+    <label>Place of Service</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <description>CMS Place of Service code for this interaction. Used in note documentation and CMS-1500 billing export.</description>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>01 - Pharmacy</fullName>
+                <default>false</default>
+                <label>01 - Pharmacy</label>
+            </value>
+            <value>
+                <fullName>02 - Telehealth</fullName>
+                <default>false</default>
+                <label>02 - Telehealth</label>
+            </value>
+            <value>
+                <fullName>03 - School</fullName>
+                <default>false</default>
+                <label>03 - School</label>
+            </value>
+            <value>
+                <fullName>04 - Shelter</fullName>
+                <default>false</default>
+                <label>04 - Shelter</label>
+            </value>
+            <value>
+                <fullName>11 - Office</fullName>
+                <default>false</default>
+                <label>11 - Office</label>
+            </value>
+            <value>
+                <fullName>12 - Home</fullName>
+                <default>false</default>
+                <label>12 - Home</label>
+            </value>
+            <value>
+                <fullName>15 - Mobile Unit</fullName>
+                <default>false</default>
+                <label>15 - Mobile Unit</label>
+            </value>
+            <value>
+                <fullName>18 - Place of Employment / Worksite</fullName>
+                <default>false</default>
+                <label>18 - Place of Employment / Worksite</label>
+            </value>
+            <value>
+                <fullName>20 - Urgent Care Facility</fullName>
+                <default>false</default>
+                <label>20 - Urgent Care Facility</label>
+            </value>
+            <value>
+                <fullName>21 - Inpatient Hospital</fullName>
+                <default>false</default>
+                <label>21 - Inpatient Hospital</label>
+            </value>
+            <value>
+                <fullName>27 - Outreach Site / Street</fullName>
+                <default>false</default>
+                <label>27 - Outreach Site / Street</label>
+            </value>
+            <value>
+                <fullName>71 - Public Health Clinic</fullName>
+                <default>false</default>
+                <label>71 - Public Health Clinic</label>
+            </value>
+            <value>
+                <fullName>72 - Rural Health Clinic</fullName>
+                <default>false</default>
+                <label>72 - Rural Health Clinic</label>
+            </value>
+            <value>
+                <fullName>99 - Other Place of Service</fullName>
+                <default>false</default>
+                <label>99 - Other Place of Service</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

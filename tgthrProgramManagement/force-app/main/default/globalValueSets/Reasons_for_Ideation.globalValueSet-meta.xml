@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Completely to get attention, revenge or a reaction from others</fullName>
+        <default>false</default>
+        <label>Completely to get attention, revenge or a reaction from others</label>
+    </customValue>
+    <customValue>
+        <fullName>Mostly to get attention, revenge or a reaction from others</fullName>
+        <default>false</default>
+        <label>Mostly to get attention, revenge or a reaction from others</label>
+    </customValue>
+    <customValue>
+        <fullName>Equally to get attention, revenge or a reaction from others, and to end/stop the pain</fullName>
+        <default>false</default>
+        <label>Equally to get attention, revenge or a reaction from others, and to end/stop the pain</label>
+    </customValue>
+    <customValue>
+        <fullName>Mostly to end or stop the pain (you couldn&apos;t go on living with the pain or how you were feeling)</fullName>
+        <default>false</default>
+        <label>Mostly to end or stop the pain (you couldn&apos;t go on living with the pain or how you were feeling)</label>
+    </customValue>
+    <customValue>
+        <fullName>Completely to end or stop the pain (you couldn&apos;t go on living with the pain or how you were feeling)</fullName>
+        <default>false</default>
+        <label>Completely to end or stop the pain (you couldn&apos;t go on living with the pain or how you were feeling)</label>
+    </customValue>
+    <customValue>
+        <fullName>Does not apply</fullName>
+        <default>false</default>
+        <label>Does not apply</label>
+    </customValue>
+    <masterLabel>Reasons for Ideation</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

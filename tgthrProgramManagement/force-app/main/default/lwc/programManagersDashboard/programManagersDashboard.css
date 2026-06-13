@@ -1,0 +1,217 @@
+.pm-dashboard {
+  --pm-accent: #1b96ff;
+  --pm-color-interaction: #2e844a;
+  --pm-color-documentation: #5867e8;
+  --pm-color-incident: #ba0517;
+}
+
+/* ─── Program tabs ─── */
+.pm-program-tabs {
+  padding: 0.5rem 0;
+}
+
+.pm-program-tab {
+  display: inline-flex;
+  align-items: center;
+  background: #f3f3f3;
+  color: #444;
+  border: 1px solid #d8dde6;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.pm-program-tab:hover {
+  background: #e8f3ff;
+  color: var(--pm-accent);
+  border-color: var(--pm-accent);
+}
+
+.pm-program-tab_active {
+  background: var(--pm-accent);
+  color: #fff;
+  border-color: var(--pm-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ─── Filter bar ─── */
+.pm-filter-bar {
+  background: #fafbfc;
+}
+
+.pm-preset {
+  background: transparent;
+  border: 1px solid #d8dde6;
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: #444;
+  margin-right: 0.25rem;
+}
+
+.pm-preset:hover {
+  background: #eef4ff;
+  border-color: var(--pm-accent);
+  color: var(--pm-accent);
+}
+
+.pm-preset_active {
+  background: var(--pm-accent);
+  border-color: var(--pm-accent);
+  color: #fff;
+}
+
+/* ─── Counts strip ─── */
+.pm-counts {
+  font-size: 0.85rem;
+  background: #fafbfc;
+}
+
+.pm-count-chip {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  margin-right: 0.35rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.pm-chip-interaction   { background: var(--pm-color-interaction); }
+.pm-chip-documentation { background: var(--pm-color-documentation); }
+.pm-chip-incident      { background: var(--pm-color-incident); }
+
+/* ─── Activity table (custom grid for per-row color hints) ─── */
+.pm-table {
+  display: block;
+  margin-top: 0.25rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+.pm-row {
+  display: grid;
+  grid-template-columns:
+    150px           /* Date */
+    130px           /* Type chip */
+    minmax(180px, 2fr)  /* Subject */
+    140px           /* Purpose */
+    160px           /* Participant */
+    150px           /* Owner */
+    110px           /* Status */
+    minmax(220px, 3fr)  /* Preview */
+    44px;           /* Actions */
+  column-gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.5rem;
+  border-bottom: 1px solid #ececec;
+  border-left: 4px solid transparent;
+  font-size: 0.82rem;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.pm-row:hover {
+  background: #f5faff;
+}
+
+.pm-row-header {
+  background: #fafbfc;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+  cursor: default;
+  border-left-color: transparent;
+}
+
+.pm-row-header:hover {
+  background: #fafbfc;
+}
+
+/* Per-type left-edge highlight + subtle tinted background */
+.pm-row-interaction {
+  border-left-color: var(--pm-color-interaction);
+  box-shadow: inset 1px 0 0 rgba(46, 132, 74, 0.05);
+}
+.pm-row-interaction:hover {
+  background: rgba(46, 132, 74, 0.06);
+}
+
+.pm-row-documentation {
+  border-left-color: var(--pm-color-documentation);
+  box-shadow: inset 1px 0 0 rgba(88, 103, 232, 0.05);
+}
+.pm-row-documentation:hover {
+  background: rgba(88, 103, 232, 0.06);
+}
+
+.pm-row-incident {
+  border-left-color: var(--pm-color-incident);
+  box-shadow: inset 1px 0 0 rgba(186, 5, 23, 0.05);
+}
+.pm-row-incident:hover {
+  background: rgba(186, 5, 23, 0.06);
+}
+
+.pm-cell {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-cell-subject,
+.pm-cell-preview {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pm-cell-actions {
+  text-align: right;
+}
+
+/* In-row chip (mirrors the count strip chips so colors line up) */
+.pm-chip {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.pm-chip-interaction   { background: var(--pm-color-interaction); }
+.pm-chip-documentation { background: var(--pm-color-documentation); }
+.pm-chip-incident      { background: var(--pm-color-incident); }
+
+/* ─── Pager ─── */
+.pm-pager .pm-page-size {
+  width: 9rem;
+}
+
+/* Narrow viewports: hide low-priority columns rather than horizontal-scroll. */
+@media (max-width: 900px) {
+  .pm-row {
+    grid-template-columns:
+      120px
+      110px
+      minmax(160px, 2fr)
+      140px
+      minmax(180px, 3fr)
+      44px;
+  }
+  .pm-cell-participant,
+  .pm-cell-owner,
+  .pm-cell-status {
+    display: none;
+  }
+}

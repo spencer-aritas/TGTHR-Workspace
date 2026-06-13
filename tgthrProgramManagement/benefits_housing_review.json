@@ -1,0 +1,602 @@
+[
+  {
+    "Benefit Name": "BIPOC Support",
+    "Benefit Type": "Clinical Counseling",
+    "New Benefit type": "Social/Emotional ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Bus pass",
+    "Benefit Type": "Transportation Assistance",
+    "New Benefit type": "Transportation assistance",
+    "Unit of Measurement ": "Pass",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Material Support",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Care coordination- External Medical Provider (please change to \"External Medical Provider\" in SF)",
+    "Benefit Type": "Case Management",
+    "New Benefit type": "Care Coordination",
+    "Unit of Measurement ": "Referral",
+    "New Unit of Measurement ": "Session",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management "
+  },
+  {
+    "Benefit Name": "Case Management Meeting",
+    "Benefit Type": "Case Management",
+    "New Benefit type": "Not Needed",
+    "Unit of Measurement ": "",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": ""
+  },
+  {
+    "Benefit Name": "Community Engagement",
+    "Benefit Type": "Community Outing",
+    "New Benefit type": "Group",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical"
+  },
+  {
+    "Benefit Name": "Community Resource Navigation",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Conflict Resolution Support ",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Social/Emotional ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Education",
+    "Benefit Type": "Education",
+    "New Benefit type": "External Referral",
+    "Unit of Measurement ": "Referral",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management "
+  },
+  {
+    "Benefit Name": "Education Support",
+    "Benefit Type": "Education",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management "
+  },
+  {
+    "Benefit Name": "Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",
+    "Benefit Type": "Police intervention",
+    "New Benefit type": "Care Coordination",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Emotional Processing",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Social/Emotional ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Employment Support",
+    "Benefit Type": "Employment ",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Eviction/ Mutual Rescission Support ",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "External Professional Team ",
+    "Benefit Type": "Case Management",
+    "New Benefit type": "Care Coordination",
+    "Unit of Measurement ": "Referral",
+    "New Unit of Measurement ": "Session",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "External Therapy Provider ",
+    "Benefit Type": "Case Management",
+    "New Benefit type": "Care Coordination",
+    "Unit of Measurement ": "Referral",
+    "New Unit of Measurement ": "Session",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management / Clinical"
+  },
+  {
+    "Benefit Name": "Family Reunification Support",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Care Coordination",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "Financial Education and Navigation",
+    "Benefit Type": "Education",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "Food Access",
+    "Benefit Type": "Community Outing",
+    "New Benefit type": "Community Outing ",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "Material Support",
+    "Who uses this ": "Case Manament / Peer"
+  },
+  {
+    "Benefit Name": "Food Pantry Access- Onsite ",
+    "Benefit Type": "Basic Needs",
+    "New Benefit type": "Basic Needs",
+    "Unit of Measurement ": "Voucher",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Material Support",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "GED Group",
+    "Benefit Type": "Education",
+    "New Benefit type": "Group",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Group Support ",
+    "Benefit Type": "Peer Clinical",
+    "New Benefit type": "Clinical Counseling",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical"
+  },
+  {
+    "Benefit Name": "Housekeeping ",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Manament / Peer"
+  },
+  {
+    "Benefit Name": "Housing (is this needed?)",
+    "Benefit Type": "Housing ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Bed night",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Housing",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Individual Session ",
+    "Benefit Type": "Clinical Counseling",
+    "New Benefit type": "Clinical Counseling",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical"
+  },
+  {
+    "Benefit Name": "Individual Support ",
+    "Benefit Type": "Community Outing",
+    "New Benefit type": "Community Outing ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Initial Planning Meeting (goal setting)",
+    "Benefit Type": "Care Coordination",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Manament / Peer"
+  },
+  {
+    "Benefit Name": "Lease Violation Meeting",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Manament "
+  },
+  {
+    "Benefit Name": "Legal Support",
+    "Benefit Type": "Education",
+    "New Benefit type": "Care Coordination",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Maangment / Peer"
+  },
+  {
+    "Benefit Name": "LGBTQIA Support",
+    "Benefit Type": "Clinical Counseling",
+    "New Benefit type": "Social/Emotional ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Life Skills Group",
+    "Benefit Type": "Basic Needs",
+    "New Benefit type": "Group",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Material Support",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Meal Provided",
+    "Benefit Type": "Basic Needs",
+    "New Benefit type": "Basic Needs",
+    "Unit of Measurement ": "",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Material Support",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Medical, Legal, or Employment",
+    "Benefit Type": "Care Coordination",
+    "New Benefit type": "Transportation assistance",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "Material Support",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Mental Health",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "External Referral",
+    "Unit of Measurement ": "Referral",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management / Clinical"
+  },
+  {
+    "Benefit Name": "Mental Health Support",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Social/Emotional ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Move Out Assistance",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Manament "
+  },
+  {
+    "Benefit Name": "Other supports",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "External Referral",
+    "Unit of Measurement ": "Referral",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Manament "
+  },
+  {
+    "Benefit Name": "Parenting Support ",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Manament "
+  },
+  {
+    "Benefit Name": "Peer Support ",
+    "Benefit Type": "Peer Clinical",
+    "New Benefit type": "Peer Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Peer "
+  },
+  {
+    "Benefit Name": "Peer Support (please change to \"Peer Support Group\" in SF)",
+    "Benefit Type": "Group Session ",
+    "New Benefit type": "Peer Support",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Peer "
+  },
+  {
+    "Benefit Name": "Physical Health",
+    "Benefit Type": "Physical Health Referral ",
+    "New Benefit type": "External Referral",
+    "Unit of Measurement ": "Referral",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Managment"
+  },
+  {
+    "Benefit Name": "Physical/Mental Wellness - Community Outing",
+    "Benefit Type": "Community Outing",
+    "New Benefit type": "Community Outing ",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Point Store Access ",
+    "Benefit Type": "Basic Needs",
+    "New Benefit type": "Basic Needs",
+    "Unit of Measurement ": "Voucher",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Material Support",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Police Interaction- Arrest",
+    "Benefit Type": "Police intervention",
+    "New Benefit type": "police intervention",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Police Interaction- General Support ",
+    "Benefit Type": "Police intervention",
+    "New Benefit type": "police intervention",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Pre-Lease Violation Support ",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical / Case Management / Peer"
+  },
+  {
+    "Benefit Name": "Prosocial ",
+    "Benefit Type": "Community Outing",
+    "New Benefit type": "Not Needed",
+    "Unit of Measurement ": "",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": ""
+  },
+  {
+    "Benefit Name": "Public Benefits Support",
+    "Benefit Type": "Education",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Managment "
+  },
+  {
+    "Benefit Name": "Rental Assistance with Budget",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Managment "
+  },
+  {
+    "Benefit Name": "Resident Advisory Council ",
+    "Benefit Type": "Group Session ",
+    "New Benefit type": "Group",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "Substance Use Support",
+    "Benefit Type": "Clinical Counseling",
+    "New Benefit type": "Clinical Counseling",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical "
+  },
+  {
+    "Benefit Name": "Substance Use Support ",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Social/Emotional ",
+    "Unit of Measurement ": "Case Mgmt Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Managment / Peer"
+  },
+  {
+    "Benefit Name": "Tenant Retention Plan ",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "Therapeutic (please change to \"Therapeutic Group\" in SF)",
+    "Benefit Type": "Peer Clinical",
+    "New Benefit type": "Clinical Counseling",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Clinical ",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Clinical "
+  },
+  {
+    "Benefit Name": "Updates and Progress (goal setting)",
+    "Benefit Type": "Care Coordination",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "Vital Document Support ",
+    "Benefit Type": "Education",
+    "New Benefit type": "Case Management ",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "Voucher Support",
+    "Benefit Type": "Housing Navigation ",
+    "New Benefit type": "Housing Support",
+    "Unit of Measurement ": "Session",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "Case Management"
+  },
+  {
+    "Benefit Name": "Wellness, Mental Health, Mindfulness and Meditation Group",
+    "Benefit Type": "Social/Emotional ",
+    "New Benefit type": "Group",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "Case Management",
+    "New Benefit Type Category": "",
+    "Who uses this ": "All"
+  },
+  {
+    "Benefit Name": "",
+    "Benefit Type": "",
+    "New Benefit type": "",
+    "Unit of Measurement ": "",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "",
+    "New Benefit Type Category": "",
+    "Who uses this ": ""
+  },
+  {
+    "Benefit Name": "New Benefit",
+    "Benefit Type": "",
+    "New Benefit type": "",
+    "Unit of Measurement ": "",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "",
+    "New Benefit Type Category": "",
+    "Who uses this ": ""
+  },
+  {
+    "Benefit Name": "Therapeutic Group",
+    "Benefit Type": "",
+    "New Benefit type": "Clinical Counseling",
+    "Unit of Measurement ": "Group Hour",
+    "New Unit of Measurement ": "",
+    "Benefit Type Category": "",
+    "New Benefit Type Category": "",
+    "Who uses this ": ""
+  }
+]

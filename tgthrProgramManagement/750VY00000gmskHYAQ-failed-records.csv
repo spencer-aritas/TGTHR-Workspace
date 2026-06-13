@@ -1,0 +1,4 @@
+"sf__Id","sf__Error",AccountId,OwnerId,Status
+"","INACTIVE_OWNER_OR_USER:operation performed with inactive user [005VY000002UFYp] as owner of case:--","001VY00000CGQ5IYAX","005VY000002UFYpYAO","New"
+"","INACTIVE_OWNER_OR_USER:operation performed with inactive user [005VY000002UFYc] as owner of case:--","001VY00000CGSp3YAH","005VY000002UFYcYAO","New"
+"","INACTIVE_OWNER_OR_USER:operation performed with inactive user [005VY000002UFYp] as owner of case:--","001VY00000CGSosYAH","005VY000002UFYpYAO","New"

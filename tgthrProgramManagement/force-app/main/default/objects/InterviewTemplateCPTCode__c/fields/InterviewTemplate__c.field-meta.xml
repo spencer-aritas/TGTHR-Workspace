@@ -3,7 +3,6 @@
     <fullName>InterviewTemplate__c</fullName>
     <deleteConstraint>Restrict</deleteConstraint>
     <description>Interview template that this CPT code policy row applies to.</description>
-    <externalId>false</externalId>
     <inlineHelpText>Select the interview template that should allow this CPT code.</inlineHelpText>
     <label>Interview Template</label>
     <referenceTo>InterviewTemplate__c</referenceTo>

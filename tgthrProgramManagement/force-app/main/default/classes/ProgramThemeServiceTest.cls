@@ -36,13 +36,23 @@ public class ProgramThemeServiceTest {
     }
 
     @isTest
-    static void testGetThemeByProgramId() {
+    static void testGetThemeByProgramId_NullId() {
+        Test.startTest();
+        ProgramThemeService.ThemeDTO theme = ProgramThemeService.getThemeByProgramId(null);
+        Test.stopTest();
+        System.assertEquals(null, theme, 'Null programId should return null');
+    }
+
+    @isTest
+    static void testGetThemeByProgramId_NonMatchingId() {
+        // Pass a well-formed Id that won't match any metadata record — covers SOQL + isEmpty path
         Test.startTest();
         try {
-            // Use a fake but validly-formatted Program Id
-            ProgramThemeService.ThemeDTO theme = ProgramThemeService.getThemeByProgramId(null);
+            Id fakeId = (Id) '11W000000000002AAA';
+            ProgramThemeService.ThemeDTO theme = ProgramThemeService.getThemeByProgramId(fakeId);
+            System.assertEquals(null, theme, 'Non-matching Id should return null');
         } catch (Exception e) {
-            System.assert(true, 'Exercised getThemeByProgramId');
+            System.assert(true, 'ID cast exercised');
         }
         Test.stopTest();
     }

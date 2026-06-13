@@ -3,14 +3,13 @@
     <fullName>Supersedes_Benefit__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>The older Benefit record that this Benefit replaces. Establishes the version lineage chain so historical disbursements and interviews remain tied to the original Benefit.</description>
-    <externalId>false</externalId>
     <inlineHelpText>If this benefit was created to replace an older one, select the predecessor here.</inlineHelpText>
     <label>Supersedes Benefit</label>
     <referenceTo>Benefit</referenceTo>
     <relationshipLabel>Replacement Benefits</relationshipLabel>
     <relationshipName>Replacement_Benefits</relationshipName>
     <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
     <trackHistory>false</trackHistory>
-    <trackTrending>false</trackTrending>
     <type>Lookup</type>
 </CustomField>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Aborted_Attempt_Past_3_Months__c</fullName>
+    <defaultValue>false</defaultValue>
+    <inlineHelpText>When person begins to take steps toward making a suicide attempt but stops themselves before they actually have engaged in any self-destructive behavior. Examples are similar to interrupted attempts, except that the individual stops him/herself, instead of being stopped by something else.</inlineHelpText>
+    <label>Aborted Attempt - Past 3 Months</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

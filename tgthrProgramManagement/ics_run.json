@@ -1,0 +1,1002 @@
+{
+  "status": 0,
+  "result": {
+    "summary": {
+      "failRate": "0%",
+      "failing": 0,
+      "hostname": "https://tgthrnpc--benefits.sandbox.my.salesforce.com",
+      "orgId": "00DRT000008A0Oj2AK",
+      "outcome": "Passed",
+      "passRate": "100%",
+      "passing": 4,
+      "skipped": 0,
+      "testRunId": "",
+      "testStartTime": "2026-04-08T16:40:46.916Z",
+      "testsRan": 4,
+      "username": "sessey@tgthr.org.benefits",
+      "commandTime": "1 ms",
+      "testExecutionTime": "4207 ms",
+      "testTotalTime": "4207 ms",
+      "orgWideCoverage": "68%",
+      "testRunCoverage": "100%"
+    },
+    "tests": [
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002G6ujYAC",
+          "Name": "InterviewCompletionServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 1876,
+        "FullName": "InterviewCompletionServiceTest.testCompleteInterviewCreates1440EnrollmentWhenSelected"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002G6ujYAC",
+          "Name": "InterviewCompletionServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 479,
+        "FullName": "InterviewCompletionServiceTest.testCompleteInterviewCreatesNest56EnrollmentWhenSelected"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002G6ujYAC",
+          "Name": "InterviewCompletionServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 369,
+        "FullName": "InterviewCompletionServiceTest.testCompleteInterviewDoesNotDuplicateExistingEnrollment"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002G6ujYAC",
+          "Name": "InterviewCompletionServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 593,
+        "FullName": "InterviewCompletionServiceTest.testCompleteInterviewSkipsUnsupportedSelectedProgram"
+      }
+    ],
+    "coverage": {
+      "coverage": [
+        {
+          "id": "01qRT000005GIuAYAW",
+          "name": "GoalAssignmentDetailTrigger",
+          "totalLines": 6,
+          "lines": {
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "15": 1,
+            "16": 1
+          },
+          "totalCovered": 6,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY00000055zyYAA",
+          "name": "dlrs_PublicComplaintTrigger",
+          "totalLines": 1,
+          "lines": {
+            "7": 1
+          },
+          "totalCovered": 1,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY000000561ZYAQ",
+          "name": "dlrs_IncomeTrigger",
+          "totalLines": 1,
+          "lines": {
+            "7": 1
+          },
+          "totalCovered": 1,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY000000563BYAQ",
+          "name": "dlrs_ReferralTrigger",
+          "totalLines": 1,
+          "lines": {
+            "7": 1
+          },
+          "totalCovered": 1,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY0000005UFBYA2",
+          "name": "dlrs_AccountTrigger",
+          "totalLines": 1,
+          "lines": {
+            "7": 1
+          },
+          "totalCovered": 1,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY0000005UFCYA2",
+          "name": "dlrs_BenefitDisbursementTrigger",
+          "totalLines": 1,
+          "lines": {
+            "7": 1
+          },
+          "totalCovered": 1,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY0000006TP7YAM",
+          "name": "dlrs_EnhancementsTrigger",
+          "totalLines": 1,
+          "lines": {
+            "7": 1
+          },
+          "totalCovered": 1,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY000000MCFSYA4",
+          "name": "dlrs_CaseTrigger",
+          "totalLines": 1,
+          "lines": {
+            "7": 1
+          },
+          "totalCovered": 1,
+          "coveredPercent": 100
+        },
+        {
+          "id": "01qVY000001rnQLYAY",
+          "name": "ProgramEnrollmentLogger",
+          "totalLines": 21,
+          "lines": {
+            "2": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "16": 1,
+            "18": 1,
+            "21": 1,
+            "24": 1,
+            "25": 1,
+            "26": 1,
+            "27": 1,
+            "28": 1,
+            "29": 1,
+            "30": 1,
+            "31": 1,
+            "33": 1,
+            "36": 1,
+            "37": 1
+          },
+          "totalCovered": 21,
+          "coveredPercent": 100
+        }
+      ],
+      "records": [
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              2,
+              5,
+              6,
+              7,
+              11,
+              12,
+              13,
+              16,
+              18,
+              21,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              33,
+              36,
+              37
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000001rnQLYAY",
+            "Name": "ProgramEnrollmentLogger"
+          },
+          "NumLinesUncovered": 21
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFCYA2",
+            "Name": "dlrs_BenefitDisbursementTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY00000055zyYAA",
+            "Name": "dlrs_PublicComplaintTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [
+              7
+            ],
+            "uncoveredLines": []
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 1,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFBYA2",
+            "Name": "dlrs_AccountTrigger"
+          },
+          "NumLinesUncovered": 0
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qRT000005GIuAYAW",
+            "Name": "GoalAssignmentDetailTrigger"
+          },
+          "NumLinesUncovered": 6
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000MCFSYA4",
+            "Name": "dlrs_CaseTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000563BYAQ",
+            "Name": "dlrs_ReferralTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000561ZYAQ",
+            "Name": "dlrs_IncomeTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreates1440EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000006TP7YAM",
+            "Name": "dlrs_EnhancementsTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [
+              7
+            ],
+            "uncoveredLines": []
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 1,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFBYA2",
+            "Name": "dlrs_AccountTrigger"
+          },
+          "NumLinesUncovered": 0
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              2,
+              5,
+              6,
+              7,
+              11,
+              12,
+              13,
+              16,
+              18,
+              21,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              33,
+              36,
+              37
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000001rnQLYAY",
+            "Name": "ProgramEnrollmentLogger"
+          },
+          "NumLinesUncovered": 21
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000MCFSYA4",
+            "Name": "dlrs_CaseTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000563BYAQ",
+            "Name": "dlrs_ReferralTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000006TP7YAM",
+            "Name": "dlrs_EnhancementsTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qRT000005GIuAYAW",
+            "Name": "GoalAssignmentDetailTrigger"
+          },
+          "NumLinesUncovered": 6
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY00000055zyYAA",
+            "Name": "dlrs_PublicComplaintTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFCYA2",
+            "Name": "dlrs_BenefitDisbursementTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewCreatesNest56EnrollmentWhenSelected",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000561ZYAQ",
+            "Name": "dlrs_IncomeTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [
+              7
+            ],
+            "uncoveredLines": []
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 1,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFBYA2",
+            "Name": "dlrs_AccountTrigger"
+          },
+          "NumLinesUncovered": 0
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFCYA2",
+            "Name": "dlrs_BenefitDisbursementTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000006TP7YAM",
+            "Name": "dlrs_EnhancementsTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY00000055zyYAA",
+            "Name": "dlrs_PublicComplaintTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              2,
+              5,
+              6,
+              7,
+              11,
+              12,
+              13,
+              16,
+              18,
+              21,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              33,
+              36,
+              37
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000001rnQLYAY",
+            "Name": "ProgramEnrollmentLogger"
+          },
+          "NumLinesUncovered": 21
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000MCFSYA4",
+            "Name": "dlrs_CaseTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000561ZYAQ",
+            "Name": "dlrs_IncomeTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000563BYAQ",
+            "Name": "dlrs_ReferralTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewDoesNotDuplicateExistingEnrollment",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qRT000005GIuAYAW",
+            "Name": "GoalAssignmentDetailTrigger"
+          },
+          "NumLinesUncovered": 6
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000563BYAQ",
+            "Name": "dlrs_ReferralTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY00000055zyYAA",
+            "Name": "dlrs_PublicComplaintTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              2,
+              5,
+              6,
+              7,
+              11,
+              12,
+              13,
+              16,
+              18,
+              21,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30,
+              31,
+              33,
+              36,
+              37
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000001rnQLYAY",
+            "Name": "ProgramEnrollmentLogger"
+          },
+          "NumLinesUncovered": 21
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000MCFSYA4",
+            "Name": "dlrs_CaseTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [
+              7
+            ],
+            "uncoveredLines": []
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 1,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFBYA2",
+            "Name": "dlrs_AccountTrigger"
+          },
+          "NumLinesUncovered": 0
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qRT000005GIuAYAW",
+            "Name": "GoalAssignmentDetailTrigger"
+          },
+          "NumLinesUncovered": 6
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000006TP7YAM",
+            "Name": "dlrs_EnhancementsTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY0000005UFCYA2",
+            "Name": "dlrs_BenefitDisbursementTrigger"
+          },
+          "NumLinesUncovered": 1
+        },
+        {
+          "ApexTestClass": {
+            "Id": "",
+            "Name": "InterviewCompletionServiceTest"
+          },
+          "Coverage": {
+            "coveredLines": [],
+            "uncoveredLines": [
+              7
+            ]
+          },
+          "TestMethodName": "testCompleteInterviewSkipsUnsupportedSelectedProgram",
+          "NumLinesCovered": 0,
+          "ApexClassOrTrigger": {
+            "Id": "01qVY000000561ZYAQ",
+            "Name": "dlrs_IncomeTrigger"
+          },
+          "NumLinesUncovered": 1
+        }
+      ],
+      "summary": {
+        "totalLines": 34,
+        "coveredLines": 34,
+        "orgWideCoverage": "68%",
+        "testRunCoverage": "100%"
+      }
+    }
+  },
+  "warnings": []
+}

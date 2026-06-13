@@ -20,6 +20,7 @@ import resolveDropInMatchExisting from '@salesforce/apex/CaseManagerHomeControll
 import resolveDropInNewPerson from '@salesforce/apex/CaseManagerHomeController.resolveDropInNewPerson';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
 import generateInterviewDocumentByInterviewId from '@salesforce/apex/InterviewDocumentService.generateDocumentByInterviewId';
+import enrollExistingClient from '@salesforce/apex/CaseManagerHomeController.enrollExistingClient';
 
 const DATE_OPTS = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC' };
 const SHORT_OPTS = { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' };
@@ -129,6 +130,12 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
     @track intakeClientName = '';
     @track intakeTemplateLabel = 'Intake';
     @track intakeAllowDemographicsEditing = false;
+
+    // ── New enrollment modal state (returning client, no active enrollment) ──
+    @track showNewEnrollmentModal = false;
+    @track newEnrollmentProgramId = '';
+    @track newEnrollmentError = '';
+    @track isCreatingEnrollment = false;
 
     // ── Selected client actions state ─────────────────────────────────────
     @track intakeStatus = null;
@@ -296,7 +303,16 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
                 this._dropInDemoAccountId = null;
                 this._dropInDemoCaseId    = null;
             } else {
-                await this.refreshCasesAndReselect(this.selectedClient.caseId);
+                try {
+                    await this.refreshCasesAndReselect(this.selectedClient.caseId);
+                } catch (refreshError) {
+                    console.warn('CaseManagerHome: post-save refresh error', refreshError);
+                    this.showToast(
+                        'Profile Saved',
+                        'Client profile was saved, but the caseload view did not refresh automatically.',
+                        'warning'
+                    );
+                }
             }
         } catch (error) {
             console.error('CaseManagerHome: profile save error', error);
@@ -334,6 +350,47 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
         this.intakeTemplateLabel = this.intakeStatus.templateLabel || 'Intake';
         this.intakeAllowDemographicsEditing = false;
         this.showIntakeStep2 = true;
+    }
+
+    openNewEnrollmentModal() {
+        this.newEnrollmentProgramId = this.programOptions.length === 1 ? this.programOptions[0].value : '';
+        this.newEnrollmentError = '';
+        this.showNewEnrollmentModal = true;
+    }
+
+    closeNewEnrollmentModal() {
+        this.showNewEnrollmentModal = false;
+        this.newEnrollmentProgramId = '';
+        this.newEnrollmentError = '';
+        this.isCreatingEnrollment = false;
+    }
+
+    async handleBeginNewEnrollment() {
+        if (!this.newEnrollmentProgramId) {
+            this.newEnrollmentError = 'Please select a program.';
+            return;
+        }
+        this.isCreatingEnrollment = true;
+        this.newEnrollmentError = '';
+        try {
+            const result = await enrollExistingClient({
+                caseId    : this.selectedClient.caseId,
+                accountId : this.selectedClient.accountId,
+                programId : this.newEnrollmentProgramId
+            });
+            this.intakeCaseId            = this.selectedClient.caseId;
+            this.intakeTemplateVersionId  = result.templateVersionId;
+            this.intakeResumeInterviewId  = null;
+            this.intakeClientName         = this.selectedClient.name;
+            this.intakeTemplateLabel      = result.templateLabel || 'Intake';
+            this.intakeAllowDemographicsEditing = true;
+            this.closeNewEnrollmentModal();
+            this.showIntakeStep2 = true;
+        } catch (err) {
+            this.newEnrollmentError = err?.body?.message || err?.message || 'An unexpected error occurred.';
+        } finally {
+            this.isCreatingEnrollment = false;
+        }
     }
 
     handleSearch(event) {
@@ -878,6 +935,10 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
 
     get showIntakeCompleteBadge() {
         return this.selectedClient && this.intakeStatus?.showIntakeCompleteBadge;
+    }
+
+    get showNewEnrollmentButton() {
+        return !!(this.selectedClient && this.intakeStatus?.hasNoActiveEnrollment);
     }
 
     get intakeBadgeLabel() {

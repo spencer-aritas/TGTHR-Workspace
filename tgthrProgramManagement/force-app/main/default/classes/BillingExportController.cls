@@ -174,7 +174,7 @@ public with sharing class BillingExportController {
             + 'Interaction_Summary__r.Status, '
             + 'Interaction_Summary__r.Start_Time__c, '
             + 'Interaction_Summary__r.End_Time__c, '
-            + 'Interaction_Summary__r.POS__c, '
+            + 'Interaction_Summary__r.Place_of_Service__c, '
             + 'Interaction_Summary__r.Interpreter_Used__c, '
             + 'Interaction_Summary__r.MeetingNotes, '
             + 'Interaction_Summary__r.Description_of_Services__c, '
@@ -358,7 +358,7 @@ public with sharing class BillingExportController {
             row.serviceDate = sl.Service_Date__c;
             row.startTime = summary.Start_Time__c;
             row.endTime = summary.End_Time__c;
-            row.placeOfService = summary.POS__c;
+            row.placeOfService = summary.Place_of_Service__c;
             row.interpreterUsed = summary.Interpreter_Used__c;
 
             // Provider

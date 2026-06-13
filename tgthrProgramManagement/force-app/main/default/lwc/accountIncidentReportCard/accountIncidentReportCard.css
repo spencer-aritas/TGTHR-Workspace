@@ -1,0 +1,11 @@
+.modal-container {
+    max-width: 640px;
+}
+
+.success-panel {
+    text-align: center;
+}
+
+.success-icon {
+    color: #2e844a;
+}

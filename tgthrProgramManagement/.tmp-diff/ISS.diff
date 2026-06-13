@@ -1,0 +1,598 @@
+diff --git a/.tmp-diff/sandbox/ISS.cls b/.tmp-diff/prod/ISS.cls
+index e126f82e..1b498db4 100644
+--- a/.tmp-diff/sandbox/ISS.cls
++++ b/.tmp-diff/prod/ISS.cls
+@@ -1,4 +1,8 @@
+ public with sharing class InteractionSummaryService {
++  private static void debugLog(Object ignored) {
++    // Intentionally no-op: prevent debug output in production paths.
++  }
++
+   // Get recent engagements for the monthly calendar
+   @AuraEnabled(cacheable=true)
+   public static List<Map<String, Object>> getRecentEngagements(
+@@ -8,7 +12,7 @@ public with sharing class InteractionSummaryService {
+     Integer maxRows
+   ) {
+     try {
+-      System.debug(
++      debugLog(
+         'Getting recent engagements for program: ' +
+           programName +
+           ', startDate: ' +
+@@ -59,7 +63,7 @@ public with sharing class InteractionSummaryService {
+         endDateObj = Date.newInstance(today.year(), today.month() + 1, 0);
+       }
+ 
+-      System.debug(
++      debugLog(
+         'Resolved date range: ' + startDateObj + ' to ' + endDateObj
+       );
+ 
+@@ -70,9 +74,9 @@ public with sharing class InteractionSummaryService {
+ 
+       if (!programs.isEmpty()) {
+         programId = (Id) programs[0].get('Id');
+-        System.debug('Program Id fetched: ' + programId);
++        debugLog('Program Id fetched: ' + programId);
+       } else {
+-        System.debug('No program found with name: ' + programName);
++        debugLog('No program found with name: ' + programName);
+         return new List<Map<String, Object>>();
+       }
+ 
+@@ -107,7 +111,7 @@ public with sharing class InteractionSummaryService {
+         'LIMIT :m';
+ 
+       List<SObject> interactions = Database.query(interactionQuery);
+-      System.debug('Found ' + interactions.size() + ' interactions');
++      debugLog('Found ' + interactions.size() + ' interactions');
+ 
+       // Also get benefit disbursements if they exist
+       List<SObject> benefits = new List<SObject>();
+@@ -124,9 +128,9 @@ public with sharing class InteractionSummaryService {
+           'LIMIT :m';
+ 
+         benefits = Database.query(benefitQuery);
+-        System.debug('Found ' + benefits.size() + ' benefit disbursements');
++        debugLog('Found ' + benefits.size() + ' benefit disbursements');
+       } catch (Exception e) {
+-        System.debug(
++        debugLog(
+           'Error querying benefits (might not exist in schema): ' +
+           e.getMessage()
+         );
+@@ -143,7 +147,7 @@ public with sharing class InteractionSummaryService {
+         }
+         return mappedResults;
+     } catch (Exception e) {
+-      System.debug(
++      debugLog(
+         'Error getting recent engagements: ' +
+           e.getMessage() +
+           '\n' +
+@@ -169,7 +173,7 @@ public with sharing class InteractionSummaryService {
+     Boolean notifyCareTeam
+   ) {
+     try {
+-      System.debug(
++      debugLog(
+         'Creating interaction directly with accountId: ' +
+           accountId +
+           ', programId: ' +
+@@ -206,7 +210,7 @@ public with sharing class InteractionSummaryService {
+           );
+         }
+       } catch (Exception e) {
+-        System.debug('Error querying account: ' + e.getMessage());
++        debugLog('Error querying account: ' + e.getMessage());
+         throw new System.StringException(
+           'Error retrieving participant information: ' + e.getMessage()
+         );
+@@ -228,7 +232,7 @@ public with sharing class InteractionSummaryService {
+             );
+           }
+         } catch (Exception e) {
+-          System.debug('Error parsing date: ' + e.getMessage());
++          debugLog('Error parsing date: ' + e.getMessage());
+           userInteractionDate = System.today(); // Fall back to today's date
+         }
+       } else {
+@@ -253,7 +257,7 @@ public with sharing class InteractionSummaryService {
+           '/' +
+           String.valueOf(year);
+ 
+-        System.debug('Formatted date: ' + formattedDate);
++        debugLog('Formatted date: ' + formattedDate);
+       }
+ 
+       // Format Title as "Participant LastName, FirstName - Date Formatted - Staff First and Last Name"
+@@ -285,7 +289,7 @@ public with sharing class InteractionSummaryService {
+         try {
+           caseIdToUse = Id.valueOf(caseId);
+         } catch (Exception ex) {
+-          System.debug('Invalid caseId supplied: ' + caseId + ' - ' + ex.getMessage());
++          debugLog('Invalid caseId supplied: ' + caseId + ' - ' + ex.getMessage());
+         }
+       }
+ 
+@@ -302,7 +306,7 @@ public with sharing class InteractionSummaryService {
+             parentInteractionId = candidateId;
+           }
+         } catch (Exception ex) {
+-          System.debug('Unable to interpret relatedRecordId: ' + ex.getMessage());
++          debugLog('Unable to interpret relatedRecordId: ' + ex.getMessage());
+         }
+       }
+ 
+@@ -325,7 +329,7 @@ public with sharing class InteractionSummaryService {
+             caseIdToUse = fallbackCases[0].Id;
+           }
+         } catch (Exception fallbackEx) {
+-          System.debug('Unable to derive case for interaction: ' + fallbackEx.getMessage());
++          debugLog('Unable to derive case for interaction: ' + fallbackEx.getMessage());
+         }
+       }
+       if (caseIdToUse != null) {
+@@ -348,7 +352,7 @@ public with sharing class InteractionSummaryService {
+       }
+ 
+       // Set the Name field (which appears as Title in the UI)
+-      System.debug('Setting Name field with value: ' + title);
++      debugLog('Setting Name field with value: ' + title);
+       newInteraction.put('Name', title);
+ 
+       // Set POS field to default outreach location
+@@ -371,7 +375,7 @@ public with sharing class InteractionSummaryService {
+ 
+       // If a parent interaction is supplied, capture the relationship for audit
+       if (parentInteractionId != null) {
+-        System.debug(
++        debugLog(
+           'Parent interaction provided, setting relationship back to interaction: ' +
+             parentInteractionId
+         );
+@@ -387,7 +391,7 @@ public with sharing class InteractionSummaryService {
+             // Simply record the ID of the related interaction without appending to notes
+             // If your schema has a field for related interaction, you would set it here
+             // For now, we're just logging the relationship
+-            System.debug('Related interaction ID: ' + parentInteractionId);
++            debugLog('Related interaction ID: ' + parentInteractionId);
+ 
+             // Try to add a parent record ID if the field exists (safer approach)
+             try {
+@@ -405,20 +409,20 @@ public with sharing class InteractionSummaryService {
+                 try {
+                   // Try setting the field and catch the exception if it doesn't exist
+                   newInteraction.put(fieldName, parentInteractionId);
+-                  System.debug('Set ' + fieldName + ' to ' + parentInteractionId);
++                  debugLog('Set ' + fieldName + ' to ' + parentInteractionId);
+                   break;
+                 } catch (Exception fieldEx) {
+                   // Field doesn't exist, try the next one
+                 }
+               }
+             } catch (Exception ex) {
+-              System.debug(
++              debugLog(
+                 'Could not set related interaction field: ' + ex.getMessage()
+               );
+             }
+ 
+             // Log information about the related record for reference
+-            System.debug(
++            debugLog(
+               'Related interaction found - Title: ' +
+                 related.get('Name') +
+                 ', Purpose: ' +
+@@ -426,17 +430,17 @@ public with sharing class InteractionSummaryService {
+             );
+           }
+         } catch (Exception e) {
+-          System.debug('Error handling related record: ' + e.getMessage());
++          debugLog('Error handling related record: ' + e.getMessage());
+           // Continue without the additional context
+         }
+       }
+ 
+-      System.debug('About to insert interaction with Title: ' + title);
++      debugLog('About to insert interaction with Title: ' + title);
+ 
+       // Insert the record
+       insert newInteraction;
+ 
+-      System.debug('New interaction created with ID: ' + newInteraction.Id);
++      debugLog('New interaction created with ID: ' + newInteraction.Id);
+ 
+       // Send Care Team notification if flagged
+       if (notifyCareTeam == true && String.isNotBlank(accountId)) {
+@@ -445,14 +449,14 @@ public with sharing class InteractionSummaryService {
+           String notifBody = staffName + ' logged a ' + purpose + ' on ' + formattedDate;
+           CareTeamNotificationService.notifyCareTeam(accountId, newInteraction.Id, notifTitle, notifBody);
+         } catch (Exception notifEx) {
+-          System.debug('Care Team notification failed: ' + notifEx.getMessage());
++          debugLog('Care Team notification failed: ' + notifEx.getMessage());
+         }
+       }
+ 
+       // Return the ID of the created record
+       return (String) newInteraction.Id;
+     } catch (Exception e) {
+-      System.debug(
++      debugLog(
+         'Error creating interaction: ' +
+           e.getMessage() +
+           '\n' +
+@@ -477,7 +481,7 @@ public with sharing class InteractionSummaryService {
+       maxRows > 2000)
+       ? 500
+       : maxRows;
+-    System.debug(
++    debugLog(
+       'Parameters: daysBack = ' +
+         d +
+         ', maxRows = ' +
+@@ -487,7 +491,7 @@ public with sharing class InteractionSummaryService {
+     );
+ 
+     Date startDate = System.today().addDays(-d);
+-    System.debug('Start Date: ' + startDate);
++    debugLog('Start Date: ' + startDate);
+ 
+     // Base query parts
+     String baseSelectClause = 'SELECT Id, AccountId, Account.Name, CreatedBy.Name, MeetingNotes, Notify_Case_Manager__c, Date_of_Interaction__c, Program__c';
+@@ -496,7 +500,7 @@ public with sharing class InteractionSummaryService {
+     String limitClause = 'LIMIT :m';
+ 
+     if (String.isBlank(programName)) {
+-      System.debug(
++      debugLog(
+         'No program name provided. Querying all interaction summaries.'
+       );
+       String query =
+@@ -510,7 +514,7 @@ public with sharing class InteractionSummaryService {
+         limitClause;
+       return Database.query(query);
+     } else {
+-      System.debug('Program name provided: ' + programName);
++      debugLog('Program name provided: ' + programName);
+ 
+       // Find the Program ID using dynamic SOQL
+       String programQuery = 'SELECT Id FROM Program WHERE Name = :programName LIMIT 1';
+@@ -519,9 +523,9 @@ public with sharing class InteractionSummaryService {
+ 
+       if (!programs.isEmpty()) {
+         programId = (Id) programs[0].get('Id');
+-        System.debug('Program Id fetched: ' + programId);
++        debugLog('Program Id fetched: ' + programId);
+       } else {
+-        System.debug('No program found with name: ' + programName);
++        debugLog('No program found with name: ' + programName);
+         return new List<SObject>();
+       }
+ 
+@@ -545,7 +549,7 @@ public with sharing class InteractionSummaryService {
+       for (Integer i = 0; i < Math.min(5, results.size()); i++) {
+         SObject record = results[i];
+         Object dateValue = record.get('Date_of_Interaction__c');
+-        System.debug(
++        debugLog(
+           'Record ' +
+             i +
+             ' ID: ' +
+@@ -559,7 +563,7 @@ public with sharing class InteractionSummaryService {
+         );
+       }
+ 
+-      System.debug('Query returned ' + results.size() + ' records');
++      debugLog('Query returned ' + results.size() + ' records');
+       return results;
+     }
+   }
+@@ -574,9 +578,9 @@ public with sharing class InteractionSummaryService {
+     String programId,
+     Long cacheBuster
+   ) {
+-    System.debug('recentByProgramId called with programId: ' + programId);
++    debugLog('recentByProgramId called with programId: ' + programId);
+     if (String.isBlank(programId)) {
+-      System.debug('programId is blank, returning empty list');
++      debugLog('programId is blank, returning empty list');
+       return new List<Map<String, Object>>();
+     }
+     
+@@ -586,7 +590,7 @@ public with sharing class InteractionSummaryService {
+     Id pid = Id.valueOf(programId);
+     Date startDate = System.today().addDays(-d);
+     
+-    System.debug('recentByProgramId: programId=' + programId + ', daysBack=' + d + ', maxRows=' + m + ', startDate=' + startDate);
++    debugLog('recentByProgramId: programId=' + programId + ', daysBack=' + d + ', maxRows=' + m + ', startDate=' + startDate);
+     
+     // Documentation purposes to exclude ╬ô├ç├╢ matches CaseManagerHomeController.DOCUMENTATION_PURPOSES exactly.
+     List<String> clinicalNotePurposes = new List<String>{
+@@ -615,13 +619,13 @@ public with sharing class InteractionSummaryService {
+         'ORDER BY Notify_Case_Manager__c DESC, Date_of_Interaction__c DESC, CreatedDate DESC ' +
+         'LIMIT :m';
+       
+-      System.debug('Interaction query: ' + interactionQuery);
++      debugLog('Interaction query: ' + interactionQuery);
+       interactions = Database.query(interactionQuery);
+-      System.debug('Found ' + interactions.size() + ' interactions for enrolled participants');
++      debugLog('Found ' + interactions.size() + ' interactions for enrolled participants');
+       
+     } catch (Exception e) {
+-      System.debug('Error querying interactions: ' + e.getMessage());
+-      System.debug('Stack trace: ' + e.getStackTraceString());
++      debugLog('Error querying interactions: ' + e.getMessage());
++      debugLog('Stack trace: ' + e.getStackTraceString());
+     }
+     
+     // Convert interactions to Map<String, Object>
+@@ -647,7 +651,7 @@ public with sharing class InteractionSummaryService {
+         'ORDER BY IncidentDate DESC NULLS LAST, CreatedDate DESC ' +
+         'LIMIT :m'
+       );
+-      System.debug('Found ' + incidentSObjects.size() + ' incident records for enrolled participants');
++      debugLog('Found ' + incidentSObjects.size() + ' incident records for enrolled participants');
+       for (SObject inc : incidentSObjects) {
+         SObject acct = inc.getSObject('Account');
+         SObject createdBy = inc.getSObject('CreatedBy');
+@@ -673,10 +677,10 @@ public with sharing class InteractionSummaryService {
+         });
+       }
+     } catch (Exception incEx) {
+-      System.debug('recentByProgramId: incident query failed ╬ô├ç├╢ ' + incEx.getMessage());
++      debugLog('recentByProgramId: incident query failed ╬ô├ç├╢ ' + incEx.getMessage());
+     }
+ 
+-    System.debug('Returning ' + mappedResults.size() + ' total activity records (interactions + incidents)');
++    debugLog('Returning ' + mappedResults.size() + ' total activity records (interactions + incidents)');
+     return mappedResults;
+   }
+ 
+@@ -709,7 +713,7 @@ public with sharing class InteractionSummaryService {
+       
+       return Database.query(query);
+     } catch (Exception e) {
+-      System.debug('Error in recentDisbursementsByProgramId: ' + e.getMessage());
++      debugLog('Error in recentDisbursementsByProgramId: ' + e.getMessage());
+       throw new System.StringException('Error retrieving recent disbursements: ' + e.getMessage());
+     }
+   }
+@@ -719,11 +723,10 @@ public with sharing class InteractionSummaryService {
+   // only Interactions (same pattern as CaseManagerHomeController.getRecentInteractions).
+   @AuraEnabled
+   public static List<Map<String, Object>> thread(Id accountId, Integer maxRows, Long cacheBuster) {
+-    Integer m = (maxRows == null ||
+-      maxRows <= 0 ||
+-      maxRows > 2000)
+-      ? 50
+-      : maxRows;
++    Integer m = null;
++    if (maxRows != null && maxRows > 0) {
++      m = maxRows > 2000 ? 2000 : maxRows;
++    }
+     if (accountId == null) {
+       return new List<Map<String, Object>>();
+     }
+@@ -734,6 +737,7 @@ public with sharing class InteractionSummaryService {
+     };
+ 
+     // Using dynamic SOQL to avoid compile-time object validation issues with Nonprofit Cloud objects
++    String limitClause = m == null ? '' : ' LIMIT :m';
+     String query =
+       'SELECT Id, AccountId, Date_of_Interaction__c, InteractionPurpose, ' +
+       'MeetingNotes, CreatedBy.Name, CreatedDate, Notify_Case_Manager__c, Notify_Care_Team__c, Program__c, ' +
+@@ -743,8 +747,8 @@ public with sharing class InteractionSummaryService {
+       'WHERE AccountId = :accountId ' +
+       'AND (InteractionPurpose = NULL OR (InteractionPurpose NOT IN :clinicalNotePurposes AND InteractionPurpose != \'Interview\')) ' +
+       'AND Id NOT IN (SELECT Interaction_Summary__c FROM Interview__c WHERE Interaction_Summary__c != NULL) ' +
+-      'ORDER BY Date_of_Interaction__c DESC, CreatedDate DESC ' +
+-      'LIMIT :m';
++      'ORDER BY Date_of_Interaction__c DESC, CreatedDate DESC' +
++      limitClause;
+ 
+     List<SObject> results = Database.query(query);
+ 
+@@ -762,7 +766,7 @@ public with sharing class InteractionSummaryService {
+         fallbackCaseId = fallbackCases[0].Id;
+       }
+     } catch (Exception ex) {
+-      System.debug('InteractionSummaryService.thread fallback case lookup failed: ' + ex.getMessage());
++      debugLog('InteractionSummaryService.thread fallback case lookup failed: ' + ex.getMessage());
+     }
+ 
+     List<Map<String, Object>> payload = new List<Map<String, Object>>();
+@@ -778,7 +782,7 @@ public with sharing class InteractionSummaryService {
+             caseId = relatedRecordId;
+           }
+         } catch (Exception ex) {
+-          System.debug('InteractionSummaryService.thread related record type resolution failed: ' + ex.getMessage());
++          debugLog('InteractionSummaryService.thread related record type resolution failed: ' + ex.getMessage());
+         }
+       }
+ 
+@@ -795,6 +799,7 @@ public with sharing class InteractionSummaryService {
+         'Program__c' => record.get('Program__c'),
+         'CaseId' => caseId,
+         'Date_of_Interaction__c' => record.get('Date_of_Interaction__c'),
++        'CreatedDate' => record.get('CreatedDate'),
+         'InteractionPurpose' => record.get('InteractionPurpose'),
+         'MeetingNotes' => record.get('MeetingNotes'),
+         'CreatedBy_Name' => record.getSObject('CreatedBy') != null ? record.getSObject('CreatedBy').get('Name') : null,
+@@ -810,7 +815,7 @@ public with sharing class InteractionSummaryService {
+     for (Integer i = 0; i < Math.min(3, payload.size()); i++) {
+       Map<String, Object> record = payload[i];
+       Object programId = record.get('Program__c');
+-      System.debug(
++      debugLog(
+         'Interaction Record ' +
+           i +
+           ' ID: ' +
+@@ -825,18 +830,18 @@ public with sharing class InteractionSummaryService {
+   // additional related: Incidents (right panel)
+   @AuraEnabled
+   public static List<SObject> recentIncidents(Id accountId, Integer maxRows, Long cacheBuster) {
+-    Integer m = (maxRows == null ||
+-      maxRows <= 0 ||
+-      maxRows > 2000)
+-      ? 20
+-      : maxRows;
++    Integer m = null;
++    if (maxRows != null && maxRows > 0) {
++      m = maxRows > 2000 ? 2000 : maxRows;
++    }
+     // Using dynamic SOQL to avoid compile-time object validation issues with Nonprofit Cloud objects
++    String limitClause = m == null ? '' : ' LIMIT :m';
+     String query =
+       'SELECT Id, Subject, Description, IncidentDate, CreatedDate, CreatedBy.Name ' +
+       'FROM PublicComplaint ' +
+       'WHERE AccountId = :accountId ' +
+-      'ORDER BY IncidentDate DESC, CreatedDate DESC ' +
+-      'LIMIT :m';
++      'ORDER BY IncidentDate DESC, CreatedDate DESC' +
++      limitClause;
+     return Database.query(query);
+   }
+ 
+@@ -867,7 +872,7 @@ public with sharing class InteractionSummaryService {
+         ? 50
+         : maxRows;
+ 
+-      System.debug(
++      debugLog(
+         'Getting program enrollments for program: ' +
+           programName +
+           ', maxRows: ' +
+@@ -881,9 +886,9 @@ public with sharing class InteractionSummaryService {
+ 
+       if (!programs.isEmpty()) {
+         programId = (Id) programs[0].get('Id');
+-        System.debug('Program Id fetched: ' + programId);
++        debugLog('Program Id fetched: ' + programId);
+       } else {
+-        System.debug('No program found with name: ' + programName);
++        debugLog('No program found with name: ' + programName);
+         return new List<SObject>();
+       }
+ 
+@@ -899,11 +904,11 @@ public with sharing class InteractionSummaryService {
+         'LIMIT :m';
+ 
+       List<SObject> results = Database.query(query);
+-      System.debug('Returned ' + results.size() + ' program enrollments');
++      debugLog('Returned ' + results.size() + ' program enrollments');
+ 
+       return results;
+     } catch (Exception e) {
+-      System.debug(
++      debugLog(
+         'Error getting program enrollments: ' +
+           e.getMessage() +
+           '\n' +
+@@ -941,7 +946,7 @@ public with sharing class InteractionSummaryService {
+         'LIMIT :m';
+       return Database.query(query);
+     } catch (Exception e) {
+-      System.debug(
++      debugLog(
+         'Error in getProgramEnrollmentsByProgramId: ' + e.getMessage()
+       );
+       throw e;
+@@ -954,7 +959,7 @@ public with sharing class InteractionSummaryService {
+     String programName
+   ) {
+     try {
+-      System.debug(
++      debugLog(
+         'Getting active program enrollments for program: ' + programName
+       );
+ 
+@@ -965,21 +970,21 @@ public with sharing class InteractionSummaryService {
+ 
+       if (!programs.isEmpty()) {
+         programId = (Id) programs[0].get('Id');
+-        System.debug('Program Id fetched: ' + programId);
++        debugLog('Program Id fetched: ' + programId);
+       } else {
+-        System.debug('No program found with name: ' + programName);
++        debugLog('No program found with name: ' + programName);
+         throw new System.StringException('Program not found: ' + programName);
+       }
+ 
+       // Query active enrollments with participant details
+       // Debug logging to check for active enrollments with any status
+-      System.debug('Checking for active enrollments with any status...');
++      debugLog('Checking for active enrollments with any status...');
+       String debugQuery =
+         'SELECT Id, Status, IsActive FROM ProgramEnrollment ' +
+         'WHERE ProgramId = :programId AND IsActive = true';
+       List<SObject> debugResults = Database.query(debugQuery);
+       for (SObject enrollment : debugResults) {
+-        System.debug(
++        debugLog(
+           'Found active enrollment: ID=' +
+             enrollment.Id +
+             ', Status=' +
+@@ -1018,13 +1023,13 @@ public with sharing class InteractionSummaryService {
+         'ORDER BY EndDate ASC';
+ 
+       // Execute all queries
+-      System.debug('Active query: ' + activeQuery);
++      debugLog('Active query: ' + activeQuery);
+       List<SObject> activeEnrollments = Database.query(activeQuery);
+-      System.debug('Awaiting intake query: ' + awaitingIntakeQuery);
++      debugLog('Awaiting intake query: ' + awaitingIntakeQuery);
+       List<SObject> awaitingIntakeEnrollments = Database.query(
+         awaitingIntakeQuery
+       );
+-      System.debug('Pending exit query: ' + pendingExitQuery);
++      debugLog('Pending exit query: ' + pendingExitQuery);
+       List<SObject> pendingExitEnrollments = Database.query(pendingExitQuery);
+ 
+       // Build a result map with all the enrollment data
+@@ -1033,7 +1038,7 @@ public with sharing class InteractionSummaryService {
+       result.put('awaitingIntakeEnrollments', awaitingIntakeEnrollments);
+       result.put('pendingExitEnrollments', pendingExitEnrollments);
+ 
+-      System.debug(
++      debugLog(
+         'Returned active: ' +
+           activeEnrollments.size() +
+           ', awaiting: ' +
+@@ -1044,7 +1049,7 @@ public with sharing class InteractionSummaryService {
+ 
+       // Log sample data from active enrollments if available
+       if (!activeEnrollments.isEmpty()) {
+-        System.debug(
++        debugLog(
+           'Sample active enrollment - ID: ' +
+             activeEnrollments[0].Id +
+             ', Status: ' +
+@@ -1056,7 +1061,7 @@ public with sharing class InteractionSummaryService {
+ 
+       return result;
+     } catch (Exception e) {
+-      System.debug(
++      debugLog(
+         'Error getting active program enrollments: ' +
+           e.getMessage() +
+           '\n' +
+@@ -1174,7 +1179,7 @@ public with sharing class InteractionSummaryService {
+ 
+       return result;
+     } catch (Exception e) {
+-      System.debug(
++      debugLog(
+         'Error in getActiveProgramEnrollmentsByProgramId: ' + e.getMessage()
+       );
+       throw e;
+@@ -1204,7 +1209,7 @@ public with sharing class InteractionSummaryService {
+         : (String) programs[0].get('Name'));
+       return getRecentEngagements(programName, startDate, endDate, maxRows);
+     } catch (Exception e) {
+-      System.debug(
++      debugLog(
+         'Error in getRecentEngagementsByProgramId: ' + e.getMessage()
+       );
+       throw e;

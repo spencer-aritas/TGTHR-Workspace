@@ -1,0 +1,17 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "ApexOrgWideCoverage",
+          "url": "/services/data/v66.0/tooling/sobjects/ApexOrgWideCoverage/716VY000000qxonYAA"
+        },
+        "PercentCovered": 5
+      }
+    ],
+    "totalSize": 1,
+    "done": true
+  },
+  "warnings": []
+}

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>01 - Pharmacy</fullName>
+        <default>false</default>
+        <label>01 - Pharmacy</label>
+    </customValue>
+    <customValue>
+        <fullName>02 - Telehealth</fullName>
+        <default>false</default>
+        <label>02 - Telehealth</label>
+    </customValue>
+    <customValue>
+        <fullName>03 - School</fullName>
+        <default>false</default>
+        <label>03 - School</label>
+    </customValue>
+    <customValue>
+        <fullName>04 - Shelter</fullName>
+        <default>false</default>
+        <label>04 - Shelter</label>
+    </customValue>
+    <customValue>
+        <fullName>11 - Office</fullName>
+        <default>false</default>
+        <label>11 - Office</label>
+    </customValue>
+    <customValue>
+        <fullName>12 - Home</fullName>
+        <default>false</default>
+        <label>12 - Home</label>
+    </customValue>
+    <customValue>
+        <fullName>15 - Mobile Unit</fullName>
+        <default>false</default>
+        <label>15 - Mobile Unit</label>
+    </customValue>
+    <customValue>
+        <fullName>18 - Place of Employment / Worksite</fullName>
+        <default>false</default>
+        <label>18 - Place of Employment / Worksite</label>
+    </customValue>
+    <customValue>
+        <fullName>20 - Urgent Care Facility</fullName>
+        <default>false</default>
+        <label>20 - Urgent Care Facility</label>
+    </customValue>
+    <customValue>
+        <fullName>21 - Inpatient Hospital</fullName>
+        <default>false</default>
+        <label>21 - Inpatient Hospital</label>
+    </customValue>
+    <customValue>
+        <fullName>27 - Outreach Site / Street</fullName>
+        <default>false</default>
+        <label>27 - Outreach Site / Street</label>
+    </customValue>
+    <customValue>
+        <fullName>71 - Public Health Clinic</fullName>
+        <default>false</default>
+        <label>71 - Public Health Clinic</label>
+    </customValue>
+    <customValue>
+        <fullName>72 - Rural Health Clinic</fullName>
+        <default>false</default>
+        <label>72 - Rural Health Clinic</label>
+    </customValue>
+    <customValue>
+        <fullName>99 - Other Place of Service</fullName>
+        <default>false</default>
+        <label>99 - Other Place of Service</label>
+    </customValue>
+    <masterLabel>Point of Service (POS)</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

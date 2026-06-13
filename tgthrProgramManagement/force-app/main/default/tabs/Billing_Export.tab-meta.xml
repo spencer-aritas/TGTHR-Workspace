@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Billing Export - Filter, view, and export service line data for clearing house submission</description>
+    <label>Billing Export</label>
+    <lwcComponent>billingExportBoard</lwcComponent>
+    <motif>Custom100: Handshake</motif>
+</CustomTab>

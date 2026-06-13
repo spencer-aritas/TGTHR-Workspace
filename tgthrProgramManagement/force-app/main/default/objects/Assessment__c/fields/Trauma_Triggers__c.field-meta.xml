@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Trauma_Triggers__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Select all triggers that may cause distress or re-traumatization.</inlineHelpText>
     <label>Trauma Triggers</label>
     <required>false</required>
@@ -12,13 +11,101 @@
         <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
-            <value><fullName>Yelling</fullName><default>false</default><label>Yelling</label></value>
-            <value><fullName>Being touched</fullName><default>false</default><label>Being touched</label></value>
-            <value><fullName>Loud noises</fullName><default>false</default><label>Loud noises</label></value>
-            <value><fullName>Crowds</fullName><default>false</default><label>Crowds</label></value>
-            <value><fullName>People standing behind me</fullName><default>false</default><label>People standing behind me</label></value>
-            <value><fullName>Specific smells</fullName><default>false</default><label>Specific smells</label></value>
-            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+            <value>
+                <fullName>Yelling</fullName>
+                <default>false</default>
+                <label>Yelling</label>
+            </value>
+            <value>
+                <fullName>Being touched</fullName>
+                <default>false</default>
+                <label>Being touched</label>
+            </value>
+            <value>
+                <fullName>Loud noises</fullName>
+                <default>false</default>
+                <label>Loud noises</label>
+            </value>
+            <value>
+                <fullName>Crowds</fullName>
+                <default>false</default>
+                <label>Crowds</label>
+            </value>
+            <value>
+                <fullName>People standing behind me</fullName>
+                <default>false</default>
+                <label>People standing behind me</label>
+            </value>
+            <value>
+                <fullName>Specific smells</fullName>
+                <default>false</default>
+                <label>Specific smells</label>
+            </value>
+            <value>
+                <fullName>Other</fullName>
+                <default>false</default>
+                <label>Other</label>
+            </value>
+            <value>
+                <fullName>Anniversaries/Dates</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Anniversaries/Dates</label>
+            </value>
+            <value>
+                <fullName>Authority Figures</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Authority Figures</label>
+            </value>
+            <value>
+                <fullName>Being Alone</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Being Alone</label>
+            </value>
+            <value>
+                <fullName>Certain Smells</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Certain Smells</label>
+            </value>
+            <value>
+                <fullName>Crowded Spaces</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Crowded Spaces</label>
+            </value>
+            <value>
+                <fullName>Holidays</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Holidays</label>
+            </value>
+            <value>
+                <fullName>Nighttime/Darkness</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Nighttime/Darkness</label>
+            </value>
+            <value>
+                <fullName>Physical Touch</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Physical Touch</label>
+            </value>
+            <value>
+                <fullName>Raised Voices/Yelling</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Raised Voices/Yelling</label>
+            </value>
+            <value>
+                <fullName>Specific People or Places</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Specific People or Places</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
     <visibleLines>6</visibleLines>

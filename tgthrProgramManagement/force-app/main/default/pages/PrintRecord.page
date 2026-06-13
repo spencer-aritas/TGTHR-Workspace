@@ -1,0 +1,104 @@
+<apex:page standardController="BenefitDisbursement"
+           showHeader="false" sidebar="false"
+           renderAs="pdf"
+           applyHtmlTag="false" applyBodyTag="false">
+<html>
+<head>
+<style type="text/css">
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #222;
+        font-size: 9pt;
+        line-height: 1.4;
+    }
+    .print-header {
+        border-bottom: 2px solid #222;
+        padding-bottom: 8px;
+        margin-bottom: 14px;
+    }
+    .print-header h1 {
+        font-size: 15pt;
+        margin: 0 0 2px 0;
+        color: #000;
+    }
+    .print-header .record-name {
+        font-size: 11pt;
+        color: #444;
+    }
+    .print-header .print-date {
+        font-size: 8pt;
+        color: #777;
+        margin-top: 3px;
+    }
+
+    /* ---------- apex:detail table fixes for PDF ---------- */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    .bPageBlock {
+        border: 1px solid #bbb !important;
+        margin-bottom: 8px !important;
+    }
+    .pbSubheader {
+        background: #e8e8e8 !important;
+        font-size: 9pt !important;
+        font-weight: bold !important;
+        padding: 4px 6px !important;
+    }
+    .detailList tr td {
+        padding: 3px 6px !important;
+        vertical-align: top !important;
+        border-bottom: 1px solid #eee !important;
+        word-wrap: break-word !important;
+    }
+    .labelCol {
+        width: 25% !important;
+        font-weight: bold !important;
+        background: #f7f7f7 !important;
+        color: #333 !important;
+    }
+    .dataCol, .data2Col {
+        width: 25% !important;
+        color: #222 !important;
+    }
+    /* Keep two-column layout but prevent overflow */
+    .detailList {
+        table-layout: fixed !important;
+        width: 100% !important;
+    }
+    td {
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    /* Long text areas should wrap */
+    .dataCol textarea, .data2Col textarea,
+    .dataCol span, .data2Col span {
+        word-wrap: break-word !important;
+        white-space: pre-wrap !important;
+    }
+</style>
+</head>
+<body>
+
+    <div class="print-header">
+        <h1>Benefit Disbursement Record</h1>
+        <div class="record-name">{!BenefitDisbursement.Name}</div>
+        <div class="print-date">
+            Printed: <apex:outputText value="{0,date,MMMM d, yyyy 'at' h:mm a}">
+                <apex:param value="{!NOW()}" />
+            </apex:outputText>
+        </div>
+    </div>
+
+    <apex:detail relatedList="false" title="false" />
+
+</body>
+</html>
+</apex:page>

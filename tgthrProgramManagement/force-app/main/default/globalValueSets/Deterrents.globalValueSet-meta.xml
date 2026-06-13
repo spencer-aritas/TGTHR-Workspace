@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Deterrents definitely stopped you from attempting suicide</fullName>
+        <default>false</default>
+        <label>Deterrents definitely stopped you from attempting suicide</label>
+    </customValue>
+    <customValue>
+        <fullName>Deterrents probably stopped you</fullName>
+        <default>false</default>
+        <label>Deterrents probably stopped you</label>
+    </customValue>
+    <customValue>
+        <fullName>Uncertain that deterrents stopped you</fullName>
+        <default>false</default>
+        <label>Uncertain that deterrents stopped you</label>
+    </customValue>
+    <customValue>
+        <fullName>Deterrents most likely did not stop you</fullName>
+        <default>false</default>
+        <label>Deterrents most likely did not stop you</label>
+    </customValue>
+    <customValue>
+        <fullName>Deterrents definitely did not stop you</fullName>
+        <default>false</default>
+        <label>Deterrents definitely did not stop you</label>
+    </customValue>
+    <customValue>
+        <fullName>Does not apply</fullName>
+        <default>false</default>
+        <label>Does not apply</label>
+    </customValue>
+    <masterLabel>Deterrents</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

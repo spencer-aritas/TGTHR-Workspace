@@ -2,7 +2,6 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Rendering_Mode__c</fullName>
     <description>Determines how and where this document should be cached</description>
-    <externalId>false</externalId>
     <inlineHelpText>Stateless = always render on-the-fly; CachedOnInterview = cache on Interview only; CachedAlways = cache and attach to Case/Files for compliance</inlineHelpText>
     <label>Rendering Mode</label>
     <required>false</required>

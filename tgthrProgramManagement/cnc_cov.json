@@ -1,0 +1,25 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "ApexCodeCoverageAggregate",
+          "url": "/services/data/v66.0/tooling/sobjects/ApexCodeCoverageAggregate/715RT0000060dtxYAA"
+        },
+        "ApexClassOrTrigger": {
+          "attributes": {
+            "type": "Name",
+            "url": "/services/data/v66.0/tooling/sobjects/ApexClass/01pRT000001lf5ZYAQ"
+          },
+          "Name": "ClinicalNoteController"
+        },
+        "NumLinesCovered": 0,
+        "NumLinesUncovered": 1480
+      }
+    ],
+    "totalSize": 1,
+    "done": true
+  },
+  "warnings": []
+}

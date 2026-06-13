@@ -103,7 +103,7 @@ public with sharing class InterviewDocumentService {
             'Interaction_Summary__r.MeetingNotes, ' +  // Interaction details for document
             'Interaction_Summary__r.Start_Time__c, ' +
             'Interaction_Summary__r.End_Time__c, ' +
-            'Interaction_Summary__r.POS__c, ' +
+            'Interaction_Summary__r.Place_of_Service__c, ' +
             'Interaction_Summary__r.Date_of_Interaction__c, ' +
             'Program_Enrollment__r.ProgramId, Program_Enrollment__r.Program.Name, ';
             
@@ -234,13 +234,13 @@ public with sharing class InterviewDocumentService {
             'dateStarted' => serializeTemporalForDocgen(interview.get('Started_On__c')),
             'dateCompleted' => serializeTemporalForDocgen(interview.get('Completed_On__c')),
             'status' => (String)interview.get('Status__c'),
-            'location' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : '', // Place of Service
+            'location' => interactionSummary != null ? (String)interactionSummary.get('Place_of_Service__c') : '', // Place of Service
             'channel' => 'In Person', // TODO: Add channel field
             // InteractionSummary details
             'meetingNotes' => isTreatmentPlan ? null : (interactionSummary != null ? (String)interactionSummary.get('MeetingNotes') : null),
             'startTime' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('Start_Time__c')) : null,
             'endTime' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('End_Time__c')) : null,
-            'placeOfService' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : null,
+            'placeOfService' => interactionSummary != null ? (String)interactionSummary.get('Place_of_Service__c') : null,
             'dateOfInteraction' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('Date_of_Interaction__c')) : null
         };
         
@@ -1727,34 +1727,6 @@ public with sharing class InterviewDocumentService {
         });
     }
 
-    /**
-     * Helper method to add an SSRS response item if the value exists in responseData.
-     * @deprecated Use buildSsrsResponseItemsFromData instead.
-     */
-    private static void addSsrsResponseItem(
-        List<Map<String, Object>> items, 
-        Map<String, Object> responseData, 
-        String key, 
-        String label
-    ) {
-        Object value = responseData.get(key);
-        if (value != null) {
-            String displayValue;
-            if (value instanceof Boolean) {
-                displayValue = ((Boolean)value) ? 'Yes' : 'No';
-            } else {
-                displayValue = String.valueOf(value);
-            }
-            
-            items.add(new Map<String, Object>{
-                'key' => key,
-                'label' => label,
-                'value' => displayValue,
-                'isPositive' => value instanceof Boolean && (Boolean)value
-            });
-        }
-    }
-    
     /**
      * Build recommendations based on SSRS risk level.
      */

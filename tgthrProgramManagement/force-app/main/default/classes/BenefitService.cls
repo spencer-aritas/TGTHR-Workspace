@@ -1,4 +1,4 @@
-public with sharing class BenefitService {
+public without sharing class BenefitService {
   // Return Active Programs for tabs (Id, Name only)
   @AuraEnabled(cacheable=true)
   public static List<SObject> getActivePrograms() {
@@ -13,32 +13,30 @@ public with sharing class BenefitService {
     }
   }
 
-  // Get available benefit types (categories) directly from BenefitType records.
-  // Delegates to BenefitReplacementService.getActiveBenefitsForProgram to ensure
-  // Replaced/Retired benefits are excluded regardless of how IsActive was set.
-  @AuraEnabled(cacheable=true)
+  // Get available benefit types from the BenefitType object directly.
+  // Queries BenefitType records at the org level (not filtered by program) so the
+  // list is stable static data. value = BenefitType Id (18-char) so callers can
+  // pass it as benefitTypeId in CreateRequest / ReplaceRequest. The Id is typed
+  // as String in those DTOs to survive the Aura bridge deserialization.
+  // programId param is retained for wire-call compatibility but is no longer used.
+  @AuraEnabled
   public static List<Map<String, String>> getBenefitTypes(String programId) {
     try {
-        List<Map<String, String>> benefitTypes = new List<Map<String, String>>();
-        if (String.isBlank(programId)) return benefitTypes;
-
-        // Derive distinct BenefitType pairs from the lifecycle-aware resolver
-        List<BenefitReplacementService.BenefitOption> opts =
-            BenefitReplacementService.getActiveBenefitsForProgram(Id.valueOf(programId), null);
-
-        Map<String, String> seen = new Map<String, String>(); // typeName → typeId
-        for (BenefitReplacementService.BenefitOption o : opts) {
-            if (String.isBlank(o.benefitTypeName)) continue;
-            if (!seen.containsKey(o.benefitTypeName)) {
-                seen.put(o.benefitTypeName, o.benefitTypeId != null ? String.valueOf(o.benefitTypeId) : o.benefitTypeName);
-            }
+        List<Map<String, String>> out = new List<Map<String, String>>();
+        Set<String> seen = new Set<String>();
+        for (SObject bt : Database.query(
+            'SELECT Id, Name, Category FROM BenefitType ORDER BY Name, CreatedDate ASC'
+        )) {
+            String btName = (String) bt.get('Name');
+            if (seen.contains(btName)) continue;
+            seen.add(btName);
+            out.add(new Map<String, String>{
+                'label'    => btName,
+                'value'    => (String) bt.get('Id'),
+                'category' => (String) bt.get('Category')
+            });
         }
-        List<String> sortedNames = new List<String>(seen.keySet());
-        sortedNames.sort();
-        for (String name : sortedNames) {
-            benefitTypes.add(new Map<String, String>{ 'label' => name, 'value' => seen.get(name) });
-        }
-        return benefitTypes;
+        return out;
     } catch (Exception e) {
         System.debug('Error getting benefit types: ' + e.getMessage());
         return new List<Map<String, String>>();

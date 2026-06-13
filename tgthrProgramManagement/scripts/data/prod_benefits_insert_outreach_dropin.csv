@@ -1,0 +1,5 @@
+"Name","ProgramId","BenefitTypeId","IsActive","BenefitStatus","CPT_Code__c","Default_Disbursement_Quantity__c","Default_Duration_c__c","Housing_Capacity__c","Is_a_Housing_Benefit__c","Spots_Currently_Filled__c","Available_for_Housing__c","Available_for_Program_Engagement__c","Available_for_Case_Management__c","Available_for_Clinical__c","Available_for_Peer__c","Lifecycle_State__c"
+"Crisis Intervention","11WVY000005ea9y2AA","0jhVY000000001dYAA","true","Active","H2011","1","15","","false","","true","true","true","true","false",""
+"Outreach Engagement","11WVY000005ea9y2AA","0jhVY000000001dYAA","true","Active","H0023","1","15","","false","","false","false","true","true","false",""
+"Screening/Assessment","11WVY000005ea9y2AA","0jhVY000000001dYAA","true","Active","H0002","1","15","","false","","false","false","true","true","false",""
+"Drop-In Day","11WVY000005ea9y2AA","0jhVY000000001dYAA","true","Active","H0038","1","120","","false","","false","false","false","false","false",""

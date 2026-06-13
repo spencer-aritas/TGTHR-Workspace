@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Housing_Program_Experience__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Prior experience with housing programs, transitional housing, or supportive housing.</inlineHelpText>
     <label>Housing Program Experience</label>
     <length>32768</length>

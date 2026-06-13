@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>DV_Safety_Concerns__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Notes about current domestic violence safety concerns or needs.</inlineHelpText>
     <label>DV Safety Concerns</label>
     <length>32768</length>

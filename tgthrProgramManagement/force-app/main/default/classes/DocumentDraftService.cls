@@ -123,11 +123,12 @@ public with sharing class DocumentDraftService {
                              DateTime.now().format('yyyyMMdd_HHmmss') + 
                              DRAFT_FILE_EXTENSION;
             
-            // If updating existing draft, delete old version first
+            // If updating existing draft, delete old version first.
+            // Use without-sharing helper so users who don't own the Case can still
+            // replace their own prior draft attached to it.
             if (existingDraftId != null) {
                 try {
-                    // Delete the existing ContentDocument (this cascades to ContentVersion)
-                    delete [SELECT Id FROM ContentDocument WHERE Id = :existingDraftId];
+                    new DraftAccess().deleteDraftDocument(existingDraftId);
                 } catch (Exception e) {
                     System.debug('Could not delete existing draft: ' + e.getMessage());
                     // Continue anyway - will create new draft
@@ -150,14 +151,13 @@ public with sharing class DocumentDraftService {
             // Get the ContentDocumentId
             cv = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
             
-            // Link to the Case via ContentDocumentLink
-            ContentDocumentLink cdl = new ContentDocumentLink();
-            cdl.ContentDocumentId = cv.ContentDocumentId;
-            cdl.LinkedEntityId = caseId;
-            cdl.ShareType = 'V'; // Viewer permission
-            cdl.Visibility = 'AllUsers';
-            
-            insert cdl;
+            // Link to the Case via ContentDocumentLink.
+            // Inserting a ContentDocumentLink requires the running user to have
+            // edit/share access to the LinkedEntityId. Case workers who don't own
+            // the Case (e.g. intake cases owned by a different user) would otherwise
+            // get INSUFFICIENT_ACCESS_OR_READONLY here. Defer to a without-sharing
+            // helper so draft saves work regardless of Case ownership.
+            new DraftAccess().linkDraftToCase(cv.ContentDocumentId, caseId);
             
             result.success = true;
             result.draftId = cv.ContentDocumentId;
@@ -451,5 +451,34 @@ public with sharing class DocumentDraftService {
         }
         
         return oldDrafts.size();
+    }
+
+    /**
+     * Without-sharing helper for ContentDocumentLink and ContentDocument operations.
+     *
+     * ContentDocumentLink insert is gated by the running user's share access to the
+     * LinkedEntityId. Case workers filling out an assessment on a Case they don't
+     * own (e.g. an intake Case owned by another user) would otherwise hit
+     * INSUFFICIENT_ACCESS_OR_READONLY when saving a draft. The draft itself is
+     * owned by the running user and is only attached to the Case so the
+     * "Resume Draft" UI on the Case page can find it. Bypassing sharing here is
+     * safe: only the running user (file owner) can read the JSON blob, and the
+     * Visibility=AllUsers / ShareType=V on the link grants others on the Case no
+     * more than view-on-the-record metadata for the draft file.
+     */
+    private without sharing class DraftAccess {
+        public void linkDraftToCase(Id contentDocumentId, Id caseId) {
+            ContentDocumentLink cdl = new ContentDocumentLink();
+            cdl.ContentDocumentId = contentDocumentId;
+            cdl.LinkedEntityId = caseId;
+            cdl.ShareType = 'V'; // Viewer permission
+            cdl.Visibility = 'AllUsers';
+            insert cdl;
+        }
+
+        public void deleteDraftDocument(Id contentDocumentId) {
+            // Cascades to ContentVersion + ContentDocumentLink rows.
+            delete [SELECT Id FROM ContentDocument WHERE Id = :contentDocumentId];
+        }
     }
 }

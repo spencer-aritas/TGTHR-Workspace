@@ -3,7 +3,6 @@
     <fullName>Case__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>Case context for this Interview document</description>
-    <externalId>false</externalId>
     <label>Case</label>
     <referenceTo>Case</referenceTo>
     <relationshipLabel>Interview Documents</relationshipLabel>

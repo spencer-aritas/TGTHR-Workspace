@@ -87,7 +87,14 @@
                                             <span class={b.clinicalClass}>Clinical</span>
                                             <span class={b.caseMgmtClass}>Case Mgmt</span>
                                             <span class={b.peerClass}>Peer</span>
-                                            <span class={b.programEngagementClass}>Census</span>
+                                            <span class="census-group">
+                                                <span class={b.programEngagementClass}>Census</span>
+                                                <template if:true={b.availableForProgramEngagement}>
+                                                    <template if:true={b.requireCaseNote}>
+                                                        <span class="channel-badge channel-on note-pill" title="Note required on every Census disbursement">+ Note</span>
+                                                    </template>
+                                                </template>
+                                            </span>
                                         </div>
                                         <!-- Housing benefit tag (auto-disbursed to residents) -->
                                         <template if:true={b.availableForHousing}>
@@ -188,7 +195,6 @@
                     <h2 class="slds-modal__title">Edit Service</h2>
                     <p class="slds-m-top_xx-small slds-text-body_small" style="color:rgba(255,255,255,0.8)">
                         Updates this record in place — no history is created.
-                        Use "Change Type" to change the Benefit Type instead.
                     </p>
                 </header>
                 <div class="slds-modal__content slds-p-around_medium">
@@ -199,12 +205,20 @@
                         data-field="benefitName"
                         required
                     ></lightning-input>
+                    <div class="slds-form-element slds-m-top_small">
+                        <span class="slds-form-element__label">Benefit Type</span>
+                        <div class="slds-form-element__control">
+                            <span class="slds-form-element__static">{editForm.benefitTypeName}</span>
+                        </div>
+                        <p class="slds-text-body_small slds-m-top_xx-small" style="color:#706e6b">
+                            &#9651; Type cannot be changed here — use <em>Change Type</em> to retire and recreate with a different type.
+                        </p>
+                    </div>
                     <lightning-combobox
                         label="Unit of Measure"
                         value={editForm.unitName}
                         options={unitOptions}
-                        onchange={handleEditFormChange}
-                        data-field="unitName"
+                        onchange={handleEditUnitChange}
                         class="slds-m-top_small"
                         field-level-help="How disbursements are counted and reported"
                     ></lightning-combobox>
@@ -261,13 +275,23 @@
                                         data-field="availableForPeer"
                                     ></lightning-input>
                                 </div>
-                                <div class="slds-col slds-size_1-of-2">
+                                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
                                     <lightning-input type="checkbox" label="Census / Program Engagement"
                                         checked={editForm.availableForProgramEngagement}
                                         onchange={handleEditFormChange}
                                         data-field="availableForProgramEngagement"
                                         field-level-help="Controls Census Board visibility and Program Engagement disbursements"
                                     ></lightning-input>
+                                    <template if:true={editForm.availableForProgramEngagement}>
+                                        <div class="census-dependent">
+                                            <lightning-input type="checkbox" label="↳ Require Note"
+                                                checked={editForm.requireCaseNote}
+                                                onchange={handleEditFormChange}
+                                                data-field="requireCaseNote"
+                                                field-level-help="When checked: a Note is required on every Census disbursement and is published to Meeting Notes on the Interaction Summary. When unchecked: still creates an Interaction Summary, but the Note is optional."
+                                            ></lightning-input>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -316,20 +340,20 @@
                     ></lightning-input>
                     <lightning-combobox
                         label="Benefit Type"
-                        value={addForm.benefitTypeName}
+                        value={addForm.benefitTypeId}
                         options={benefitTypeOptions}
-                        onchange={handleAddFormChange}
-                        data-field="benefitTypeName"
+                        onchange={handleAddBenefitTypeChange}
+                        required
                         class="slds-m-top_small"
                     ></lightning-combobox>
                     <lightning-combobox
                         label="Unit of Measure"
                         value={addForm.unitName}
                         options={unitOptions}
-                        onchange={handleAddFormChange}
-                        data-field="unitName"
+                        onchange={handleAddUnitChange}
                         class="slds-m-top_small"
                     ></lightning-combobox>
+
                     <div class="slds-grid slds-gutters slds-m-top_small">
                         <div class="slds-col slds-size_1-of-2">
                             <lightning-input type="number" label="Default Quantity" min="0" step="0.5"
@@ -365,6 +389,16 @@
                                 <div class="slds-col slds-size_1-of-2">
                                     <lightning-input type="checkbox" label="Census / Program Engagement" checked={addForm.availableForProgramEngagement}
                                         onchange={handleAddFormChange} data-field="availableForProgramEngagement"></lightning-input>
+                                    <template if:true={addForm.availableForProgramEngagement}>
+                                        <div class="census-dependent">
+                                            <lightning-input type="checkbox" label="↳ Require Note"
+                                                checked={addForm.requireCaseNote}
+                                                onchange={handleAddFormChange}
+                                                data-field="requireCaseNote"
+                                                field-level-help="When checked: a Note is required on every Census disbursement and is published to Meeting Notes on the Interaction Summary. When unchecked: still creates an Interaction Summary, but the Note is optional."
+                                            ></lightning-input>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -420,10 +454,9 @@
                     ></lightning-input>
                     <lightning-combobox
                         label="New Benefit Type"
-                        value={replaceForm.newBenefitTypeName}
+                        value={replaceForm.newBenefitTypeId}
                         options={benefitTypeOptions}
-                        onchange={handleReplaceFormChange}
-                        data-field="newBenefitTypeName"
+                        onchange={handleReplaceTypeChange}
                         required
                         class="slds-m-top_small"
                     ></lightning-combobox>

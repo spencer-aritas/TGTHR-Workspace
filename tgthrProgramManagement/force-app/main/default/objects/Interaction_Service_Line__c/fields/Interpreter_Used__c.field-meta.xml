@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Interpreter_Used__c</fullName>
+    <label>Interpreter Used</label>
+    <type>Checkbox</type>
+    <defaultValue>false</defaultValue>
+    <description>Indicates whether an interpreter was used during service delivery. Drives modifier selection in billing export.</description>
+</CustomField>

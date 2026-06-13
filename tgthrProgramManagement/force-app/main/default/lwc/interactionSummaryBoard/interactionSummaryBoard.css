@@ -24,45 +24,39 @@
 }
 
 .slds-table {
-  table-layout: fixed; /* Fixed table layout for better control */
-  width: 100%; /* Full width */
-  margin-bottom: 0; /* Remove default margin */
-  border-collapse: collapse; /* Proper border collapse */
+  table-layout: fixed;
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
 }
 
-/* Style the table header with a gradient */
+/* Column widths — named classes so order doesn't matter */
+.col-date  { width: 90px;  min-width: 90px;  white-space: nowrap; }
+.col-participant { width: 22%; }
+.col-staff { width: 18%; }
+.col-notes { width: auto; } /* fills remaining space */
+.col-type  { width: 100px; min-width: 100px; text-align: center; }
+
+/* Style the table header */
 .slds-table thead th {
-  background: linear-gradient(to bottom, #f4f6f9, #eef1f6);
-  color: #16325c;
+  background: #f4f6f9;
+  color: #3e3e3c;
   font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   border-bottom: 2px solid #d8dde6;
-  padding-top: 0.65rem;
-  padding-bottom: 0.65rem;
-}
-
-.slds-table th:first-child,
-.slds-table td:first-child {
-  width: 110px; /* Increased width for date column */
-  min-width: 110px; /* Ensure minimum width */
-  padding-left: 0.25rem; /* Reduce left padding */
-}
-
-.slds-table th:nth-child(2),
-.slds-table td:nth-child(2) {
-  width: 20%; /* Slightly reduced participant column width */
-}
-
-.slds-table th:nth-child(3),
-.slds-table td:nth-child(3) {
-  width: 12%; /* Reduced staff column width */
+  padding: 0.55rem 0.6rem;
+  white-space: nowrap;
 }
 
 .slds-table td {
   cursor: pointer;
-  position: relative; /* Ensure cells have position context */
-  overflow: hidden; /* Prevent overflow */
-  text-overflow: ellipsis; /* Show ellipsis for overflow */
-  padding: 0.25rem 0.5rem; /* Reduced cell padding for better space utilization */
+  padding: 0.35rem 0.6rem;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .slds-table tr:hover > td {
@@ -70,13 +64,26 @@
 }
 
 .slds-table tr.slds-is-selected > td {
-  background-color: #f1f8fc;
-  box-shadow: 0 0 0 1px #0070d2 inset;
+  background-color: #f0f7ff;
+  box-shadow: inset 0 0 0 1px #0070d2;
 }
 
 /* Class for rows needing attention */
 .slds-table tr.needs-attn-soft > td {
   background: #fffdf2;
+}
+
+/* Incident Report rows in the activity feed */
+.slds-table tr.row--incident > td {
+  background: #fff8f2;
+}
+.slds-table tr.row--incident > td.col-type {
+  border-right: 3px solid #e06c00;
+}
+
+/* Incident badge in the Type column */
+.badge--incident {
+  --lwc-colorBrand: #e06c00;
 }
 
 /* Error row styling */
@@ -143,16 +150,15 @@
 
 /* Style adjustments for richHoverCell integration */
 .slds-table td.rich-note-cell {
-  width: 40%;
-  max-width: 40%;
+  width: auto;
+  max-width: unset;
   overflow: visible !important; /* Allow hover popover to be visible */
   position: relative; /* For positioning the popup */
   padding: 0.25rem 0.5rem; /* Reduced padding for better hover area */
   z-index: 1; /* Ensure it's above other elements */
   white-space: normal; /* Allow wrapping */
   text-overflow: ellipsis; /* Show ellipsis for overflow */
-  background-color: #f8fcff; /* Light blue background for note cells */
-  border-left: 1px solid #e5eef7; /* Subtle border */
+  border-left: 1px solid #e5eef7; /* Subtle left border separates notes from staff column */
 }
 
 .rich-cell-container {
@@ -247,13 +253,7 @@
 }
 
 /* Date column styling */
-.slds-table th:first-child, .slds-table td:first-child {
-  max-width: 110px;
-  min-width: 110px;
-  white-space: nowrap; /* Prevent date from wrapping */
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* col-date already handles date sizing via named class */
 
 .thread { border-top: 1px solid var(--lwc-colorBorder, #e5e5e5); padding-top: .75rem; margin-top: .5rem; }
 

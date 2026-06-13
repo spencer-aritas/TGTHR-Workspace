@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Placeholder</label>
+    <protected>false</protected>
+    <values>
+        <field>ProgramDeveloperName__c</field>
+        <value xsi:type="xsd:string">Placeholder</value>
+    </values>
+    <values>
+        <field>CodeHex__c</field>
+        <value xsi:type="xsd:string">#4A90D9</value>
+    </values>
+    <values>
+        <field>AccentHex__c</field>
+        <value xsi:type="xsd:string">#2C5F8A</value>
+    </values>
+    <values>
+        <field>IconName__c</field>
+        <value xsi:type="xsd:string">standard:home</value>
+    </values>
+    <values>
+        <field>ImageResource__c</field>
+        <value xsi:nil="true"/>
+    </values>
+    <values>
+        <field>ProgramId__c</field>
+        <value xsi:nil="true"/>
+    </values>
+</CustomMetadata>

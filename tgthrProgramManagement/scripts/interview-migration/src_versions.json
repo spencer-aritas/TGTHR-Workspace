@@ -1,0 +1,85 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "InterviewTemplateVersion__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplateVersion__c/a0nRT000001f95BYAQ"
+        },
+        "Id": "a0nRT000001f95BYAQ",
+        "Name": "1440 Pine Intake v1.0",
+        "InterviewTemplate__c": "a0mRT000003d5NtYAI",
+        "Version__c": 1,
+        "Status__c": "Active",
+        "Effective_From__c": "2025-11-22",
+        "Effective_To__c": null,
+        "Variant__c": "Standard",
+        "UUID__c": null
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplateVersion__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplateVersion__c/a0nRT000001h1zZYAQ"
+        },
+        "Id": "a0nRT000001h1zZYAQ",
+        "Name": "Treatment Plan v1",
+        "InterviewTemplate__c": "a0mRT000003iRCTYA2",
+        "Version__c": 1,
+        "Status__c": "Active",
+        "Effective_From__c": "2025-12-01",
+        "Effective_To__c": null,
+        "Variant__c": "Standard",
+        "UUID__c": "6a72d79e95191ce67d95dc8d11b2595c"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplateVersion__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplateVersion__c/a0nRT000001iV9BYAU"
+        },
+        "Id": "a0nRT000001iV9BYAU",
+        "Name": "Comprehensive Intake v1.0",
+        "InterviewTemplate__c": "a0mRT000003nuXBYAY",
+        "Version__c": 1,
+        "Status__c": "Active",
+        "Effective_From__c": "2025-12-08",
+        "Effective_To__c": null,
+        "Variant__c": "Standard",
+        "UUID__c": null
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplateVersion__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplateVersion__c/a0nRT0000025vCbYAI"
+        },
+        "Id": "a0nRT0000025vCbYAI",
+        "Name": "Casey Life Skills - Short Form v1",
+        "InterviewTemplate__c": "a0mRT000004XzqPYAS",
+        "Version__c": 1,
+        "Status__c": "Active",
+        "Effective_From__c": "2026-03-26",
+        "Effective_To__c": null,
+        "Variant__c": "Standard",
+        "UUID__c": "6eb3b518c20f6be3af3bbdf2ad985f88"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplateVersion__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplateVersion__c/a0nRT000002FGCzYAO"
+        },
+        "Id": "a0nRT000002FGCzYAO",
+        "Name": "Drop-In and Outreach Intake v1.0",
+        "InterviewTemplate__c": "a0mRT000003THgTYAW",
+        "Version__c": 1,
+        "Status__c": "Active",
+        "Effective_From__c": "2026-04-30",
+        "Effective_To__c": null,
+        "Variant__c": "Standard",
+        "UUID__c": null
+      }
+    ],
+    "totalSize": 5,
+    "done": true
+  },
+  "warnings": []
+}

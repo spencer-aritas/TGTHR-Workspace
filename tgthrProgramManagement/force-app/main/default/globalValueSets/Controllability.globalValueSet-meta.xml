@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Easily able to control thoughts</fullName>
+        <default>false</default>
+        <label>Easily able to control thoughts</label>
+    </customValue>
+    <customValue>
+        <fullName>Can control thoughts with little difficulty</fullName>
+        <default>false</default>
+        <label>Can control thoughts with little difficulty</label>
+    </customValue>
+    <customValue>
+        <fullName>Can control thoughts with some difficulty</fullName>
+        <default>false</default>
+        <label>Can control thoughts with some difficulty</label>
+    </customValue>
+    <customValue>
+        <fullName>Can control thoughts with a lot of difficulty</fullName>
+        <default>false</default>
+        <label>Can control thoughts with a lot of difficulty</label>
+    </customValue>
+    <customValue>
+        <fullName>Unable to control thoughts</fullName>
+        <default>false</default>
+        <label>Unable to control thoughts</label>
+    </customValue>
+    <customValue>
+        <fullName>Does not attempt to control thoughts</fullName>
+        <default>false</default>
+        <label>Does not attempt to control thoughts</label>
+    </customValue>
+    <masterLabel>Controllability</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

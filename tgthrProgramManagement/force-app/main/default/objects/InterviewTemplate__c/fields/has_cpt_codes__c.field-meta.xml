@@ -3,8 +3,8 @@
     <fullName>has_cpt_codes__c</fullName>
     <defaultValue>false</defaultValue>
     <description>When checked, this interview template will display CPT code selection options during the session. This serves as the primary policy flag for enabling billing codes.</description>
-    <externalId>false</externalId>
     <label>Has CPT Codes</label>
+    <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
     <type>Checkbox</type>
 </CustomField>

@@ -1,0 +1,5 @@
+Name,Program.Name,BenefitType.Name,IsActive,BenefitStatus,CPT_Code__c,Default_Disbursement_Quantity__c,Default_Duration_c__c,Housing_Capacity__c,Is_a_Housing_Benefit__c,Spots_Currently_Filled__c,Available_for_Housing__c,Available_for_Program_Engagement__c,Available_for_Case_Management__c,Available_for_Clinical__c,Available_for_Peer__c,Lifecycle_State__c
+Crisis Intervention,Outreach & Drop-In,Case Management,true,Active,H2011,1,15,,false,,true,true,true,true,false,
+Outreach Engagement,Outreach & Drop-In,Case Management,true,Active,H0023,1,15,,false,,false,false,true,true,false,
+Screening/Assessment,Outreach & Drop-In,Case Management,true,Active,H0002,1,15,,false,,false,false,true,true,false,
+Drop-In Day,Outreach & Drop-In,Case Management,true,Active,,1,120,,false,,false,false,false,false,false,

@@ -1,0 +1,409 @@
+{
+  "status": 0,
+  "result": {
+    "summary": {
+      "failRate": "0%",
+      "failing": 0,
+      "hostname": "https://tgthrnpc--benefits.sandbox.my.salesforce.com",
+      "orgId": "00DRT000008A0Oj2AK",
+      "outcome": "Passed",
+      "passRate": "100%",
+      "passing": 24,
+      "skipped": 0,
+      "testRunId": "",
+      "testStartTime": "2026-04-08T17:16:16.340Z",
+      "testsRan": 24,
+      "username": "sessey@tgthr.org.benefits",
+      "commandTime": "1 ms",
+      "testExecutionTime": "10492 ms",
+      "testTotalTime": "10492 ms"
+    },
+    "tests": [
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testApprovalActionResult_DTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 29,
+        "FullName": "TemplateApprovalServiceTest.testApprovalActionResult_DTO"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testApprovalHistoryItem_DTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "TemplateApprovalServiceTest.testApprovalHistoryItem_DTO"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testApprovalSummary_DTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "TemplateApprovalServiceTest.testApprovalSummary_DTO"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testApproveTemplate",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 27,
+        "FullName": "TemplateApprovalServiceTest.testApproveTemplate"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testApproveTemplate_AlreadyApproved",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 424,
+        "FullName": "TemplateApprovalServiceTest.testApproveTemplate_AlreadyApproved"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testApproveTemplate_NotFound",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 1414,
+        "FullName": "TemplateApprovalServiceTest.testApproveTemplate_NotFound"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testApproveTemplate_RealApproval",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 249,
+        "FullName": "TemplateApprovalServiceTest.testApproveTemplate_RealApproval"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testAutoApprove",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 115,
+        "FullName": "TemplateApprovalServiceTest.testAutoApprove"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testAutoApprove_NullId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "TemplateApprovalServiceTest.testAutoApprove_NullId"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testAutoApprove_WithProgram",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 223,
+        "FullName": "TemplateApprovalServiceTest.testAutoApprove_WithProgram"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetApprovalHistory",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 84,
+        "FullName": "TemplateApprovalServiceTest.testGetApprovalHistory"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetApprovalHistory_NullId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 26,
+        "FullName": "TemplateApprovalServiceTest.testGetApprovalHistory_NullId"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetApprovalHistory_WithData",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 298,
+        "FullName": "TemplateApprovalServiceTest.testGetApprovalHistory_WithData"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetPendingApprovalsForCurrentUser",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 44,
+        "FullName": "TemplateApprovalServiceTest.testGetPendingApprovalsForCurrentUser"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetPendingApprovalsForCurrentUser_WithData",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 687,
+        "FullName": "TemplateApprovalServiceTest.testGetPendingApprovalsForCurrentUser_WithData"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testRejectTemplate",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 25,
+        "FullName": "TemplateApprovalServiceTest.testRejectTemplate"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testRejectTemplate_AlreadyRejected",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 271,
+        "FullName": "TemplateApprovalServiceTest.testRejectTemplate_AlreadyRejected"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testRejectTemplate_RealApproval",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 277,
+        "FullName": "TemplateApprovalServiceTest.testRejectTemplate_RealApproval"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSubmitApprovalResult_DTO",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "TemplateApprovalServiceTest.testSubmitApprovalResult_DTO"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSubmitForApproval",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 243,
+        "FullName": "TemplateApprovalServiceTest.testSubmitForApproval"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSubmitForApproval_DuplicatePending",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 236,
+        "FullName": "TemplateApprovalServiceTest.testSubmitForApproval_DuplicatePending"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSubmitForApproval_NoProgram",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 79,
+        "FullName": "TemplateApprovalServiceTest.testSubmitForApproval_NoProgram"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSubmitForApproval_NullTemplate",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "TemplateApprovalServiceTest.testSubmitForApproval_NullTemplate"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSubmitForApproval_WithProgramAndDirector",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodZYAS",
+          "Name": "TemplateApprovalServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 265,
+        "FullName": "TemplateApprovalServiceTest.testSubmitForApproval_WithProgramAndDirector"
+      }
+    ]
+  },
+  "warnings": []
+}

@@ -1,0 +1,58 @@
+diff --git a/.tmp-diff/sandbox/IDS.cls b/.tmp-diff/prod/IDS.cls
+index 703b5090..b8e30a8f 100644
+--- a/.tmp-diff/sandbox/IDS.cls
++++ b/.tmp-diff/prod/IDS.cls
+@@ -104,5 +104,5 @@ public with sharing class InterviewDocumentService {
+             'Interaction_Summary__r.Start_Time__c, ' +
+             'Interaction_Summary__r.End_Time__c, ' +
+-            'Interaction_Summary__r.POS__c, ' +
++            'Interaction_Summary__r.Place_of_Service__c, ' +
+             'Interaction_Summary__r.Date_of_Interaction__c, ' +
+             'Program_Enrollment__r.ProgramId, Program_Enrollment__r.Program.Name, ';
+@@ -235,5 +235,5 @@ public with sharing class InterviewDocumentService {
+             'dateCompleted' => serializeTemporalForDocgen(interview.get('Completed_On__c')),
+             'status' => (String)interview.get('Status__c'),
+-            'location' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : '', // Place of Service
++            'location' => interactionSummary != null ? (String)interactionSummary.get('Place_of_Service__c') : '', // Place of Service
+             'channel' => 'In Person', // TODO: Add channel field
+             // InteractionSummary details
+@@ -241,5 +241,5 @@ public with sharing class InterviewDocumentService {
+             'startTime' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('Start_Time__c')) : null,
+             'endTime' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('End_Time__c')) : null,
+-            'placeOfService' => interactionSummary != null ? (String)interactionSummary.get('POS__c') : null,
++            'placeOfService' => interactionSummary != null ? (String)interactionSummary.get('Place_of_Service__c') : null,
+             'dateOfInteraction' => interactionSummary != null ? serializeTemporalForDocgen(interactionSummary.get('Date_of_Interaction__c')) : null
+         };
+@@ -1728,32 +1728,4 @@ public with sharing class InterviewDocumentService {
+     }
+ 
+-    /**
+-     * Helper method to add an SSRS response item if the value exists in responseData.
+-     * @deprecated Use buildSsrsResponseItemsFromData instead.
+-     */
+-    private static void addSsrsResponseItem(
+-        List<Map<String, Object>> items, 
+-        Map<String, Object> responseData, 
+-        String key, 
+-        String label
+-    ) {
+-        Object value = responseData.get(key);
+-        if (value != null) {
+-            String displayValue;
+-            if (value instanceof Boolean) {
+-                displayValue = ((Boolean)value) ? 'Yes' : 'No';
+-            } else {
+-                displayValue = String.valueOf(value);
+-            }
+-            
+-            items.add(new Map<String, Object>{
+-                'key' => key,
+-                'label' => label,
+-                'value' => displayValue,
+-                'isPositive' => value instanceof Boolean && (Boolean)value
+-            });
+-        }
+-    }
+-    
+     /**
+      * Build recommendations based on SSRS risk level.

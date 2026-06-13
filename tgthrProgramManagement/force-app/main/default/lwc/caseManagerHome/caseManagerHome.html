@@ -166,7 +166,12 @@
                 </button>
             </div>
             <div class="cmh-detail__name-block">
-              <h2 class="cmh-detail__name">{selectedClient.name}</h2>
+              <div class="cmh-detail__name-row">
+                <h2 class="cmh-detail__name">{selectedClient.name}</h2>
+                <template if:true={showNewEnrollmentButton}>
+                  <span class="cmh-badge cmh-badge--warning">No Active Enrollment</span>
+                </template>
+              </div>
               <template if:true={selectedClient.programName}>
                 <span class="cmh-badge cmh-badge--program">{selectedClient.programName}</span>
               </template>
@@ -196,6 +201,14 @@
               onclick={handleUpdateProfile}
               variant="neutral"
             ></lightning-button>
+            <template if:true={showNewEnrollmentButton}>
+              <lightning-button
+                label="New Program Enrollment"
+                icon-name="utility:add"
+                onclick={openNewEnrollmentModal}
+                variant="brand"
+              ></lightning-button>
+            </template>
             <template if:true={showCompleteIntakeButton}>
               <lightning-button
                 label="Complete Intake"
@@ -488,6 +501,53 @@
       onphotosaved={handlePhotoSaved}
       oncancel={closePhotoCapture}>
     </c-case-photo-capture>
+  </template>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       NEW PROGRAM ENROLLMENT MODAL (returning client, no active enrollment)
+  ══════════════════════════════════════════════════════════════════════ -->
+  <template if:true={showNewEnrollmentModal}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open" aria-label="New Program Enrollment">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={closeNewEnrollmentModal}>
+            <lightning-icon icon-name="utility:close" alternative-text="Close" size="small"></lightning-icon>
+          </button>
+          <h2 class="slds-modal__title">New Program Enrollment — {selectedClient.name}</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <p class="slds-m-bottom_small slds-text-body_small">
+            Select a program to enroll this client in. You’ll be taken through their demographics and then the program intake form.
+          </p>
+          <lightning-combobox
+            label="Program"
+            placeholder="Select a program…"
+            required
+            options={programOptions}
+            value={newEnrollmentProgramId}
+            onchange={handleIntakeChange}
+            data-field="newEnrollmentProgramId"
+          ></lightning-combobox>
+          <template if:true={newEnrollmentError}>
+            <div class="slds-m-top_small">
+              <p class="cmh-error">{newEnrollmentError}</p>
+            </div>
+          </template>
+        </div>
+        <footer class="slds-modal__footer">
+          <lightning-button label="Cancel" onclick={closeNewEnrollmentModal}></lightning-button>
+          <lightning-button
+            label="Begin Enrollment"
+            variant="brand"
+            icon-name="utility:forward"
+            icon-position="right"
+            onclick={handleBeginNewEnrollment}
+            disabled={isCreatingEnrollment}
+          ></lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
   </template>
 
   <template if:true={showIntakeStep1}>

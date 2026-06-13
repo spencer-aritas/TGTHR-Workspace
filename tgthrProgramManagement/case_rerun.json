@@ -1,0 +1,105 @@
+{
+  "status": 0,
+  "result": {
+    "summary": {
+      "failRate": "0%",
+      "failing": 0,
+      "hostname": "https://tgthrnpc--benefits.sandbox.my.salesforce.com",
+      "orgId": "00DRT000008A0Oj2AK",
+      "outcome": "Passed",
+      "passRate": "100%",
+      "passing": 5,
+      "skipped": 0,
+      "testRunId": "",
+      "testStartTime": "2026-04-08T05:20:53.225Z",
+      "testsRan": 5,
+      "username": "sessey@tgthr.org.benefits",
+      "commandTime": "1 ms",
+      "testExecutionTime": "5711 ms",
+      "testTotalTime": "5711 ms"
+    },
+    "tests": [
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testCreateCase",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodOYAS",
+          "Name": "CaseServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 308,
+        "FullName": "CaseServiceTest.testCreateCase"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testCreateCase_MinimalParams",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodOYAS",
+          "Name": "CaseServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 268,
+        "FullName": "CaseServiceTest.testCreateCase_MinimalParams"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetCasesByAccount",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodOYAS",
+          "Name": "CaseServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 37,
+        "FullName": "CaseServiceTest.testGetCasesByAccount"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetCasesByAccount_NoResults",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodOYAS",
+          "Name": "CaseServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "CaseServiceTest.testGetCasesByAccount_NoResults"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetCasesByAccount_NullAccountId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000002LodOYAS",
+          "Name": "CaseServiceTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 32,
+        "FullName": "CaseServiceTest.testGetCasesByAccount_NullAccountId"
+      }
+    ]
+  },
+  "warnings": []
+}

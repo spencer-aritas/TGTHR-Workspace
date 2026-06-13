@@ -1,0 +1,1001 @@
+{
+  "status": 0,
+  "result": {
+    "summary": {
+      "failRate": "0%",
+      "failing": 0,
+      "hostname": "https://tgthrnpc--benefits.sandbox.my.salesforce.com",
+      "orgId": "00DRT000008A0Oj2AK",
+      "outcome": "Passed",
+      "passRate": "100%",
+      "passing": 61,
+      "skipped": 0,
+      "testRunId": "",
+      "testStartTime": "2026-04-07T21:49:55.136Z",
+      "testsRan": 61,
+      "username": "sessey@tgthr.org.benefits",
+      "commandTime": "1 ms",
+      "testExecutionTime": "20308 ms",
+      "testTotalTime": "20308 ms"
+    },
+    "tests": [
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetAvailableCptCodes_CaseManagement",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 38,
+        "FullName": "ClinicalNoteControllerTest.testGetAvailableCptCodes_CaseManagement"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetAvailableCptCodes_Clinical",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 25,
+        "FullName": "ClinicalNoteControllerTest.testGetAvailableCptCodes_Clinical"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetAvailableCptCodes_CompAssess",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "ClinicalNoteControllerTest.testGetAvailableCptCodes_CompAssess"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetAvailableCptCodes_NullType",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 22,
+        "FullName": "ClinicalNoteControllerTest.testGetAvailableCptCodes_NullType"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetAvailableCptCodes_Peer",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 22,
+        "FullName": "ClinicalNoteControllerTest.testGetAvailableCptCodes_Peer"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetCarePlanDetails_NullCaseId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 22,
+        "FullName": "ClinicalNoteControllerTest.testGetCarePlanDetails_NullCaseId"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetCarePlanDetails_Success",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 152,
+        "FullName": "ClinicalNoteControllerTest.testGetCarePlanDetails_Success"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetCarePlanDetails_WithCarePlan",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 65,
+        "FullName": "ClinicalNoteControllerTest.testGetCarePlanDetails_WithCarePlan"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetCaseManagementBenefits",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 184,
+        "FullName": "ClinicalNoteControllerTest.testGetCaseManagementBenefits"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetClinicalBenefits",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 83,
+        "FullName": "ClinicalNoteControllerTest.testGetClinicalBenefits"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetClinicalBenefits_NullCase",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "ClinicalNoteControllerTest.testGetClinicalBenefits_NullCase"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetExistingDiagnoses",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 118,
+        "FullName": "ClinicalNoteControllerTest.testGetExistingDiagnoses"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetExistingDiagnoses_NullParams",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 61,
+        "FullName": "ClinicalNoteControllerTest.testGetExistingDiagnoses_NullParams"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testGetPeerBenefits",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 68,
+        "FullName": "ClinicalNoteControllerTest.testGetPeerBenefits"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testInitClinicalNote_NewNote",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 271,
+        "FullName": "ClinicalNoteControllerTest.testInitClinicalNote_NewNote"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testInitClinicalNote_NullCaseId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 26,
+        "FullName": "ClinicalNoteControllerTest.testInitClinicalNote_NullCaseId"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testInitClinicalNote_WithExistingNote",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 725,
+        "FullName": "ClinicalNoteControllerTest.testInitClinicalNote_WithExistingNote"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testInitClinicalNote_WithFullRelatedData",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 702,
+        "FullName": "ClinicalNoteControllerTest.testInitClinicalNote_WithFullRelatedData"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testInnerClassCoverage",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 29,
+        "FullName": "ClinicalNoteControllerTest.testInnerClassCoverage"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_AllFieldsPopulated",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 916,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_AllFieldsPopulated"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_AmendRejectedNote",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 503,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_AmendRejectedNote"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_BlankJson",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 22,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_BlankJson"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_CaseManagementNoteType",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 125,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_CaseManagementNoteType"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_CreateNew",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 120,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_CreateNew"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_EndTimeBeforeStartTime",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 53,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_EndTimeBeforeStartTime"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_ManagerCoSignNoApprover",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 53,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_ManagerCoSignNoApprover"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_MissingCaseId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 24,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_MissingCaseId"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_MissingTimes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 53,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_MissingTimes"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_NullJson",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 23,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_NullJson"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_PeerNoteType",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 119,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_PeerNoteType"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_PeerWithExistingDiagOnly",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 335,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_PeerWithExistingDiagOnly"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_UpdateExisting",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 208,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_UpdateExisting"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_WithBenefits",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 123,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_WithBenefits"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_WithCptCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 196,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_WithCptCodes"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_WithDiagnoses",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 256,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_WithDiagnoses"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_WithGoalAssignments",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 267,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_WithGoalAssignments"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_WithGoalWorkDetails",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 244,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_WithGoalWorkDetails"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_WithManagerCoSign",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 138,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_WithManagerCoSign"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteRequest_WithSsrsAssessment",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 1022,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteRequest_WithSsrsAssessment"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteWithDiagnoses_DeprecatedWrapper",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 402,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteWithDiagnoses_DeprecatedWrapper"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteWithDiagnoses_WithCptAndBenefits",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 259,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteWithDiagnoses_WithCptAndBenefits"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNoteWithSsrs_WithAssessmentId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 247,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNoteWithSsrs_WithAssessmentId"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_CaseManagementWithCptCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 188,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_CaseManagementWithCptCodes"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_CompAssessWithCptCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 203,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_CompAssessWithCptCodes"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_DeprecatedWrapper",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 263,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_DeprecatedWrapper"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_DiagnosisDedupAndNew",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 324,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_DiagnosisDedupAndNew"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_DiagnosisUpdateExisting",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 482,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_DiagnosisUpdateExisting"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_PeerWithCptServiceLines",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 210,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_PeerWithCptServiceLines"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_PeerWithExistingDiagAndCptCodes",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 444,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_PeerWithExistingDiagAndCptCodes"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_RecalledResubmission",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 329,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_RecalledResubmission"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_UpdateNonRejectedNote",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 373,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_UpdateNonRejectedNote"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_WithBenefitDisbursementsDeep",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 26,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_WithBenefitDisbursementsDeep"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveClinicalNote_WithGoalWorkDetailsProgress",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 261,
+        "FullName": "ClinicalNoteControllerTest.testSaveClinicalNote_WithGoalWorkDetailsProgress"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveGoalAssignmentDetails_EmptyList",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 95,
+        "FullName": "ClinicalNoteControllerTest.testSaveGoalAssignmentDetails_EmptyList"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveGoalAssignmentDetails_NullList",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 94,
+        "FullName": "ClinicalNoteControllerTest.testSaveGoalAssignmentDetails_NullList"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveGoalAssignmentDetails_Success",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 235,
+        "FullName": "ClinicalNoteControllerTest.testSaveGoalAssignmentDetails_Success"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testSaveGoalAssignmentDetails_WithProgress",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 255,
+        "FullName": "ClinicalNoteControllerTest.testSaveGoalAssignmentDetails_WithProgress"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testUpdateCarePlanReviewDates_NullCaseId",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 22,
+        "FullName": "ClinicalNoteControllerTest.testUpdateCarePlanReviewDates_NullCaseId"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testUpdateCarePlanReviewDates_NullFrequency",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 125,
+        "FullName": "ClinicalNoteControllerTest.testUpdateCarePlanReviewDates_NullFrequency"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testUpdateCarePlanReviewDates_Success",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 114,
+        "FullName": "ClinicalNoteControllerTest.testUpdateCarePlanReviewDates_Success"
+      },
+      {
+        "Id": "",
+        "QueueItemId": "",
+        "StackTrace": "",
+        "Message": "",
+        "AsyncApexJobId": "",
+        "MethodName": "testUpdateCarePlanReviewDates_ZeroFrequency",
+        "Outcome": "Pass",
+        "ApexClass": {
+          "Id": "01pRT000001lf5aYAA",
+          "Name": "ClinicalNoteControllerTest",
+          "NamespacePrefix": null
+        },
+        "RunTime": 112,
+        "FullName": "ClinicalNoteControllerTest.testUpdateCarePlanReviewDates_ZeroFrequency"
+      }
+    ]
+  },
+  "warnings": []
+}

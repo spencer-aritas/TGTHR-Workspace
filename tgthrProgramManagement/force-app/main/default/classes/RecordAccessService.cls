@@ -92,7 +92,9 @@ public with sharing class RecordAccessService {
             
             SObject auditLog = (SObject) Type.forName('Audit_Log__c').newInstance();
             auditLog.put('Action__c', 'VIEW');
-            auditLog.put('UUID__c', recordId);
+            // UUID__c is a unique key on Audit_Log__c; must be unique per audit row,
+            // NOT the audited record's Id (which repeats on every view).
+            auditLog.put('UUID__c', generateAuditUuid(recordId, userId, 'VIEW'));
             auditLog.put('Record_Id__c', recordId);
             auditLog.put('Object_Type__c', objectType);
             auditLog.put('User__c', userId);
@@ -167,7 +169,8 @@ public with sharing class RecordAccessService {
             
             SObject auditLog = (SObject) Type.forName('Audit_Log__c').newInstance();
             auditLog.put('Action__c', 'AMEND');
-            auditLog.put('UUID__c', recordId);
+            // UUID__c must be unique per audit row, not the audited record's Id.
+            auditLog.put('UUID__c', generateAuditUuid(recordId, userId, 'AMEND'));
             auditLog.put('Record_Id__c', recordId);
             auditLog.put('Object_Type__c', objectType);
             auditLog.put('User__c', userId);
@@ -221,7 +224,8 @@ public with sharing class RecordAccessService {
 
             SObject auditLog = (SObject) Type.forName('Audit_Log__c').newInstance();
             auditLog.put('Action__c', action);           // SIGN, SIGN_SUPPRESSED, COSIGN_REQUESTED
-            auditLog.put('UUID__c', recordId);
+            // UUID__c must be unique per audit row, not the audited record's Id.
+            auditLog.put('UUID__c', generateAuditUuid(recordId, userId, action));
             auditLog.put('Record_Id__c', recordId);
             auditLog.put('Object_Type__c', objectType != null ? objectType : 'Interview');
             auditLog.put('User__c', userId);
@@ -689,7 +693,26 @@ public with sharing class RecordAccessService {
         List<User> directReports = [SELECT Id FROM User WHERE ManagerId = :UserInfo.getUserId() LIMIT 1];
         return !directReports.isEmpty();
     }
-    
+
+    /**
+     * Build a unique value for Audit_Log__c.UUID__c. UUID__c has a unique
+     * external-id constraint AND a 52-char max length, so we must NOT use
+     * the audited record's Id (which would collide on the second access).
+     *
+     * Returns a 32-char MD5 hex of recordId|action|userId|epochMs|rand.
+     */
+    private static String generateAuditUuid(String recordId, Id userId, String action) {
+        String rid = recordId == null ? '' : recordId;
+        String act = action == null ? '' : action;
+        String uid = userId == null ? '' : String.valueOf(userId);
+        String ts = String.valueOf(DateTime.now().getTime());
+        String rand = EncodingUtil.convertToHex(Crypto.generateAesKey(128));
+        String raw = rid + '|' + act + '|' + uid + '|' + ts + '|' + rand;
+        return EncodingUtil.convertToHex(
+            Crypto.generateDigest('MD5', Blob.valueOf(raw))
+        );
+    }
+
     // Inner class for access context
     private class AccessContext {
         public Boolean hasLegitimateAccess;

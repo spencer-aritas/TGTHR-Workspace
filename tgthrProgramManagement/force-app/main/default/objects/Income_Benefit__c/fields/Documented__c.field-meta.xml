@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Documented__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Has this income source been documented/verified?</inlineHelpText>
     <label>Documented</label>
     <required>false</required>

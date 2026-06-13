@@ -131,7 +131,7 @@ public with sharing class NewInteractionController {
             interaction.put('Name',                  title);
             interaction.put('Date_of_Interaction__c', interDate);
             interaction.put('Notify_Case_Manager__c', false);
-            interaction.put('POS__c',                '27 - Outreach Site / Street');
+            interaction.put('Place_of_Service__c',   '27 - Outreach Site / Street');
 
             Boolean careTeamFlag = req.notifyCareTeam == true;
             if (fields.containsKey('notify_care_team__c')) {

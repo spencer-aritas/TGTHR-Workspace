@@ -3,7 +3,6 @@
     <fullName>InterviewTemplate__c</fullName>
     <deleteConstraint>Restrict</deleteConstraint>
     <description>Reference to the interview template being approved</description>
-    <externalId>false</externalId>
     <inlineHelpText>The template that requires approval</inlineHelpText>
     <label>Interview Template</label>
     <referenceTo>InterviewTemplate__c</referenceTo>

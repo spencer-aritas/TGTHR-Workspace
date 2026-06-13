@@ -1,0 +1,6 @@
+Name,Category__c,Active__c,Available_for_Mobile__c,Allow_Benefits_Disbursement__c,Allow_Goal_Assignment__c,Allow_Diagnoses__c,Add_Staff_Signature_Block__c,Diagnoses_Policy__c,Goals_Policy__c,Staff_Signature_Policy__c,Client_Signature_Policy__c,Housing_Benefit_Policy__c,Clinical_Benefit_Policy__c,Income_Benefits_Policy__c,Demographics_Policy__c,Consent_Required__c,Data_Retention_Days__c,Clinical__c,cpt_note_type__c,has_cpt_codes__c,UUID__c
+Drop-In and Outreach,Intake,True,False,False,False,False,False,,,Required,Hidden,,,,,False,,False,,False,38dc731aa0d19fc6d73eaa45a4e4d971
+Psycho-Social Intake,Intake,True,True,False,False,False,False,,,Required,Required,,,Optional,,False,,False,,False,
+Treatment Plan,Psycho-Social,True,False,False,False,False,False,Optional,Required,Required,Required,Hidden,Hidden,Hidden,Optional,False,,False,,False,37d8d8fb6a444174a59c805d2c248d9b
+Comprehensive Clinical Intake Assessment,Intake,True,True,False,False,False,False,Optional,,Required,Hidden,,,Optional,Optional,False,,False,Comp Assess,True,
+Casey Life Skills - Short Form,Intake,True,True,False,False,False,False,,,,,,,Hidden,Optional,False,,False,,False,1680728f28bc1e0a91d811c4ac351c90
