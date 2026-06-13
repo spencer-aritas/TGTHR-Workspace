@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Safety_Plan_Notes__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Safety plan and de-escalation strategies.</inlineHelpText>
     <label>Safety Plan Notes</label>
     <length>32768</length>

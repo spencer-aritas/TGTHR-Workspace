@@ -15,7 +15,21 @@
  * Open (Active) BenefitAssignments are surfaced in the ReplaceResult.openAssignmentCount
  * so callers can decide whether to migrate or warn.
  */
-public with sharing class BenefitReplacementService {
+public without sharing class BenefitReplacementService {
+
+    // Field existence check: Available_for_Program_Engagement__c is not present in all orgs
+    private static final Boolean HAS_PROG_ENG_FIELD =
+        Schema.getGlobalDescribe().get('Benefit') != null &&
+        Schema.getGlobalDescribe().get('Benefit').getDescribe().fields.getMap()
+            .containsKey('available_for_program_engagement__c');
+
+    // Field existence check: Require_Case_Note__c — Census-channel sub-flag that
+    // (a) requires Meeting Notes on disbursement and (b) flags the resulting
+    // InteractionSummary as a Case Note wrapper for child Notes/Interviews.
+    private static final Boolean HAS_REQUIRE_CASE_NOTE_FIELD =
+        Schema.getGlobalDescribe().get('Benefit') != null &&
+        Schema.getGlobalDescribe().get('Benefit').getDescribe().fields.getMap()
+            .containsKey('require_case_note__c');
 
     // ─────────────────────────────────────────────
     // DTOs
@@ -24,7 +38,7 @@ public with sharing class BenefitReplacementService {
     public class ReplaceRequest {
         @AuraEnabled public Id   oldBenefitId;
         @AuraEnabled public String newBenefitName;       // if blank, inherits old name
-        @AuraEnabled public Id   newBenefitTypeId;       // required: new BenefitType record
+        @AuraEnabled public String newBenefitTypeId;     // String (not Id) to survive Aura bridge deserialization
         @AuraEnabled public String newBenefitTypeName;   // used to resolve if newBenefitTypeId blank
         @AuraEnabled public Id   newUnitId;              // optional: new Unit of Measure record
         @AuraEnabled public String newUnitName;          // used to resolve if newUnitId blank
@@ -40,7 +54,7 @@ public with sharing class BenefitReplacementService {
     public class CreateRequest {
         @AuraEnabled public Id      programId;
         @AuraEnabled public String  benefitName;
-        @AuraEnabled public Id      benefitTypeId;
+        @AuraEnabled public String  benefitTypeId;   // String (not Id) to survive Aura bridge deserialization
         @AuraEnabled public String  benefitTypeName;
         @AuraEnabled public Id      unitId;
         @AuraEnabled public String  unitName;
@@ -49,8 +63,10 @@ public with sharing class BenefitReplacementService {
         @AuraEnabled public Boolean availableForCaseManagement;
         @AuraEnabled public Boolean availableForHousing;
         @AuraEnabled public Boolean availableForProgramEngagement;
+        @AuraEnabled public Boolean requireCaseNote;
         @AuraEnabled public Decimal defaultDisbursementQty;
         @AuraEnabled public Decimal defaultDurationMinutes;
+        @AuraEnabled public String  cptCode;
     }
 
     public class ReplaceResult {
@@ -91,7 +107,7 @@ public with sharing class BenefitReplacementService {
             String oldName = (String) oldBenefit.get('Name');
 
             // 2. Resolve new BenefitType
-            Id newBenefitTypeId = req.newBenefitTypeId;
+            Id newBenefitTypeId = String.isNotBlank(req.newBenefitTypeId) ? (Id) req.newBenefitTypeId : null;
             if (newBenefitTypeId == null && String.isNotBlank(req.newBenefitTypeName)) {
                 newBenefitTypeId = resolveBenefitTypeByName(req.newBenefitTypeName);
             }
@@ -152,6 +168,25 @@ public with sharing class BenefitReplacementService {
     }
 
     /**
+     * LWC-facing wrapper — all parameters are flat primitives; no inner class is passed
+     * from the Aura bridge to avoid deserialization issues with Id-typed fields.
+     */
+    @AuraEnabled
+    public static ReplaceResult replaceBenefitInPlace(
+        String oldBenefitId,
+        String newBenefitTypeId,
+        String newBenefitName,
+        Boolean migrateOpenAssignments
+    ) {
+        ReplaceRequest req = new ReplaceRequest();
+        if (String.isNotBlank(oldBenefitId))     req.oldBenefitId           = (Id) oldBenefitId;
+        if (String.isNotBlank(newBenefitTypeId)) req.newBenefitTypeId        = newBenefitTypeId;
+        if (String.isNotBlank(newBenefitName))   req.newBenefitName          = newBenefitName;
+        req.migrateOpenAssignments = (migrateOpenAssignments == true);
+        return replaceBenefit(req);
+    }
+
+    /**
      * Retire a Benefit without creating a replacement (e.g. "Not Needed" in CSV).
      */
     @AuraEnabled
@@ -185,27 +220,66 @@ public with sharing class BenefitReplacementService {
     }
 
     /**
-     * Create a brand-new Benefit (no predecessor) and optionally bootstrap a ProgramBenefitConfig.
+     * LWC-facing wrapper — benefitId as a flat primitive; no inner class from the bridge.
      */
     @AuraEnabled
-    public static ReplaceResult createBenefit(CreateRequest req) {
+    public static ReplaceResult retireBenefitInPlace(String benefitId) {
+        RetireRequest req = new RetireRequest();
+        if (String.isNotBlank(benefitId)) req.benefitId = (Id) benefitId;
+        return retireBenefit(req);
+    }
+
+    /**
+     * Create a brand-new Benefit (no predecessor) and optionally bootstrap a ProgramBenefitConfig.
+     *
+     * LWC-facing: programId, benefitName, and benefitTypeId are accepted as top-level Strings
+     * to avoid nested-object deserialization issues in the Aura bridge,
+     * then merged into req before processing.
+     */
+    @AuraEnabled
+    public static ReplaceResult createBenefit(String programId, String benefitName, String benefitTypeId, CreateRequest req) {
         ReplaceResult res = new ReplaceResult();
         res.configsCopied = 0;
         res.openAssignmentCount = 0;
 
         try {
-            if (req == null || req.programId == null || String.isBlank(req.benefitName)) {
+            if (req == null) req = new CreateRequest();
+            if (String.isNotBlank(programId))   req.programId   = (Id) programId;
+            if (String.isNotBlank(benefitName)) req.benefitName = benefitName;
+
+            if (req.programId == null || String.isBlank(req.benefitName)) {
                 throw new IllegalArgumentException('programId and benefitName are required');
             }
 
-            Id benefitTypeId = req.benefitTypeId;
-            if (benefitTypeId == null && String.isNotBlank(req.benefitTypeName)) {
-                benefitTypeId = resolveBenefitTypeByName(req.benefitTypeName);
+            // benefitTypeId comes as a top-level String to bypass Aura inner-class deserialization.
+            // Fall back to req fields for programmatic/test callers that don't use the bridge.
+            Id resolvedBenefitTypeId = String.isNotBlank(benefitTypeId) ? (Id) benefitTypeId : null;
+            if (resolvedBenefitTypeId == null && String.isNotBlank(req.benefitTypeId)) {
+                resolvedBenefitTypeId = (Id) req.benefitTypeId;
             }
-
+            if (resolvedBenefitTypeId == null && String.isNotBlank(req.benefitTypeName)) {
+                resolvedBenefitTypeId = resolveBenefitTypeByName(req.benefitTypeName);
+            }
+            if (resolvedBenefitTypeId == null) {
+                throw new IllegalArgumentException('A Service Type (Benefit Type) is required to create a service.');
+            }
             Id unitId = req.unitId;
             if (unitId == null && String.isNotBlank(req.unitName)) {
                 unitId = resolveUnitByName(req.unitName);
+            }
+
+            // Validate CPT code requirement for Clinical benefit types (in system mode
+            // to avoid cross-reference access errors when BenefitType OWD is Private)
+            if (resolvedBenefitTypeId != null) {
+                List<SObject> btRows = Database.query(
+                    'SELECT Id, Category FROM BenefitType WHERE Id = :resolvedBenefitTypeId LIMIT 1'
+                );
+                if (!btRows.isEmpty()) {
+                    String category = (String) btRows[0].get('Category');
+                    if ('Clinical'.equals(category) && String.isBlank(req.cptCode)) {
+                        throw new IllegalArgumentException('CPT Code is required when Benefit Type is Clinical.');
+                    }
+                }
             }
 
             SObject b = Schema.getGlobalDescribe().get('Benefit').newSObject();
@@ -213,8 +287,11 @@ public with sharing class BenefitReplacementService {
             b.put('ProgramId', req.programId);
             b.put('IsActive', true);
             safePut(b, 'Lifecycle_State__c', 'Active');
-            if (benefitTypeId != null) {
-                safePut(b, 'BenefitTypeId', benefitTypeId);
+            if (resolvedBenefitTypeId != null) {
+                safePut(b, 'BenefitTypeId', resolvedBenefitTypeId);
+            }
+            if (String.isNotBlank(req.cptCode)) {
+                safePut(b, 'CPT_Code__c', req.cptCode);
             }
             if (unitId != null) {
                 safePut(b, 'UnitId', unitId);
@@ -234,6 +311,9 @@ public with sharing class BenefitReplacementService {
             if (req.availableForProgramEngagement != null) {
                 safePut(b, 'Available_for_Program_Engagement__c', req.availableForProgramEngagement);
             }
+            if (req.requireCaseNote != null) {
+                safePut(b, 'Require_Case_Note__c', req.requireCaseNote);
+            }
             if (req.defaultDisbursementQty != null) {
                 safePut(b, 'Default_Disbursement_Quantity__c', req.defaultDisbursementQty);
             }
@@ -241,7 +321,7 @@ public with sharing class BenefitReplacementService {
                 safePut(b, 'Default_Duration_C__c', req.defaultDurationMinutes);
             }
 
-            insert b;
+            Database.insert(b, AccessLevel.SYSTEM_MODE);
 
             res.success = true;
             res.newBenefitId = (Id) b.get('Id');
@@ -263,7 +343,7 @@ public with sharing class BenefitReplacementService {
      * Filters: IsActive = true, Lifecycle_State__c IN ('Active', null), ProgramId = programId
      * Optional: roleFilter ('Clinical' | 'Case Management' | 'Peer') to respect availability flags.
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<BenefitOption> getActiveBenefitsForProgram(
         Id programId,
         String roleFilter
@@ -275,7 +355,8 @@ public with sharing class BenefitReplacementService {
             'SELECT Id, Name, BenefitTypeId, BenefitType.Name, BenefitType.Category, ' +
             '       UnitId, Unit.Name, IsActive, Lifecycle_State__c, ' +
             '       Available_for_Clinical__c, Available_for_Peer__c, Available_for_Case_Management__c, ' +
-            '       Is_a_Housing_Benefit__c, Available_for_Program_Engagement__c, ' +
+            '       Is_a_Housing_Benefit__c, ' + (HAS_PROG_ENG_FIELD ? 'Available_for_Program_Engagement__c, ' : '') +
+            (HAS_REQUIRE_CASE_NOTE_FIELD ? '       Require_Case_Note__c, ' : '') +
             '       Default_Disbursement_Quantity__c, Default_Duration_C__c ' +
             'FROM Benefit ' +
             'WHERE ProgramId = :programId ' +
@@ -312,7 +393,8 @@ public with sharing class BenefitReplacementService {
             opt.availableForCaseManagement = b.get('Available_for_Case_Management__c') == true;
             opt.availableForPeer           = b.get('Available_for_Peer__c') == true;
             opt.availableForHousing             = b.get('Is_a_Housing_Benefit__c') == true;
-            opt.availableForProgramEngagement  = b.get('Available_for_Program_Engagement__c') == true;
+            opt.availableForProgramEngagement  = HAS_PROG_ENG_FIELD && b.get('Available_for_Program_Engagement__c') == true;
+            opt.requireCaseNote                = HAS_REQUIRE_CASE_NOTE_FIELD && b.get('Require_Case_Note__c') == true;
             opt.defaultDisbursementQty         = (Decimal) b.get('Default_Disbursement_Quantity__c');
             opt.defaultDurationMinutes         = (Decimal) b.get('Default_Duration_C__c');
             opt.label = opt.benefitName;
@@ -329,7 +411,7 @@ public with sharing class BenefitReplacementService {
      * Returns ALL benefits for the program (active AND inactive), for the history tab
      * in programBenefitManager. Includes Retired/Replaced records with lifecycle details.
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled
     public static List<BenefitOption> getAllBenefitsForProgram(Id programId) {
         List<BenefitOption> out = new List<BenefitOption>();
         if (programId == null) return out;
@@ -339,7 +421,8 @@ public with sharing class BenefitReplacementService {
             '       UnitId, Unit.Name, IsActive, Lifecycle_State__c, Replaced_By_Benefit__c, ' +
             '       Replaced_By_Benefit__r.Name, ' +
             '       Available_for_Clinical__c, Available_for_Peer__c, Available_for_Case_Management__c, ' +
-            '       Is_a_Housing_Benefit__c, Available_for_Program_Engagement__c, ' +
+            '       Is_a_Housing_Benefit__c, ' + (HAS_PROG_ENG_FIELD ? 'Available_for_Program_Engagement__c, ' : '') +
+            (HAS_REQUIRE_CASE_NOTE_FIELD ? '       Require_Case_Note__c, ' : '') +
             '       Default_Disbursement_Quantity__c, Default_Duration_C__c ' +
             'FROM Benefit ' +
             'WHERE ProgramId = :programId ' +
@@ -358,7 +441,8 @@ public with sharing class BenefitReplacementService {
             opt.availableForCaseManagement = b.get('Available_for_Case_Management__c') == true;
             opt.availableForPeer           = b.get('Available_for_Peer__c') == true;
             opt.availableForHousing            = b.get('Is_a_Housing_Benefit__c') == true;
-            opt.availableForProgramEngagement = b.get('Available_for_Program_Engagement__c') == true;
+            opt.availableForProgramEngagement = HAS_PROG_ENG_FIELD && b.get('Available_for_Program_Engagement__c') == true;
+            opt.requireCaseNote                = HAS_REQUIRE_CASE_NOTE_FIELD && b.get('Require_Case_Note__c') == true;
             opt.unitId                        = (Id) b.get('UnitId');
             SObject un2 = b.getSObject('Unit');
             opt.unitName                      = un2 != null ? (String) un2.get('Name') : null;
@@ -387,6 +471,7 @@ public with sharing class BenefitReplacementService {
         @AuraEnabled public Boolean availableForPeer;
         @AuraEnabled public Boolean availableForHousing;
         @AuraEnabled public Boolean availableForProgramEngagement;
+        @AuraEnabled public Boolean requireCaseNote;
         @AuraEnabled public String  replacedByName;
         @AuraEnabled public Id      unitId;
         @AuraEnabled public String  unitName;
@@ -399,13 +484,14 @@ public with sharing class BenefitReplacementService {
     // ─────────────────────────────────────────────
 
     public class UpdateRequest {
-        @AuraEnabled public Id      benefitId;
+        @AuraEnabled public String  benefitId;
         @AuraEnabled public String  newBenefitName;
         @AuraEnabled public Boolean availableForClinical;
         @AuraEnabled public Boolean availableForCaseManagement;
         @AuraEnabled public Boolean availableForPeer;
         @AuraEnabled public Boolean availableForHousing;
         @AuraEnabled public Boolean availableForProgramEngagement;
+        @AuraEnabled public Boolean requireCaseNote;
         @AuraEnabled public Id      unitId;
         @AuraEnabled public String  newUnitName;
         @AuraEnabled public Decimal defaultDisbursementQty;
@@ -422,7 +508,7 @@ public with sharing class BenefitReplacementService {
         res.configsCopied = 0;
         res.openAssignmentCount = 0;
         try {
-            if (req == null || req.benefitId == null) {
+            if (req == null || String.isBlank(req.benefitId)) {
                 throw new IllegalArgumentException('benefitId is required');
             }
             Id unitId = req.unitId;
@@ -430,7 +516,7 @@ public with sharing class BenefitReplacementService {
                 unitId = resolveUnitByName(req.newUnitName);
             }
             SObject b = Schema.getGlobalDescribe().get('Benefit').newSObject();
-            b.put('Id', req.benefitId);
+            b.put('Id', (Id) req.benefitId);
             if (String.isNotBlank(req.newBenefitName)) {
                 b.put('Name', req.newBenefitName);
             }
@@ -449,6 +535,9 @@ public with sharing class BenefitReplacementService {
             if (req.availableForProgramEngagement != null) {
                 safePut(b, 'Available_for_Program_Engagement__c', req.availableForProgramEngagement);
             }
+            if (req.requireCaseNote != null) {
+                safePut(b, 'Require_Case_Note__c', req.requireCaseNote);
+            }
             if (unitId != null) {
                 safePut(b, 'UnitId', unitId);
             }
@@ -458,9 +547,9 @@ public with sharing class BenefitReplacementService {
             if (req.defaultDurationMinutes != null) {
                 safePut(b, 'Default_Duration_C__c', req.defaultDurationMinutes);
             }
-            update b;
+            Database.update(b, AccessLevel.SYSTEM_MODE);
             res.success = true;
-            res.oldBenefitId = req.benefitId;
+            res.oldBenefitId = (Id) req.benefitId;
             res.message = 'Benefit updated.';
         } catch (Exception e) {
             res.success = false;
@@ -468,6 +557,41 @@ public with sharing class BenefitReplacementService {
             System.debug('updateBenefit error: ' + e.getMessage() + '\n' + e.getStackTraceString());
         }
         return res;
+    }
+
+    /**
+     * LWC-facing wrapper — all fields accepted as top-level primitive parameters
+     * to bypass Aura bridge inner-class deserialization (same pattern as createBenefit).
+     * The nested UpdateRequest form was silently arriving null, producing a no-op
+     * update that returned success=true without writing any data.
+     */
+    @AuraEnabled
+    public static ReplaceResult updateBenefitInPlace(
+        String  benefitId,
+        String  newBenefitName,
+        String  newUnitName,
+        Decimal defaultDisbursementQty,
+        Decimal defaultDurationMinutes,
+        Boolean availableForClinical,
+        Boolean availableForCaseManagement,
+        Boolean availableForPeer,
+        Boolean availableForHousing,
+        Boolean availableForProgramEngagement,
+        Boolean requireCaseNote
+    ) {
+        UpdateRequest req = new UpdateRequest();
+        req.benefitId                  = benefitId;
+        req.newBenefitName             = newBenefitName;
+        req.newUnitName                = newUnitName;
+        req.defaultDisbursementQty     = defaultDisbursementQty;
+        req.defaultDurationMinutes     = defaultDurationMinutes;
+        req.availableForClinical       = availableForClinical;
+        req.availableForCaseManagement = availableForCaseManagement;
+        req.availableForPeer           = availableForPeer;
+        req.availableForHousing        = availableForHousing;
+        req.availableForProgramEngagement = availableForProgramEngagement;
+        req.requireCaseNote            = requireCaseNote;
+        return updateBenefit(req);
     }
 
     /**
@@ -499,7 +623,8 @@ public with sharing class BenefitReplacementService {
             'SELECT Id, Name, ProgramId, BenefitTypeId, UnitId, IsActive, ' +
             '       Lifecycle_State__c, Available_for_Clinical__c, ' +
             '       Available_for_Peer__c, Available_for_Case_Management__c, ' +
-            '       Is_a_Housing_Benefit__c, Available_for_Program_Engagement__c, ' +
+            '       Is_a_Housing_Benefit__c, ' + (HAS_PROG_ENG_FIELD ? 'Available_for_Program_Engagement__c, ' : '') +
+            (HAS_REQUIRE_CASE_NOTE_FIELD ? '       Require_Case_Note__c, ' : '') +
             '       Default_Disbursement_Quantity__c, Default_Duration_C__c ' +
             'FROM Benefit WHERE Id = :benefitId LIMIT 1';
         List<SObject> rows = Database.query(q);
@@ -529,10 +654,15 @@ public with sharing class BenefitReplacementService {
         safePut(b, 'Available_for_Peer__c',            oldBenefit.get('Available_for_Peer__c'));
         safePut(b, 'Available_for_Case_Management__c', oldBenefit.get('Available_for_Case_Management__c'));
         safePut(b, 'Is_a_Housing_Benefit__c',              oldBenefit.get('Is_a_Housing_Benefit__c'));
-        safePut(b, 'Available_for_Program_Engagement__c', oldBenefit.get('Available_for_Program_Engagement__c'));
+        if (HAS_PROG_ENG_FIELD) {
+            safePut(b, 'Available_for_Program_Engagement__c', oldBenefit.get('Available_for_Program_Engagement__c'));
+        }
+        if (HAS_REQUIRE_CASE_NOTE_FIELD) {
+            safePut(b, 'Require_Case_Note__c', oldBenefit.get('Require_Case_Note__c'));
+        }
         safePut(b, 'Default_Disbursement_Quantity__c',    oldBenefit.get('Default_Disbursement_Quantity__c'));
         safePut(b, 'Default_Duration_C__c',               oldBenefit.get('Default_Duration_C__c'));
-        insert b;
+        Database.insert(b, AccessLevel.SYSTEM_MODE);
         return (Id) b.get('Id');
     }
 
@@ -544,7 +674,7 @@ public with sharing class BenefitReplacementService {
         if (replacedById != null) {
             safePut(b, 'Replaced_By_Benefit__c', replacedById);
         }
-        update b;
+        Database.update(b, AccessLevel.SYSTEM_MODE);
     }
 
     /**
@@ -620,7 +750,7 @@ public with sharing class BenefitReplacementService {
             n.put('Notes__c', old.get('Notes__c'));
             newConfigs.add(n);
         }
-        insert newConfigs;
+        Database.insert(newConfigs, AccessLevel.SYSTEM_MODE);
 
         // Deactivate old configs
         deactivateConfigs(oldBenefitId);
@@ -636,7 +766,7 @@ public with sharing class BenefitReplacementService {
             for (SObject c : configs) {
                 c.put('Is_Active__c', false);
             }
-            if (!configs.isEmpty()) update configs;
+            if (!configs.isEmpty()) Database.update(configs, AccessLevel.SYSTEM_MODE);
         } catch (Exception e) {
             System.debug('deactivateConfigs error (object may not be deployed): ' + e.getMessage());
         }
@@ -655,14 +785,14 @@ public with sharing class BenefitReplacementService {
         for (SObject ba : openAssignments) {
             ba.put('BenefitId', newBenefitId);
         }
-        if (!openAssignments.isEmpty()) update openAssignments;
+        if (!openAssignments.isEmpty()) Database.update(openAssignments, AccessLevel.SYSTEM_MODE);
     }
 
     private static Id resolveBenefitTypeByName(String name) {
         if (String.isBlank(name)) return null;
         String trimmed = name.trim();
         List<SObject> rows = Database.query(
-            'SELECT Id FROM BenefitType WHERE Name = :trimmed LIMIT 1'
+            'SELECT Id FROM BenefitType WHERE Name = :trimmed ORDER BY CreatedDate ASC LIMIT 1'
         );
         return rows.isEmpty() ? null : (Id) rows[0].get('Id');
     }

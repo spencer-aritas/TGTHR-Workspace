@@ -24,37 +24,35 @@
               <table class="slds-table slds-table_cell-buffer slds-table_bordered">
                 <thead>
                   <tr class="slds-line-height_reset">
-                    <th scope="col" data-field="Date_of_Interaction__c" onclick={handleSort} class="sortable-header">
+                    <th scope="col" data-field="Date_of_Interaction__c" onclick={handleSort} class="sortable-header col-date">
                       <div class="slds-truncate">
                         <span>Date</span>
-                        <!-- Icon will be inserted here by JS -->
                       </div>
                     </th>
-                    <th scope="col" data-field="Account_Name" onclick={handleSort} class="sortable-header">
+                    <th scope="col" data-field="Account_Name" onclick={handleSort} class="sortable-header col-participant">
                       <div class="slds-truncate">
                         <span>Participant</span>
-                        <!-- Icon will be inserted here by JS -->
                       </div>
                     </th>
-                    <th scope="col" data-field="CreatedBy_Name" onclick={handleSort} class="sortable-header">
+                    <th scope="col" data-field="CreatedBy_Name" onclick={handleSort} class="sortable-header col-staff">
                       <div class="slds-truncate">
                         <span>Staff</span>
-                        <!-- Icon will be inserted here by JS -->
                       </div>
                     </th>
-                    <th scope="col"><div class="slds-truncate">Notes</div></th>
+                    <th scope="col" class="col-notes"><div class="slds-truncate">Notes</div></th>
+                    <th scope="col" class="col-type"><div class="slds-truncate">Type</div></th>
                   </tr>
                 </thead>
                 <tbody>
                   <template for:each={currentRows} for:item="row">
                     <tr key={row.Id} data-id={row.Id} onclick={handleRowClick} class={row.notesCellClass}>
-                      <td>
+                      <td class="col-date">
                         <div class="slds-truncate">{row.Date_of_Interaction__c}</div>
                       </td>
-                      <td>
+                      <td class="col-participant">
                         <div class="slds-truncate">{row.Account_Name}</div>
                       </td>
-                      <td>
+                      <td class="col-staff">
                         <div class="slds-truncate">
                             {row.CreatedBy_Name}
                             <template if:true={row.isPendingApproval}>
@@ -64,10 +62,15 @@
                             </template>
                         </div>
                       </td>
-                      <td class="rich-note-cell">
+                      <td class="rich-note-cell col-notes">
                         <div class="rich-cell-container slds-is-relative">
                           <c-rich-hover-cell value={row.MeetingNotes} class-name="table-hover-cell"></c-rich-hover-cell>
                         </div>
+                      </td>
+                      <td class="col-type">
+                        <template if:true={row._isIncident}>
+                          <lightning-badge label="Incident" icon-name="utility:warning" class="badge--incident"></lightning-badge>
+                        </template>
                       </td>
                     </tr>
                   </template>

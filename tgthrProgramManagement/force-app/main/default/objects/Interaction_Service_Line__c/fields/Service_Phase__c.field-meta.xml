@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Service_Phase__c</fullName>
+    <label>Service Phase</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Pre-Tenancy</fullName>
+                <default>false</default>
+                <label>Pre-Tenancy</label>
+            </value>
+            <value>
+                <fullName>Tenancy Sustaining</fullName>
+                <default>false</default>
+                <label>Tenancy Sustaining</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

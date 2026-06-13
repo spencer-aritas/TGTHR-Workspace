@@ -92,6 +92,40 @@
     border-color: #e0e0e0;
 }
 
+/* Census + dependent Note pill: Note tab is fused onto the right edge of
+   the Census badge so it reads as "attached to / depends on" Census rather
+   than as another peer channel. */
+.census-group {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0;
+}
+.census-group .channel-badge {
+    /* flatten the right edge of Census so the Note tab nests cleanly */
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.note-pill {
+    background-color: #ba6a14;      /* amber — distinct from teal channels */
+    border-color: #ba6a14;
+    color: #fff;
+    font-size: 0.625rem;
+    padding: 0.125rem 0.4rem;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.45);
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Modal: Require Note checkbox visually nested under Census parent */
+.census-dependent {
+    margin-top: 0.25rem;
+    margin-left: 1.25rem;
+    padding-left: 0.625rem;
+    border-left: 2px solid #06a59a;
+}
+
 /* Housing Benefit classification tag (separate from channel badges) */
 .card-housing-tag {
     display: inline-block;

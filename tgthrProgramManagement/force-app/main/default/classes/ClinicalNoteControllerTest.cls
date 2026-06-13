@@ -49,6 +49,16 @@ private class ClinicalNoteControllerTest {
         return benefits.isEmpty() ? null : benefits[0].Id;
     }
 
+    static Id getAlternateApproverId() {
+        List<User> users = [
+            SELECT Id
+            FROM User
+            WHERE IsActive = true AND Id != :UserInfo.getUserId()
+            LIMIT 1
+        ];
+        return users.isEmpty() ? null : users[0].Id;
+    }
+
     static String buildSaveRequestJson(Case c, Map<String, Object> overrides) {
         Map<String, Object> payload = new Map<String, Object>{
             'caseId' => c.Id,
@@ -362,10 +372,12 @@ private class ClinicalNoteControllerTest {
     static void testSaveClinicalNoteRequest_AmendRejectedNote() {
         Case c = getTestCase();
         Account a = getTestAccount();
+        Id approverId = getAlternateApproverId();
+        if (approverId == null) return;
         SObject note = TestDataFactory.createInteractionSummary(c.Id, a.Id, 'Rejected note');
         note.put('Manager_Rejected__c', true);
         note.put('Requires_Manager_Approval__c', true);
-        note.put('Manager_Approver__c', UserInfo.getUserId());
+        note.put('Manager_Approver__c', approverId);
         note.put('Status', 'Published');
         update note;
 
@@ -373,7 +385,7 @@ private class ClinicalNoteControllerTest {
             'interactionSummaryId' => note.get('Id'),
             'reason' => 'Amended after rejection',
             'requestManagerCoSign' => true,
-            'managerApproverId' => UserInfo.getUserId()
+            'managerApproverId' => approverId
         });
         Test.startTest();
         ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(requestJson);
@@ -460,6 +472,22 @@ private class ClinicalNoteControllerTest {
     @isTest
     static void testSaveClinicalNoteRequest_WithManagerCoSign() {
         Case c = getTestCase();
+        Id approverId = getAlternateApproverId();
+        if (approverId == null) return;
+        String requestJson = buildSaveRequestJson(c, new Map<String, Object>{
+            'requestManagerCoSign' => true,
+            'managerApproverId' => approverId
+        });
+        Test.startTest();
+        ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(requestJson);
+        Test.stopTest();
+        System.assertEquals(true, result.success, 'Should succeed with valid approver');
+        System.assertEquals(true, result.requiresManagerApproval);
+    }
+
+    @isTest
+    static void testSaveClinicalNoteRequest_RejectSelfManagerApprover() {
+        Case c = getTestCase();
         String requestJson = buildSaveRequestJson(c, new Map<String, Object>{
             'requestManagerCoSign' => true,
             'managerApproverId' => UserInfo.getUserId()
@@ -467,8 +495,8 @@ private class ClinicalNoteControllerTest {
         Test.startTest();
         ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(requestJson);
         Test.stopTest();
-        System.assertEquals(true, result.success, 'Should succeed with valid approver');
-        System.assertEquals(true, result.requiresManagerApproval);
+        System.assertEquals(false, result.success, 'Should fail when selecting self as approver.');
+        System.assert(result.errorMessage != null && result.errorMessage.contains('cannot select yourself'));
     }
 
     // ──────────────────────────────────
@@ -1335,13 +1363,15 @@ private class ClinicalNoteControllerTest {
     static void testSave_UpdateRejectedNote() {
         Case c = getTestCase();
         Account a = getTestAccount();
+        Id approverId = getAlternateApproverId();
+        if (approverId == null) return;
         SObject note = TestDataFactory.createInteractionSummary(c.Id, a.Id, 'Rejected note');
         Id noteId = (Id) note.get('Id');
 
         try {
             note.put('Action_Required__c', true);
             note.put('Is_Rejected__c', true);
-            note.put('Manager_Approver__c', UserInfo.getUserId());
+            note.put('Manager_Approver__c', approverId);
             note.put('Requires_Manager_Approval__c', true);
             update note;
         } catch (Exception e) { /* field may not exist */ }
@@ -1352,7 +1382,7 @@ private class ClinicalNoteControllerTest {
             'reason' => 'Amended rejected note',
             'markCompleted' => true,
             'requestManagerCoSign' => true,
-            'managerApproverId' => UserInfo.getUserId()
+            'managerApproverId' => approverId
         });
 
         Test.startTest();
@@ -1497,10 +1527,12 @@ private class ClinicalNoteControllerTest {
     @isTest
     static void testSave_ManagerCoSignRequested() {
         Case c = getTestCase();
+        Id approverId = getAlternateApproverId();
+        if (approverId == null) return;
         String requestJson = buildSaveRequestJson(c, new Map<String, Object>{
             'noteType' => 'Clinical',
             'requestManagerCoSign' => true,
-            'managerApproverId' => UserInfo.getUserId(),
+            'managerApproverId' => approverId,
             'markCompleted' => true
         });
 

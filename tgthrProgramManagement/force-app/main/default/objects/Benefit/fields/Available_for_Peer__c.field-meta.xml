@@ -3,9 +3,9 @@
     <fullName>Available_for_Peer__c</fullName>
     <defaultValue>false</defaultValue>
     <description>When checked, this benefit will be available for selection from the Peer Note button on Case records in the Services Provided section.</description>
-    <externalId>false</externalId>
     <inlineHelpText>Check this box to make this benefit available from the Peer Note button.</inlineHelpText>
     <label>Available for Peer</label>
+    <trackFeedHistory>false</trackFeedHistory>
     <trackHistory>false</trackHistory>
     <type>Checkbox</type>
 </CustomField>

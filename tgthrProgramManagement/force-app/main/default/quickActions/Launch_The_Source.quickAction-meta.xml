@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QuickAction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Launch The Source Intake</label>
+    <lightningWebComponent>launchTheSource</lightningWebComponent>
+    <optionsCreateFeedItem>false</optionsCreateFeedItem>
+    <type>LightningWebComponent</type>
+    <actionSubtype>ScreenAction</actionSubtype>
+    <description>Open The Source drop-in check-in kiosk in a new window</description>
+</QuickAction>

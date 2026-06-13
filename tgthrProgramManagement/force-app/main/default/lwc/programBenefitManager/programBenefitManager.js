@@ -1,6 +1,5 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { refreshApex } from '@salesforce/apex';
 
 import getActiveBenefitsForProgram from '@salesforce/apex/BenefitReplacementService.getActiveBenefitsForProgram';
 import getAllBenefitsForProgram    from '@salesforce/apex/BenefitReplacementService.getAllBenefitsForProgram';
@@ -9,8 +8,9 @@ import getUnitOptions              from '@salesforce/apex/BenefitReplacementServ
 import getBenefitTypes             from '@salesforce/apex/BenefitService.getBenefitTypes';
 import createBenefit               from '@salesforce/apex/BenefitReplacementService.createBenefit';
 import updateBenefit               from '@salesforce/apex/BenefitReplacementService.updateBenefit';
-import replaceBenefit              from '@salesforce/apex/BenefitReplacementService.replaceBenefit';
-import retireBenefit               from '@salesforce/apex/BenefitReplacementService.retireBenefit';
+import updateBenefitInPlace        from '@salesforce/apex/BenefitReplacementService.updateBenefitInPlace';
+import replaceBenefitInPlace       from '@salesforce/apex/BenefitReplacementService.replaceBenefitInPlace';
+import retireBenefitInPlace        from '@salesforce/apex/BenefitReplacementService.retireBenefitInPlace';
 
 const HISTORY_COLUMNS = [
     { label: 'Service Name',   fieldName: 'benefitName',      type: 'text' },
@@ -29,12 +29,22 @@ function enrichBenefit(b) {
         clinicalClass:          channelClass(b.availableForClinical),
         caseMgmtClass:          channelClass(b.availableForCaseManagement),
         peerClass:              channelClass(b.availableForPeer),
-        programEngagementClass: channelClass(b.availableForProgramEngagement)
+        programEngagementClass: channelClass(b.availableForProgramEngagement),
+        requireCaseNoteClass:   channelClass(b.requireCaseNote)
     };
 }
 
 export default class ProgramBenefitManager extends LightningElement {
-    @api recordId;
+    @api
+    get recordId() { return this._recordId; }
+    set recordId(value) {
+        this._recordId = value;
+        if (value) {
+            this._loadBenefits();
+            this._loadBenefitTypes();
+        }
+    }
+    _recordId;
 
     @track isLoading = true;
     @track errorMessage = null;
@@ -53,72 +63,68 @@ export default class ProgramBenefitManager extends LightningElement {
     @track retireSaving  = false;
 
     @track selectedBenefit = {};
+    @track _editingBenefitId = null;
+    @track _replacingBenefitId = null;
+    @track _retiringBenefitId = null;
 
     @track addForm = {
-        benefitName: '', benefitTypeName: '', unitName: '',
+        benefitName: '', benefitTypeId: null, unitName: '',
         defaultDisbursementQty: null, defaultDurationMinutes: null,
         availableForClinical: false, availableForCaseManagement: false,
-        availableForPeer: false, availableForHousing: false
+        availableForPeer: false, availableForHousing: false,
+        availableForProgramEngagement: false, requireCaseNote: false
     };
 
     @track editForm = {
-        benefitId: null, benefitName: '', unitName: '',
+        benefitId: null, benefitName: '', benefitTypeName: '', unitName: '',
         defaultDisbursementQty: null, defaultDurationMinutes: null,
         availableForClinical: false, availableForCaseManagement: false,
-        availableForPeer: false, availableForHousing: false
+        availableForPeer: false, availableForHousing: false,
+        availableForProgramEngagement: false, requireCaseNote: false
     };
 
     @track replaceForm = {
-        newBenefitName: '', newBenefitTypeName: '',
+        newBenefitName: '', newBenefitTypeId: null,
         migrateOpenAssignments: false,
         openAssignmentWarning: false, openAssignmentCount: 0,
         preflightLoading: false
     };
 
-    _wiredActive;
-    _wiredAll;
     @track _activeBenefits  = [];
     @track _historyBenefits = [];
     @track _benefitTypeOptions = [];
     @track _unitOptions = [];
 
-    get programId() { return this.recordId; }
+    get programId() { return this._recordId; }
 
-    // ── Wire: active benefits (card data source) ───────────────────────────
-    @wire(getActiveBenefitsForProgram, { programId: '$programId', roleFilter: '' })
-    wiredActive(result) {
-        this._wiredActive = result;
-        this.isLoading = false;
-        if (result.data) {
-            this._activeBenefits = result.data.map(enrichBenefit);
-            this.errorMessage = null;
-        } else if (result.error) {
-            this.errorMessage = 'Could not load active services: ' + this._extractError(result.error);
-            this._activeBenefits = [];
-        }
-    }
-
-    // ── Wire: all benefits (history tab) ──────────────────────────────────
-    @wire(getAllBenefitsForProgram, { programId: '$programId' })
-    wiredAll(result) {
-        this._wiredAll = result;
-        if (result.data) {
-            this._historyBenefits = result.data.filter(
+    // ── Imperative load: active + history benefits ─────────────────────────
+    async _loadBenefits() {
+        this.isLoading = true;
+        try {
+            const [active, all] = await Promise.all([
+                getActiveBenefitsForProgram({ programId: this.programId, roleFilter: '' }),
+                getAllBenefitsForProgram({ programId: this.programId })
+            ]);
+            this._activeBenefits = (active  || []).map(enrichBenefit);
+            this._historyBenefits = (all || []).filter(
                 b => b.lifecycleState === 'Retired' || b.lifecycleState === 'Replaced'
             );
+            this.errorMessage = null;
             this.historyErrorMessage = null;
-        } else if (result.error) {
-            this.historyErrorMessage = 'Could not load service history: ' + this._extractError(result.error);
-            this._historyBenefits = [];
+        } catch (e) {
+            this.errorMessage = 'Could not load active services: ' + this._extractError(e);
+            this._activeBenefits = [];
+        } finally {
+            this.isLoading = false;
         }
     }
 
     // ── Wire: benefit type picker options ──────────────────────────────────
-    @wire(getBenefitTypes, { programId: '$programId' })
-    wiredBenefitTypes({ data, error }) {
-        if (data) {
-            this._benefitTypeOptions = data;
-        } else if (error) {
+    async _loadBenefitTypes() {
+        try {
+            const data = await getBenefitTypes({ programId: this.programId });
+            this._benefitTypeOptions = data || [];
+        } catch (e) {
             this._toast('Benefit Types Unavailable', 'Could not load benefit type options.', 'warning');
             this._benefitTypeOptions = [];
         }
@@ -158,16 +164,16 @@ export default class ProgramBenefitManager extends LightningElement {
 
     // ── Toolbar ───────────────────────────────────────────────────────────
     handleRefresh() {
-        refreshApex(this._wiredActive);
-        refreshApex(this._wiredAll);
+        if (this.programId) this._loadBenefits();
     }
 
     handleAddService() {
         this.addForm = {
-            benefitName: '', benefitTypeName: '', unitName: '',
+            benefitName: '', benefitTypeId: null, unitName: '',
             defaultDisbursementQty: null, defaultDurationMinutes: null,
             availableForClinical: false, availableForCaseManagement: false,
-            availableForPeer: false, availableForHousing: false, availableForProgramEngagement: false
+            availableForPeer: false, availableForHousing: false,
+            availableForProgramEngagement: false, requireCaseNote: false
         };
         this.showAddModal = true;
     }
@@ -185,9 +191,11 @@ export default class ProgramBenefitManager extends LightningElement {
         const b = this._benefitById(id);
         if (!b) return;
         this.selectedBenefit = b;
+        this._editingBenefitId = b.benefitId ? String(b.benefitId) : null;
         this.editForm = {
             benefitId:              b.benefitId,
             benefitName:            b.benefitName             || '',
+            benefitTypeName:        b.benefitTypeName         || '',
             unitName:               b.unitName                || '',
             defaultDisbursementQty: b.defaultDisbursementQty  || null,
             defaultDurationMinutes: b.defaultDurationMinutes  || null,
@@ -195,7 +203,8 @@ export default class ProgramBenefitManager extends LightningElement {
             availableForCaseManagement: b.availableForCaseManagement || false,
             availableForPeer:                b.availableForPeer                   || false,
             availableForHousing:             b.availableForHousing                || false,
-            availableForProgramEngagement:   b.availableForProgramEngagement      || false
+            availableForProgramEngagement:   b.availableForProgramEngagement      || false,
+            requireCaseNote:                 b.requireCaseNote                    || false
         };
         this.showEditModal = true;
     }
@@ -205,9 +214,10 @@ export default class ProgramBenefitManager extends LightningElement {
         const b = this._benefitById(id);
         if (!b) return;
         this.selectedBenefit = b;
+        this._replacingBenefitId = b.benefitId ? String(b.benefitId) : null;
         this.replaceForm = {
             newBenefitName: '',
-            newBenefitTypeName: b.benefitTypeName || '',
+            newBenefitTypeId: null,
             migrateOpenAssignments: false,
             openAssignmentWarning: false,
             openAssignmentCount: 0,
@@ -222,6 +232,7 @@ export default class ProgramBenefitManager extends LightningElement {
         const b = this._benefitById(id);
         if (!b) return;
         this.selectedBenefit = b;
+        this._retiringBenefitId = b.benefitId ? String(b.benefitId) : null;
         this.showRetireModal = true;
     }
 
@@ -234,7 +245,7 @@ export default class ProgramBenefitManager extends LightningElement {
                 openAssignmentWarning: (count || 0) > 0,
                 preflightLoading: false
             };
-        } catch (e) {
+        } catch {
             this.replaceForm = { ...this.replaceForm, preflightLoading: false };
             this._toast('Assignment Check Failed', 'Could not check open assignments.', 'warning');
         }
@@ -245,13 +256,23 @@ export default class ProgramBenefitManager extends LightningElement {
 
     handleAddFormChange(evt) {
         const field = evt.target.dataset.field;
-        const value = evt.target.type === 'checkbox' ? evt.target.checked : evt.target.value;
+        const value = evt.target.type === 'checkbox' ? evt.target.checked : (evt.detail?.value ?? evt.target.value);
         this.addForm = { ...this.addForm, [field]: value };
+    }
+    handleAddBenefitTypeChange(evt) {
+        this.addForm = { ...this.addForm, benefitTypeId: evt.detail.value };
+    }
+    handleAddUnitChange(evt) {
+        this.addForm = { ...this.addForm, unitName: evt.detail.value };
     }
 
     async handleConfirmAdd() {
         if (!this.addForm.benefitName || !this.addForm.benefitName.trim()) {
             this._toast('Missing Field', 'Please enter a Service Name.', 'error');
+            return;
+        }
+        if (!this.addForm.benefitTypeId) {
+            this._toast('Missing Field', 'Please select a Benefit Type.', 'error');
             return;
         }
         if (!this.programId) {
@@ -260,10 +281,7 @@ export default class ProgramBenefitManager extends LightningElement {
         }
         this.addSaving = true;
         try {
-            const req = {
-                programId:              this.programId,
-                benefitName:            this.addForm.benefitName,
-                benefitTypeName:        this.addForm.benefitTypeName || null,
+            const req = JSON.parse(JSON.stringify({
                 unitName:               this.addForm.unitName        || null,
                 defaultDisbursementQty: this.addForm.defaultDisbursementQty || null,
                 defaultDurationMinutes: this.addForm.defaultDurationMinutes || null,
@@ -271,9 +289,15 @@ export default class ProgramBenefitManager extends LightningElement {
                 availableForCaseManagement:      this.addForm.availableForCaseManagement,
                 availableForPeer:                this.addForm.availableForPeer,
                 availableForHousing:             this.addForm.availableForHousing,
-                availableForProgramEngagement:   this.addForm.availableForProgramEngagement
-            };
-            const result = await createBenefit({ req });
+                availableForProgramEngagement:   this.addForm.availableForProgramEngagement,
+                requireCaseNote:                 this.addForm.requireCaseNote
+            }));
+            const result = await createBenefit({
+                programId:     this.programId,
+                benefitName:   this.addForm.benefitName,
+                benefitTypeId: this.addForm.benefitTypeId || null,
+                req
+            });
             if (result && result.success) {
                 this._toast('Service Added', `"${this.addForm.benefitName}" has been added.`, 'success');
                 this.showAddModal = false;
@@ -293,8 +317,11 @@ export default class ProgramBenefitManager extends LightningElement {
 
     handleEditFormChange(evt) {
         const field = evt.target.dataset.field;
-        const value = evt.target.type === 'checkbox' ? evt.target.checked : evt.target.value;
+        const value = evt.target.type === 'checkbox' ? evt.target.checked : (evt.detail?.value ?? evt.target.value);
         this.editForm = { ...this.editForm, [field]: value };
+    }
+    handleEditUnitChange(evt) {
+        this.editForm = { ...this.editForm, unitName: evt.detail.value };
     }
 
     async handleConfirmEdit() {
@@ -302,21 +329,30 @@ export default class ProgramBenefitManager extends LightningElement {
             this._toast('Missing Field', 'Please enter a Service Name.', 'error');
             return;
         }
+        const benefitId = this._editingBenefitId || this.editForm.benefitId || this.selectedBenefit?.benefitId || null;
+        if (!benefitId) {
+            this._toast('Save Failed', 'Could not determine which service to update. Please reopen Edit and try again.', 'error');
+            return;
+        }
+
+        const qty = this.editForm.defaultDisbursementQty;
+        const duration = this.editForm.defaultDurationMinutes;
+
         this.editSaving = true;
         try {
-            const req = {
-                benefitId:              this.editForm.benefitId,
-                newBenefitName:         this.editForm.benefitName,
-                newUnitName:            this.editForm.unitName || null,
-                defaultDisbursementQty: this.editForm.defaultDisbursementQty || null,
-                defaultDurationMinutes: this.editForm.defaultDurationMinutes || null,
-                availableForClinical:            this.editForm.availableForClinical,
-                availableForCaseManagement:      this.editForm.availableForCaseManagement,
-                availableForPeer:                this.editForm.availableForPeer,
-                availableForHousing:             this.editForm.availableForHousing,
-                availableForProgramEngagement:   this.editForm.availableForProgramEngagement
-            };
-            const result = await updateBenefit({ req });
+            const result = await updateBenefitInPlace({
+                benefitId:                    String(benefitId),
+                newBenefitName:               this.editForm.benefitName,
+                newUnitName:                  this.editForm.unitName || null,
+                defaultDisbursementQty:       qty === '' || qty === undefined ? null : qty,
+                defaultDurationMinutes:       duration === '' || duration === undefined ? null : duration,
+                availableForClinical:         this.editForm.availableForClinical,
+                availableForCaseManagement:   this.editForm.availableForCaseManagement,
+                availableForPeer:             this.editForm.availableForPeer,
+                availableForHousing:          this.editForm.availableForHousing,
+                availableForProgramEngagement: this.editForm.availableForProgramEngagement,
+                requireCaseNote:              this.editForm.requireCaseNote
+            });
             if (result && result.success) {
                 this._toast('Saved', `"${this.editForm.benefitName}" has been updated.`, 'success');
                 this.showEditModal = false;
@@ -336,12 +372,15 @@ export default class ProgramBenefitManager extends LightningElement {
 
     handleReplaceFormChange(evt) {
         const field = evt.target.dataset.field;
-        const value = evt.target.type === 'checkbox' ? evt.target.checked : evt.target.value;
+        const value = evt.target.type === 'checkbox' ? evt.target.checked : (evt.detail?.value ?? evt.target.value);
         this.replaceForm = { ...this.replaceForm, [field]: value };
+    }
+    handleReplaceTypeChange(evt) {
+        this.replaceForm = { ...this.replaceForm, newBenefitTypeId: evt.detail.value };
     }
 
     async handleConfirmReplace() {
-        if (!this.replaceForm.newBenefitTypeName) {
+        if (!this.replaceForm.newBenefitTypeId) {
             this._toast('Missing Field', 'Please select a New Benefit Type.', 'error');
             return;
         }
@@ -349,15 +388,19 @@ export default class ProgramBenefitManager extends LightningElement {
             this._toast('Please Wait', 'Still checking for open assignments — try again in a moment.', 'warning');
             return;
         }
+        const oldBenefitId = this._replacingBenefitId || this.selectedBenefit?.benefitId || null;
+        if (!oldBenefitId) {
+            this._toast('Change Type Failed', 'Could not determine which service to replace. Please reopen Change Type and try again.', 'error');
+            return;
+        }
         this.replaceSaving = true;
         try {
-            const req = {
-                oldBenefitId:          this.selectedBenefit.benefitId,
-                newBenefitName:        this.replaceForm.newBenefitName || null,
-                newBenefitTypeName:    this.replaceForm.newBenefitTypeName,
-                migrateOpenAssignments: this.replaceForm.migrateOpenAssignments
-            };
-            const result = await replaceBenefit({ req });
+            const result = await replaceBenefitInPlace({
+                oldBenefitId:           String(oldBenefitId),
+                newBenefitTypeId:       String(this.replaceForm.newBenefitTypeId),
+                newBenefitName:         this.replaceForm.newBenefitName || null,
+                migrateOpenAssignments: this.replaceForm.migrateOpenAssignments || false
+            });
             if (result && result.success) {
                 this._toast('Type Changed', `"${this.selectedBenefit.benefitName}" has been replaced with a new record.`, 'success');
                 this.showReplaceModal = false;
@@ -376,10 +419,14 @@ export default class ProgramBenefitManager extends LightningElement {
     handleCloseRetire()  { this.showRetireModal = false; }
 
     async handleConfirmRetire() {
+        const benefitId = this._retiringBenefitId || this.selectedBenefit?.benefitId || null;
+        if (!benefitId) {
+            this._toast('Retire Failed', 'Could not determine which service to retire. Please reopen Retire and try again.', 'error');
+            return;
+        }
         this.retireSaving = true;
         try {
-            const req = { benefitId: this.selectedBenefit.benefitId };
-            const result = await retireBenefit({ req });
+            const result = await retireBenefitInPlace({ benefitId: String(benefitId) });
             if (result && result.success) {
                 this._toast('Service Retired', `"${this.selectedBenefit.benefitName}" has been retired.`, 'success');
                 this.showRetireModal = false;

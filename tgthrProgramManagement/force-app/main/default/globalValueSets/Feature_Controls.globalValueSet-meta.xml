@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Hidden</fullName>
+        <default>false</default>
+        <label>Hidden</label>
+    </customValue>
+    <customValue>
+        <fullName>Optional</fullName>
+        <default>false</default>
+        <label>Optional</label>
+    </customValue>
+    <customValue>
+        <fullName>Default On</fullName>
+        <default>false</default>
+        <label>Default On</label>
+    </customValue>
+    <customValue>
+        <fullName>Required</fullName>
+        <default>false</default>
+        <label>Required</label>
+    </customValue>
+    <masterLabel>Feature Controls</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

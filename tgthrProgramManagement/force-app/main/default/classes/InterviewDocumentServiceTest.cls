@@ -43,24 +43,21 @@ private class InterviewDocumentServiceTest {
         try {
             template.put('has_cpt_codes__c', true);
             template.put('allowed_cpt_codes__c', '90837,90834,90791');
-            template.put('cpt_note_type__c', 'Clinical');
+            template.put('cpt_note_type__c', 'Comp Assess');
+            template.put('Diagnoses_Policy__c', 'Required');
+            template.put('Goals_Policy__c', 'Required');
+            template.put('Client_Signature_Policy__c', 'Required');
+            template.put('Staff_Signature_Policy__c', 'Required');
+            template.put('Income_Benefits_Policy__c', 'Required');
+            template.put('Housing_Benefit_Policy__c', 'Required');
+            template.put('Clinical_Benefit_Policy__c', 'Required');
+            template.put('Demographics_Policy__c', 'Required');
             update template;
         } catch (Exception e) {
             System.debug('Could not set CPT flags on template: ' + e.getMessage());
         }
 
         SObject version = TestDataFactory.createInterviewTemplateVersion((Id) template.get('Id'));
-
-        // Enable policies on version for branch coverage
-        try {
-            version.put('Client_Signature_Policy__c', 'Required');
-            version.put('Staff_Signature_Policy__c', 'Required');
-            version.put('Goals_Policy__c', 'Optional');
-            version.put('Diagnoses_Policy__c', 'Optional');
-            update version;
-        } catch (Exception e) {
-            System.debug('Could not set version policies: ' + e.getMessage());
-        }
 
         SObject question = TestDataFactory.createInterviewQuestion(
             (Id) version.get('Id'), 'How are you feeling?', 'Mental Health', 'Text', 1
@@ -96,11 +93,30 @@ private class InterviewDocumentServiceTest {
             System.debug('Could not create CarePlan: ' + e.getMessage());
         }
 
-        // Diagnosis for payload building
+        // Diagnosis for payload building + junction link to InteractionSummary
         try {
-            TestDataFactory.createDiagnosis(core.account.Id, 'F32.1', 'Major depressive disorder');
+            SObject diag = TestDataFactory.createDiagnosis(core.account.Id, 'F32.1', 'Major depressive disorder');
+            TestDataFactory.createDiagnosisNoteLink((Id) diag.get('Id'), (Id) note.get('Id'));
         } catch (Exception e) {
             System.debug('Skipping diagnosis creation: ' + e.getMessage());
+        }
+
+        // Service line for CPT branch coverage
+        try {
+            SObject sl = Schema.getGlobalDescribe().get('Interaction_Service_Line__c').newSObject();
+            sl.put('Interaction_Summary__c', note.get('Id'));
+            sl.put('Service_Code__c', '90837');
+            sl.put('Modifier_1__c', 'HN');
+            insert sl;
+        } catch (Exception e) {
+            System.debug('Could not create ServiceLine: ' + e.getMessage());
+        }
+
+        // Goal assignment for goals branch coverage
+        try {
+            TestDataFactory.createGoalAssignment(core.account.Id);
+        } catch (Exception e) {
+            System.debug('Could not create GoalAssignment: ' + e.getMessage());
         }
     }
 
@@ -879,10 +895,22 @@ private class InterviewDocumentServiceTest {
             benefit.put('ProgramId', programs[0].Id);
             insert benefit;
 
+            // BenefitDisbursement requires a BenefitAssignment first
+            List<SObject> enrollments = Database.query(
+                'SELECT Id FROM ProgramEnrollment LIMIT 1'
+            );
+            if (enrollments.isEmpty()) return;
+
+            SObject assignment = Schema.getGlobalDescribe().get('BenefitAssignment').newSObject();
+            assignment.put('BenefitId', benefit.Id);
+            assignment.put('ProgramEnrollmentId', enrollments[0].Id);
+            Database.SaveResult assignResult = Database.insert(assignment, false);
+            if (!assignResult.isSuccess()) return;
+
             SObject disbursement = Schema.getGlobalDescribe().get('BenefitDisbursement').newSObject();
-            disbursement.put('BenefitId', benefit.Id);
+            disbursement.put('BenefitAssignmentId', assignment.Id);
             disbursement.put('InteractionSummary__c', summaryId);
-            disbursement.put('DisbursementDate', Date.today());
+            disbursement.put('ActualCompletionDate', System.now());
             insert disbursement;
         } catch (Exception e) {
             System.debug('Could not create BenefitDisbursement: ' + e.getMessage());
@@ -914,7 +942,7 @@ private class InterviewDocumentServiceTest {
         try {
             SObject line = Schema.getGlobalDescribe().get('Interaction_Service_Line__c').newSObject();
             line.put('Interaction_Summary__c', summaryId);
-            line.put('Service_Line_Code__c', '90837');
+            line.put('Service_Code__c', '90837');
             line.put('Modifier_1__c', 'HN');
             insert line;
         } catch (Exception e) {
@@ -954,7 +982,7 @@ private class InterviewDocumentServiceTest {
 
             SObject link = Schema.getGlobalDescribe().get('Diagnosis_Note_Link__c').newSObject();
             link.put('Diagnosis__c', diags[0].Id);
-            link.put('Interaction_Summary__c', summaryId);
+            link.put('InteractionSummary__c', summaryId);
             insert link;
         } catch (Exception e) {
             System.debug('Could not create diagnosis junction: ' + e.getMessage());
@@ -1075,10 +1103,11 @@ private class InterviewDocumentServiceTest {
             try {
                 SObject docTemplate = Schema.getGlobalDescribe()
                     .get('InterviewTemplateDocument__c').newSObject();
-                docTemplate.put('Interview_Template__c', versions[0].get('InterviewTemplate__c'));
+                docTemplate.put('InterviewTemplate__c', versions[0].get('InterviewTemplate__c'));
+                docTemplate.put('InterviewTemplateVersion__c', versions[0].get('Id'));
                 docTemplate.put('Name', 'Published Doc Template');
                 docTemplate.put('Status__c', 'Published');
-                docTemplate.put('Document_Type__c', 'PDF');
+                docTemplate.put('Active__c', true);
                 insert docTemplate;
             } catch (Exception e) {
                 System.debug('Could not create InterviewTemplateDocument: ' + e.getMessage());
@@ -1115,11 +1144,12 @@ private class InterviewDocumentServiceTest {
         insert cv068;
         cv068 = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv068.Id];
 
-        // Stamp the ContentVersion ID on the interview's signature fields
+        // Stamp the ContentDocument ID on the interview's signature fields
         SObject iv = Database.query('SELECT Id FROM Interview__c WHERE Id = :ivId');
         try {
-            iv.put('Staff_Signature__c', String.valueOf(cv068.Id));
-            iv.put('Case_Manager_Signature__c', String.valueOf(cv068.ContentDocumentId));
+            iv.put('Staff_Signature_File_Id__c', String.valueOf(cv068.ContentDocumentId));
+            iv.put('CaseManager_Signature_File_Id__c', String.valueOf(cv068.ContentDocumentId));
+            iv.put('CaseManager_Signed__c', true);
             update iv;
         } catch (Exception e) { /* ignore */ }
 
@@ -1220,8 +1250,7 @@ private class InterviewDocumentServiceTest {
             SObject idoc = Schema.getGlobalDescribe()
                 .get('InterviewDocument__c').newSObject();
             idoc.put('Interview__c', ivId);
-            idoc.put('Status__c', 'Draft');
-            idoc.put('Document_Type__c', 'PDF');
+            idoc.put('Document_Status__c', 'Draft');
             insert idoc;
         } catch (Exception e) {
             System.debug('Could not create initial InterviewDocument: ' + e.getMessage());
@@ -1341,7 +1370,6 @@ private class InterviewDocumentServiceTest {
             SObject assessment = Schema.getGlobalDescribe()
                 .get('Assessment__c').newSObject();
             assessment.put('Name', 'Income Assessment');
-            assessment.put('Account__c', c.AccountId);
             assessment.put('Case__c', c.Id);
             assessment.put('Interview__c', ivId);
             insert assessment;
@@ -1349,9 +1377,9 @@ private class InterviewDocumentServiceTest {
             SObject ib = Schema.getGlobalDescribe()
                 .get('Income_Benefit__c').newSObject();
             ib.put('Assessment__c', assessment.Id);
-            ib.put('Name', 'SSI');
-            ib.put('Amount__c', 850.00);
-            ib.put('Frequency__c', 'Monthly');
+            ib.put('Income_Type__c', 'SSI');
+            ib.put('Has_Documentation__c', false);
+            ib.put('Stated_Monthly_Amount__c', 850.00);
             insert ib;
         } catch (Exception e) {
             System.debug('Could not create Assessment/IncomeBenefit: ' + e.getMessage());

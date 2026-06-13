@@ -3,9 +3,9 @@
     <fullName>Manager_Signed__c</fullName>
     <defaultValue>false</defaultValue>
     <description>Indicates whether the manager has reviewed and signed this interview.</description>
-    <externalId>false</externalId>
     <inlineHelpText>Checked when manager has approved this interview.</inlineHelpText>
     <label>Manager Signed</label>
     <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Checkbox</type>
 </CustomField>

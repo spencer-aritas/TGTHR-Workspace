@@ -1,0 +1,11 @@
+Id,Name,Type,UnitCode,Description
+0hEVY00000000052AA,Currency,Number,Currency,"Allowances, transportation bus passes"
+0hEVY00000000BJ2AY,Items,Number,Items,hygiene kits or other kits handed out via  a benefit
+0hEVY00000000072AA,Minutes,Number,Minutes,any benefit with time associated so that the Benefit Disbursements can be summed by minutes
+0hEVY00000000032AA,Nights,Number,Nights,used for housing/night count
+0hEVY00000000082AA,Percentage,Period,%,Used within Outcomes Management for measuring via percent
+0hEVY00000000022AA,Sessions,Number,Sessions,
+0hEVY00000000062AA,Unknown,Period,Unknown,Used for NPSP to NPC records which are older and we didn't have Benefit Types
+0hEVY00000000012AA,x Meals,Number,Meals,
+0hEVY000000001d2AA,x Nights,Number,1234567890,
+0hEVY00000000042AA,x RP Hours,Period,Hours,

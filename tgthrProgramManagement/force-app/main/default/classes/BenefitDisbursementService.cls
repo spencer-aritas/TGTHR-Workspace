@@ -5,6 +5,10 @@ public with sharing class BenefitDisbursementService {
     public String label;
     @AuraEnabled
     public String value;
+    @AuraEnabled
+    public Boolean availableForProgramEngagement;
+    @AuraEnabled
+    public Boolean requireCaseNote;
   }
   public class DisburseRequest {
     @AuraEnabled
@@ -33,7 +37,9 @@ public with sharing class BenefitDisbursementService {
     @AuraEnabled
     public Boolean ensureAssignment = true; // auto-create missing BenefitAssignment
     @AuraEnabled
-    public Boolean isClinical; // explicitly indicates clinical flow from client
+    public Boolean isClinical; // explicitly indicates clinical flow from client (legacy hint)
+    @AuraEnabled
+    public Boolean requireCaseNote; // legacy/client hint; server reads Benefit.Require_Case_Note__c as source of truth
     @AuraEnabled
     public String interactionSummaryId; // link disbursements to specific InteractionSummary 
     @AuraEnabled
@@ -114,26 +120,32 @@ public with sharing class BenefitDisbursementService {
       String.isNotBlank(programId) ? Id.valueOf(programId) : null,
       programName
     );
-    // Query Benefit object using dynamic SOQL to return BenefitType Name (preferred) instead of Category
-    // Group by both Id and Name so we get deterministic (label, value) pairs.
+    // Group by BenefitType.Name only so that multiple BenefitType records sharing
+    // the same Name (e.g. two "Case Management" rows with different Ids) collapse into
+    // one picker entry. The value is the Name string; getBenefits() already filters by
+    // BenefitType.Name = :eventType so all benefits under any same-named type are returned.
+    // Also restrict to Benefits flagged for Census / Program Engagement so the type
+    // picker only surfaces categories that actually have a disbursable Benefit here.
+    Boolean hasProgEngForTypes = Schema.getGlobalDescribe()
+      .get('Benefit')
+      .getDescribe()
+      .fields.getMap()
+      .containsKey('available_for_program_engagement__c');
     String query =
-      'SELECT BenefitType.Id btId, BenefitType.Name btName ' +
+      'SELECT BenefitType.Name btName ' +
       'FROM Benefit ' +
       'WHERE IsActive = true AND ProgramId = :resolvedProgramId ' +
-      'GROUP BY BenefitType.Id, BenefitType.Name ' +
+      (hasProgEngForTypes ? 'AND Available_for_Program_Engagement__c = true ' : '') +
+      'GROUP BY BenefitType.Name ' +
       'ORDER BY BenefitType.Name';
     List<AggregateResult> ars = Database.query(query);
     List<Option> out = new List<Option>();
     for (AggregateResult ar : ars) {
       String btName = (String) ar.get('btName');
-      Object btIdObj = ar.get('btId');
-      String btId = btIdObj != null ? String.valueOf(btIdObj) : null;
       if (String.isBlank(btName))
         continue;
-      // Use the BenefitType.Name as the label and BenefitType.Id as the value so
-      // the client can treat the Id as the driver while still displaying the
-      // readable BenefitType name.
-      out.add(opt(btName, btId));
+      // Use Name as both label and value — deduplicates same-named BenefitTypes naturally.
+      out.add(opt(btName, btName));
     }
     return out;
   }
@@ -163,8 +175,21 @@ public with sharing class BenefitDisbursementService {
       String.isNotBlank(programId) ? Id.valueOf(programId) : null,
       programName
     );
+    Map<String, Schema.SObjectField> benefitFields =
+      Schema.getGlobalDescribe().get('Benefit').getDescribe().fields.getMap();
+    Boolean hasProgEng = benefitFields.containsKey('available_for_program_engagement__c');
+    Boolean hasReqCaseNote = benefitFields.containsKey('require_case_note__c');
     // Use dynamic SOQL to query Benefits
-    String query = 'SELECT Id, Name FROM Benefit WHERE IsActive = true AND ProgramId = :resolvedProgramId';
+    String query = 'SELECT Id, Name' +
+      (hasProgEng ? ', Available_for_Program_Engagement__c' : '') +
+      (hasReqCaseNote ? ', Require_Case_Note__c' : '') +
+      ' FROM Benefit WHERE IsActive = true AND ProgramId = :resolvedProgramId';
+    // Census Board should only surface Benefits flagged for Census / Program Engagement.
+    // Other Benefits (Case Mgmt, Peer, etc.) still belong to the Program but are disbursed
+    // via their own workflows, not from the Board.
+    if (hasProgEng) {
+      query += ' AND Available_for_Program_Engagement__c = true';
+    }
     if (!String.isBlank(eventType)) {
       // Attempt to match by BenefitType.Name (preferred). Fall back to Category for older orgs.
       query += ' AND (BenefitType.Name = :eventType OR BenefitType.Category = :eventType OR BenefitType.Id = :eventType)';
@@ -174,7 +199,12 @@ public with sharing class BenefitDisbursementService {
     List<SObject> benefits = Database.query(query);
     List<Option> out = new List<Option>();
     for (SObject b : benefits) {
-      out.add(opt((String) b.get('Name'), (String) b.get('Id')));
+      Option o = new Option();
+      o.label = (String) b.get('Name');
+      o.value = (String) b.get('Id');
+      o.availableForProgramEngagement = hasProgEng && b.get('Available_for_Program_Engagement__c') == true;
+      o.requireCaseNote = hasReqCaseNote && b.get('Require_Case_Note__c') == true;
+      out.add(o);
     }
     return out;
   }
@@ -369,9 +399,22 @@ public with sharing class BenefitDisbursementService {
 
     // Convert to participant names with success status
     Map<String, Boolean> results = new Map<String, Boolean>();
+
+    // Bulk-load account names to avoid per-row SOQL queries
+    Map<Id, String> accountNameById = new Map<Id, String>();
+    try {
+      for (SObject acctRec : Database.query('SELECT Id, Name FROM Account WHERE Id IN :acctIdSet')) {
+        accountNameById.put((Id) acctRec.get('Id'), (String) acctRec.get('Name'));
+      }
+    } catch (Exception e) {
+      System.debug('Error bulk-loading participant names: ' + e.getMessage());
+    }
+
     for (String acctIdStr : participantAccountIds) {
       Id acctId = Id.valueOf(acctIdStr);
-      String participantName = getParticipantName(acctId);
+      String participantName = accountNameById.containsKey(acctId)
+        ? accountNameById.get(acctId)
+        : 'Participant ' + acctId;
       Boolean success = baByAcct.containsKey(acctId);
       results.put(participantName, success);
     }
@@ -608,18 +651,20 @@ public with sharing class BenefitDisbursementService {
     // Determine the Benefit's category/name so we can apply Clinical-specific behavior
     String benefitCategory = null;
     String benefitTypeName = null;
-    Boolean isClinicalBenefit = (req.isClinical == true);
-    Set<String> clinicalTypeNames = new Set<String>{
-      'care coordination',
-      'case management',
-      'clinical counseling',
-      'group session',
-      'peer clinical',
-      'social/emotional',
-      'social emotional'
-    };
+    Boolean isClinicalBenefit = (req.isClinical == true); // legacy: client-driven opt-in only
+    Boolean isCensusBenefit = false;
+    Boolean requireCaseNote = (req.requireCaseNote == true);
+    // Schema gates — these fields may not exist in every org
+    Map<String, Schema.SObjectField> benefitFieldMap =
+      Schema.getGlobalDescribe().get('Benefit').getDescribe().fields.getMap();
+    Boolean hasProgEngField = benefitFieldMap.containsKey('available_for_program_engagement__c');
+    Boolean hasRequireCaseNoteField = benefitFieldMap.containsKey('require_case_note__c');
     try {
-      String bq = 'SELECT Id, Name, BenefitTypeId, BenefitType.Name, BenefitType.Category FROM Benefit WHERE Id = :benefitId LIMIT 1';
+      String bq =
+        'SELECT Id, Name, BenefitTypeId, BenefitType.Name, BenefitType.Category' +
+        (hasProgEngField ? ', Available_for_Program_Engagement__c' : '') +
+        (hasRequireCaseNoteField ? ', Require_Case_Note__c' : '') +
+        ' FROM Benefit WHERE Id = :benefitId LIMIT 1';
       List<SObject> bList = Database.query(bq);
       if (!bList.isEmpty()) {
         SObject b = bList[0];
@@ -627,18 +672,12 @@ public with sharing class BenefitDisbursementService {
         if (bt != null) {
           benefitCategory = (String) bt.get('Category');
           benefitTypeName = (String) bt.get('Name');
-          if (
-            !String.isBlank(benefitTypeName) &&
-            clinicalTypeNames.contains(benefitTypeName.toLowerCase())
-          ) {
-            isClinicalBenefit = true;
-          }
-          if (
-            !String.isBlank(benefitCategory) &&
-            benefitCategory.toLowerCase() == 'clinical'
-          ) {
-            isClinicalBenefit = true;
-          }
+        }
+        if (hasProgEngField && b.get('Available_for_Program_Engagement__c') == true) {
+          isCensusBenefit = true;
+        }
+        if (hasRequireCaseNoteField && b.get('Require_Case_Note__c') == true) {
+          requireCaseNote = true;
         }
       }
     } catch (Exception e) {
@@ -647,7 +686,7 @@ public with sharing class BenefitDisbursementService {
     System.debug('Benefit type name resolved as: ' + benefitTypeName);
     System.debug('Benefit category resolved as: ' + benefitCategory);
 
-    // Fallback: attempt to determine clinical classification from the provided event type
+    // Fallback retained for legacy callers that pass eventType only
     if (!isClinicalBenefit && String.isNotBlank(req.eventType)) {
       try {
         if (req.eventType.length() == 18) {
@@ -657,28 +696,46 @@ public with sharing class BenefitDisbursementService {
           if (!btList.isEmpty()) {
             SObject bt = btList[0];
             String evtName = (String) bt.get('Name');
-            if (
-              !String.isBlank(evtName) &&
-              clinicalTypeNames.contains(evtName.toLowerCase())
-            ) {
-              isClinicalBenefit = true;
+            if (!String.isBlank(evtName)) {
               benefitTypeName = evtName;
             }
-          }
-        } else {
-          if (clinicalTypeNames.contains(req.eventType.toLowerCase())) {
-            isClinicalBenefit = true;
           }
         }
       } catch (Exception et) {
         System.debug(
-          'Unable to resolve event type clinical classification: ' +
+          'Unable to resolve event type name: ' +
           et.getMessage()
         );
       }
     }
 
-    System.debug('Clinical benefit determined: ' + isClinicalBenefit);
+    // Census benefits always create an InteractionSummary wrapper for the disbursement.
+    Boolean createInteractionSummary = isClinicalBenefit || isCensusBenefit;
+    System.debug('Clinical benefit: ' + isClinicalBenefit + '; Census benefit: ' + isCensusBenefit + '; Require case note: ' + requireCaseNote);
+
+    // Validate notes when Case Note is required (Meeting Notes mandatory).
+    if (requireCaseNote) {
+      Boolean hasSharedNote = String.isNotBlank(req.caseNotes) || String.isNotBlank(req.notes);
+      Boolean hasAnyIndividualNote = false;
+      Boolean missingIndividualNote = false;
+      if (req.individualCaseNotesByParticipant != null && !req.individualCaseNotesByParticipant.isEmpty()) {
+        for (String aId : req.participantAccountIds) {
+          String n = req.individualCaseNotesByParticipant.get(aId);
+          if (String.isBlank(n)) {
+            missingIndividualNote = true;
+          } else {
+            hasAnyIndividualNote = true;
+          }
+        }
+      }
+      if (hasAnyIndividualNote) {
+        if (missingIndividualNote) {
+          throw new System.StringException('Meeting Notes are required for every participant on this Benefit.');
+        }
+      } else if (!hasSharedNote) {
+        throw new System.StringException('Meeting Notes are required for this Benefit.');
+      }
+    }
     Date svcDate = req.getServiceDateAsDate();
     Decimal qty = (req.quantity == null ||
       req.quantity <= 0)
@@ -691,7 +748,7 @@ public with sharing class BenefitDisbursementService {
 
     // For Clinical benefits, ensure StartDateTime and EndDateTime are provided
     // If they're missing, populate them with reasonable defaults
-    if (isClinicalBenefit) {
+    if (isClinicalBenefit || isCensusBenefit) {
       if (String.isBlank(req.startDateTime)) {
         // Default to service date with current time
         Datetime now = Datetime.now();
@@ -931,9 +988,9 @@ public with sharing class BenefitDisbursementService {
       results.add(dr);
     }
 
-    // For Clinical benefits, create an InteractionSummary per successful disbursement
+    // For Census/Clinical benefits, create an InteractionSummary per successful disbursement
     try {
-      if (isClinicalBenefit) {
+      if (createInteractionSummary) {
           if (String.isNotBlank(req.interactionSummaryId)) {
             System.debug(
               'Skipping supplemental InteractionSummary creation because disbursements are already linked to InteractionSummary ' +
@@ -955,9 +1012,14 @@ public with sharing class BenefitDisbursementService {
             String notes = String.isNotBlank(participantNote)
               ? participantNote
               : (String.isNotBlank(req.caseNotes) ? req.caseNotes : req.notes);
-            String purpose = String.isNotBlank(benefitTypeName)
-              ? benefitTypeName
-              : 'Case Management';
+            // Purpose mapping: any InteractionSummary CREATED here is always a
+            // Communication Log wrapper around the disbursement. Actual Case Notes
+            // and Clinical Notes live on their own records and are created by upstream
+            // flows (Documentation Hub) which pass req.interactionSummaryId to be reused —
+            // those callers skip this creation branch entirely.
+            // The Require Note flag only controls whether the Note (Meeting Notes) is
+            // mandatory on the wrapper, not its purpose.
+            String purpose = 'Communication Log';
             // Interaction date: prefer the start datetime; fall back to service date
             String interactionDate = null;
             if (!String.isBlank(req.startDateTime)) {
@@ -1023,7 +1085,7 @@ public with sharing class BenefitDisbursementService {
       }
     } catch (Exception ce) {
       System.debug(
-        'Error in clinical InteractionSummary creation flow: ' + ce.getMessage()
+        'Error in InteractionSummary creation flow: ' + ce.getMessage()
       );
     }
     return results;

@@ -402,14 +402,21 @@ public with sharing class CaseManagerHomeController {
             Map<String, Schema.SObjectField> accountFieldMap = Schema.getGlobalDescribe().get('Account').getDescribe().fields.getMap();
             List<String> queryFields = new List<String>();
             for (String fieldName : DEMOGRAPHIC_ACCOUNT_FIELDS) {
-                for (String key : accountFieldMap.keySet()) {
-                    if (key != null && key.equalsIgnoreCase(fieldName)) {
-                        Schema.DescribeFieldResult describeResult = accountFieldMap.get(key).getDescribe();
-                        if (describeResult.isAccessible()) {
-                            queryFields.add(key);
-                        }
-                        break;
+                // accountFieldMap keys are always lowercase in Salesforce
+                String apiName = fieldName.toLowerCase();
+                if (accountFieldMap.containsKey(apiName)) {
+                    Schema.DescribeFieldResult describeResult = accountFieldMap.get(apiName).getDescribe();
+                    if (describeResult.isAccessible()) {
+                        queryFields.add(apiName);
                     }
+                }
+            }
+
+            // Ensure minimum standard fields are always present so the profile is never empty
+            List<String> minimumFields = new List<String>{ 'id', 'name', 'firstname', 'lastname' };
+            for (String minField : minimumFields) {
+                if (!listContainsIgnoreCase(queryFields, minField) && accountFieldMap.containsKey(minField)) {
+                    queryFields.add(minField);
                 }
             }
 
@@ -417,16 +424,46 @@ public with sharing class CaseManagerHomeController {
                 return result;
             }
 
+            // Build lowercase → original-casing lookup so result keys match the JS demographics object
+            // (Apex field map keys are always lowercase; JS accountData setter does exact-match first)
+            Map<String, String> lowerToOriginal = new Map<String, String>();
+            for (String f : DEMOGRAPHIC_ACCOUNT_FIELDS) {
+                lowerToOriginal.put(f.toLowerCase(), f);
+            }
+
             Boolean includesReferralSource = listContainsIgnoreCase(queryFields, 'Referral_Source__c');
 
             String query = 'SELECT ' + String.join(queryFields, ', ') +
                 (includesReferralSource ? ', Referral_Source__r.Name' : '') +
                 ' FROM Account WHERE Id = :accountId LIMIT 1';
-            List<SObject> accounts = Database.query(query);
+            List<SObject> accounts;
+            try {
+                accounts = Database.query(query);
+            } catch (Exception queryEx) {
+                System.debug('CaseManagerHome.getClientProfile primary query failed — ' + queryEx.getMessage());
+                // Retry without the relationship traversal (most common cause of SOQL failures here)
+                if (includesReferralSource) {
+                    try {
+                        String retryQuery = 'SELECT ' + String.join(queryFields, ', ') +
+                            ' FROM Account WHERE Id = :accountId LIMIT 1';
+                        accounts = Database.query(retryQuery);
+                        includesReferralSource = false;
+                    } catch (Exception retryEx) {
+                        System.debug('CaseManagerHome.getClientProfile retry also failed — ' + retryEx.getMessage());
+                        queryFields = new List<String>{ 'id', 'name', 'firstname', 'lastname' };
+                        includesReferralSource = false;
+                        accounts = Database.query('SELECT Id, Name, FirstName, LastName FROM Account WHERE Id = :accountId LIMIT 1');
+                    }
+                } else {
+                    queryFields = new List<String>{ 'id', 'name', 'firstname', 'lastname' };
+                    accounts = Database.query('SELECT Id, Name, FirstName, LastName FROM Account WHERE Id = :accountId LIMIT 1');
+                }
+            }
             if (!accounts.isEmpty()) {
                 SObject accountRecord = accounts[0];
                 for (String fieldName : queryFields) {
-                    result.put(fieldName, accountRecord.get(fieldName));
+                    String originalName = lowerToOriginal.containsKey(fieldName) ? lowerToOriginal.get(fieldName) : fieldName;
+                    result.put(originalName, accountRecord.get(fieldName));
                 }
                 if (includesReferralSource) {
                     SObject referralSource = accountRecord.getSObject('Referral_Source__r');
@@ -494,6 +531,7 @@ public with sharing class CaseManagerHomeController {
             'isIntakeComplete' => false,
             'showCompleteIntakeButton' => false,
             'showIntakeCompleteBadge' => false,
+            'hasNoActiveEnrollment' => true,
             'hasPendingInterview' => false,
             'pendingInterviewId' => null,
             'templateVersionId' => null,
@@ -512,6 +550,7 @@ public with sharing class CaseManagerHomeController {
             if (enrollment == null) {
                 return result;
             }
+            result.put('hasNoActiveEnrollment', false);
 
             SObject programRecord = enrollment.getSObject('Program');
             Map<String, String> intakeTemplate = resolveIntakeTemplate(programRecord);
@@ -643,80 +682,6 @@ public with sharing class CaseManagerHomeController {
             result[j + 1] = cur;
         }
         return result;
-    }
-
-    private static String buildCaseOrAccountWhereClause(String primaryField, Id primaryId, String secondaryField, Id secondaryId) {
-        if (primaryId != null && secondaryId != null) {
-            return '(' + primaryField + ' = :caseId OR ' + secondaryField + ' = :accountId)';
-        }
-        if (primaryId != null) {
-            return primaryField + ' = :caseId';
-        }
-        return secondaryField + ' = :accountId';
-    }
-
-    private static String deriveInterviewDocumentationStatus(
-        SObject interview,
-        Map<String, Schema.SObjectField> interviewFields
-    ) {
-        if (interview == null) {
-            return 'Unknown';
-        }
-
-        String rawStatus = (String)interview.get('Status__c');
-        if (isInterviewDocumentationCompleted(interview, interviewFields)) {
-            return 'Completed';
-        }
-
-        return String.isBlank(rawStatus) ? 'Unknown' : rawStatus;
-    }
-    private static Boolean isInterviewDocumentationCompleted(
-        SObject interview,
-        Map<String, Schema.SObjectField> interviewFields
-    ) {
-        if (hasField(interviewFields, 'Completed_On__c') && interview.get('Completed_On__c') == null) {
-            return false;
-        }
-
-        Boolean authorSigned = false;
-        if (hasField(interviewFields, 'Staff_Signed__c') && interview.get('Staff_Signed__c') != null && (Boolean)interview.get('Staff_Signed__c') == true) {
-            authorSigned = true;
-        }
-        if (hasField(interviewFields, 'Clinician_Signed__c') && interview.get('Clinician_Signed__c') != null && (Boolean)interview.get('Clinician_Signed__c') == true) {
-            authorSigned = true;
-        }
-        if (!authorSigned) {
-            return false;
-        }
-
-        if (hasField(interviewFields, 'Requires_Manager_Approval__c') && hasField(interviewFields, 'Manager_Signed__c')) {
-            Boolean requiresManager = interview.get('Requires_Manager_Approval__c') != null && (Boolean)interview.get('Requires_Manager_Approval__c') == true;
-            if (requiresManager && (interview.get('Manager_Signed__c') == null || (Boolean)interview.get('Manager_Signed__c') != true)) {
-                return false;
-            }
-        }
-
-        if (hasField(interviewFields, 'CaseManager_Signed_By__c') && hasField(interviewFields, 'CaseManager_Signed__c')) {
-            Boolean caseManagerPending = interview.get('CaseManager_Signed_By__c') != null
-                && (interview.get('CaseManager_Signed__c') == null || (Boolean)interview.get('CaseManager_Signed__c') != true);
-            if (caseManagerPending) {
-                return false;
-            }
-        }
-
-        if (hasField(interviewFields, 'PeerSupport_Signed_By__c') && hasField(interviewFields, 'PeerSupport_Signed__c')) {
-            Boolean peerSupportPending = interview.get('PeerSupport_Signed_By__c') != null
-                && (interview.get('PeerSupport_Signed__c') == null || (Boolean)interview.get('PeerSupport_Signed__c') != true);
-            if (peerSupportPending) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static Boolean hasField(Map<String, Schema.SObjectField> fieldMap, String fieldName) {
-        return fieldMap != null && fieldMap.containsKey(fieldName);
     }
 
     @AuraEnabled(cacheable=true)
@@ -952,6 +917,67 @@ public with sharing class CaseManagerHomeController {
         };
     }
 
+    /**
+     * Creates a ProgramEnrollment on an existing Account/Case and resolves the
+     * intake template to launch.  Used when a returning client appears on CMH
+     * with no active enrollment and needs to be re-enrolled into a program.
+     */
+    @AuraEnabled
+    public static Map<String, Object> enrollExistingClient(Id caseId, Id accountId, Id programId) {
+        if (programId == null) {
+            throw new AuraHandledException('A program must be selected.');
+        }
+        if (caseId == null && accountId == null) {
+            throw new AuraHandledException('A case or account is required.');
+        }
+
+        // Resolve accountId from the Case if not supplied directly.
+        if (accountId == null) {
+            List<Case> cases = [SELECT AccountId FROM Case WHERE Id = :caseId LIMIT 1];
+            if (!cases.isEmpty()) {
+                accountId = cases[0].AccountId;
+            }
+        }
+
+        // Create the ProgramEnrollment.
+        Id enrollmentId = null;
+        try {
+            Schema.SObjectType peType = Schema.getGlobalDescribe().get('ProgramEnrollment');
+            if (peType == null) {
+                throw new AuraHandledException('ProgramEnrollment object not found. Ensure Nonprofit Cloud (NPC) is installed.');
+            }
+            SObject enrollment = peType.newSObject();
+            enrollment.put('AccountId', accountId);
+            enrollment.put('ProgramId', programId);
+            enrollment.put('Status', 'Awaiting Intake');
+            enrollment.put('StartDate', Date.today());
+            putIfFieldExists(enrollment, 'Case__c', caseId);
+            Database.insert(enrollment, false);
+            enrollmentId = (Id)enrollment.get('Id');
+        } catch (Exception e) {
+            throw new AuraHandledException('Failed to create program enrollment: ' + e.getMessage());
+        }
+
+        // Resolve intake template for the selected program.
+        SObject selectedProgram = Database.query(
+            'SELECT Id, Name, Intake_Template__c, Intake_Template__r.Name ' +
+            'FROM Program WHERE Id = :programId LIMIT 1'
+        );
+        Map<String, String> intakeTemplate = resolveIntakeTemplate(selectedProgram);
+        String templateVersionId = intakeTemplate.get('templateVersionId');
+        String templateLabel     = intakeTemplate.get('templateLabel');
+
+        if (String.isBlank(templateVersionId)) {
+            throw new AuraHandledException('No active intake interview template was found for the selected program.');
+        }
+
+        return new Map<String, Object>{
+            'enrollmentId'     => (String)enrollmentId,
+            'templateVersionId'=> templateVersionId,
+            'templateLabel'    => templateLabel
+        };
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // PRIVATE HELPERS
     // ─────────────────────────────────────────────────────────────────────────
@@ -1073,7 +1099,6 @@ public with sharing class CaseManagerHomeController {
         putAccountField(acc, 'Translator_Needed__pc', demographics.get('Translator_Needed__pc'), validationErrors);
         putAccountField(acc, 'Referral_Source__c', demographics.get('Referral_Source__c'), validationErrors);
         putAccountField(acc, 'Gender_Identity__pc', demographics.get('Gender_Identity__pc'), validationErrors);
-        putAccountField(acc, 'PersonGenderIdentity', demographics.get('Gender_Identity__pc'), validationErrors);
         putAccountField(acc, 'Gender_Identity_Other_Description__pc', demographics.get('Gender_Identity_Other_Description__pc'), validationErrors);
         putAccountField(acc, 'PersonPronouns', demographics.get('PersonPronouns'), validationErrors);
         putAccountField(acc, 'Pronouns_Other_Description__pc', demographics.get('Pronouns_Other_Description__pc'), validationErrors);
@@ -1762,7 +1787,7 @@ public with sharing class CaseManagerHomeController {
                 'Drop-In Day resolved from kiosk pending queue. Please fill in the details of this visit.');
             interaction.put('Date_of_Interaction__c', svcDate);
             interaction.put('Status',                'In Progress');
-            interaction.put('POS__c',                '27 - Outreach Site / Street');
+            interaction.put('Place_of_Service__c',    '27 - Outreach Site / Street');
             if (String.isNotBlank(staffUserId)) {
                 try { interaction.put('OwnerId', Id.valueOf(staffUserId)); } catch (Exception oe) {}
             }
@@ -1836,7 +1861,7 @@ public with sharing class CaseManagerHomeController {
                 'SELECT Id, Name, AccountId, Account.Name, Account.FirstName, Account.LastName, ' +
                 '       Account.PersonEmail, Account.PersonMobilePhone, Account.PersonBirthdate, ' +
                 '       RelatedRecordId, InteractionPurpose, MeetingNotes, Date_of_Interaction__c, ' +
-                '       POS__c, Status, Program__c, Program__r.Name ' +
+                '       Place_of_Service__c, Status, Program__c, Program__r.Name ' +
                 'FROM InteractionSummary WHERE Id = :interactionId LIMIT 1';
             List<SObject> rows = Database.query(soql);
             if (rows.isEmpty()) throw new AuraHandledException('Interaction not found.');
@@ -1857,7 +1882,7 @@ public with sharing class CaseManagerHomeController {
                 'caseId'         => caseId,
                 'purpose'        => iSum.get('InteractionPurpose'),
                 'notes'          => iSum.get('MeetingNotes'),
-                'pos'            => iSum.get('POS__c'),
+                'pos'            => iSum.get('Place_of_Service__c'),
                 'status'         => iSum.get('Status'),
                 'date'           => iSum.get('Date_of_Interaction__c'),
                 'programId'      => programId,
@@ -2019,7 +2044,7 @@ public with sharing class CaseManagerHomeController {
             upd.put('Id', interactionId);
             if (notes  != null) upd.put('MeetingNotes', notes);
             if (purpose != null && purpose != '') upd.put('InteractionPurpose', purpose);
-            if (pos     != null && pos     != '') upd.put('POS__c', pos);
+            if (pos     != null && pos     != '') upd.put('Place_of_Service__c', pos);
             if (publish == true) {
                 upd.put('Status', 'Published');
                 try { upd.put('Completed_On__c', System.now()); } catch (Exception ign) {}

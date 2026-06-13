@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Ideation_Plan_Intent__c</fullName>
+    <defaultValue>false</defaultValue>
+    <inlineHelpText>Thoughts of killing oneself with details of plan fully or partially worked out and person has some intent to carry it out.
+Have you started to work out or worked out the details of how to kill yourself? Did you intend to carry out this plan?</inlineHelpText>
+    <label>Active Ideation - Plan/Intent</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

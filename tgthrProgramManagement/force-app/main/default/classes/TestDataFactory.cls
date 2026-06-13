@@ -84,9 +84,34 @@ public class TestDataFactory {
     // ── Benefit ──
 
     public static SObject createBenefit(Id programId, String name, Boolean clinical, Boolean peer, Boolean caseManagement) {
+        // UnitOfMeasure is required by BenefitType validation rules in this org
+        SObject uom = Schema.getGlobalDescribe().get('UnitOfMeasure').newSObject();
+        uom.put('Name', name + ' UoM');
+        uom.put('UnitCode', 'UOM' + Math.abs(Crypto.getRandomLong()).format().left(8));
+        Database.SaveResult uomResult = Database.insert(uom, false);
+        if (!uomResult.isSuccess()) {
+            System.debug('TestDataFactory.createBenefit: UnitOfMeasure insert failed: ' + uomResult.getErrors());
+        }
+
+        // BenefitTypeId is required (non-nillable) — create a BenefitType first
+        SObject bt = Schema.getGlobalDescribe().get('BenefitType').newSObject();
+        bt.put('Name', name + ' Type');
+        bt.put('ProcessType', 'ProgramManagement');
+        if (uomResult.isSuccess()) {
+            bt.put('UnitofMeasureId', uomResult.getId());
+        }
+        Database.SaveResult btResult = Database.insert(bt, false);
+        if (!btResult.isSuccess()) {
+            System.debug('TestDataFactory.createBenefit: BenefitType insert failed: ' + btResult.getErrors());
+        }
+
         SObject b = Schema.getGlobalDescribe().get('Benefit').newSObject();
         b.put('ProgramId', programId);
         b.put('Name', name);
+        b.put('IsActive', true);
+        if (btResult.isSuccess()) {
+            b.put('BenefitTypeId', btResult.getId());
+        }
         safePut(b, 'Available_for_Clinical__c', clinical);
         safePut(b, 'Available_for_Peer__c', peer);
         safePut(b, 'Available_for_Case_Management__c', caseManagement);
@@ -347,15 +372,20 @@ public class TestDataFactory {
 
     public static Account createPersonAccount(String firstName, String lastName) {
         Account acc = new Account();
+        // Append a random suffix to FirstName to prevent duplicate rule triggers against existing production data
+        Long uniqueId = System.currentTimeMillis();
+        String uniqueSuffix = String.valueOf(uniqueId).right(8);
         Id personRecordTypeId = getPersonAccountRecordTypeId();
         if (personRecordTypeId != null) {
             acc.RecordTypeId = personRecordTypeId;
-            acc.FirstName = firstName;
+            acc.FirstName = firstName + '_' + uniqueSuffix;
             acc.LastName = lastName;
         } else {
-            acc.Name = firstName + ' ' + lastName;
+            acc.Name = firstName + '_' + uniqueSuffix + ' ' + lastName;
         }
-        insert acc;
+        Database.DmlOptions dmo = new Database.DmlOptions();
+        dmo.DuplicateRuleHeader.AllowSave = true;
+        Database.insert(acc, dmo);
         return acc;
     }
 

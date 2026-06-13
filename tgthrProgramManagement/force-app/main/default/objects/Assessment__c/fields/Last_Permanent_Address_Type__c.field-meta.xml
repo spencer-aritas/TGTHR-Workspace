@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Last_Permanent_Address_Type__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>HMIS-compliant housing type for last permanent address.</inlineHelpText>
     <label>Last Permanent Address Type</label>
     <required>false</required>
@@ -12,21 +11,159 @@
         <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
-            <value><fullName>Foster care home or foster care group home</fullName><default>false</default><label>Foster care home or foster care group home</label></value>
-            <value><fullName>Jail, Prison or Other Juvenile Facility</fullName><default>false</default><label>Jail, Prison or Other Juvenile Facility</label></value>
-            <value><fullName>Substance Abuse Treatment Facility or Detox Center</fullName><default>false</default><label>Substance Abuse Treatment Facility or Detox Center</label></value>
-            <value><fullName>Residential project of halfway house with no homeless criteria</fullName><default>false</default><label>Residential project of halfway house with no homeless criteria</label></value>
-            <value><fullName>Owned by Client, No Housing Subsidy</fullName><default>false</default><label>Owned by Client, No Housing Subsidy</label></value>
-            <value><fullName>Owned by Client, With Housing Subsidy</fullName><default>false</default><label>Owned by Client, With Housing Subsidy</label></value>
-            <value><fullName>Rental by client, with no ongoing housing subsidy</fullName><default>false</default><label>Rental by client, with no ongoing housing subsidy</label></value>
-            <value><fullName>Rental by Client, with other ongoing housing subsidy</fullName><default>false</default><label>Rental by Client, with other ongoing housing subsidy</label></value>
-            <value><fullName>Staying or Living in a Family Member's Room, Apartment or House</fullName><default>false</default><label>Staying or Living in a Family Member's Room, Apartment or House</label></value>
-            <value><fullName>Staying or Living in a Friend's Room, Apartment, or House</fullName><default>false</default><label>Staying or Living in a Friend's Room, Apartment, or House</label></value>
-            <value><fullName>Permanent Housing for Formerly Homeless Persons</fullName><default>false</default><label>Permanent Housing for Formerly Homeless Persons</label></value>
-            <value><fullName>Transitional Housing for Homeless Persons (including homeless youth)</fullName><default>false</default><label>Transitional Housing for Homeless Persons (including homeless youth)</label></value>
-            <value><fullName>Client Doesn't Know</fullName><default>false</default><label>Client Doesn't Know</label></value>
-            <value><fullName>Client Refused</fullName><default>false</default><label>Client Refused</label></value>
-            <value><fullName>Data not collected</fullName><default>false</default><label>Data not collected</label></value>
+            <value>
+                <fullName>Foster care home or foster care group home</fullName>
+                <default>false</default>
+                <label>Foster care home or foster care group home</label>
+            </value>
+            <value>
+                <fullName>Jail, Prison or Other Juvenile Facility</fullName>
+                <default>false</default>
+                <label>Jail, Prison or Other Juvenile Facility</label>
+            </value>
+            <value>
+                <fullName>Substance Abuse Treatment Facility or Detox Center</fullName>
+                <default>false</default>
+                <label>Substance Abuse Treatment Facility or Detox Center</label>
+            </value>
+            <value>
+                <fullName>Residential project of halfway house with no homeless criteria</fullName>
+                <default>false</default>
+                <label>Residential project of halfway house with no homeless criteria</label>
+            </value>
+            <value>
+                <fullName>Owned by Client, No Housing Subsidy</fullName>
+                <default>false</default>
+                <label>Owned by Client, No Housing Subsidy</label>
+            </value>
+            <value>
+                <fullName>Owned by Client, With Housing Subsidy</fullName>
+                <default>false</default>
+                <label>Owned by Client, With Housing Subsidy</label>
+            </value>
+            <value>
+                <fullName>Rental by client, with no ongoing housing subsidy</fullName>
+                <default>false</default>
+                <label>Rental by client, with no ongoing housing subsidy</label>
+            </value>
+            <value>
+                <fullName>Rental by Client, with other ongoing housing subsidy</fullName>
+                <default>false</default>
+                <label>Rental by Client, with other ongoing housing subsidy</label>
+            </value>
+            <value>
+                <fullName>Staying or Living in a Family Member&apos;s Room, Apartment or House</fullName>
+                <default>false</default>
+                <label>Staying or Living in a Family Member&apos;s Room, Apartment or House</label>
+            </value>
+            <value>
+                <fullName>Staying or Living in a Friend&apos;s Room, Apartment, or House</fullName>
+                <default>false</default>
+                <label>Staying or Living in a Friend&apos;s Room, Apartment, or House</label>
+            </value>
+            <value>
+                <fullName>Permanent Housing for Formerly Homeless Persons</fullName>
+                <default>false</default>
+                <label>Permanent Housing for Formerly Homeless Persons</label>
+            </value>
+            <value>
+                <fullName>Transitional Housing for Homeless Persons (including homeless youth)</fullName>
+                <default>false</default>
+                <label>Transitional Housing for Homeless Persons (including homeless youth)</label>
+            </value>
+            <value>
+                <fullName>Client Doesn&apos;t Know</fullName>
+                <default>false</default>
+                <label>Client Doesn&apos;t Know</label>
+            </value>
+            <value>
+                <fullName>Client Refused</fullName>
+                <default>false</default>
+                <label>Client Refused</label>
+            </value>
+            <value>
+                <fullName>Data not collected</fullName>
+                <default>false</default>
+                <label>Data not collected</label>
+            </value>
+            <value>
+                <fullName>Emergency shelter</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Emergency shelter</label>
+            </value>
+            <value>
+                <fullName>Host Home (non-crisis)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Host Home (non-crisis)</label>
+            </value>
+            <value>
+                <fullName>Hotel/Motel paid by organization</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Hotel/Motel paid by organization</label>
+            </value>
+            <value>
+                <fullName>Interim housing</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Interim housing</label>
+            </value>
+            <value>
+                <fullName>Owned by client (no subsidy)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Owned by client (no subsidy)</label>
+            </value>
+            <value>
+                <fullName>Owned by client (with subsidy)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Owned by client (with subsidy)</label>
+            </value>
+            <value>
+                <fullName>Permanent Supportive Housing</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Permanent Supportive Housing</label>
+            </value>
+            <value>
+                <fullName>Place not meant for habitation</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Place not meant for habitation</label>
+            </value>
+            <value>
+                <fullName>Prefers Not to Answer</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Prefers Not to Answer</label>
+            </value>
+            <value>
+                <fullName>Rental by client (private market)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Rental by client (private market)</label>
+            </value>
+            <value>
+                <fullName>Rental by client (subsidized)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Rental by client (subsidized)</label>
+            </value>
+            <value>
+                <fullName>Safe Haven</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Safe Haven</label>
+            </value>
+            <value>
+                <fullName>Transitional housing</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Transitional housing</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

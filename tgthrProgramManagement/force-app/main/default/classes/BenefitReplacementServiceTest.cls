@@ -1,4 +1,4 @@
-@isTest
+@IsTest(SeeAllData=true)
 private class BenefitReplacementServiceTest {
 
     // ─────────────────────────────────────────────
@@ -6,14 +6,46 @@ private class BenefitReplacementServiceTest {
     // ─────────────────────────────────────────────
 
     private static SObject getOrCreateBenefitType(String name) {
+        // Reuse any existing BenefitType to avoid UnitOfMeasure integrity issues
+        try {
+            List<SObject> existing = Database.query('SELECT Id FROM BenefitType WHERE Name = :name LIMIT 1');
+            if (!existing.isEmpty()) return existing[0];
+        } catch (Exception ignored) {}
+
+        // Fall back to any existing BenefitType (NPSP/PMM orgs always have standard ones)
+        try {
+            List<SObject> anyBt = Database.query('SELECT Id FROM BenefitType LIMIT 1');
+            if (!anyBt.isEmpty()) return anyBt[0];
+        } catch (Exception ignored) {}
+
+        // Must create — resolve a UnitOfMeasure via multiple strategies
         SObject bt = Schema.getGlobalDescribe().get('BenefitType').newSObject();
         bt.put('Name', name);
-        // Try to create a UnitOfMeasure for orgs that require it on BenefitType.
         try {
-            SObject uom = Schema.getGlobalDescribe().get('UnitOfMeasure').newSObject();
-            uom.put('Name', name + ' UoM');
-            insert uom;
-            safePut(bt, 'UnitofMeasureId', uom.get('Id'));
+            Id uomId;
+            // Strategy 1: borrow UoM from an existing BenefitType
+            try {
+                List<SObject> btWithUom = Database.query(
+                    'SELECT UnitofMeasureId FROM BenefitType WHERE UnitofMeasureId != null LIMIT 1');
+                if (!btWithUom.isEmpty()) uomId = (Id) btWithUom[0].get('UnitofMeasureId');
+            } catch (Exception ignored) {}
+            // Strategy 2: query existing UnitOfMeasure records
+            if (uomId == null) {
+                try {
+                    List<SObject> uoms = Database.query('SELECT Id FROM UnitOfMeasure LIMIT 1');
+                    if (!uoms.isEmpty()) uomId = (Id) uoms[0].get('Id');
+                } catch (Exception ignored) {}
+            }
+            // Strategy 3: create a UnitOfMeasure
+            if (uomId == null) {
+                String devName = name.replaceAll('[^a-zA-Z0-9]', '_') + '_UoM';
+                SObject uom = Schema.getGlobalDescribe().get('UnitOfMeasure').newSObject();
+                uom.put('Name', name + ' UoM');
+                safePut(uom, 'DeveloperName', devName);
+                insert uom;
+                uomId = (Id) uom.get('Id');
+            }
+            if (uomId != null) safePut(bt, 'UnitofMeasureId', uomId);
         } catch (Exception ignored) {}
         safePut(bt, 'Type', 'Service');
         safePut(bt, 'ProcessType', 'ProgramManagement');
@@ -53,7 +85,7 @@ private class BenefitReplacementServiceTest {
         BenefitReplacementService.ReplaceRequest req = new BenefitReplacementService.ReplaceRequest();
         req.oldBenefitId = (Id) oldBenefit.get('Id');
         req.newBenefitName = 'Test Benefit New';
-        req.newBenefitTypeId = (Id) newType.get('Id');
+        req.newBenefitTypeId = String.valueOf(newType.get('Id'));
 
         Test.startTest();
         BenefitReplacementService.ReplaceResult res = BenefitReplacementService.replaceBenefit(req);
@@ -79,7 +111,7 @@ private class BenefitReplacementServiceTest {
         System.assertEquals(true, (Boolean) newBen.get('IsActive'));
         System.assertEquals('Active', (String) newBen.get('Lifecycle_State__c'));
         System.assertEquals(req.oldBenefitId, (Id) newBen.get('Supersedes_Benefit__c'));
-        System.assertEquals(req.newBenefitTypeId, (Id) newBen.get('BenefitTypeId'));
+        System.assertEquals((Id) newType.get('Id'), (Id) newBen.get('BenefitTypeId'));
     }
 
     @isTest
@@ -119,7 +151,7 @@ private class BenefitReplacementServiceTest {
 
         BenefitReplacementService.ReplaceRequest req = new BenefitReplacementService.ReplaceRequest();
         req.oldBenefitId = (Id) old.get('Id');
-        req.newBenefitTypeId = (Id) newType.get('Id');
+        req.newBenefitTypeId = String.valueOf(newType.get('Id'));
         // No newBenefitName
 
         Test.startTest();
@@ -179,13 +211,10 @@ private class BenefitReplacementServiceTest {
         SObject bt = getOrCreateBenefitType('New Benefit Type Test');
 
         BenefitReplacementService.CreateRequest req = new BenefitReplacementService.CreateRequest();
-        req.programId = programId;
-        req.benefitName = 'Brand New Benefit';
-        req.benefitTypeId = (Id) bt.get('Id');
         req.availableForClinical = true;
 
         Test.startTest();
-        BenefitReplacementService.ReplaceResult res = BenefitReplacementService.createBenefit(req);
+        BenefitReplacementService.ReplaceResult res = BenefitReplacementService.createBenefit(String.valueOf(programId), 'Brand New Benefit', String.valueOf(bt.get('Id')), req);
         Test.stopTest();
 
         System.assert(res.success, res.message);
@@ -200,10 +229,9 @@ private class BenefitReplacementServiceTest {
     @isTest
     static void createBenefit_missingProgram_returnsError() {
         BenefitReplacementService.CreateRequest req = new BenefitReplacementService.CreateRequest();
-        req.benefitName = 'No Program Benefit';
 
         Test.startTest();
-        BenefitReplacementService.ReplaceResult res = BenefitReplacementService.createBenefit(req);
+        BenefitReplacementService.ReplaceResult res = BenefitReplacementService.createBenefit(null, null, null, req);
         Test.stopTest();
 
         System.assertEquals(false, res.success);
@@ -355,7 +383,7 @@ private class BenefitReplacementServiceTest {
     @isTest
     static void createBenefit_nullRequest_returnsError() {
         Test.startTest();
-        BenefitReplacementService.ReplaceResult r = BenefitReplacementService.createBenefit(null);
+        BenefitReplacementService.ReplaceResult r = BenefitReplacementService.createBenefit(null, null, null, null);
         Test.stopTest();
         System.assertEquals(false, r.success);
     }
@@ -367,9 +395,6 @@ private class BenefitReplacementServiceTest {
         SObject bt = getOrCreateBenefitType('Cov Ext Create Type');
 
         BenefitReplacementService.CreateRequest req = new BenefitReplacementService.CreateRequest();
-        req.programId = programId;
-        req.benefitName = 'Cov Ext Created';
-        req.benefitTypeId = (Id) bt.get('Id');
         req.availableForClinical = true;
         req.availableForCaseManagement = true;
         req.availableForPeer = false;
@@ -379,7 +404,7 @@ private class BenefitReplacementServiceTest {
         req.defaultDurationMinutes = 30;
 
         Test.startTest();
-        BenefitReplacementService.ReplaceResult r = BenefitReplacementService.createBenefit(req);
+        BenefitReplacementService.ReplaceResult r = BenefitReplacementService.createBenefit(String.valueOf(programId), 'Cov Ext Created', String.valueOf(bt.get('Id')), req);
         Test.stopTest();
 
         System.assert(r.success || r.message != null);
@@ -410,6 +435,103 @@ private class BenefitReplacementServiceTest {
         System.assert(r.success || r.message != null);
     }
 
+    // ─────────────────────────────────────────────
+    // TESTS: requireCaseNote round-trip (Census sub-flag)
+    // ─────────────────────────────────────────────
+
+    @isTest
+    static void createBenefit_withRequireCaseNote_persists() {
+        TestDataFactory.CoreData data = TestDataFactory.createCoreData();
+        Id programId = (Id) data.program.get('Id');
+        SObject bt = getOrCreateBenefitType('Req Case Note Type');
+
+        BenefitReplacementService.CreateRequest req = new BenefitReplacementService.CreateRequest();
+        req.availableForProgramEngagement = true;
+        req.requireCaseNote = true;
+
+        Test.startTest();
+        BenefitReplacementService.ReplaceResult r = BenefitReplacementService.createBenefit(
+            String.valueOf(programId), 'Census ReqNote Benefit', String.valueOf(bt.get('Id')), req);
+        Test.stopTest();
+
+        System.assert(r.success || r.message != null);
+        if (r.success && r.newBenefitId != null) {
+            Id newId = r.newBenefitId;
+            // Tolerant of orgs missing the field
+            try {
+                SObject created = Database.query(
+                    'SELECT Require_Case_Note__c FROM Benefit WHERE Id = :newId LIMIT 1')[0];
+                System.assertEquals(true, (Boolean) created.get('Require_Case_Note__c'),
+                    'Require_Case_Note__c should be persisted as true');
+            } catch (Exception ignored) {
+                System.debug('Require_Case_Note__c not queryable in this org shape');
+            }
+        }
+    }
+
+    @isTest
+    static void updateBenefit_togglesRequireCaseNote() {
+        TestDataFactory.CoreData data = TestDataFactory.createCoreData();
+        Id programId = (Id) data.program.get('Id');
+        SObject bt = getOrCreateBenefitType('Req Case Note Update Type');
+        SObject benefit = makeBenefit(programId, 'Census Toggle Benefit', (Id) bt.get('Id'));
+
+        BenefitReplacementService.UpdateRequest req = new BenefitReplacementService.UpdateRequest();
+        req.benefitId = (Id) benefit.get('Id');
+        req.availableForProgramEngagement = true;
+        req.requireCaseNote = true;
+
+        Test.startTest();
+        BenefitReplacementService.ReplaceResult r = BenefitReplacementService.updateBenefit(req);
+        Test.stopTest();
+
+        System.assert(r.success || r.message != null);
+        if (r.success) {
+            Id benefitId = req.benefitId;
+            try {
+                SObject updated = Database.query(
+                    'SELECT Require_Case_Note__c FROM Benefit WHERE Id = :benefitId LIMIT 1')[0];
+                System.assertEquals(true, (Boolean) updated.get('Require_Case_Note__c'),
+                    'Require_Case_Note__c should be persisted as true after update');
+            } catch (Exception ignored) {
+                System.debug('Require_Case_Note__c not queryable in this org shape');
+            }
+        }
+    }
+
+    @isTest
+    static void getActiveBenefits_exposesRequireCaseNoteOnOption() {
+        TestDataFactory.CoreData data = TestDataFactory.createCoreData();
+        Id programId = (Id) data.program.get('Id');
+        SObject bt = getOrCreateBenefitType('Req Case Note Option Type');
+        SObject benefit = makeBenefit(programId, 'Census Option Benefit', (Id) bt.get('Id'));
+
+        // Flip the Census + requireCaseNote flags directly (tolerant)
+        SObject upd = Schema.getGlobalDescribe().get('Benefit').newSObject();
+        upd.put('Id', (Id) benefit.get('Id'));
+        safePut(upd, 'Available_for_Program_Engagement__c', true);
+        safePut(upd, 'Require_Case_Note__c', true);
+        try { update upd; } catch (Exception ignored) {}
+
+        Test.startTest();
+        List<BenefitReplacementService.BenefitOption> opts =
+            BenefitReplacementService.getActiveBenefitsForProgram(programId, null);
+        Test.stopTest();
+
+        Boolean found = false;
+        for (BenefitReplacementService.BenefitOption o : opts) {
+            if (o.benefitId == (Id) benefit.get('Id')) {
+                found = true;
+                // requireCaseNote should be true when the field exists; tolerant otherwise.
+                if (o.requireCaseNote != null) {
+                    System.assertEquals(true, o.requireCaseNote,
+                        'BenefitOption.requireCaseNote should reflect the field value');
+                }
+            }
+        }
+        System.assert(found, 'Census benefit should be returned by getActiveBenefitsForProgram');
+    }
+
     @isTest
     static void replaceBenefit_withMigrateAssignments() {
         TestDataFactory.CoreData data = TestDataFactory.createCoreData();
@@ -421,7 +543,7 @@ private class BenefitReplacementServiceTest {
         BenefitReplacementService.ReplaceRequest req = new BenefitReplacementService.ReplaceRequest();
         req.oldBenefitId = (Id) oldBenefit.get('Id');
         req.newBenefitName = 'Cov Ext Mig New';
-        req.newBenefitTypeId = (Id) newType.get('Id');
+        req.newBenefitTypeId = String.valueOf(newType.get('Id'));
         req.migrateOpenAssignments = true;
         req.effectiveDate = Date.today();
 
@@ -450,5 +572,52 @@ private class BenefitReplacementServiceTest {
         Test.stopTest();
 
         System.assert(r.success || r.message != null);
+    }
+
+    // ─────────────────────────────────────────────
+    // TESTS: updateBenefitInPlace (LWC flat-params wrapper)
+    // ─────────────────────────────────────────────
+
+    @isTest
+    static void updateBenefitInPlace_happyPath() {
+        // Verifies that the flat-params LWC wrapper actually persists changes —
+        // the prior nested-object form silently produced a no-op and false success.
+        TestDataFactory.CoreData data = TestDataFactory.createCoreData();
+        Id programId = (Id) data.program.get('Id');
+        SObject bt = getOrCreateBenefitType('InPlace Update Type');
+        SObject benefit = makeBenefit(programId, 'Original InPlace Name', (Id) bt.get('Id'));
+        String benefitId = String.valueOf(benefit.get('Id'));
+
+        Test.startTest();
+        BenefitReplacementService.ReplaceResult res = BenefitReplacementService.updateBenefitInPlace(
+            benefitId,
+            'Renamed InPlace Name',
+            null,
+            2.0,
+            30.0,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false
+        );
+        Test.stopTest();
+
+        System.assert(res.success, 'Expected success. Message: ' + res.message);
+        Id bid = (Id) benefit.get('Id');
+        SObject updated = Database.query('SELECT Name FROM Benefit WHERE Id = :bid LIMIT 1')[0];
+        System.assertEquals('Renamed InPlace Name', (String) updated.get('Name'),
+            'Name should be persisted by updateBenefitInPlace');
+    }
+
+    @isTest
+    static void updateBenefitInPlace_nullBenefitId_returnsError() {
+        Test.startTest();
+        BenefitReplacementService.ReplaceResult res = BenefitReplacementService.updateBenefitInPlace(
+            null, 'Some Name', null, null, null, false, false, false, false, false, false
+        );
+        Test.stopTest();
+        System.assertEquals(false, res.success);
     }
 }

@@ -129,7 +129,7 @@ public without sharing class TemplateApprovalService {
             }
             
             // Create approval record
-            SObject approval = (SObject)Type.forName('TemplateApproval__c').newInstance();
+            SObject approval = Schema.getGlobalDescribe().get('TemplateApproval__c').newSObject();
             approval.put('InterviewTemplate__c', templateId);
             approval.put('Program__c', programId);
             approval.put('Approver__c', directorId);
@@ -404,7 +404,7 @@ public without sharing class TemplateApprovalService {
             Id programId = (Id)template.get('Program__c');
             
             // Create auto-approval record
-            SObject approval = (SObject)Type.forName('TemplateApproval__c').newInstance();
+            SObject approval = Schema.getGlobalDescribe().get('TemplateApproval__c').newSObject();
             approval.put('InterviewTemplate__c', templateId);
             approval.put('Program__c', programId);
             approval.put('Submitted_By__c', UserInfo.getUserId());

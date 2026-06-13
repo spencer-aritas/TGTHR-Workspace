@@ -15,7 +15,7 @@ const STEPS = ['template', 'templateFeatures', 'accountFields', 'assessmentField
 const REQUIRED_ACCOUNT_FIELDS = [
     'FirstName',           // First Name
     'LastName',            // Last Name
-    'Preferred_Name__pc',  // Goes By
+    'Preferred_Name__pc',  // Chosen Name
     'PersonPronouns',      // Pronouns
     'PersonEmail',         // Email
     'Phone',               // Account Phone
@@ -900,7 +900,7 @@ export default class InterviewBuilderHome extends LightningElement {
             this.selectedAccountFields = [...new Set([...newSelection, ...requiredFieldIds])];
             this.showToast(
                 'Required Fields',
-                'First Name, Last Name, Goes By, Pronouns, Phone, Email, HMIS ID, and Medicaid ID are required and cannot be removed.',
+                'Legal Name, Chosen Name, Pronouns, Phone, Email, HMIS ID, and Medicaid ID are required and cannot be removed.',
                 'warning'
             );
         } else {

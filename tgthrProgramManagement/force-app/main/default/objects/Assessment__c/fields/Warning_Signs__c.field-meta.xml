@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Warning_Signs__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Select all warning signs that indicate distress or crisis.</inlineHelpText>
     <label>Warning Signs</label>
     <required>false</required>
@@ -12,14 +11,142 @@
         <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
-            <value><fullName>Shutting down</fullName><default>false</default><label>Shutting down</label></value>
-            <value><fullName>Yelling</fullName><default>false</default><label>Yelling</label></value>
-            <value><fullName>Pacing</fullName><default>false</default><label>Pacing</label></value>
-            <value><fullName>Crying</fullName><default>false</default><label>Crying</label></value>
-            <value><fullName>Running away</fullName><default>false</default><label>Running away</label></value>
-            <value><fullName>Aggression</fullName><default>false</default><label>Aggression</label></value>
-            <value><fullName>Self-harm</fullName><default>false</default><label>Self-harm</label></value>
-            <value><fullName>Other</fullName><default>false</default><label>Other</label></value>
+            <value>
+                <fullName>Shutting down</fullName>
+                <default>false</default>
+                <label>Shutting down</label>
+            </value>
+            <value>
+                <fullName>Yelling</fullName>
+                <default>false</default>
+                <label>Yelling</label>
+            </value>
+            <value>
+                <fullName>Pacing</fullName>
+                <default>false</default>
+                <label>Pacing</label>
+            </value>
+            <value>
+                <fullName>Crying</fullName>
+                <default>false</default>
+                <label>Crying</label>
+            </value>
+            <value>
+                <fullName>Running away</fullName>
+                <default>false</default>
+                <label>Running away</label>
+            </value>
+            <value>
+                <fullName>Aggression</fullName>
+                <default>false</default>
+                <label>Aggression</label>
+            </value>
+            <value>
+                <fullName>Self-harm</fullName>
+                <default>false</default>
+                <label>Self-harm</label>
+            </value>
+            <value>
+                <fullName>Other</fullName>
+                <default>false</default>
+                <label>Other</label>
+            </value>
+            <value>
+                <fullName>Appetite Changes</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Appetite Changes</label>
+            </value>
+            <value>
+                <fullName>Difficulty Breathing</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Difficulty Breathing</label>
+            </value>
+            <value>
+                <fullName>Difficulty Concentrating</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Difficulty Concentrating</label>
+            </value>
+            <value>
+                <fullName>Dizziness</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Dizziness</label>
+            </value>
+            <value>
+                <fullName>Feeling Overwhelmed</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Feeling Overwhelmed</label>
+            </value>
+            <value>
+                <fullName>Flashbacks</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Flashbacks</label>
+            </value>
+            <value>
+                <fullName>Irritability/Anger</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Irritability/Anger</label>
+            </value>
+            <value>
+                <fullName>Nausea</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Nausea</label>
+            </value>
+            <value>
+                <fullName>Nightmares</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Nightmares</label>
+            </value>
+            <value>
+                <fullName>Racing Heart</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Racing Heart</label>
+            </value>
+            <value>
+                <fullName>Self-Harm Thoughts</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Self-Harm Thoughts</label>
+            </value>
+            <value>
+                <fullName>Shaking/Trembling</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Shaking/Trembling</label>
+            </value>
+            <value>
+                <fullName>Sleep Problems</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Sleep Problems</label>
+            </value>
+            <value>
+                <fullName>Substance Use Urges</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Substance Use Urges</label>
+            </value>
+            <value>
+                <fullName>Sweating</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Sweating</label>
+            </value>
+            <value>
+                <fullName>Withdrawal/Isolation</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Withdrawal/Isolation</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
     <visibleLines>6</visibleLines>

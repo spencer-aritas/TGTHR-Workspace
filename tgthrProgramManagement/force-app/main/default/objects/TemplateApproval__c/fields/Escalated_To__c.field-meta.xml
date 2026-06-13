@@ -3,7 +3,6 @@
     <fullName>Escalated_To__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>User to escalate to if approval needs manual review</description>
-    <externalId>false</externalId>
     <inlineHelpText>Escalate to this user if needed</inlineHelpText>
     <label>Escalated To</label>
     <referenceTo>User</referenceTo>

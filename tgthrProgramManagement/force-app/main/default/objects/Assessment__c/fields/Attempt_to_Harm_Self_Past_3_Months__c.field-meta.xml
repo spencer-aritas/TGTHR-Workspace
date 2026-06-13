@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Attempt_to_Harm_Self_Past_3_Months__c</fullName>
+    <defaultValue>false</defaultValue>
+    <label>Attempt to Harm Self - Past 3 Months</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Response_and_Progress__c</fullName>
+    <label>Response and Progress</label>
+    <type>LongTextArea</type>
+    <length>32768</length>
+    <visibleLines>5</visibleLines>
+    <description>Client response and progress narrative for the interaction. Used in clinical documentation and billing export.</description>
+</CustomField>

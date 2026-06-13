@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>CLS_Support_System_Belief__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>I believe I have a support system that will help me succeed.</inlineHelpText>
     <label>Support System Belief</label>
     <required>false</required>

@@ -239,7 +239,7 @@ public class TemplateApprovalServiceTest {
             update updTpl;
 
             // Create existing pending approval
-            SObject existing = (SObject) Type.forName('TemplateApproval__c').newInstance();
+            SObject existing = Schema.getGlobalDescribe().get('TemplateApproval__c').newSObject();
             existing.put('InterviewTemplate__c', templateId);
             existing.put('Program__c', (Id) program.get('Id'));
             existing.put('Approver__c', UserInfo.getUserId());
@@ -276,7 +276,7 @@ public class TemplateApprovalServiceTest {
             updTpl.put('Program__c', (Id) program.get('Id'));
             update updTpl;
 
-            SObject approval = (SObject) Type.forName('TemplateApproval__c').newInstance();
+            SObject approval = Schema.getGlobalDescribe().get('TemplateApproval__c').newSObject();
             approval.put('InterviewTemplate__c', templateId);
             approval.put('Program__c', (Id) program.get('Id'));
             approval.put('Approver__c', UserInfo.getUserId());

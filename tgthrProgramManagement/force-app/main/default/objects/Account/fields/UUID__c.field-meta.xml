@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>UUID__c</fullName>
+    <label>UUID</label>
+    <type>Text</type>
+    <length>36</length>
+    <required>false</required>
+    <unique>true</unique>
+    <caseSensitive>false</caseSensitive>
+    <externalId>true</externalId>
+    <description>External UUID for cross-system identity matching. Used as upsert key in ProgramEnrollmentService.</description>
+</CustomField>

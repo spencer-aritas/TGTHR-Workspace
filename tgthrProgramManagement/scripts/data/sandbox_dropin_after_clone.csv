@@ -1,0 +1,62 @@
+Id,Name,IsActive,BenefitType.Name,BenefitType.UnitofMeasure.Name
+0jiRT0000000b7dYAA,BIPOC Support,true,Clinical Counseling,Case Mgmt Hour
+0jiRT0000000b7eYAA,Bus pass,true,Transportation Assistance,Pass
+0jiRT0000000b7fYAA,Case Management Meeting,true,Case Management,Case Mgmt Hour
+0jiRT0000000b7gYAA,Community Engagement,true,Community Outing,Session
+0jiRT0000000b7hYAA,Community Resource Navigation,true,Case Management,Case Mgmt Hour
+0jiRT0000000b7iYAA,Conflict Resolution Support,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000UhFYAU,Crisis Intervention,true,Case Management,Case Mgmt Hour
+0jiRT0000000Y4vYAE,Drop-In Day,true,Case Management,Case Mgmt Hour
+0jiRT0000000b7jYAA,Education,true,External Referral,Referral
+0jiRT0000000b7kYAA,Education Support,true,Case Management,Case Mgmt Hour
+0jiRT0000000b7lYAA,"Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",true,Police Intervention,Case Mgmt Hour
+0jiRT0000000b7mYAA,Emotional Processing,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000b7nYAA,Employment Support,true,Employment,Case Mgmt Hour
+0jiRT0000000b7oYAA,Eviction/ Mutual Rescission Support,true,Housing Navigation,Case Mgmt Hour
+0jiRT0000000b7pYAA,External Medical Provider,true,Case Management,Case Mgmt Hour
+0jiRT0000000b7qYAA,External Professional Team,true,Case Management,Case Mgmt Hour
+0jiRT0000000b7rYAA,External Therapy Provider,true,Care Coordination,Case Mgmt Hour
+0jiRT0000000b7sYAA,Family Reunification Support,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000b7tYAA,Financial Education and Navigation,true,Education,Case Mgmt Hour
+0jiRT0000000b7uYAA,Food Access,true,Community Outing,Session
+0jiRT0000000b7vYAA,Food Pantry Access - Onsite,true,Basic Needs,Kit
+0jiRT0000000b7wYAA,GED Group,true,Education,Case Mgmt Hour
+0jiRT0000000b7xYAA,Group Support,true,Peer Clinical,Case Mgmt Hour
+0jiRT0000000b7yYAA,Housekeeping,true,Housing Navigation,Case Mgmt Hour
+0jiRT0000000b7zYAA,Individual Session,true,Clinical Counseling,Case Mgmt Hour
+0jiRT0000000b80YAA,Individual Support,true,Community Outing,Session
+0jiRT0000000b81YAA,Initial Planning Meeting,true,Care Coordination,Case Mgmt Hour
+0jiRT0000000b82YAA,Initial Planning Meeting (goal setting),true,Case Management,Case Mgmt Hour
+0jiRT0000000b83YAA,Lease Violation Meeting,true,Housing Navigation,Case Mgmt Hour
+0jiRT0000000b84YAA,Legal Support,true,Education,Case Mgmt Hour
+0jiRT0000000b85YAA,LGBTQIA Support,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000b86YAA,Life Skills Group,true,Basic Needs,Kit
+0jiRT0000000b87YAA,Meal Provided,true,Basic Needs,Kit
+0jiRT0000000b88YAA,"Medical, Legal, or Employment",true,Care Coordination,Case Mgmt Hour
+0jiRT0000000b89YAA,Mental Health,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000b8AYAQ,Mental Health Support,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000b8BYAQ,Move Out Assistance,true,Housing Navigation,Case Mgmt Hour
+0jiRT0000000b8CYAQ,Other supports,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000UirYAE,Outreach Engagement,true,Case Management,Case Mgmt Hour
+0jiRT0000000b8DYAQ,Parenting Support,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000b8EYAQ,Peer Support,true,Peer Clinical,Case Mgmt Hour
+0jiRT0000000b8FYAQ,Peer Support Group,true,Peer Support,Session
+0jiRT0000000b8GYAQ,Physical Health,true,External Referral,Referral
+0jiRT0000000b8HYAQ,Physical/Mental Wellness - Community Outing,true,Community Outing,Session
+0jiRT0000000b8IYAQ,Point Store Access,true,Basic Needs,Kit
+0jiRT0000000b8JYAQ,Police Interaction- Arrest,true,Police Intervention,Case Mgmt Hour
+0jiRT0000000b8KYAQ,Police Interaction- General Support,true,Police Intervention,Case Mgmt Hour
+0jiRT0000000b8LYAQ,Pre-Lease Violation Support,true,Housing Support,Session
+0jiRT0000000b8MYAQ,Prosocial,true,Community Outing,Session
+0jiRT0000000b8NYAQ,Public Benefits Support,true,Case Management,Case Mgmt Hour
+0jiRT0000000b8OYAQ,Rental Assistance with Budget,true,Housing Navigation,Case Mgmt Hour
+0jiRT0000000b8PYAQ,Resident Advisory Council,true,Group,Group Hour
+0jiRT0000000UkTYAU,Screening/Assessment,true,Case Management,Case Mgmt Hour
+0jiRT0000000b8QYAQ,Substance Use Support,true,Social/Emotional,Case Mgmt Hour
+0jiRT0000000b8RYAQ,Tenant Retention Plan,true,Housing Navigation,Case Mgmt Hour
+0jiRT0000000b8SYAQ,Therapeutic Group,true,Clinical Counseling,Case Mgmt Hour
+0jiRT0000000b8TYAQ,Updates and Progress,true,Care Coordination,Case Mgmt Hour
+0jiRT0000000b8UYAQ,Updates and Progress (goal setting),true,Case Management,Case Mgmt Hour
+0jiRT0000000b8VYAQ,Vital Document Support,true,Case Management,Case Mgmt Hour
+0jiRT0000000b8WYAQ,Voucher Support,true,Housing Navigation,Case Mgmt Hour
+0jiRT0000000b8XYAQ,"Wellness, Mental Health, Mindfulness and Meditation Group",true,Social/Emotional,Case Mgmt Hour

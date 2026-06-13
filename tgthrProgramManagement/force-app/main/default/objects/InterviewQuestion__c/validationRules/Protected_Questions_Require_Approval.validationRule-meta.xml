@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Protected_Questions_Require_Approval</fullName>
+    <active>true</active>
+    <description>If this is a Protected question it requires an Approver</description>
+    <errorConditionFormula>AND(Protected__c=true, NOT(ISNULL(Approver__c)))</errorConditionFormula>
+    <errorDisplayField>API_Name__c</errorDisplayField>
+    <errorMessage>This is a Protected question, it requires an Approver</errorMessage>
+</ValidationRule>

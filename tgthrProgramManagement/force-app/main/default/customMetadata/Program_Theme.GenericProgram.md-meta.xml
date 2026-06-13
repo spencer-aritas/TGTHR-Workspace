@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Generic Program</label>
+    <protected>false</protected>
+    <values>
+        <field>ProgramDeveloperName__c</field>
+        <value xsi:type="xsd:string">GenericProgram</value>
+    </values>
+    <values>
+        <field>CodeHex__c</field>
+        <value xsi:type="xsd:string">#7B68EE</value>
+    </values>
+    <values>
+        <field>AccentHex__c</field>
+        <value xsi:type="xsd:string">#483D8B</value>
+    </values>
+    <values>
+        <field>IconName__c</field>
+        <value xsi:type="xsd:string">standard:account</value>
+    </values>
+    <values>
+        <field>ImageResource__c</field>
+        <value xsi:nil="true"/>
+    </values>
+    <values>
+        <field>ProgramId__c</field>
+        <value xsi:type="xsd:string">11W000000000001AAA</value>
+    </values>
+</CustomMetadata>

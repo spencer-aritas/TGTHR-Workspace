@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>POS__c</fullName>
+    <label>Place of Service</label>
+    <type>Picklist</type>
+    <required>false</required>
+    <externalId>false</externalId>
+    <description>CMS Place of Service code (e.g., 99 = Other, 11 = Office). Used in CMS-1500 billing export.</description>
+    <valueSet>
+        <valueSetName>CMS_Place_of_Service</valueSetName>
+    </valueSet>
+</CustomField>

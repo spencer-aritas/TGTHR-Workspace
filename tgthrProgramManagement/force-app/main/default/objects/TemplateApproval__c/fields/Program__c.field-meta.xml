@@ -3,7 +3,6 @@
     <fullName>Program__c</fullName>
     <deleteConstraint>Restrict</deleteConstraint>
     <description>Program context for this approval (linked from template)</description>
-    <externalId>false</externalId>
     <inlineHelpText>The program associated with this template approval</inlineHelpText>
     <label>Program</label>
     <referenceTo>Program</referenceTo>

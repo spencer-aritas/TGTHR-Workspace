@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>0 = Behavior not likely to result in injury</fullName>
+        <default>false</default>
+        <label>0 = Behavior not likely to result in injury</label>
+    </customValue>
+    <customValue>
+        <fullName>1 = Behavior likely to result in injury but not likely to cause death</fullName>
+        <default>false</default>
+        <label>1 = Behavior likely to result in injury but not likely to cause death</label>
+    </customValue>
+    <customValue>
+        <fullName>2 = Behavior likely to result in death despite available medical care</fullName>
+        <default>false</default>
+        <label>2 = Behavior likely to result in death despite available medical care</label>
+    </customValue>
+    <masterLabel>Potential Lethality</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

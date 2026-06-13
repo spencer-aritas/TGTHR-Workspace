@@ -2659,6 +2659,7 @@ public with sharing class PendingDocumentationController {
                 SELECT Id, Name 
                 FROM User 
                 WHERE IsActive = true 
+                AND Id != :UserInfo.getUserId()
                 AND Id IN (
                     SELECT AssigneeId 
                     FROM PermissionSetAssignment 
@@ -2689,6 +2690,10 @@ public with sharing class PendingDocumentationController {
 
             if (targetApproverId == null) {
                 throw new AuraHandledException('Please select an approver from the Signing Authority list.');
+            }
+
+            if (targetApproverId == UserInfo.getUserId()) {
+                throw new AuraHandledException('You cannot select yourself as the manager co-sign approver. Please select another Signing Authority approver.');
             }
             
             String noteName = '';
@@ -2894,26 +2899,33 @@ public with sharing class PendingDocumentationController {
 
         Id currentUserId = UserInfo.getUserId();
 
+        // 1. Get drafts for current user — gated behind describe so orgs missing
+        // the optional DocumentDraft__c object still get the rest of the summary.
         try {
-            // 1. Get drafts for current user
-            String draftQuery = 'SELECT Id, Name, Case__c, Case__r.CaseNumber, Document_Type__c ' +
-                               'FROM DocumentDraft__c ' +
-                               'WHERE OwnerId = :currentUserId ' +
-                               'ORDER BY LastModifiedDate DESC LIMIT 10';
-            List<SObject> drafts = Database.query(draftQuery);
-            summary.draftCount = drafts.size();
-            for (SObject draft : drafts) {
-                PendingItemLink item = new PendingItemLink();
-                item.label = (String)draft.get('Document_Type__c') + ' Draft';
-                item.caseId = (Id)draft.get('Case__c');
-                item.caseName = (String)draft.getSObject('Case__r')?.get('CaseNumber');
-                item.category = 'draft';
-                item.recordId = (Id)draft.get('Id');
-                item.recordType = 'Draft';
-                item.action = 'draft';
-                summary.items.add(item);
+            if (Schema.getGlobalDescribe().containsKey('DocumentDraft__c')) {
+                String draftQuery = 'SELECT Id, Name, Case__c, Case__r.CaseNumber, Document_Type__c ' +
+                                   'FROM DocumentDraft__c ' +
+                                   'WHERE OwnerId = :currentUserId ' +
+                                   'ORDER BY LastModifiedDate DESC LIMIT 10';
+                List<SObject> drafts = Database.query(draftQuery);
+                summary.draftCount = drafts.size();
+                for (SObject draft : drafts) {
+                    PendingItemLink item = new PendingItemLink();
+                    item.label = (String)draft.get('Document_Type__c') + ' Draft';
+                    item.caseId = (Id)draft.get('Case__c');
+                    item.caseName = (String)draft.getSObject('Case__r')?.get('CaseNumber');
+                    item.category = 'draft';
+                    item.recordId = (Id)draft.get('Id');
+                    item.recordType = 'Draft';
+                    item.action = 'draft';
+                    summary.items.add(item);
+                }
             }
+        } catch (Exception draftEx) {
+            System.debug('Pending notification summary: drafts skipped — ' + draftEx.getMessage());
+        }
 
+        try {
             // 2. Get pending manager approvals (items waiting for current user to co-sign)
             String approvalQuery = 'SELECT Id, Name, RelatedRecordId, Interview__c, Interview__r.Name, ' +
                                   'Interview__r.InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
@@ -2950,7 +2962,11 @@ public with sharing class PendingDocumentationController {
 
             // Also check Interview__c for pending approvals
             // Interview approvals are tracked via InteractionSummary; no separate Interview query.
+        } catch (Exception apprEx) {
+            System.debug('Pending notification summary: approvals skipped — ' + apprEx.getMessage());
+        }
 
+        try {
             // 3. Get action items assigned to current user
             String actionQuery = 'SELECT Id, Name, RelatedRecordId, Interview__c, Interview__r.Name, ' +
                                 'Interview__r.InterviewTemplateVersion__r.InterviewTemplate__r.Name, ' +
@@ -2983,7 +2999,11 @@ public with sharing class PendingDocumentationController {
                 item.action = 'action';
                 summary.items.add(item);
             }
+        } catch (Exception actEx) {
+            System.debug('Pending notification summary: action items skipped — ' + actEx.getMessage());
+        }
 
+        try {
             // 3b. Include Interview__c action items (when interview has no InteractionSummary action record)
             String interviewActionQuery = 'SELECT Id, Name, Case__c, Case__r.CaseNumber, ' +
                 'InterviewTemplateVersion__r.InterviewTemplate__r.Name ' +
@@ -3007,7 +3027,11 @@ public with sharing class PendingDocumentationController {
                 item.action = 'action';
                 summary.items.add(item);
             }
+        } catch (Exception ivActEx) {
+            System.debug('Pending notification summary: interview actions skipped — ' + ivActEx.getMessage());
+        }
 
+        try {
             // 4. Get notes requiring manager approval created by current user
             // Note: InteractionSummary doesn't have Signed_By__c field
             String unsignedQuery = 'SELECT Id, Name, RelatedRecordId, Interview__c, Interview__r.Name, ' +
@@ -3041,14 +3065,12 @@ public with sharing class PendingDocumentationController {
                 item.action = 'unsigned';
                 summary.items.add(item);
             }
-
-            summary.totalCount = summary.draftCount + summary.pendingApprovalCount + 
-                                summary.actionItemCount + summary.unsignedCount;
-
-        } catch (Exception e) {
-            System.debug('Error getting pending notification summary: ' + e.getMessage());
-            // Return empty summary on error rather than throwing
+        } catch (Exception unsEx) {
+            System.debug('Pending notification summary: unsigned skipped — ' + unsEx.getMessage());
         }
+
+        summary.totalCount = summary.draftCount + summary.pendingApprovalCount +
+                            summary.actionItemCount + summary.unsignedCount;
 
         return summary;
     }

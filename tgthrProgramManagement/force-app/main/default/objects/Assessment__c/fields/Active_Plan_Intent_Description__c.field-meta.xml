@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Plan_Intent_Description__c</fullName>
+    <inlineHelpText>Have you started to work out or worked out the details of how to kill yourself? Did you intend to carry out this plan?
+                                                                       
+If yes, describe:</inlineHelpText>
+    <label>Active Plan/Intent Description</label>
+    <length>32768</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Html</type>
+    <visibleLines>25</visibleLines>
+</CustomField>

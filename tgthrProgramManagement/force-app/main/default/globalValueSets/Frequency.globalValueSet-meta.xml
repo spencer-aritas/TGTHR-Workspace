@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customValue>
+        <fullName>Less than once a week</fullName>
+        <default>false</default>
+        <label>Less than once a week</label>
+    </customValue>
+    <customValue>
+        <fullName>Once a week</fullName>
+        <default>false</default>
+        <label>Once a week</label>
+    </customValue>
+    <customValue>
+        <fullName>2-5 times a week</fullName>
+        <default>false</default>
+        <label>2-5 times a week</label>
+    </customValue>
+    <customValue>
+        <fullName>Daily or almost daily</fullName>
+        <default>false</default>
+        <label>Daily or almost daily</label>
+    </customValue>
+    <customValue>
+        <fullName>Many times each day</fullName>
+        <default>false</default>
+        <label>Many times each day</label>
+    </customValue>
+    <masterLabel>Frequency</masterLabel>
+    <sorted>false</sorted>
+</GlobalValueSet>

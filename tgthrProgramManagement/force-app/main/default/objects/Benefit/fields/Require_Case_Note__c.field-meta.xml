@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Require_Case_Note__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When true, Census disbursements for this Benefit require a Note (published to Meeting Notes on the Interaction Summary). When false, Census disbursements still create an Interaction Summary but the Note is optional.</description>
+    <inlineHelpText>Census-channel benefits only. When checked, a Note is required on every disbursement and published to Meeting Notes on the Interaction Summary.</inlineHelpText>
+    <label>Require Note</label>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

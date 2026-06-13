@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>CPT_Code_Required_for_Clinical</fullName>
+    <active>false</active>
+    <description>CPT Code is required when the related Benefit Type has a category of Clinical</description>
+    <errorConditionFormula>ISBLANK(CPT_Code__c) &amp;&amp;  
+ ISPICKVAL(BenefitType.Category,&quot;Clinical&quot;)</errorConditionFormula>
+    <errorMessage>CPT Code is required when the related Benefit Type has a category of Clinical</errorMessage>
+</ValidationRule>

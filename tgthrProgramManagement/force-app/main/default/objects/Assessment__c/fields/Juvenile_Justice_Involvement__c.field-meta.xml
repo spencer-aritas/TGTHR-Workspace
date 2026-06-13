@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Juvenile_Justice_Involvement__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Has this person been involved with the juvenile justice system?</inlineHelpText>
     <label>Juvenile Justice Involvement</label>
     <required>false</required>
@@ -12,10 +11,38 @@
         <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
-            <value><fullName>Yes</fullName><default>false</default><label>Yes</label></value>
-            <value><fullName>No</fullName><default>false</default><label>No</label></value>
-            <value><fullName>Client doesn&apos;t know</fullName><default>false</default><label>Client doesn&apos;t know</label></value>
-            <value><fullName>Client refused</fullName><default>false</default><label>Client refused</label></value>
+            <value>
+                <fullName>Yes</fullName>
+                <default>false</default>
+                <label>Yes</label>
+            </value>
+            <value>
+                <fullName>No</fullName>
+                <default>false</default>
+                <label>No</label>
+            </value>
+            <value>
+                <fullName>Client doesn&apos;t know</fullName>
+                <default>false</default>
+                <label>Client doesn&apos;t know</label>
+            </value>
+            <value>
+                <fullName>Client refused</fullName>
+                <default>false</default>
+                <label>Client refused</label>
+            </value>
+            <value>
+                <fullName>Data Not Collected</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Data Not Collected</label>
+            </value>
+            <value>
+                <fullName>Prefers Not to Answer</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Prefers Not to Answer</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

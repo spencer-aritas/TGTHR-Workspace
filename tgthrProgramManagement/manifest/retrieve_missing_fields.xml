@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>GoalAssignment.Frequency__c</members>
+        <members>InteractionSummary.Notify_Case_Manager__c</members>
+        <members>Program.Housing_Program__c</members>
+        <members>ProgramEnrollment.Case__c</members>
+        <name>CustomField</name>
+    </types>
+    <version>65.0</version>
+</Package>

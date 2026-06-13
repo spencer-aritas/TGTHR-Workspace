@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>TimeSpentMinutes__c</fullName>
-    <label>Time Spent (Minutes)</label>
     <description>Time spent working on this specific goal during the session, in minutes.</description>
+    <externalId>false</externalId>
     <inlineHelpText>Minutes spent on this goal during the interaction.</inlineHelpText>
-    <type>Number</type>
+    <label>Time Spent (Minutes)</label>
     <precision>5</precision>
-    <scale>0</scale>
     <required>false</required>
+    <scale>0</scale>
+    <trackHistory>false</trackHistory>
+    <type>Number</type>
+    <unique>false</unique>
 </CustomField>

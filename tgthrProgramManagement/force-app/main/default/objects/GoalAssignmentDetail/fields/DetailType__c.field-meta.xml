@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>DetailType__c</fullName>
-    <label>Detail Type</label>
     <description>Type of interaction that addressed this goal.</description>
     <inlineHelpText>The type of session/note that addressed this goal.</inlineHelpText>
-    <type>Picklist</type>
+    <label>Detail Type</label>
     <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
     <valueSet>
         <restricted>true</restricted>
         <valueSetDefinition>

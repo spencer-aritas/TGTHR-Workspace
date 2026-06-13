@@ -65,6 +65,9 @@
 
 .cmh-search {
     width: 220px;
+    color: #222;
+    --lwc-inputColor: #222;
+    --slds-c-input-text-color: #222;
 }
 
 
@@ -335,6 +338,13 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+
+.cmh-detail__name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .cmh-detail__name {

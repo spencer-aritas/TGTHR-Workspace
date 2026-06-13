@@ -12,6 +12,31 @@ import getThemeByProgramId from '@salesforce/apex/ProgramThemeService.getThemeBy
 import getActivePrograms from "@salesforce/apex/BenefitService.getActivePrograms";
 import logRecordAccessWithPii from "@salesforce/apex/RecordAccessService.logRecordAccessWithPii";
 
+const debugLog = () => {};
+
+function toDateKey(dateValue) {
+  if (!dateValue) return 0;
+
+  if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+    return dateValue.getTime();
+  }
+
+  if (typeof dateValue === "string") {
+    const ymd = dateValue.substring(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (ymd) {
+      const dt = new Date(
+        parseInt(ymd[1], 10),
+        parseInt(ymd[2], 10) - 1,
+        parseInt(ymd[3], 10)
+      );
+      return isNaN(dt.getTime()) ? 0 : dt.getTime();
+    }
+  }
+
+  const parsed = new Date(dateValue);
+  return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
 export default class InteractionSummaryBoard extends LightningElement {
   // No modal state in component properties - we'll use _modalOpen instead
   @track programs = [];
@@ -40,12 +65,12 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   // Use explicit methods to control modal state rather than a setter
   showModal() {
-    console.log("Explicit showModal called by user action");
+    debugLog("Explicit showModal called by user action");
     this._modalOpen = true;
   }
 
   hideModal() {
-    console.log("Explicit hideModal called");
+    debugLog("Explicit hideModal called");
     this._modalOpen = false;
   }
 
@@ -84,7 +109,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   // Opens the modal from the "New" button
   openNewInteractionModal() {
-    console.log("Opening new interaction modal");
+    debugLog("Opening new interaction modal");
 
     if (!this.selected || !this.selected.AccountId) {
       this.dispatchEvent(
@@ -106,7 +131,7 @@ export default class InteractionSummaryBoard extends LightningElement {
         const record = this.convo[i];
         if (record.CaseId) {
           mostRecentCaseId = record.CaseId;
-          console.log("Found most recent Case ID:", mostRecentCaseId);
+          debugLog("Found most recent Case ID:", mostRecentCaseId);
           break;
         }
       }
@@ -150,7 +175,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   async initializeComponent() {
     try {
-        console.log("Component connected, loading data (initial load)");
+        debugLog("Component connected, loading data (initial load)");
 
         // Load data without triggering additional refresh or spinner
         await this.loadTabs(true); // Pass true to indicate this is initial load
@@ -279,7 +304,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       const programs = await getActivePrograms();
       this.programs = programs || [];
       this.activeTabIndex = 0;
-      console.log("Active programs loaded:", this.programs);
+      debugLog("Active programs loaded:", this.programs);
     } catch (error) {
       console.error("Error loading active programs:", error);
       this.programs = [];
@@ -301,7 +326,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       }
 
       // Fetch data for each program with cache buster parameter
-      console.log(
+      debugLog(
         `Fetching ${isInitialLoad ? "initial" : "fresh"} data for programs with cache buster:`,
         this.cacheBuster
       );
@@ -333,7 +358,7 @@ export default class InteractionSummaryBoard extends LightningElement {
         this.programEnrollments[result.programId] = result.enrollments;
       });
 
-      console.log("Fresh data loaded for all programs:", this.programRows);
+      debugLog("Fresh data loaded for all programs:", this.programRows);
 
       // Auto-select first participant with data if no specific selection
       if (!this.selected && !this.lastAccountId) {
@@ -408,7 +433,7 @@ export default class InteractionSummaryBoard extends LightningElement {
   }
 
   mapRows(data) {
-    console.log("Raw data passed to mapRows:", data);
+    debugLog("Raw data passed to mapRows:", data);
     if (!data) {
       console.warn("No data passed to mapRows");
       return [];
@@ -425,6 +450,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       for (let i = 0; i < data.length; i++) {
         try {
           const r = data[i];
+          const isIncident = r._rowType === "incident";
 
           // Extract the data safely with more defensive coding
           const needsAttention = r.Notify_Case_Manager__c === true;
@@ -448,7 +474,7 @@ export default class InteractionSummaryBoard extends LightningElement {
           let interactionDate = "";
 
           // Simple logging of the row data with the date
-          console.log("Row with date:", r.Id, r.Date_of_Interaction__c);
+          debugLog("Row with date:", r.Id, r.Date_of_Interaction__c);
 
           if (r.Date_of_Interaction__c) {
             try {
@@ -457,23 +483,38 @@ export default class InteractionSummaryBoard extends LightningElement {
               const dateValue = r.Date_of_Interaction__c;
 
               // Check if we have a date value and what format it's in
-              console.log("Date value type:", typeof dateValue);
+              debugLog("Date value type:", typeof dateValue);
 
               // Create a date object using the appropriate method
               let dateObj;
 
               if (typeof dateValue === "string") {
-                // For ISO string format - most common from Apex
-                dateObj = new Date(dateValue);
-                console.log("Parsed date from string:", dateObj);
+                // Salesforce Date fields (date-only) serialize as "YYYY-MM-DD".
+                // `new Date("YYYY-MM-DD")` parses as UTC midnight, which then
+                // shifts back a day when formatted in negative-offset locales
+                // (e.g. Mountain Time). Parse those as a LOCAL date instead so
+                // the displayed day matches the user's locale.
+                const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateValue);
+                if (dateOnlyMatch) {
+                  dateObj = new Date(
+                    parseInt(dateOnlyMatch[1], 10),
+                    parseInt(dateOnlyMatch[2], 10) - 1,
+                    parseInt(dateOnlyMatch[3], 10)
+                  );
+                  debugLog("Parsed date-only string as local date:", dateObj);
+                } else {
+                  // ISO datetime string (with time/zone) - safe to use Date()
+                  dateObj = new Date(dateValue);
+                  debugLog("Parsed date from string:", dateObj);
+                }
               } else if (typeof dateValue === "object" && dateValue !== null) {
                 // It might already be a Date object
                 dateObj = dateValue;
-                console.log("Using existing date object");
+                debugLog("Using existing date object");
               } else if (typeof dateValue === "number") {
                 // Timestamp number
                 dateObj = new Date(dateValue);
-                console.log("Parsed date from timestamp:", dateObj);
+                debugLog("Parsed date from timestamp:", dateObj);
               }
 
               // Validate the date object
@@ -481,7 +522,7 @@ export default class InteractionSummaryBoard extends LightningElement {
                 // Format as MM/DD/YYYY using toLocaleDateString()
                 // This is more reliable than manual formatting
                 interactionDate = dateObj.toLocaleDateString();
-                console.log("Formatted date:", interactionDate);
+                debugLog("Formatted date:", interactionDate);
 
                 // Store the raw date object for sorting
                 r._dateObj = dateObj;
@@ -494,7 +535,7 @@ export default class InteractionSummaryBoard extends LightningElement {
                     // Convert YYYY-MM-DD to MM/DD/YYYY
                     const parts = datePart.split("-");
                     interactionDate = `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}/${parts[0]}`;
-                    console.log(
+                    debugLog(
                       "Formatted date from string parts:",
                       interactionDate
                     );
@@ -519,18 +560,18 @@ export default class InteractionSummaryBoard extends LightningElement {
               interactionDate = String(r.Date_of_Interaction__c);
             }
           } else {
-            console.log("No date value for row:", r.Id);
+            debugLog("No date value for row:", r.Id);
             interactionDate = "";
           }
 
           // Add a debug log to see the raw date field
-          console.log(
+          debugLog(
             "Raw interaction date for row",
             r.Id,
             ":",
             r.Date_of_Interaction__c
           );
-          console.log("Formatted date value:", interactionDate);
+          debugLog("Formatted date value:", interactionDate);
 
           // Build the row object with all required properties for our HTML table
           const rowObj = {
@@ -542,7 +583,8 @@ export default class InteractionSummaryBoard extends LightningElement {
             Date_of_Interaction__c: interactionDate,
             // Store the raw date object for sorting if available
             _dateObj: r._dateObj || null,
-            notesCellClass: needsAttention ? "needs-attn-soft" : "",
+            _isIncident: isIncident,
+            notesCellClass: (needsAttention ? "needs-attn-soft" : "") + (isIncident ? " row--incident" : ""),
             isPendingApproval: isPendingApproval // Flag for UI badge
           };
 
@@ -561,9 +603,9 @@ export default class InteractionSummaryBoard extends LightningElement {
         }
       }
 
-      console.log("Total mapped rows:", mappedRows.length);
+      debugLog("Total mapped rows:", mappedRows.length);
       if (mappedRows.length > 0) {
-        console.log("First mapped row:", JSON.stringify(mappedRows[0]));
+        debugLog("First mapped row:", JSON.stringify(mappedRows[0]));
       }
 
       return mappedRows;
@@ -671,7 +713,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       return;
     }
 
-    console.log("Loading right panel data for account:", accountId);
+    debugLog("Loading right panel data for account:", accountId);
     
     // Log PHI access for audit compliance when viewing participant data
     // This captures viewing of meeting notes, incidents - Name is the primary PII here
@@ -681,33 +723,46 @@ export default class InteractionSummaryBoard extends LightningElement {
     const cacheBuster = Date.now();
 
     const [t, inc] = await Promise.all([
-      thread({ accountId, maxRows: 50, cacheBuster }),
-      recentIncidents({ accountId, maxRows: 20, cacheBuster })
+      thread({ accountId, maxRows: null, cacheBuster }),
+      recentIncidents({ accountId, maxRows: null, cacheBuster })
     ]);
 
-    this.convo = t.map((r) => ({
-      Id: r.Id,
-      AccountId: r.AccountId || accountId,
-      Program__c: r.Program__c,
-      CaseId: r.CaseId || "",
-      Date_of_Interaction__c: r.Date_of_Interaction__c,
-      InteractionPurpose: r.InteractionPurpose,
-      NoteTypeLabel: r.NoteTypeLabel,
-      MeetingNotes: r.MeetingNotes,
-      CreatedBy_Name: r.CreatedBy_Name || null,
-      Notify_Case_Manager__c: r.Notify_Case_Manager__c,
-      Notify_Care_Team__c: r.Notify_Care_Team__c,
-      noteClass: r.Notify_Case_Manager__c ? "note note-attn" : "note",
-      isPendingApproval: r.Requires_Manager_Approval__c === true && r.Manager_Signed__c !== true
-    }));
+    this.convo = t
+      .map((r) => {
+        const effectiveDate = r.Date_of_Interaction__c || r.CreatedDate || null;
+        return {
+          Id: r.Id,
+          AccountId: r.AccountId || accountId,
+          Program__c: r.Program__c,
+          CaseId: r.CaseId || "",
+          Date_of_Interaction__c: effectiveDate,
+          InteractionPurpose: r.InteractionPurpose,
+          NoteTypeLabel: r.NoteTypeLabel,
+          MeetingNotes: r.MeetingNotes,
+          CreatedBy_Name: r.CreatedBy_Name || null,
+          Notify_Case_Manager__c: r.Notify_Case_Manager__c,
+          Notify_Care_Team__c: r.Notify_Care_Team__c,
+          noteClass: r.Notify_Case_Manager__c ? "note note-attn" : "note",
+          isPendingApproval:
+            r.Requires_Manager_Approval__c === true && r.Manager_Signed__c !== true,
+          _sortDate: toDateKey(effectiveDate)
+        };
+      })
+      .sort((a, b) => b._sortDate - a._sortDate);
 
-    this.incidents = inc.map((x) => ({
-      Id: x.Id,
-      date: x.IncidentDate != null ? x.IncidentDate : x.CreatedDate,
-      title: x.Subject,
-      body: x.Description,
-      staff: x.CreatedBy != null ? x.CreatedBy.Name : null
-    }));
+    this.incidents = inc
+      .map((x) => {
+        const effectiveDate = x.IncidentDate != null ? x.IncidentDate : x.CreatedDate;
+        return {
+          Id: x.Id,
+          date: effectiveDate,
+          title: x.Subject,
+          body: x.Description,
+          staff: x.CreatedBy != null ? x.CreatedBy.Name : null,
+          _sortDate: toDateKey(effectiveDate)
+        };
+      })
+      .sort((a, b) => b._sortDate - a._sortDate);
 
     // Update pagination for conversations
     this.convoTotalRecords = this.convo.length;
@@ -1125,7 +1180,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   // Opens the modal for follow-up from the "Follow Up" buttons in thread view
   openFollowUpModal = (event) => {
-    console.log("Opening modal for follow-up");
+    debugLog("Opening modal for follow-up");
 
     // Get data attributes from the clicked element
     const recordId = event.currentTarget.dataset.recordid;
@@ -1197,7 +1252,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       const status = e?.detail?.status || e?.detail?.action || null;
       if (status === "FINISHED_SCREEN" || status === "SUBMIT") {
         // Treat as a finished submission - create the record via Apex
-        console.log("Modal submit detected, creating record directly");
+        debugLog("Modal submit detected, creating record directly");
         // Hide the modal UI while creating
         this.hideModal();
         this.isLoading = true;
@@ -1211,7 +1266,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   // Close button - no refresh on simple close, only after form submission
   closeModal() {
-    console.log("Closing modal without refresh");
+    debugLog("Closing modal without refresh");
 
     // Simply hide the modal and reset fields
     this.hideModal();
@@ -1298,23 +1353,23 @@ export default class InteractionSummaryBoard extends LightningElement {
         const month = String(now.getMonth() + 1).padStart(2, "0");
         const day = String(now.getDate()).padStart(2, "0");
         this.interactionDate = `${year}-${month}-${day}`;
-        console.log(
+        debugLog(
           "Empty date detected, defaulting to today:",
           this.interactionDate
         );
       } else {
         this.interactionDate = dateValue;
-        console.log("Date field updated to:", this.interactionDate);
+        debugLog("Date field updated to:", this.interactionDate);
       }
     } else if (fieldName === "interaction-purpose") {
       this.interactionPurpose = event.target.value;
-      console.log("Purpose updated to:", this.interactionPurpose);
+      debugLog("Purpose updated to:", this.interactionPurpose);
     } else if (fieldName === "notify-case-manager") {
       this.notifyCaseManager = event.target.checked;
-      console.log("Notify case manager updated to:", this.notifyCaseManager);
+      debugLog("Notify case manager updated to:", this.notifyCaseManager);
     } else if (fieldName === "notify-care-team") {
       this.notifyCareTeam = event.target.checked;
-      console.log("Notify care team updated to:", this.notifyCareTeam);
+      debugLog("Notify care team updated to:", this.notifyCareTeam);
     }
   }
 
@@ -1770,7 +1825,7 @@ export default class InteractionSummaryBoard extends LightningElement {
         cleanedNotes = cleanedNotes.split(referenceMarker)[0].trim();
       }
 
-      console.log(
+      debugLog(
         "Creating new interaction for account:",
         interactionData.accountId
       );
@@ -1788,7 +1843,7 @@ export default class InteractionSummaryBoard extends LightningElement {
         notifyCareTeam: interactionData.notifyCareTeam
       });
 
-      console.log("Record created successfully with ID:", recordId);
+      debugLog("Record created successfully with ID:", recordId);
 
       // Store the newly created record ID for highlighting
       this.lastCreatedRecordId = recordId;
@@ -1847,13 +1902,13 @@ export default class InteractionSummaryBoard extends LightningElement {
   async refreshAndReselect() {
     // Skip refresh if this is the first load to avoid double-refreshing
     if (this.isFirstLoad) {
-      console.log("Skipping refresh during initial load");
+      debugLog("Skipping refresh during initial load");
       this.isLoading = false;
       return;
     }
 
     try {
-      console.log("Starting refresh and reselect operation");
+      debugLog("Starting refresh and reselect operation");
 
       // Ensure spinner is visible
       this.isLoading = true;
@@ -1865,7 +1920,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       // const currentSelectedId = this.selected?.Id;
       const currentAccountId = this.selected?.AccountId || this.lastAccountId;
 
-      console.log("Refreshing with account ID:", currentAccountId);
+      debugLog("Refreshing with account ID:", currentAccountId);
 
       // Force UI update to show spinner
       await nextFrame();
@@ -1879,7 +1934,7 @@ export default class InteractionSummaryBoard extends LightningElement {
       // Refresh the data - await directly instead of Promise.all to ensure sequential execution
       await this.loadTabs();
 
-      console.log(
+      debugLog(
         "Data refreshed, rows loaded:",
         this.activeTab === "all" ? this.rowsAll.length : this.rowsNest.length
       );
@@ -1897,7 +1952,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
       // Turn off loading indicator if we're not going to reselect anything
       if (!currentAccountId) {
-        console.log("No account ID to reselect, ending refresh");
+        debugLog("No account ID to reselect, ending refresh");
         this.isLoading = false;
         return;
       }
@@ -1914,25 +1969,25 @@ export default class InteractionSummaryBoard extends LightningElement {
       // If we have a lastCreatedRecordId, try to find that specific record first
       if (this.lastCreatedRecordId) {
         match = pool.find((r) => r.Id === this.lastCreatedRecordId);
-        console.log(
+        debugLog(
           this.lastCreatedRecordId
             ? `Looking for specific record: ${this.lastCreatedRecordId}`
             : "No specific record ID to search for"
         );
 
         if (match) {
-          console.log("Found last created record:", match.Id);
+          debugLog("Found last created record:", match.Id);
         }
       }
 
       // If no specific match found, use the newest record for this account
       if (!match && accountRecords.length > 0) {
         match = accountRecords[0];
-        console.log("Using newest record instead:", match.Id);
+        debugLog("Using newest record instead:", match.Id);
       }
 
       if (match) {
-        console.log(
+        debugLog(
           "Found matching record after refresh, selecting newest:",
           match.Id
         );
@@ -1946,7 +2001,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
         // Before highlighting, explicitly call loadRight again to ensure conversation panel is fresh
         // This is a complete refresh of the right side panel
-        console.log("Doing extra refresh of right panel data");
+        debugLog("Doing extra refresh of right panel data");
         await this.loadRight(match.AccountId, true);
 
         // Wait for DOM to update, then highlight the selected row
@@ -1970,7 +2025,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
             // If this is the last created record, make it more prominent
             if (match.Id === this.lastCreatedRecordId) {
-              console.log("Highlighting newly created record");
+              debugLog("Highlighting newly created record");
               // Add extra emphasis to newly created records
               selectedRow.classList.add("slds-theme_success");
             }
@@ -1991,7 +2046,7 @@ export default class InteractionSummaryBoard extends LightningElement {
           // After highlighting, ensure the right panel content is properly refreshed
           // by explicitly calling insertNotesContent again with a delay for DOM updates
           delay(300).then(() => {
-            console.log("Final refresh of displayed notes content");
+            debugLog("Final refresh of displayed notes content");
             this.insertNotesContent();
             this.repairFollowUpButtons();
 
@@ -2016,7 +2071,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
         // Now it's safe to hide the spinner
         this.isLoading = false;
-        console.log("Refresh and reselect completed");
+        debugLog("Refresh and reselect completed");
       });
     }
   }
@@ -2125,4 +2180,3 @@ export default class InteractionSummaryBoard extends LightningElement {
     }
   }
 }
-

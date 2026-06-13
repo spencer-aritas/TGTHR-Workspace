@@ -136,7 +136,7 @@ public with sharing class ClinicalNoteController {
         Map<String, Object> noteData = new Map<String, Object>();
         
         String query = 'SELECT Id, Date_of_Interaction__c, Start_Time__c, End_Time__c, ' +
-                       'Interpreter_Used__c, POS__c, MeetingNotes, Description_of_Services__c, ' +
+                       'Interpreter_Used__c, Place_of_Service__c, MeetingNotes, Description_of_Services__c, ' +
                        'Response_and_Progress__c, Plan__c, ' +
                        'Requires_Manager_Approval__c, Manager_Approver__c, Manager_Approver__r.Name, Manager_Rejected__c, Status ' +
                        'FROM InteractionSummary WHERE Id = :interactionId';
@@ -156,7 +156,7 @@ public with sharing class ClinicalNoteController {
         if (endDt != null) noteData.put('endTime', endDt.format('HH:mm'));
         
         noteData.put('interpreterUsed', note.get('Interpreter_Used__c'));
-        noteData.put('pos', note.get('POS__c'));
+        noteData.put('pos', note.get('Place_of_Service__c'));
         noteData.put('reason', note.get('MeetingNotes'));
         noteData.put('services', note.get('Description_of_Services__c'));
         noteData.put('response', note.get('Response_and_Progress__c'));
@@ -440,14 +440,24 @@ public with sharing class ClinicalNoteController {
         
         Id programId = null;
         
-        // First, try to find enrollment directly linked to the Case via Case__c
+        // First, try to find enrollment directly linked to the Case via Case__c.
+        // Prefer Housing_Program__c first — participants are often enrolled in a
+        // Housing Program AND a service program; the Housing Program is the
+        // canonical owner of the note for dashboards / billing.
         try {
-            String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+            // Filter by Program.Status = 'Active' so a stale enrollment to an inactive/retired
+            // program never overrides the user's real, active program (Services Provided picker bug).
+            String enrollmentQuery = 'SELECT Id, ProgramId, Status FROM ProgramEnrollment ' +
+                'WHERE Case__c = :caseId ' +
+                'AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ' +
+                'AND Program.Status = \'Active\' ' +
+                'ORDER BY Program.Housing_Program__c DESC NULLS LAST, CreatedDate DESC ' +
+                'LIMIT 1';
             List<SObject> enrollments = Database.query(enrollmentQuery);
             
             if (!enrollments.isEmpty()) {
                 programId = (Id) enrollments[0].get('ProgramId');
-                System.debug('Program ID from ProgramEnrollment (via Case__c): ' + programId);
+                System.debug('Program ID from ProgramEnrollment (via Case__c, housing-preferred): ' + programId);
                 return programId;
             }
         } catch (Exception e1) {
@@ -461,7 +471,12 @@ public with sharing class ClinicalNoteController {
                 Id accountId = cases[0].AccountId;
                 System.debug('Case AccountId: ' + accountId + ' - Looking for enrollment via Account');
                 
-                String enrollmentQuery = 'SELECT Id, ProgramId, Program.Name, Status FROM ProgramEnrollment WHERE AccountId = :accountId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                String enrollmentQuery = 'SELECT Id, ProgramId, Program.Name, Status FROM ProgramEnrollment ' +
+                    'WHERE AccountId = :accountId ' +
+                    'AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ' +
+                    'AND Program.Status = \'Active\' ' +
+                    'ORDER BY Program.Housing_Program__c DESC NULLS LAST, CreatedDate DESC ' +
+                    'LIMIT 1';
                 List<SObject> enrollments = Database.query(enrollmentQuery);
                 
                 if (!enrollments.isEmpty()) {
@@ -492,9 +507,10 @@ public with sharing class ClinicalNoteController {
             return null;
         }
         
-        // First, try to find enrollment directly linked to the Case via Case__c
+        // First, try to find enrollment directly linked to the Case via Case__c.
+        // Same Program.Status='Active' guard as getProgramIdForCase to prevent inactive program override.
         try {
-            String enrollmentQuery = 'SELECT Id, Program.Name, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+            String enrollmentQuery = 'SELECT Id, Program.Name, Status FROM ProgramEnrollment WHERE Case__c = :caseId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') AND Program.Status = \'Active\' ORDER BY CreatedDate DESC LIMIT 1';
             List<SObject> enrollments = Database.query(enrollmentQuery);
             
             if (!enrollments.isEmpty()) {
@@ -520,7 +536,7 @@ public with sharing class ClinicalNoteController {
             }
             
             if (participantId != null) {
-                String enrollmentQuery = 'SELECT Id, Program.Name, Status FROM ProgramEnrollment WHERE AccountId = :participantId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') ORDER BY CreatedDate DESC LIMIT 1';
+                String enrollmentQuery = 'SELECT Id, Program.Name, Status FROM ProgramEnrollment WHERE AccountId = :participantId AND Status IN (\'Enrolled\',\'Active\',\'Awaiting Intake\') AND Program.Status = \'Active\' ORDER BY CreatedDate DESC LIMIT 1';
                 List<SObject> enrollments = Database.query(enrollmentQuery);
                 
                 if (!enrollments.isEmpty()) {
@@ -1084,6 +1100,12 @@ public with sharing class ClinicalNoteController {
                 return result;
             }
 
+            if (shouldRequireManagerApproval && request.managerApproverId == UserInfo.getUserId()) {
+                result.success = false;
+                result.errorMessage = 'You cannot select yourself as the manager co-sign approver. Please select another Signing Authority approver.';
+                return result;
+            }
+
             result.requiresManagerApproval = shouldRequireManagerApproval;
             result.managerApprovalForced = managerApprovalForced;
 
@@ -1115,6 +1137,10 @@ public with sharing class ClinicalNoteController {
                                'Manager_Approver__c, RelatedRecordId, Status';
                 if (noteFields.containsKey('Signed_By_Name__c')) {
                     query += ', Signed_By_Name__c';
+                }
+                Boolean hasProgramField = noteFields.containsKey('Program__c');
+                if (hasProgramField) {
+                    query += ', Program__c';
                 }
                 query += ' FROM InteractionSummary WHERE Id = \'' + request.interactionSummaryId + '\' LIMIT 1';
                 List<SObject> existing = Database.query(query);
@@ -1179,9 +1205,23 @@ public with sharing class ClinicalNoteController {
                 summary.put('Date_of_Interaction__c', interactionDate);
                 summary.put('InteractionPurpose', noteLabel);
                 summary.put('MeetingNotes', request.reason);
-                
+
+                // Stamp Program__c if missing — the Program Managers Dashboard
+                // and other program-scoped reports rely on this field, and notes
+                // historically were inserted with it null.
+                if (hasProgramField && request.caseId != null && summary.get('Program__c') == null) {
+                    try {
+                        Id resolvedProgramId = getProgramIdForCase(request.caseId);
+                        if (resolvedProgramId != null) {
+                            putIfFieldExists(summary, 'Program__c', resolvedProgramId);
+                        }
+                    } catch (Exception progEx) {
+                        System.debug('⚠️ Non-fatal: Program__c stamping on update failed: ' + progEx.getMessage());
+                    }
+                }
+
                 putIfFieldExists(summary, 'Interpreter_Used__c', request.interpreterUsed);
-                putIfFieldExists(summary, 'POS__c', request.pos);
+                putIfFieldExists(summary, 'Place_of_Service__c', request.pos);
                 putIfFieldExists(summary, 'Description_of_Services__c', request.services);
                 putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
                 putIfFieldExists(summary, 'Plan__c', request.plan);
@@ -1228,6 +1268,17 @@ public with sharing class ClinicalNoteController {
 
                         shouldAuditResubmissionRouting = true;
                         resubmissionAuditDetails = 'Recalled note resubmitted and re-routed to preserved manager approver. PreservedApproverId=' + String.valueOf(managerId);
+                    } else if (managerApprovalForced) {
+                        // Recall is now outside the 72hr reporting window: force manager co-sign
+                        // even when no manager was originally involved (parity with new late-entry notes).
+                        // The early gate at the top of processSaveClinicalNote already ensured
+                        // request.managerApproverId is non-null, but defend in depth.
+                        if (request.managerApproverId == null) {
+                            throw new AuraHandledException('This recall is outside the 72-hour reporting window. Select a Signing Authority approver to route the required manager co-sign.');
+                        }
+                        stampManagerApprovalRouting(summary, request.managerApproverId, DocumentStatus.NOTE_PENDING);
+                        shouldAuditResubmissionRouting = true;
+                        resubmissionAuditDetails = 'Recalled note resubmitted outside the 72-hour reporting window; routed to newly-selected manager approver. ApproverId=' + String.valueOf(request.managerApproverId);
                     } else {
                         // No manager was involved, so just complete it.
                         summary.put('Status', DocumentStatus.NOTE_COMPLETED);
@@ -1283,6 +1334,17 @@ public with sharing class ClinicalNoteController {
 
                 update summary;
 
+                // Persist a RECALL_RESUBMIT_DELTA Audit_Log__c row so managers can
+                // see what changed compared to the pre-recall snapshot. Tolerate
+                // any failure here as non-fatal — the save itself must still succeed.
+                if (isRecalledResubmit) {
+                    try {
+                        writeRecallResubmitDelta((Id) summary.get('Id'), 'InteractionSummary');
+                    } catch (Exception deltaEx) {
+                        System.debug('Recall resubmit delta write failed (non-fatal): ' + deltaEx.getMessage());
+                    }
+                }
+
             } else {
                 // INSERT NEW
                 String noteLabel = normalizeNotePurpose(request.noteType);
@@ -1293,9 +1355,23 @@ public with sharing class ClinicalNoteController {
                 summary.put('Date_of_Interaction__c', interactionDate);
                 summary.put('InteractionPurpose', noteLabel);
                 summary.put('MeetingNotes', request.reason);
-                
+
+                // Stamp Program__c so the note shows up on program-scoped views
+                // (Program Managers Dashboard, Billing Export, etc.). The note's
+                // program is the active enrollment program for its Case.
+                if (request.caseId != null) {
+                    try {
+                        Id resolvedProgramId = getProgramIdForCase(request.caseId);
+                        if (resolvedProgramId != null) {
+                            putIfFieldExists(summary, 'Program__c', resolvedProgramId);
+                        }
+                    } catch (Exception progEx) {
+                        System.debug('⚠️ Non-fatal: Program__c stamping on insert failed: ' + progEx.getMessage());
+                    }
+                }
+
                 putIfFieldExists(summary, 'Interpreter_Used__c', request.interpreterUsed);
-                putIfFieldExists(summary, 'POS__c', request.pos);
+                putIfFieldExists(summary, 'Place_of_Service__c', request.pos);
                 putIfFieldExists(summary, 'Description_of_Services__c', request.services);
                 putIfFieldExists(summary, 'Response_and_Progress__c', request.response);
                 putIfFieldExists(summary, 'Plan__c', request.plan);
@@ -2626,42 +2702,25 @@ public with sharing class ClinicalNoteController {
             String serviceDateStr = serviceDate != null 
                 ? serviceDate.format()
                 : Date.today().format();
+            // participantIds is constant for all benefits in this note — build it once
+            List<String> participantIds = new List<String>{ String.valueOf(accountId) };
             for (Id benefitId : benefitIds) {
                 try {
                     System.debug('Processing benefit: ' + benefitId);
-                    List<String> participantIds = new List<String>{ String.valueOf(accountId) };
                     
-                    // Step 1: Check if BenefitAssignment exists
-                    BenefitDisbursementService.BenefitAssignmentCheckResult checkResult = 
-                        BenefitDisbursementService.checkBenefitAssignmentsWithParams(
-                            participantIds,
-                            String.valueOf(benefitId)
-                        );
-                    
-                    System.debug('Assignment check result: ' + checkResult);
-                    
-                    // Step 2: Create missing BenefitAssignments if needed
-                    if (!checkResult.allParticipantsReady) {
-                        System.debug('Creating missing BenefitAssignment for benefit: ' + benefitId);
-                        Map<String, Boolean> assignmentResults = 
-                            BenefitDisbursementService.createMissingBenefitAssignments(
-                                participantIds,
-                                String.valueOf(benefitId),
-                                String.valueOf(programId),
-                                null // programName
-                            );
-                        System.debug('Assignment creation results: ' + assignmentResults);
-                    }
-                    
-                    System.debug('Calling createDisbursementsWithParamsExt with:');
+                    // createDisbursementsWithInteraction already handles BenefitAssignment
+                    // check and creation internally (ensureAssignment = true by default).
+                    // Calling checkBenefitAssignmentsWithParams + createMissingBenefitAssignments
+                    // separately before this call was redundant and burned ~5 extra SOQL queries
+                    // per benefit, causing "Too many SOQL queries: 101" at 7+ benefits.
+                    System.debug('Calling createDisbursementsWithInteraction for benefit: ' + benefitId);
                     System.debug('  participantIds: ' + participantIds);
-                    System.debug('  benefitId: ' + benefitId);
                     System.debug('  programId: ' + programId);
                     System.debug('  serviceDate: ' + serviceDateStr);
                     System.debug('  startDateTime: ' + startDateTimeStr);
                     System.debug('  endDateTime: ' + endDateTimeStr);
                     
-                    // Step 3: Create BenefitDisbursements
+                    // Create BenefitAssignment (if missing) and BenefitDisbursement in one call
                     List<BenefitDisbursementService.DisburseResult> results = 
                         BenefitDisbursementService.createDisbursementsWithInteraction(
                             participantIds,
@@ -3086,6 +3145,76 @@ public with sharing class ClinicalNoteController {
             System.debug('Error getting CarePlan details: ' + e.getMessage());
             return null;
         }
+    }
+
+    // =====================================================================
+    // RECALL DELTA: post-resubmit snapshot
+    // =====================================================================
+    // Captures the after-state of the resubmitted note so the manager
+    // co-sign reviewer can see what changed since recall. The pre-recall
+    // snapshot was written by InterviewDocumentController at recall time.
+
+    private static final Set<String> RECALL_DELTA_SNAPSHOT_FIELDS = new Set<String>{
+        'MeetingNotes',
+        'Description_of_Services__c',
+        'Response_and_Progress__c',
+        'Plan__c',
+        'Interpreter_Used__c',
+        'Place_of_Service__c',
+        'Start_Time__c',
+        'End_Time__c',
+        'Date_of_Interaction__c',
+        'InteractionPurpose'
+    };
+
+    private static void writeRecallResubmitDelta(Id summaryId, String recordType) {
+        if (summaryId == null) return;
+        Map<String, Schema.SObjectField> fields = Schema.getGlobalDescribe().get('InteractionSummary').getDescribe().fields.getMap();
+        List<String> selectable = new List<String>();
+        for (String f : RECALL_DELTA_SNAPSHOT_FIELDS) {
+            if (fields.containsKey(f)) selectable.add(f);
+        }
+        Map<String, Object> after = new Map<String, Object>();
+        if (!selectable.isEmpty()) {
+            String q = 'SELECT Id, ' + String.join(selectable, ', ') + ' FROM InteractionSummary WHERE Id = :summaryId LIMIT 1';
+            List<SObject> rows = Database.query(q);
+            if (!rows.isEmpty()) {
+                SObject row = rows[0];
+                for (String f : selectable) {
+                    after.put(f, row.get(f));
+                }
+            }
+        }
+
+        Map<String, Object> payload = new Map<String, Object>();
+        payload.put('recordId', String.valueOf(summaryId));
+        payload.put('recordType', recordType);
+        payload.put('resubmittedAt', DateTime.now());
+        payload.put('resubmittedBy', UserInfo.getUserId());
+        payload.put('fields', after);
+
+        Map<String, Schema.SObjectField> auditFields = Schema.getGlobalDescribe().get('Audit_Log__c').getDescribe().fields.getMap();
+        SObject log = Schema.getGlobalDescribe().get('Audit_Log__c').newSObject();
+        if (auditFields.containsKey('Action__c'))       log.put('Action__c', 'RECALL_RESUBMIT_DELTA');
+        if (auditFields.containsKey('Record_Id__c'))    log.put('Record_Id__c', String.valueOf(summaryId));
+        if (auditFields.containsKey('Record_Type__c'))  log.put('Record_Type__c', recordType);
+        if (auditFields.containsKey('Object_Type__c'))  log.put('Object_Type__c', recordType);
+        if (auditFields.containsKey('User__c'))         log.put('User__c', UserInfo.getUserId());
+        if (auditFields.containsKey('Timestamp__c'))    log.put('Timestamp__c', DateTime.now());
+        if (auditFields.containsKey('Is_Amendment__c')) log.put('Is_Amendment__c', true);
+        if (auditFields.containsKey('Event_Type__c'))   log.put('Event_Type__c', 'RECALL_RESUBMIT_DELTA');
+        if (auditFields.containsKey('Description__c'))  log.put('Description__c', 'Post-recall resubmit snapshot for ' + recordType + ' ' + summaryId);
+        if (auditFields.containsKey('UUID__c')) {
+            Blob b = Crypto.generateAesKey(128);
+            String h = EncodingUtil.convertToHex(b);
+            log.put('UUID__c', h.substring(0,8) + '-' + h.substring(8,12) + '-' + h.substring(12,16) + '-' + h.substring(16,20) + '-' + h.substring(20,32));
+        }
+        if (auditFields.containsKey('Audit_JSON__c')) {
+            String json = JSON.serialize(payload);
+            if (json.length() > 32000) json = json.substring(0, 32000);
+            log.put('Audit_JSON__c', json);
+        }
+        insert log;
     }
 
 }

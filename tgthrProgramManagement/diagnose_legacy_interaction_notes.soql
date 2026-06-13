@@ -1,0 +1,24 @@
+/**
+ * Step 1 — Diagnostic
+ * Run this in Dev Console > Query Editor to identify the legacy records.
+ * Look at the Name, Subject, MeetingNotes, and any other text fields to find where
+ * Maggie's actual note content ended up so we can confirm the source field for the cure.
+ *
+ * Adjust CreatedDate range as needed.
+ */
+SELECT
+    Id,
+    Name,
+    MeetingNotes,
+    InteractionPurpose,
+    Date_of_Interaction__c,
+    Program__c,
+    Status,
+    CreatedDate,
+    CreatedBy.Name
+FROM InteractionSummary
+WHERE MeetingNotes = null
+  AND Program__c != null
+  AND Date_of_Interaction__c >= LAST_N_MONTHS:6
+ORDER BY CreatedDate DESC
+LIMIT 50

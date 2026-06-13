@@ -1,0 +1,754 @@
+﻿Id,Name,NPSP_ID__c,IsActive,Available_for_Housing__c,Available_for_Program_Engagement__c,Available_for_Case_Management__c,Available_for_Clinical__c,Available_for_Peer__c
+0jiVY00000001pMYAQ,Action plan created - 1440,a0e4M00000A2WsPQAV-1440,true,false,false,false,false,false
+0jiVY00000001f0YAA,Action plan created - Chase,a0e4M00000A2WsPQAV-Chase,true,false,false,false,false,false
+0jiVY00000002A7YAI,Action plan created - Drop-In,a0e4M00000A2WsPQAV-Drop-In,true,false,false,false,false,false
+0jiVY00000002KQYAY,Action plan created - Outreach,a0e4M00000A2WsPQAV-Outreach,true,false,false,false,false,false
+0jiVY00000001tIYAQ,Action plan created - Shelter,a0e4M00000A2WsPQAV-Shelter,true,false,false,false,false,false
+0jiVY00000001KLYAY,Action plan created - TLP,a0e4M00000A2WsPQAV-TLP,true,false,false,false,false,false
+0jiVY00000001pNYAQ,Actively seeking employment-Outcome - 1440,a0e61000006JOVdAAO-1440,true,false,false,false,false,false
+0jiVY00000001f1YAA,Actively seeking employment-Outcome - Chase,a0e61000006JOVdAAO-Chase,true,false,false,false,false,false
+0jiVY00000002A8YAI,Actively seeking employment-Outcome - Drop-In,a0e61000006JOVdAAO-Drop-In,true,false,false,false,false,false
+0jiVY00000002jkYAA,Actively seeking employment-Outcome - Nest 56,a0e61000006JOVdAAO-Nest 56,true,false,false,false,false,false
+0jiVY00000002KRYAY,Actively seeking employment-Outcome - Outreach,a0e61000006JOVdAAO-Outreach,true,false,false,false,false,false
+0jiVY00000001tJYAQ,Actively seeking employment-Outcome - Shelter,a0e61000006JOVdAAO-Shelter,true,false,false,false,false,false
+0jiVY00000001KMYAY,Actively seeking employment-Outcome - TLP,a0e61000006JOVdAAO-TLP,true,false,false,false,false,false
+0jiVY00000002KYYAY,Arrested-Outcome - Outreach,a0e61000006JOU9AAO-Outreach,true,false,false,false,false,false
+0jiVY00000001pVYAQ,Attempt to contact participant - 1440,a0e61000003htBjAAI-1440,true,false,false,false,false,false
+0jiVY00000001f9YAA,Attempt to contact participant - Chase,a0e61000003htBjAAI-Chase,true,false,false,false,false,false
+0jiVY00000002AGYAY,Attempt to contact participant - Drop-In,a0e61000003htBjAAI-Drop-In,true,false,false,false,false,false
+0jiVY00000002jjYAA,Attempt to contact participant - Nest 56,a0e61000003htBjAAI-Nest 56,true,false,false,false,false,false
+0jiVY00000002KZYAY,Attempt to contact participant - Outreach,a0e61000003htBjAAI-Outreach,true,false,false,false,false,false
+0jiVY00000001tRYAQ,Attempt to contact participant - Shelter,a0e61000003htBjAAI-Shelter,true,false,false,false,false,false
+0jiVY00000001KUYAY,Attempt to contact participant - TLP,a0e61000003htBjAAI-TLP,true,false,false,false,false,false
+0jiVY00000002KaYAI,Basic Needs/Supplies - Outreach,a0e61000003hqCZAAY-Outreach,true,false,false,false,false,false
+0jiVY00000002AIYAY,BCAP Referral - Drop-In,a0e4M00000I79pBQAR-Drop-In,true,false,false,false,false,false
+0jiVY00000002KbYAI,BCAP Referral - Outreach,a0e4M00000I79pBQAR-Outreach,true,false,false,false,false,false
+0jiVY00000002ufYAA,Benefit Verification/ Enrollment,,true,false,false,false,false,false
+0jiVY00000001paYAA,Budgeting and financial management-General support - 1440,a0e6100000Bsl4cAAB-1440,true,false,false,false,false,false
+0jiVY00000001fEYAQ,Budgeting and financial management-General support - Chase,a0e6100000Bsl4cAAB-Chase,true,false,false,false,false,false
+0jiVY00000002ALYAY,Budgeting and financial management-General support - Drop-In,a0e6100000Bsl4cAAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002jqYAA,Budgeting and financial management-General support - Nest 56,a0e6100000Bsl4cAAB-Nest 56,true,false,false,false,false,false
+0jiVY00000002KeYAI,Budgeting and financial management-General support - Outreach,a0e6100000Bsl4cAAB-Outreach,true,false,false,false,false,false
+0jiVY00000001tWYAQ,Budgeting and financial management-General support - Shelter,a0e6100000Bsl4cAAB-Shelter,true,false,false,false,false,false
+0jiVY00000001KZYAY,Budgeting and financial management-General support - TLP,a0e6100000Bsl4cAAB-TLP,true,false,false,false,false,false
+0jiVY00000001pbYAA,Case management activity with participant - 1440,a0e61000001GLpxAAG-1440,true,false,false,false,false,false
+0jiVY00000001fFYAQ,Case management activity with participant - Chase,a0e61000001GLpxAAG-Chase,true,false,false,false,false,false
+0jiVY00000002AMYAY,Case management activity with participant - Drop-In,a0e61000001GLpxAAG-Drop-In,true,false,false,false,false,false
+0jiVY00000002jZYAQ,Case management activity with participant - Nest 56,a0e61000001GLpxAAG-Nest 56,true,false,false,false,false,false
+0jiVY00000002KfYAI,Case management activity with participant - Outreach,a0e61000001GLpxAAG-Outreach,true,false,false,false,false,false
+0jiVY00000001tXYAQ,Case management activity with participant - Shelter,a0e61000001GLpxAAG-Shelter,true,false,false,false,false,false
+0jiVY00000001KaYAI,Case management activity with participant - TLP,a0e61000001GLpxAAG-TLP,true,false,false,false,false,false
+0jiVY00000001pcYAA,Case management activity without participant present - 1440,a0e8X00000mHgzUQAS-1440,true,false,false,false,false,false
+0jiVY00000001fGYAQ,Case management activity without participant present - Chase,a0e8X00000mHgzUQAS-Chase,true,false,false,false,false,false
+0jiVY00000002ANYAY,Case management activity without participant present - Drop-In,a0e8X00000mHgzUQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002KgYAI,Case management activity without participant present - Outreach,a0e8X00000mHgzUQAS-Outreach,true,false,false,false,false,false
+0jiVY00000001tYYAQ,Case management activity without participant present - Shelter,a0e8X00000mHgzUQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001KbYAI,Case management activity without participant present - TLP,a0e8X00000mHgzUQAS-TLP,true,false,false,false,false,false
+0jiVY00000002AOYAY,CE Referral - Drop-In,a0e4M00000I79pQQAR-Drop-In,true,false,false,false,false,false
+0jiVY00000002KhYAI,CE Referral - Outreach,a0e4M00000I79pQQAR-Outreach,true,false,false,false,false,false
+0jiVY00000002APYAY,CHAFEE - Drop-In,a0e6100000Bsl47AAB-Drop-In,true,false,false,false,false,false
+0jiVY00000001tbYAA,Chase House-Free time -,a0e8X00000nt2t5QAA-Shelter,true,false,false,false,false,false
+0jiVY00000001pfYAA,Chase House-Free time - 1440,a0e8X00000nt2t5QAA-1440,true,false,false,false,false,false
+0jiVY00000001fJYAQ,Chase House-Free time - Chase,a0e8X00000nt2t5QAA-Chase,true,false,false,false,false,false
+0jiVY00000002AQYAY,Chase House-Free time - Drop-In,a0e8X00000nt2t5QAA-Drop-In,true,false,false,false,false,false
+0jiVY00000002KjYAI,Chase House-Free time - Outreach,a0e8X00000nt2t5QAA-Outreach,true,false,false,false,false,false
+0jiVY00000001KeYAI,Chase House-Free time - TLP,a0e8X00000nt2t5QAA-TLP,true,false,false,false,false,false
+0jiVY00000001KJYAY,Clinical counseling-Crisis intervention - Chase,a0e8X00000j02SVQAY-Chase,true,false,false,false,false,false
+0jiVY00000001KHYAY,Clinical counseling-Crisis intervention - Shelter,a0e8X00000j02SVQAY-Shelter,true,false,false,false,false,false
+0jiVY00000001fKYAQ,Clinical counseling-Family therapy - Chase,a0e8X00000j02SLQAY-Chase,true,false,false,false,false,false
+0jiVY00000001tcYAA,Clinical counseling-Family therapy - Shelter,a0e8X00000j02SLQAY-Shelter,true,false,false,false,false,false
+0jiVY00000001phYAA,Clinical counseling-Group substance use support - 1440,a0e61000002QyaGAAS-1440,true,false,false,false,false,false
+0jiVY00000001fLYAQ,Clinical counseling-Group substance use support - Chase,a0e61000002QyaGAAS-Chase,true,false,false,false,false,false
+0jiVY00000002ASYAY,Clinical counseling-Group substance use support - Drop-In,a0e61000002QyaGAAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002KlYAI,Clinical counseling-Group substance use support - Outreach,a0e61000002QyaGAAS-Outreach,true,false,false,false,false,false
+0jiVY00000001tdYAA,Clinical counseling-Group substance use support - Shelter,a0e61000002QyaGAAS-Shelter,true,false,false,false,false,false
+0jiVY00000001piYAA,Clinical counseling-Group therapy - 1440,a0e4M00000ILiGBQA1-1440,true,false,false,false,false,false
+0jiVY00000001fMYAQ,Clinical counseling-Group therapy - Chase,a0e4M00000ILiGBQA1-Chase,true,false,false,false,false,false
+0jiVY00000002ATYAY,Clinical counseling-Group therapy - Drop-In,a0e4M00000ILiGBQA1-Drop-In,true,false,false,false,false,false
+0jiVY00000002jSYAQ,Clinical counseling-Group therapy - Nest 56,a0e4M00000ILiGBQA1-Nest 56,true,false,false,false,false,false
+0jiVY00000002KmYAI,Clinical counseling-Group therapy - Outreach,a0e4M00000ILiGBQA1-Outreach,true,false,false,false,false,false
+0jiVY00000001teYAA,Clinical counseling-Group therapy - Shelter,a0e4M00000ILiGBQA1-Shelter,true,false,false,false,false,false
+0jiVY00000001KhYAI,Clinical counseling-Group therapy - TLP,a0e4M00000ILiGBQA1-TLP,true,false,false,false,false,false
+0jiVY00000001pjYAA,Clinical counseling-Individual session - 1440,a0e8X00000j02SQQAY-1440,true,false,false,false,false,false
+0jiVY00000001fNYAQ,Clinical counseling-Individual session - Chase,a0e8X00000j02SQQAY-Chase,true,false,false,false,false,false
+0jiVY00000002AUYAY,Clinical counseling-Individual session - Drop-In,a0e8X00000j02SQQAY-Drop-In,true,false,false,false,false,false
+0jiVY00000002jvYAA,Clinical counseling-Individual session - Nest 56,a0e8X00000j02SQQAY-Nest 56,true,false,false,false,false,false
+0jiVY00000002KnYAI,Clinical counseling-Individual session - Outreach,a0e8X00000j02SQQAY-Outreach,true,false,false,false,false,false
+0jiVY00000001tfYAA,Clinical counseling-Individual session - Shelter,a0e8X00000j02SQQAY-Shelter,true,false,false,false,false,false
+0jiVY00000001KiYAI,Clinical counseling-Individual session - TLP,a0e8X00000j02SQQAY-TLP,true,false,false,false,false,false
+0jiVY00000001pkYAA,Clinical counseling-Mental health check-in - 1440,a0e61000002wmcUAAQ-1440,true,false,false,false,false,false
+0jiVY00000001fOYAQ,Clinical counseling-Mental health check-in - Chase,a0e61000002wmcUAAQ-Chase,true,false,false,false,false,false
+0jiVY00000002AVYAY,Clinical counseling-Mental health check-in - Drop-In,a0e61000002wmcUAAQ-Drop-In,true,false,false,false,false,false
+0jiVY00000002jfYAA,Clinical counseling-Mental health check-in - Nest 56,a0e61000002wmcUAAQ-Nest 56,true,false,false,false,false,false
+0jiVY00000002KoYAI,Clinical counseling-Mental health check-in - Outreach,a0e61000002wmcUAAQ-Outreach,true,false,false,false,false,false
+0jiVY00000001tgYAA,Clinical counseling-Mental health check-in - Shelter,a0e61000002wmcUAAQ-Shelter,true,false,false,false,false,false
+0jiVY00000001KjYAI,Clinical counseling-Mental health check-in - TLP,a0e61000002wmcUAAQ-TLP,true,false,false,false,false,false
+0jiVY00000002KpYAI,Clinical Referral - Outreach,a0e4M00000I79p5QAB-Outreach,true,false,false,false,false,false
+0jiVY00000003AnYAI,CMC Check In,,true,false,false,false,false,false
+0jiVY00000001pmYAA,Community Clean Up - 1440,a0e4M00000IMcElQAL-1440,true,false,false,false,false,false
+0jiVY00000001tiYAA,Community Clean Up - Shelter,a0e4M00000IMcElQAL-Shelter,true,false,false,false,false,false
+0jiVY00000002xtYAA,Community Group- Rooted 303,,true,false,false,false,false,false
+0jiVY000000035xYAA,Community Partner Referral,,true,false,false,false,false,false
+0jiVY0000000318YAA,Community Resource Navigation,,true,false,false,false,false,false
+0jiVY00000002oDYAQ,Community- Chase House,,true,false,false,false,false,false
+0jiVY00000001ppYAA,Conflict resolution general support - 1440,a0e8X00000mHgztQAC-1440,true,false,false,false,false,false
+0jiVY00000001fTYAQ,Conflict resolution general support - Chase,a0e8X00000mHgztQAC-Chase,true,false,false,false,false,false
+0jiVY00000002AaYAI,Conflict resolution general support - Drop-In,a0e8X00000mHgztQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002jxYAA,Conflict resolution general support - Nest 56,a0e8X00000mHgztQAC-Nest 56,true,false,false,false,false,false
+0jiVY00000002KtYAI,Conflict resolution general support - Outreach,a0e8X00000mHgztQAC-Outreach,true,false,false,false,false,false
+0jiVY000000020CYAQ,Conflict resolution general support - Shelter,a0e8X00000mHgztQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001KoYAI,Conflict resolution general support - TLP,a0e8X00000mHgztQAC-TLP,true,false,false,false,false,false
+0jiVY00000001pqYAA,Conflict resolution or mediation training (formal training) - 1440,a0e8X00000mHgzoQAC-1440,true,false,false,false,false,false
+0jiVY00000001fUYAQ,Conflict resolution or mediation training (formal training) - Chase,a0e8X00000mHgzoQAC-Chase,true,false,false,false,false,false
+0jiVY00000002AbYAI,Conflict resolution or mediation training (formal training) - Drop-In,a0e8X00000mHgzoQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002KuYAI,Conflict resolution or mediation training (formal training) - Outreach,a0e8X00000mHgzoQAC-Outreach,true,false,false,false,false,false
+0jiVY000000020DYAQ,Conflict resolution or mediation training (formal training) - Shelter,a0e8X00000mHgzoQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001KpYAI,Conflict resolution or mediation training (formal training) - TLP,a0e8X00000mHgzoQAC-TLP,true,false,false,false,false,false
+0jiVY00000001ptYAA,Cooking/meal preparation support - 1440,a0e8X00000mHgzyQAC-1440,true,false,false,false,false,false
+0jiVY00000001fXYAQ,Cooking/meal preparation support - Chase,a0e8X00000mHgzyQAC-Chase,true,false,false,false,false,false
+0jiVY00000002AeYAI,Cooking/meal preparation support - Drop-In,a0e8X00000mHgzyQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002jyYAA,Cooking/meal preparation support - Nest 56,a0e8X00000mHgzyQAC-Nest 56,true,false,false,false,false,false
+0jiVY00000002KxYAI,Cooking/meal preparation support - Outreach,a0e8X00000mHgzyQAC-Outreach,true,false,false,false,false,false
+0jiVY000000020GYAQ,Cooking/meal preparation support - Shelter,a0e8X00000mHgzyQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001KsYAI,Cooking/meal preparation support - TLP,a0e8X00000mHgzyQAC-TLP,true,false,false,false,false,false
+0jiVY00000002d2YAA,Creative Expression Activity - 1440,a0e61000003gImyAAE-1440,true,false,false,false,false,false
+0jiVY00000002d7YAA,Creative Expression Activity - Drop-In,a0e61000003gImyAAE-Drop-In,true,false,false,false,false,false
+0jiVY00000002kGYAQ,Creative Expression Activity - Outreach,a0e61000003gImyAAE-Outreach,true,false,false,false,false,false
+0jiVY00000002czYAA,Creative Expression Activity - Shelter,a0e61000003gImyAAE-Shelter,true,false,false,false,false,false
+0jiVY00000002kBYAQ,Creative Expression Activity - TLP,a0e61000003gImyAAE-TLP,true,false,false,false,false,false
+0jiVY00000002AiYAI,Deacons Closet Referral - Drop-In,a0e4M00000I79ovQAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002L1YAI,Deacons Closet Referral - Outreach,a0e4M00000I79ovQAB-Outreach,true,false,false,false,false,false
+0jiVY00000001q1YAA,Drop-in Facility Use - 1440,a0eUY000001pWuwYAE-1440,true,false,false,false,false,false
+0jiVY00000001ffYAA,Drop-in Facility Use - Chase,a0eUY000001pWuwYAE-Chase,true,false,false,false,false,false
+0jiVY00000002AmYAI,Drop-in Facility Use - Drop-In,a0eUY000001pWuwYAE-Drop-In,true,false,false,false,false,false
+0jiVY00000002L5YAI,Drop-in Facility Use - Outreach,a0eUY000001pWuwYAE-Outreach,true,false,false,false,false,false
+0jiVY000000020OYAQ,Drop-in Facility Use - Shelter,a0eUY000001pWuwYAE-Shelter,true,false,false,false,false,false
+0jiVY00000001L0YAI,Drop-in Facility Use - TLP,a0eUY000001pWuwYAE-TLP,true,false,false,false,false,false
+0jiVY00000001fgYAA,Drop-in Mail Pickup - Chase,a0eUY000001pedxYAA-Chase,true,false,false,false,false,false
+0jiVY00000002AnYAI,Drop-in Mail Pickup - Drop-In,a0eUY000001pedxYAA-Drop-In,true,false,false,false,false,false
+0jiVY00000002kAYAQ,Drop-in Mail Pickup - Nest 56,a0eUY000001pedxYAA-Nest 56,true,false,false,false,false,false
+0jiVY00000002L6YAI,Drop-in Mail Pickup - Outreach,a0eUY000001pedxYAA-Outreach,true,false,false,false,false,false
+0jiVY000000020PYAQ,Drop-in Mail Pickup - Shelter,a0eUY000001pedxYAA-Shelter,true,false,false,false,false,false
+0jiVY00000001L1YAI,Drop-in Mail Pickup - TLP,a0eUY000001pedxYAA-TLP,true,false,false,false,false,false
+0jiVY000000034LYAQ,Education- GED Class Attendance,,true,false,false,false,false,false
+0jiVY00000002d4YAA,Education-GED testing - 1440,a0e61000007cQleAAE-1440,true,false,false,false,false,false
+0jiVY00000002d9YAA,Education-GED testing - Drop-In,a0e61000007cQleAAE-Drop-In,true,false,false,false,false,false
+0jiVY00000001KKYAY,Education-GED testing - Shelter,a0e61000007cQleAAE-Shelter,true,false,false,false,false,false
+0jiVY00000002kDYAQ,Education-GED testing - TLP,a0e61000007cQleAAE-TLP,true,false,false,false,false,false
+0jiVY00000001q5YAA,Education-GED tutoring or homework - 1440,a0e61000004bzyuAAA-1440,true,false,false,false,false,false
+0jiVY00000001fjYAA,Education-GED tutoring or homework - Chase,a0e61000004bzyuAAA-Chase,true,false,false,false,false,false
+0jiVY00000002AqYAI,Education-GED tutoring or homework - Drop-In,a0e61000004bzyuAAA-Drop-In,true,false,false,false,false,false
+0jiVY00000002L9YAI,Education-GED tutoring or homework - Outreach,a0e61000004bzyuAAA-Outreach,true,false,false,false,false,false
+0jiVY000000020SYAQ,Education-GED tutoring or homework - Shelter,a0e61000004bzyuAAA-Shelter,true,false,false,false,false,false
+0jiVY00000001L4YAI,Education-GED tutoring or homework - TLP,a0e61000004bzyuAAA-TLP,true,false,false,false,false,false
+0jiVY00000001q6YAA,Education-General support - 1440,a0e6100000Bsl4CAAR-1440,true,false,false,false,false,false
+0jiVY00000001fkYAA,Education-General support - Chase,a0e6100000Bsl4CAAR-Chase,true,false,false,false,false,false
+0jiVY00000002ArYAI,Education-General support - Drop-In,a0e6100000Bsl4CAAR-Drop-In,true,false,false,false,false,false
+0jiVY00000002jnYAA,Education-General support - Nest 56,a0e6100000Bsl4CAAR-Nest 56,true,false,false,false,false,false
+0jiVY00000002LAYAY,Education-General support - Outreach,a0e6100000Bsl4CAAR-Outreach,true,false,false,false,false,false
+0jiVY000000020TYAQ,Education-General support - Shelter,a0e6100000Bsl4CAAR-Shelter,true,false,false,false,false,false
+0jiVY00000001L5YAI,Education-General support - TLP,a0e6100000Bsl4CAAR-TLP,true,false,false,false,false,false
+0jiVY00000001q8YAA,Emergency financial assistance provided - 1440,a0e8X00000mHh03QAC-1440,true,false,false,false,false,false
+0jiVY00000001fmYAA,Emergency financial assistance provided - Chase,a0e8X00000mHh03QAC-Chase,true,false,false,false,false,false
+0jiVY00000002AtYAI,Emergency financial assistance provided - Drop-In,a0e8X00000mHh03QAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002LCYAY,Emergency financial assistance provided - Outreach,a0e8X00000mHh03QAC-Outreach,true,false,false,false,false,false
+0jiVY000000020VYAQ,Emergency financial assistance provided - Shelter,a0e8X00000mHh03QAC-Shelter,true,false,false,false,false,false
+0jiVY00000001L7YAI,Emergency financial assistance provided - TLP,a0e8X00000mHh03QAC-TLP,true,false,false,false,false,false
+0jiVY00000003E1YAI,Emergency Service Coordination,,true,false,false,false,false,false
+0jiVY00000003CPYAY,Emotional Processing,,true,false,false,false,false,false
+0jiVY00000002ppYAA,Employment - Obtained New Employment,,true,false,false,false,false,false
+0jiVY00000002t3YAA,Employment Support,,true,false,false,false,false,false
+0jiVY00000001q9YAA,Employment-General support - 1440,a0e6100000Bsl4MAAR-1440,true,false,false,false,false,false
+0jiVY00000001fnYAA,Employment-General support - Chase,a0e6100000Bsl4MAAR-Chase,true,false,false,false,false,false
+0jiVY00000002AuYAI,Employment-General support - Drop-In,a0e6100000Bsl4MAAR-Drop-In,true,false,false,false,false,false
+0jiVY00000002joYAA,Employment-General support - Nest 56,a0e6100000Bsl4MAAR-Nest 56,true,false,false,false,false,false
+0jiVY00000002LDYAY,Employment-General support - Outreach,a0e6100000Bsl4MAAR-Outreach,true,false,false,false,false,false
+0jiVY000000020WYAQ,Employment-General support - Shelter,a0e6100000Bsl4MAAR-Shelter,true,false,false,false,false,false
+0jiVY00000001L8YAI,Employment-General support - TLP,a0e6100000Bsl4MAAR-TLP,true,false,false,false,false,false
+0jiVY00000001qAYAQ,Employment-Job readiness training - 1440,a0e8X00000mHh08QAC-1440,true,false,false,false,false,false
+0jiVY00000001foYAA,Employment-Job readiness training - Chase,a0e8X00000mHh08QAC-Chase,true,false,false,false,false,false
+0jiVY00000002AvYAI,Employment-Job readiness training - Drop-In,a0e8X00000mHh08QAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002LEYAY,Employment-Job readiness training - Outreach,a0e8X00000mHh08QAC-Outreach,true,false,false,false,false,false
+0jiVY000000020XYAQ,Employment-Job readiness training - Shelter,a0e8X00000mHh08QAC-Shelter,true,false,false,false,false,false
+0jiVY00000001L9YAI,Employment-Job readiness training - TLP,a0e8X00000mHh08QAC-TLP,true,false,false,false,false,false
+0jiVY00000001qBYAQ,Employment-Job retention support - 1440,a0e8X00000mHh1lQAC-1440,true,false,false,false,false,false
+0jiVY00000001fpYAA,Employment-Job retention support - Chase,a0e8X00000mHh1lQAC-Chase,true,false,false,false,false,false
+0jiVY00000002AwYAI,Employment-Job retention support - Drop-In,a0e8X00000mHh1lQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002LFYAY,Employment-Job retention support - Outreach,a0e8X00000mHh1lQAC-Outreach,true,false,false,false,false,false
+0jiVY000000020YYAQ,Employment-Job retention support - Shelter,a0e8X00000mHh1lQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001LAYAY,Employment-Job retention support - TLP,a0e8X00000mHh1lQAC-TLP,true,false,false,false,false,false
+0jiVY00000001qCYAQ,Employment-Job search support - 1440,a0e8X00000mHh1qQAC-1440,true,false,false,false,false,false
+0jiVY00000001fqYAA,Employment-Job search support - Chase,a0e8X00000mHh1qQAC-Chase,true,false,false,false,false,false
+0jiVY00000002AxYAI,Employment-Job search support - Drop-In,a0e8X00000mHh1qQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002k0YAA,Employment-Job search support - Nest 56,a0e8X00000mHh1qQAC-Nest 56,true,false,false,false,false,false
+0jiVY00000002LGYAY,Employment-Job search support - Outreach,a0e8X00000mHh1qQAC-Outreach,true,false,false,false,false,false
+0jiVY000000020ZYAQ,Employment-Job search support - Shelter,a0e8X00000mHh1qQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001LBYAY,Employment-Job search support - TLP,a0e8X00000mHh1qQAC-TLP,true,false,false,false,false,false
+0jiVY00000001qDYAQ,Employment-Job skills training (job-specific skills) - 1440,a0e8X00000mHh20QAC-1440,true,false,false,false,false,false
+0jiVY00000001frYAA,Employment-Job skills training (job-specific skills) - Chase,a0e8X00000mHh20QAC-Chase,true,false,false,false,false,false
+0jiVY00000002AyYAI,Employment-Job skills training (job-specific skills) - Drop-In,a0e8X00000mHh20QAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002LHYAY,Employment-Job skills training (job-specific skills) - Outreach,a0e8X00000mHh20QAC-Outreach,true,false,false,false,false,false
+0jiVY000000020aYAA,Employment-Job skills training (job-specific skills) - Shelter,a0e8X00000mHh20QAC-Shelter,true,false,false,false,false,false
+0jiVY00000001LCYAY,Employment-Job skills training (job-specific skills) - TLP,a0e8X00000mHh20QAC-TLP,true,false,false,false,false,false
+0jiVY00000001qFYAQ,Equine Therapy - 1440,a0e6100000Bsl4WAAR-1440,true,false,false,false,false,false
+0jiVY000000020cYAA,Equine Therapy - Shelter,a0e6100000Bsl4WAAR-Shelter,true,false,false,false,false,false
+0jiVY00000001qHYAQ,ESA support - 1440,a0e8X00000nslN8QAI-1440,true,false,false,false,false,false
+0jiVY00000001fvYAA,ESA support - Chase,a0e8X00000nslN8QAI-Chase,true,false,false,false,false,false
+0jiVY00000002B2YAI,ESA support - Drop-In,a0e8X00000nslN8QAI-Drop-In,true,false,false,false,false,false
+0jiVY00000002LLYAY,ESA support - Outreach,a0e8X00000nslN8QAI-Outreach,true,false,false,false,false,false
+0jiVY000000020eYAA,ESA support - Shelter,a0e8X00000nslN8QAI-Shelter,true,false,false,false,false,false
+0jiVY00000001LGYAY,ESA support - TLP,a0e8X00000nslN8QAI-TLP,true,false,false,false,false,false
+0jiVY00000002d1YAA,Family Coaching - Shelter,a0e6100000Bsl4bAAB-Shelter,true,false,false,false,false,false
+0jiVY00000001qLYAQ,Family engagement general support (not clinical counseling) - 1440,a0e4M00000C5guUQAR-1440,true,false,false,false,false,false
+0jiVY00000001fzYAA,Family engagement general support (not clinical counseling) - Chase,a0e4M00000C5guUQAR-Chase,true,false,false,false,false,false
+0jiVY00000002B6YAI,Family engagement general support (not clinical counseling) - Drop-In,a0e4M00000C5guUQAR-Drop-In,true,false,false,false,false,false
+0jiVY00000002jNYAQ,Family engagement general support (not clinical counseling) - Nest 56,a0e4M00000C5guUQAR-Nest 56,true,false,false,false,false,false
+0jiVY00000002LPYAY,Family engagement general support (not clinical counseling) - Outreach,a0e4M00000C5guUQAR-Outreach,true,false,false,false,false,false
+0jiVY000000020iYAA,Family engagement general support (not clinical counseling) - Shelter,a0e4M00000C5guUQAR-Shelter,true,false,false,false,false,false
+0jiVY00000001LKYAY,Family engagement general support (not clinical counseling) - TLP,a0e4M00000C5guUQAR-TLP,true,false,false,false,false,false
+0jiVY00000002wHYAQ,Financial Education and Navigation Assistance,,true,false,false,false,false,false
+0jiVY00000001qbYAA,Group service-BIPOC support - 1440,a0e8X00000mHlvOQAS-1440,true,false,false,false,false,false
+0jiVY00000001gBYAQ,Group service-BIPOC support - Chase,a0e8X00000mHlvOQAS-Chase,true,false,false,false,false,false
+0jiVY00000002BIYAY,Group service-BIPOC support - Drop-In,a0e8X00000mHlvOQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002LbYAI,Group service-BIPOC support - Outreach,a0e8X00000mHlvOQAS-Outreach,true,false,false,false,false,false
+0jiVY000000020uYAA,Group service-BIPOC support - Shelter,a0e8X00000mHlvOQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001LWYAY,Group service-BIPOC support - TLP,a0e8X00000mHlvOQAS-TLP,true,false,false,false,false,false
+0jiVY00000001qcYAA,Group service-Cooking/meal preparation support - 1440,a0e610000029svzAAA-1440,true,false,false,false,false,false
+0jiVY00000001gCYAQ,Group service-Cooking/meal preparation support - Chase,a0e610000029svzAAA-Chase,true,false,false,false,false,false
+0jiVY00000002BJYAY,Group service-Cooking/meal preparation support - Drop-In,a0e610000029svzAAA-Drop-In,true,false,false,false,false,false
+0jiVY00000002jeYAA,Group service-Cooking/meal preparation support - Nest 56,a0e610000029svzAAA-Nest 56,true,false,false,false,false,false
+0jiVY00000002LcYAI,Group service-Cooking/meal preparation support - Outreach,a0e610000029svzAAA-Outreach,true,false,false,false,false,false
+0jiVY000000020vYAA,Group service-Cooking/meal preparation support - Shelter,a0e610000029svzAAA-Shelter,true,false,false,false,false,false
+0jiVY00000001LXYAY,Group service-Cooking/meal preparation support - TLP,a0e610000029svzAAA-TLP,true,false,false,false,false,false
+0jiVY00000001qdYAA,Group service-Creative explorations - 1440,a0e4M00000IMjXMQA1-1440,true,false,false,false,false,false
+0jiVY00000001gDYAQ,Group service-Creative explorations - Chase,a0e4M00000IMjXMQA1-Chase,true,false,false,false,false,false
+0jiVY00000002BKYAY,Group service-Creative explorations - Drop-In,a0e4M00000IMjXMQA1-Drop-In,true,false,false,false,false,false
+0jiVY00000002jUYAQ,Group service-Creative explorations - Nest 56,a0e4M00000IMjXMQA1-Nest 56,true,false,false,false,false,false
+0jiVY00000002LdYAI,Group service-Creative explorations - Outreach,a0e4M00000IMjXMQA1-Outreach,true,false,false,false,false,false
+0jiVY000000020wYAA,Group service-Creative explorations - Shelter,a0e4M00000IMjXMQA1-Shelter,true,false,false,false,false,false
+0jiVY00000001LYYAY,Group service-Creative explorations - TLP,a0e4M00000IMjXMQA1-TLP,true,false,false,false,false,false
+0jiVY00000001qeYAA,Group service-Field trip or outing - 1440,a0e8X00000mHh2KQAS-1440,true,false,false,false,false,false
+0jiVY00000001gEYAQ,Group service-Field trip or outing - Chase,a0e8X00000mHh2KQAS-Chase,true,false,false,false,false,false
+0jiVY00000002BLYAY,Group service-Field trip or outing - Drop-In,a0e8X00000mHh2KQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002LeYAI,Group service-Field trip or outing - Outreach,a0e8X00000mHh2KQAS-Outreach,true,false,false,false,false,false
+0jiVY000000020xYAA,Group service-Field trip or outing - Shelter,a0e8X00000mHh2KQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001LZYAY,Group service-Field trip or outing - TLP,a0e8X00000mHh2KQAS-TLP,true,false,false,false,false,false
+0jiVY00000001qfYAA,Group service-Games - 1440,a0e4M00000I75pvQAB-1440,true,false,false,false,false,false
+0jiVY00000001gFYAQ,Group service-Games - Chase,a0e4M00000I75pvQAB-Chase,true,false,false,false,false,false
+0jiVY00000002BMYAY,Group service-Games - Drop-In,a0e4M00000I75pvQAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002jRYAQ,Group service-Games - Nest 56,a0e4M00000I75pvQAB-Nest 56,true,false,false,false,false,false
+0jiVY00000002LfYAI,Group service-Games - Outreach,a0e4M00000I75pvQAB-Outreach,true,false,false,false,false,false
+0jiVY000000020yYAA,Group service-Games - Shelter,a0e4M00000I75pvQAB-Shelter,true,false,false,false,false,false
+0jiVY00000001LaYAI,Group service-Games - TLP,a0e4M00000I75pvQAB-TLP,true,false,false,false,false,false
+0jiVY00000001qgYAA,Group service-LGBTQ+ support - 1440,a0e6100000B0rthAAB-1440,true,false,false,false,false,false
+0jiVY00000001gGYAQ,Group service-LGBTQ+ support - Chase,a0e6100000B0rthAAB-Chase,true,false,false,false,false,false
+0jiVY00000002BNYAY,Group service-LGBTQ+ support - Drop-In,a0e6100000B0rthAAB-Drop-In,true,false,false,false,false,false
+0jiVY00000001VsYAI,Group service-LGBTQ+ support - Nest56,a0e6100000B0rthAAB-Nest,true,false,false,false,false,false
+0jiVY00000002LgYAI,Group service-LGBTQ+ support - Outreach,a0e6100000B0rthAAB-Outreach,true,false,false,false,false,false
+0jiVY000000020zYAA,Group service-LGBTQ+ support - Shelter,a0e6100000B0rthAAB-Shelter,true,false,false,false,false,false
+0jiVY00000001LbYAI,Group service-LGBTQ+ support - TLP,a0e6100000B0rthAAB-TLP,true,false,false,false,false,false
+0jiVY00000001qhYAA,Group Service-Life Skills - 1440,a0e610000029GrzAAE-1440,true,false,false,false,false,false
+0jiVY00000001gHYAQ,Group Service-Life Skills - Chase,a0e610000029GrzAAE-Chase,true,false,false,false,false,false
+0jiVY00000002BOYAY,Group Service-Life Skills - Drop-In,a0e610000029GrzAAE-Drop-In,true,false,false,false,false,false
+0jiVY00000002jcYAA,Group Service-Life Skills - Nest 56,a0e610000029GrzAAE-Nest 56,true,false,false,false,false,false
+0jiVY00000002LhYAI,Group Service-Life Skills - Outreach,a0e610000029GrzAAE-Outreach,true,false,false,false,false,false
+0jiVY0000000210YAA,Group Service-Life Skills - Shelter,a0e610000029GrzAAE-Shelter,true,false,false,false,false,false
+0jiVY00000001LcYAI,Group Service-Life Skills - TLP,a0e610000029GrzAAE-TLP,true,false,false,false,false,false
+0jiVY00000001qiYAA,Group service-Peer support - 1440,a0e8X00000mG6YlQAK-1440,true,false,false,false,false,false
+0jiVY00000001gIYAQ,Group service-Peer support - Chase,a0e8X00000mG6YlQAK-Chase,true,false,false,false,false,false
+0jiVY00000002BPYAY,Group service-Peer support - Drop-In,a0e8X00000mG6YlQAK-Drop-In,true,false,false,false,false,false
+0jiVY00000002LiYAI,Group service-Peer support - Outreach,a0e8X00000mG6YlQAK-Outreach,true,false,false,false,false,false
+0jiVY0000000211YAA,Group service-Peer support - Shelter,a0e8X00000mG6YlQAK-Shelter,true,false,false,false,false,false
+0jiVY00000001LdYAI,Group service-Peer support - TLP,a0e8X00000mG6YlQAK-TLP,true,false,false,false,false,false
+0jiVY00000001qjYAA,Group service-Prosocial or recreational activity on-site - 1440,a0e8X00000mHh2PQAS-1440,true,false,false,false,false,false
+0jiVY00000001gJYAQ,Group service-Prosocial or recreational activity on-site - Chase,a0e8X00000mHh2PQAS-Chase,true,false,false,false,false,false
+0jiVY00000002BQYAY,Group service-Prosocial or recreational activity on-site - Drop-In,a0e8X00000mHh2PQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002k1YAA,Group service-Prosocial or recreational activity on-site - Nest 56,a0e8X00000mHh2PQAS-Nest 56,true,false,false,false,false,false
+0jiVY00000002LjYAI,Group service-Prosocial or recreational activity on-site - Outreach,a0e8X00000mHh2PQAS-Outreach,true,false,false,false,false,false
+0jiVY0000000212YAA,Group service-Prosocial or recreational activity on-site - Shelter,a0e8X00000mHh2PQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001LeYAI,Group service-Prosocial or recreational activity on-site - TLP,a0e8X00000mHh2PQAS-TLP,true,false,false,false,false,false
+0jiVY00000001qkYAA,Group service-Sexual health support - 1440,a0e4M00000IYdUEQA1-1440,true,false,false,false,false,false
+0jiVY00000001gKYAQ,Group service-Sexual health support - Chase,a0e4M00000IYdUEQA1-Chase,true,false,false,false,false,false
+0jiVY00000002BRYAY,Group service-Sexual health support - Drop-In,a0e4M00000IYdUEQA1-Drop-In,true,false,false,false,false,false
+0jiVY00000002LkYAI,Group service-Sexual health support - Outreach,a0e4M00000IYdUEQA1-Outreach,true,false,false,false,false,false
+0jiVY0000000213YAA,Group service-Sexual health support - Shelter,a0e4M00000IYdUEQA1-Shelter,true,false,false,false,false,false
+0jiVY00000001LfYAI,Group service-Sexual health support - TLP,a0e4M00000IYdUEQA1-TLP,true,false,false,false,false,false
+0jiVY00000001qlYAA,Group service-Tenant association - 1440,a0e4M00000IMcCfQAL-1440,true,false,false,false,false,false
+0jiVY00000001gLYAQ,Group service-Tenant association - Chase,a0e4M00000IMcCfQAL-Chase,true,false,false,false,false,false
+0jiVY00000002BSYAY,Group service-Tenant association - Drop-In,a0e4M00000IMcCfQAL-Drop-In,true,false,false,false,false,false
+0jiVY00000002jTYAQ,Group service-Tenant association - Nest 56,a0e4M00000IMcCfQAL-Nest 56,true,false,false,false,false,false
+0jiVY00000002LlYAI,Group service-Tenant association - Outreach,a0e4M00000IMcCfQAL-Outreach,true,false,false,false,false,false
+0jiVY0000000214YAA,Group service-Tenant association - Shelter,a0e4M00000IMcCfQAL-Shelter,true,false,false,false,false,false
+0jiVY00000001LgYAI,Group service-Tenant association - TLP,a0e4M00000IMcCfQAL-TLP,true,false,false,false,false,false
+0jiVY00000003HFYAY,Harm reduction kit - Outreach,,true,false,false,false,false,false
+0jiVY00000002BYYAY,Harvest of Hope Referral - Drop-In,a0e4M00000I79oyQAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002LrYAI,Harvest of Hope Referral - Outreach,a0e4M00000I79oyQAB-Outreach,true,false,false,false,false,false
+0jiVY00000001qtYAA,Health-First aid or hygiene supply provided - 1440,a0e610000029NIuAAM-1440,true,false,false,false,false,false
+0jiVY00000001gTYAQ,Health-First aid or hygiene supply provided - Chase,a0e610000029NIuAAM-Chase,true,false,false,false,false,false
+0jiVY00000002BaYAI,Health-First aid or hygiene supply provided - Drop-In,a0e610000029NIuAAM-Drop-In,true,false,false,false,false,false
+0jiVY00000002jdYAA,Health-First aid or hygiene supply provided - Nest 56,a0e610000029NIuAAM-Nest 56,true,false,false,false,false,false
+0jiVY00000002LtYAI,Health-First aid or hygiene supply provided - Outreach,a0e610000029NIuAAM-Outreach,true,false,false,false,false,false
+0jiVY000000021CYAQ,Health-First aid or hygiene supply provided - Shelter,a0e610000029NIuAAM-Shelter,true,false,false,false,false,false
+0jiVY00000001LoYAI,Health-First aid or hygiene supply provided - TLP,a0e610000029NIuAAM-TLP,true,false,false,false,false,false
+0jiVY00000001quYAA,Health-General sexual health support - 1440,a0e4M00000INAHPQA5-1440,true,false,false,false,false,false
+0jiVY00000001gUYAQ,Health-General sexual health support - Chase,a0e4M00000INAHPQA5-Chase,true,false,false,false,false,false
+0jiVY00000002BbYAI,Health-General sexual health support - Drop-In,a0e4M00000INAHPQA5-Drop-In,true,false,false,false,false,false
+0jiVY00000002LuYAI,Health-General sexual health support - Outreach,a0e4M00000INAHPQA5-Outreach,true,false,false,false,false,false
+0jiVY000000021DYAQ,Health-General sexual health support - Shelter,a0e4M00000INAHPQA5-Shelter,true,false,false,false,false,false
+0jiVY00000001LpYAI,Health-General sexual health support - TLP,a0e4M00000INAHPQA5-TLP,true,false,false,false,false,false
+0jiVY00000001qvYAA,Health-Medical appointment-Offsite - 1440,a0e8X00000mHiLrQAK-1440,true,false,false,false,false,false
+0jiVY00000001gVYAQ,Health-Medical appointment-Offsite - Chase,a0e8X00000mHiLrQAK-Chase,true,false,false,false,false,false
+0jiVY00000002BcYAI,Health-Medical appointment-Offsite - Drop-In,a0e8X00000mHiLrQAK-Drop-In,true,false,false,false,false,false
+0jiVY00000002LvYAI,Health-Medical appointment-Offsite - Outreach,a0e8X00000mHiLrQAK-Outreach,true,false,false,false,false,false
+0jiVY000000021EYAQ,Health-Medical appointment-Offsite - Shelter,a0e8X00000mHiLrQAK-Shelter,true,false,false,false,false,false
+0jiVY00000001LqYAI,Health-Medical appointment-Offsite - TLP,a0e8X00000mHiLrQAK-TLP,true,false,false,false,false,false
+0jiVY00000001qwYAA,Health-Medical appointment-Onsite - 1440,a0e4M00000IN1WvQAL-1440,true,false,false,false,false,false
+0jiVY00000001gWYAQ,Health-Medical appointment-Onsite - Chase,a0e4M00000IN1WvQAL-Chase,true,false,false,false,false,false
+0jiVY00000002BdYAI,Health-Medical appointment-Onsite - Drop-In,a0e4M00000IN1WvQAL-Drop-In,true,false,false,false,false,false
+0jiVY00000002jVYAQ,Health-Medical appointment-Onsite - Nest 56,a0e4M00000IN1WvQAL-Nest 56,true,false,false,false,false,false
+0jiVY00000002LwYAI,Health-Medical appointment-Onsite - Outreach,a0e4M00000IN1WvQAL-Outreach,true,false,false,false,false,false
+0jiVY000000021FYAQ,Health-Medical appointment-Onsite - Shelter,a0e4M00000IN1WvQAL-Shelter,true,false,false,false,false,false
+0jiVY00000001LrYAI,Health-Medical appointment-Onsite - TLP,a0e4M00000IN1WvQAL-TLP,true,false,false,false,false,false
+0jiVY00000001r4YAA,Housing - 1440,a0e6100000Bsl4gAAB-1440,true,false,false,false,false,false
+0jiVY00000001geYAA,Housing - Chase,a0e6100000Bsl4gAAB-Chase,true,false,false,false,false,false
+0jiVY00000001WGYAY,Housing - Nest56,a0e6100000Bsl4gAAB-Nest,true,false,false,false,false,false
+0jiVY000000021NYAQ,Housing - Shelter,a0e6100000Bsl4gAAB-Shelter,true,false,false,false,false,false
+0jiVY00000001LzYAI,Housing - TLP,a0e6100000Bsl4gAAB-TLP,true,false,false,false,false,false
+0jiVY00000001r5YAA,Housing application support - 1440,a0e8X00000mHh1mQAC-1440,true,false,false,false,false,false
+0jiVY00000001gfYAA,Housing application support - Chase,a0e8X00000mHh1mQAC-Chase,true,false,false,false,false,false
+0jiVY00000002BmYAI,Housing application support - Drop-In,a0e8X00000mHh1mQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002jzYAA,Housing application support - Nest 56,a0e8X00000mHh1mQAC-Nest 56,true,false,false,false,false,false
+0jiVY00000002M5YAI,Housing application support - Outreach,a0e8X00000mHh1mQAC-Outreach,true,false,false,false,false,false
+0jiVY000000021OYAQ,Housing application support - Shelter,a0e8X00000mHh1mQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001M0YAI,Housing application support - TLP,a0e8X00000mHh1mQAC-TLP,true,false,false,false,false,false
+0jiVY000000037ZYAQ,Housing Retention- Rental Assistance with Budget,,true,false,false,false,false,false
+0jiVY00000001r7YAA,Housing search support - 1440,a0e8X00000mHh2UQAS-1440,true,false,false,false,false,false
+0jiVY00000001ghYAA,Housing search support - Chase,a0e8X00000mHh2UQAS-Chase,true,false,false,false,false,false
+0jiVY00000002BoYAI,Housing search support - Drop-In,a0e8X00000mHh2UQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002M7YAI,Housing search support - Outreach,a0e8X00000mHh2UQAS-Outreach,true,false,false,false,false,false
+0jiVY000000021QYAQ,Housing search support - Shelter,a0e8X00000mHh2UQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001M2YAI,Housing search support - TLP,a0e8X00000mHh2UQAS-TLP,true,false,false,false,false,false
+0jiVY00000001r8YAA,Housing-Apartment maintenance/hygiene support - 1440,a0e4M00000Di7C9QAJ-1440,true,false,false,false,false,false
+0jiVY00000001giYAA,Housing-Apartment maintenance/hygiene support - Chase,a0e4M00000Di7C9QAJ-Chase,true,false,false,false,false,false
+0jiVY00000002BpYAI,Housing-Apartment maintenance/hygiene support - Drop-In,a0e4M00000Di7C9QAJ-Drop-In,true,false,false,false,false,false
+0jiVY00000002jQYAQ,Housing-Apartment maintenance/hygiene support - Nest 56,a0e4M00000Di7C9QAJ-Nest 56,true,false,false,false,false,false
+0jiVY00000002M8YAI,Housing-Apartment maintenance/hygiene support - Outreach,a0e4M00000Di7C9QAJ-Outreach,true,false,false,false,false,false
+0jiVY000000021RYAQ,Housing-Apartment maintenance/hygiene support - Shelter,a0e4M00000Di7C9QAJ-Shelter,true,false,false,false,false,false
+0jiVY00000001M3YAI,Housing-Apartment maintenance/hygiene support - TLP,a0e4M00000Di7C9QAJ-TLP,true,false,false,false,false,false
+0jiVY00000001r9YAA,Housing-Landlord interview or visit support - 1440,a0e8X00000mHh2QQAS-1440,true,false,false,false,false,false
+0jiVY00000001gjYAA,Housing-Landlord interview or visit support - Chase,a0e8X00000mHh2QQAS-Chase,true,false,false,false,false,false
+0jiVY00000002BqYAI,Housing-Landlord interview or visit support - Drop-In,a0e8X00000mHh2QQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002M9YAI,Housing-Landlord interview or visit support - Outreach,a0e8X00000mHh2QQAS-Outreach,true,false,false,false,false,false
+0jiVY000000021SYAQ,Housing-Landlord interview or visit support - Shelter,a0e8X00000mHh2QQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001M4YAI,Housing-Landlord interview or visit support - TLP,a0e8X00000mHh2QQAS-TLP,true,false,false,false,false,false
+0jiVY00000001rAYAQ,Housing-Lease education - 1440,a0e8X00000mHh2eQAC-1440,true,false,false,false,false,false
+0jiVY00000001gkYAA,Housing-Lease education - Chase,a0e8X00000mHh2eQAC-Chase,true,false,false,false,false,false
+0jiVY00000002BrYAI,Housing-Lease education - Drop-In,a0e8X00000mHh2eQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002MAYAY,Housing-Lease education - Outreach,a0e8X00000mHh2eQAC-Outreach,true,false,false,false,false,false
+0jiVY000000021TYAQ,Housing-Lease education - Shelter,a0e8X00000mHh2eQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001M5YAI,Housing-Lease education - TLP,a0e8X00000mHh2eQAC-TLP,true,false,false,false,false,false
+0jiVY00000001rBYAQ,Housing-Lease renewal support - 1440,a0e8X00000mHh1nQAC-1440,true,false,false,false,false,false
+0jiVY00000001glYAA,Housing-Lease renewal support - Chase,a0e8X00000mHh1nQAC-Chase,true,false,false,false,false,false
+0jiVY00000002BsYAI,Housing-Lease renewal support - Drop-In,a0e8X00000mHh1nQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002MBYAY,Housing-Lease renewal support - Outreach,a0e8X00000mHh1nQAC-Outreach,true,false,false,false,false,false
+0jiVY000000021UYAQ,Housing-Lease renewal support - Shelter,a0e8X00000mHh1nQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001M6YAI,Housing-Lease renewal support - TLP,a0e8X00000mHh1nQAC-TLP,true,false,false,false,false,false
+0jiVY00000001rCYAQ,Housing-Lease violation follow-up support - 1440,a0e8X00000nslN3QAI-1440,true,false,false,false,false,false
+0jiVY00000001gmYAA,Housing-Lease violation follow-up support - Chase,a0e8X00000nslN3QAI-Chase,true,false,false,false,false,false
+0jiVY00000002BtYAI,Housing-Lease violation follow-up support - Drop-In,a0e8X00000nslN3QAI-Drop-In,true,false,false,false,false,false
+0jiVY00000002k8YAA,Housing-Lease violation follow-up support - Nest 56,a0e8X00000nslN3QAI-Nest 56,true,false,false,false,false,false
+0jiVY00000002MCYAY,Housing-Lease violation follow-up support - Outreach,a0e8X00000nslN3QAI-Outreach,true,false,false,false,false,false
+0jiVY000000021VYAQ,Housing-Lease violation follow-up support - Shelter,a0e8X00000nslN3QAI-Shelter,true,false,false,false,false,false
+0jiVY00000001M7YAI,Housing-Lease violation follow-up support - TLP,a0e8X00000nslN3QAI-TLP,true,false,false,false,false,false
+0jiVY00000001rDYAQ,Housing-Move in assistance - 1440,a0e8X00000mHh2tQAC-1440,true,false,false,false,false,false
+0jiVY00000001nHYAQ,Housing-Move in assistance - Chase,a0e8X00000mHh2tQAC-Chase,true,false,false,false,false,false
+0jiVY00000002BuYAI,Housing-Move in assistance - Drop-In,a0e8X00000mHh2tQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002k2YAA,Housing-Move in assistance - Nest 56,a0e8X00000mHh2tQAC-Nest 56,true,false,false,false,false,false
+0jiVY00000002MDYAY,Housing-Move in assistance - Outreach,a0e8X00000mHh2tQAC-Outreach,true,false,false,false,false,false
+0jiVY000000021WYAQ,Housing-Move in assistance - Shelter,a0e8X00000mHh2tQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001M8YAI,Housing-Move in assistance - TLP,a0e8X00000mHh2tQAC-TLP,true,false,false,false,false,false
+0jiVY00000001rEYAQ,Housing-Move out assistance - 1440,a0e8X00000nslNdQAI-1440,true,false,false,false,false,false
+0jiVY00000001nIYAQ,Housing-Move out assistance - Chase,a0e8X00000nslNdQAI-Chase,true,false,false,false,false,false
+0jiVY00000002BvYAI,Housing-Move out assistance - Drop-In,a0e8X00000nslNdQAI-Drop-In,true,false,false,false,false,false
+0jiVY00000002MEYAY,Housing-Move out assistance - Outreach,a0e8X00000nslNdQAI-Outreach,true,false,false,false,false,false
+0jiVY000000021XYAQ,Housing-Move out assistance - Shelter,a0e8X00000nslNdQAI-Shelter,true,false,false,false,false,false
+0jiVY00000001M9YAI,Housing-Move out assistance - TLP,a0e8X00000nslNdQAI-TLP,true,false,false,false,false,false
+0jiVY00000001rFYAQ,Housing-New tenant orientation - 1440,a0e8X00000mHh38QAC-1440,true,false,false,false,false,false
+0jiVY00000001nJYAQ,Housing-New tenant orientation - Chase,a0e8X00000mHh38QAC-Chase,true,false,false,false,false,false
+0jiVY00000002BwYAI,Housing-New tenant orientation - Drop-In,a0e8X00000mHh38QAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002k3YAA,Housing-New tenant orientation - Nest 56,a0e8X00000mHh38QAC-Nest 56,true,false,false,false,false,false
+0jiVY00000002MFYAY,Housing-New tenant orientation - Outreach,a0e8X00000mHh38QAC-Outreach,true,false,false,false,false,false
+0jiVY000000021YYAQ,Housing-New tenant orientation - Shelter,a0e8X00000mHh38QAC-Shelter,true,false,false,false,false,false
+0jiVY00000001MAYAY,Housing-New tenant orientation - TLP,a0e8X00000mHh38QAC-TLP,true,false,false,false,false,false
+0jiVY00000001rGYAQ,Housing-related disability accommodation - 1440,a0e8X00000mHh3XQAS-1440,true,false,false,false,false,false
+0jiVY00000001nKYAQ,Housing-related disability accommodation - Chase,a0e8X00000mHh3XQAS-Chase,true,false,false,false,false,false
+0jiVY00000002BxYAI,Housing-related disability accommodation - Drop-In,a0e8X00000mHh3XQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002MGYAY,Housing-related disability accommodation - Outreach,a0e8X00000mHh3XQAS-Outreach,true,false,false,false,false,false
+0jiVY000000021ZYAQ,Housing-related disability accommodation - Shelter,a0e8X00000mHh3XQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001MBYAY,Housing-related disability accommodation - TLP,a0e8X00000mHh3XQAS-TLP,true,false,false,false,false,false
+0jiVY00000001rHYAQ,Housing-Rent support - 1440,a0e8X00000nslNmQAI-1440,true,false,false,false,false,false
+0jiVY00000001nLYAQ,Housing-Rent support - Chase,a0e8X00000nslNmQAI-Chase,true,false,false,false,false,false
+0jiVY00000002ByYAI,Housing-Rent support - Drop-In,a0e8X00000nslNmQAI-Drop-In,true,false,false,false,false,false
+0jiVY00000002k9YAA,Housing-Rent support - Nest 56,a0e8X00000nslNmQAI-Nest 56,true,false,false,false,false,false
+0jiVY00000002MHYAY,Housing-Rent support - Outreach,a0e8X00000nslNmQAI-Outreach,true,false,false,false,false,false
+0jiVY000000021aYAA,Housing-Rent support - Shelter,a0e8X00000nslNmQAI-Shelter,true,false,false,false,false,false
+0jiVY00000001MCYAY,Housing-Rent support - TLP,a0e8X00000nslNmQAI-TLP,true,false,false,false,false,false
+0jiVY00000001rIYAQ,Housing-Tenant rights education - 1440,a0e8X00000mHh2RQAS-1440,true,false,false,false,false,false
+0jiVY00000001nMYAQ,Housing-Tenant rights education - Chase,a0e8X00000mHh2RQAS-Chase,true,false,false,false,false,false
+0jiVY00000002BzYAI,Housing-Tenant rights education - Drop-In,a0e8X00000mHh2RQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002MIYAY,Housing-Tenant rights education - Outreach,a0e8X00000mHh2RQAS-Outreach,true,false,false,false,false,false
+0jiVY000000021bYAA,Housing-Tenant rights education - Shelter,a0e8X00000mHh2RQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001MDYAY,Housing-Tenant rights education - TLP,a0e8X00000mHh2RQAS-TLP,true,false,false,false,false,false
+0jiVY00000001rJYAQ,Housing-Tenant-based voucher support - 1440,a0e8X00000mHpKFQA0-1440,true,false,false,false,false,false
+0jiVY00000001nNYAQ,Housing-Tenant-based voucher support - Chase,a0e8X00000mHpKFQA0-Chase,true,false,false,false,false,false
+0jiVY00000002C0YAI,Housing-Tenant-based voucher support - Drop-In,a0e8X00000mHpKFQA0-Drop-In,true,false,false,false,false,false
+0jiVY00000002MJYAY,Housing-Tenant-based voucher support - Outreach,a0e8X00000mHpKFQA0-Outreach,true,false,false,false,false,false
+0jiVY000000021cYAA,Housing-Tenant-based voucher support - Shelter,a0e8X00000mHpKFQA0-Shelter,true,false,false,false,false,false
+0jiVY00000001MEYAY,Housing-Tenant-based voucher support - TLP,a0e8X00000mHpKFQA0-TLP,true,false,false,false,false,false
+0jiVY00000001rKYAQ,Housing-Voucher income verification - 1440,a0e8X00000mHpK0QAK-1440,true,false,false,false,false,false
+0jiVY00000001nOYAQ,Housing-Voucher income verification - Chase,a0e8X00000mHpK0QAK-Chase,true,false,false,false,false,false
+0jiVY00000002C1YAI,Housing-Voucher income verification - Drop-In,a0e8X00000mHpK0QAK-Drop-In,true,false,false,false,false,false
+0jiVY00000002MKYAY,Housing-Voucher income verification - Outreach,a0e8X00000mHpK0QAK-Outreach,true,false,false,false,false,false
+0jiVY000000021dYAA,Housing-Voucher income verification - Shelter,a0e8X00000mHpK0QAK-Shelter,true,false,false,false,false,false
+0jiVY00000001MFYAY,Housing-Voucher income verification - TLP,a0e8X00000mHpK0QAK-TLP,true,false,false,false,false,false
+0jiVY00000001rLYAQ,Housing-Voucher recertification - 1440,a0e8X00000mHpKAQA0-1440,true,false,false,false,false,false
+0jiVY00000001nPYAQ,Housing-Voucher recertification - Chase,a0e8X00000mHpKAQA0-Chase,true,false,false,false,false,false
+0jiVY00000002C2YAI,Housing-Voucher recertification - Drop-In,a0e8X00000mHpKAQA0-Drop-In,true,false,false,false,false,false
+0jiVY00000002MLYAY,Housing-Voucher recertification - Outreach,a0e8X00000mHpKAQA0-Outreach,true,false,false,false,false,false
+0jiVY000000021eYAA,Housing-Voucher recertification - Shelter,a0e8X00000mHpKAQA0-Shelter,true,false,false,false,false,false
+0jiVY00000001MGYAY,Housing-Voucher recertification - TLP,a0e8X00000mHpKAQA0-TLP,true,false,false,false,false,false
+0jiVY00000001rNYAQ,ID and vital documents general support - 1440,a0e6100000Bsl4qAAB-1440,true,false,false,false,false,false
+0jiVY00000001nRYAQ,ID and vital documents general support - Chase,a0e6100000Bsl4qAAB-Chase,true,false,false,false,false,false
+0jiVY00000002C4YAI,ID and vital documents general support - Drop-In,a0e6100000Bsl4qAAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002jrYAA,ID and vital documents general support - Nest 56,a0e6100000Bsl4qAAB-Nest 56,true,false,false,false,false,false
+0jiVY00000002MNYAY,ID and vital documents general support - Outreach,a0e6100000Bsl4qAAB-Outreach,true,false,false,false,false,false
+0jiVY000000021gYAA,ID and vital documents general support - Shelter,a0e6100000Bsl4qAAB-Shelter,true,false,false,false,false,false
+0jiVY00000001MIYAY,ID and vital documents general support - TLP,a0e6100000Bsl4qAAB-TLP,true,false,false,false,false,false
+0jiVY00000001rOYAQ,ID and vital documents secured-Outcome - 1440,a0e6100000BtTMVAA3-1440,true,false,false,false,false,false
+0jiVY00000001nSYAQ,ID and vital documents secured-Outcome - Chase,a0e6100000BtTMVAA3-Chase,true,false,false,false,false,false
+0jiVY00000002C5YAI,ID and vital documents secured-Outcome - Drop-In,a0e6100000BtTMVAA3-Drop-In,true,false,false,false,false,false
+0jiVY00000002MOYAY,ID and vital documents secured-Outcome - Outreach,a0e6100000BtTMVAA3-Outreach,true,false,false,false,false,false
+0jiVY000000021hYAA,ID and vital documents secured-Outcome - Shelter,a0e6100000BtTMVAA3-Shelter,true,false,false,false,false,false
+0jiVY00000001MJYAY,ID and vital documents secured-Outcome - TLP,a0e6100000BtTMVAA3-TLP,true,false,false,false,false,false
+0jiVY00000001rRYAQ,Interaction with participant's school - 1440,a0e8X00000mHiLhQAK-1440,true,false,false,false,false,false
+0jiVY00000001nVYAQ,Interaction with participant's school - Chase,a0e8X00000mHiLhQAK-Chase,true,false,false,false,false,false
+0jiVY00000002C8YAI,Interaction with participant's school - Drop-In,a0e8X00000mHiLhQAK-Drop-In,true,false,false,false,false,false
+0jiVY00000002MRYAY,Interaction with participant's school - Outreach,a0e8X00000mHiLhQAK-Outreach,true,false,false,false,false,false
+0jiVY000000021kYAA,Interaction with participant's school - Shelter,a0e8X00000mHiLhQAK-Shelter,true,false,false,false,false,false
+0jiVY00000001MMYAY,Interaction with participant's school - TLP,a0e8X00000mHiLhQAK-TLP,true,false,false,false,false,false
+0jiVY00000001rUYAQ,Legal issue general support - 1440,a0e6100000Bsl4vAAB-1440,true,false,false,false,false,false
+0jiVY00000001nYYAQ,Legal issue general support - Chase,a0e6100000Bsl4vAAB-Chase,true,false,false,false,false,false
+0jiVY00000002CBYAY,Legal issue general support - Drop-In,a0e6100000Bsl4vAAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002jsYAA,Legal issue general support - Nest 56,a0e6100000Bsl4vAAB-Nest 56,true,false,false,false,false,false
+0jiVY00000002MUYAY,Legal issue general support - Outreach,a0e6100000Bsl4vAAB-Outreach,true,false,false,false,false,false
+0jiVY000000021nYAA,Legal issue general support - Shelter,a0e6100000Bsl4vAAB-Shelter,true,false,false,false,false,false
+0jiVY00000001MPYAY,Legal issue general support - TLP,a0e6100000Bsl4vAAB-TLP,true,false,false,false,false,false
+0jiVY00000001rYYAQ,LGBTQ+ support - 1440,a0e8X00000mHpVrQAK-1440,true,false,false,false,false,false
+0jiVY00000001ncYAA,LGBTQ+ support - Chase,a0e8X00000mHpVrQAK-Chase,true,false,false,false,false,false
+0jiVY00000002CFYAY,LGBTQ+ support - Drop-In,a0e8X00000mHpVrQAK-Drop-In,true,false,false,false,false,false
+0jiVY00000002MYYAY,LGBTQ+ support - Outreach,a0e8X00000mHpVrQAK-Outreach,true,false,false,false,false,false
+0jiVY000000021rYAA,LGBTQ+ support - Shelter,a0e8X00000mHpVrQAK-Shelter,true,false,false,false,false,false
+0jiVY00000001MTYAY,LGBTQ+ support - TLP,a0e8X00000mHpVrQAK-TLP,true,false,false,false,false,false
+0jiVY00000002zVYAQ,Life Skills- Clean With Me,,true,false,false,false,false,false
+0jiVY0000000317YAA,Life Skills- Hand Embroidery,,true,false,false,false,false,false
+0jiVY00000001rZYAQ,Life skills-Not covered by other service - 1440,a0e61000001GLq7AAG-1440,true,false,false,false,false,false
+0jiVY00000001ndYAA,Life skills-Not covered by other service - Chase,a0e61000001GLq7AAG-Chase,true,false,false,false,false,false
+0jiVY00000002CGYAY,Life skills-Not covered by other service - Drop-In,a0e61000001GLq7AAG-Drop-In,true,false,false,false,false,false
+0jiVY00000002jaYAA,Life skills-Not covered by other service - Nest 56,a0e61000001GLq7AAG-Nest 56,true,false,false,false,false,false
+0jiVY00000002MZYAY,Life skills-Not covered by other service - Outreach,a0e61000001GLq7AAG-Outreach,true,false,false,false,false,false
+0jiVY000000021sYAA,Life skills-Not covered by other service - Shelter,a0e61000001GLq7AAG-Shelter,true,false,false,false,false,false
+0jiVY00000001MUYAY,Life skills-Not covered by other service - TLP,a0e61000001GLq7AAG-TLP,true,false,false,false,false,false
+0jiVY00000001raYAA,Lost Housing-Outcome - 1440,a0e61000006JOV1AAO-1440,true,false,false,false,false,false
+0jiVY00000002CHYAY,Lost Housing-Outcome - Drop-In,a0e61000006JOV1AAO-Drop-In,true,false,false,false,false,false
+0jiVY00000002MaYAI,Lost Housing-Outcome - Outreach,a0e61000006JOV1AAO-Outreach,true,false,false,false,false,false
+0jiVY000000021tYAA,Lost Housing-Outcome - Shelter,a0e61000006JOV1AAO-Shelter,true,false,false,false,false,false
+0jiVY00000001MVYAY,Lost Housing-Outcome - TLP,a0e61000006JOV1AAO-TLP,true,false,false,false,false,false
+0jiVY00000001rdYAA,Meal provided - 1440,a0e61000001GHXhAAO-1440,true,false,false,false,false,false
+0jiVY00000001nhYAA,Meal provided - Chase,a0e61000001GHXhAAO-Chase,true,false,false,false,false,false
+0jiVY00000002CKYAY,Meal provided - Drop-In,a0e61000001GHXhAAO-Drop-In,true,false,false,false,false,false
+0jiVY00000002MdYAI,Meal provided - Outreach,a0e61000001GHXhAAO-Outreach,true,false,false,false,false,false
+0jiVY000000021wYAA,Meal provided - Shelter,a0e61000001GHXhAAO-Shelter,true,false,false,false,false,false
+0jiVY00000001MYYAY,Meal provided - TLP,a0e61000001GHXhAAO-TLP,true,false,false,false,false,false
+0jiVY00000001rfYAA,Medical care access general support - 1440,a0e6100000Bsl55AAB-1440,true,false,false,false,false,false
+0jiVY00000001njYAA,Medical care access general support - Chase,a0e6100000Bsl55AAB-Chase,true,false,false,false,false,false
+0jiVY00000002CMYAY,Medical care access general support - Drop-In,a0e6100000Bsl55AAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002jtYAA,Medical care access general support - Nest 56,a0e6100000Bsl55AAB-Nest 56,true,false,false,false,false,false
+0jiVY00000002MfYAI,Medical care access general support - Outreach,a0e6100000Bsl55AAB-Outreach,true,false,false,false,false,false
+0jiVY000000021yYAA,Medical care access general support - Shelter,a0e6100000Bsl55AAB-Shelter,true,false,false,false,false,false
+0jiVY00000001MaYAI,Medical care access general support - TLP,a0e6100000Bsl55AAB-TLP,true,false,false,false,false,false
+0jiVY00000001rgYAA,Medical evaluation-Onsite - 1440,a0e8X00000mHiLNQA0-1440,true,false,false,false,false,false
+0jiVY00000001nkYAA,Medical evaluation-Onsite - Chase,a0e8X00000mHiLNQA0-Chase,true,false,false,false,false,false
+0jiVY00000002CNYAY,Medical evaluation-Onsite - Drop-In,a0e8X00000mHiLNQA0-Drop-In,true,false,false,false,false,false
+0jiVY00000002MgYAI,Medical evaluation-Onsite - Outreach,a0e8X00000mHiLNQA0-Outreach,true,false,false,false,false,false
+0jiVY000000021zYAA,Medical evaluation-Onsite - Shelter,a0e8X00000mHiLNQA0-Shelter,true,false,false,false,false,false
+0jiVY00000001MbYAI,Medical evaluation-Onsite - TLP,a0e8X00000mHiLNQA0-TLP,true,false,false,false,false,false
+0jiVY00000001riYAA,Mental Health Crisis-Outcome - 1440,a0e61000006JOU4AAO-1440,true,false,false,false,false,false
+0jiVY00000002CPYAY,Mental Health Crisis-Outcome - Drop-In,a0e61000006JOU4AAO-Drop-In,true,false,false,false,false,false
+0jiVY00000002MiYAI,Mental Health Crisis-Outcome - Outreach,a0e61000006JOU4AAO-Outreach,true,false,false,false,false,false
+0jiVY0000000221YAA,Mental Health Crisis-Outcome - Shelter,a0e61000006JOU4AAO-Shelter,true,false,false,false,false,false
+0jiVY00000001MdYAI,Mental Health Crisis-Outcome - TLP,a0e61000006JOU4AAO-TLP,true,false,false,false,false,false
+0jiVY00000001rjYAA,Mental Health Engagement-Outcome - 1440,a0e61000006JOTHAA4-1440,true,false,false,false,false,false
+0jiVY00000002CQYAY,Mental Health Engagement-Outcome - Drop-In,a0e61000006JOTHAA4-Drop-In,true,false,false,false,false,false
+0jiVY00000002MnYAI,Mental Health Engagement-Outcome - Outreach,a0e61000006JOTHAA4-Outreach,true,false,false,false,false,false
+0jiVY0000000222YAA,Mental Health Engagement-Outcome - Shelter,a0e61000006JOTHAA4-Shelter,true,false,false,false,false,false
+0jiVY00000001rkYAA,Mental health general support (not clinical counseling) - 1440,a0e6100000Bsl5AAAR-1440,true,false,false,false,false,false
+0jiVY00000001noYAA,Mental health general support (not clinical counseling) - Chase,a0e6100000Bsl5AAAR-Chase,true,false,false,false,false,false
+0jiVY00000002CRYAY,Mental health general support (not clinical counseling) - Drop-In,a0e6100000Bsl5AAAR-Drop-In,true,false,false,false,false,false
+0jiVY00000002juYAA,Mental health general support (not clinical counseling) - Nest 56,a0e6100000Bsl5AAAR-Nest 56,true,false,false,false,false,false
+0jiVY00000002MoYAI,Mental health general support (not clinical counseling) - Outreach,a0e6100000Bsl5AAAR-Outreach,true,false,false,false,false,false
+0jiVY0000000223YAA,Mental health general support (not clinical counseling) - Shelter,a0e6100000Bsl5AAAR-Shelter,true,false,false,false,false,false
+0jiVY00000001MfYAI,Mental health general support (not clinical counseling) - TLP,a0e6100000Bsl5AAAR-TLP,true,false,false,false,false,false
+0jiVY00000001rmYAA,Mental/behavioral health appointment-Offsite - 1440,a0e4M00000INAHYQA5-1440,true,false,false,false,false,false
+0jiVY00000001nqYAA,Mental/behavioral health appointment-Offsite - Chase,a0e4M00000INAHYQA5-Chase,true,false,false,false,false,false
+0jiVY00000002CTYAY,Mental/behavioral health appointment-Offsite - Drop-In,a0e4M00000INAHYQA5-Drop-In,true,false,false,false,false,false
+0jiVY00000002jXYAQ,Mental/behavioral health appointment-Offsite - Nest 56,a0e4M00000INAHYQA5-Nest 56,true,false,false,false,false,false
+0jiVY00000002MqYAI,Mental/behavioral health appointment-Offsite - Outreach,a0e4M00000INAHYQA5-Outreach,true,false,false,false,false,false
+0jiVY0000000225YAA,Mental/behavioral health appointment-Offsite - Shelter,a0e4M00000INAHYQA5-Shelter,true,false,false,false,false,false
+0jiVY00000001MhYAI,Mental/behavioral health appointment-Offsite - TLP,a0e4M00000INAHYQA5-TLP,true,false,false,false,false,false
+0jiVY00000002CUYAY,MHP Referral - Drop-In,a0e4M00000I79owQAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002MrYAI,MHP Referral - Outreach,a0e4M00000I79owQAB-Outreach,true,false,false,false,false,false
+0jiVY00000001rqYAA,Newly housed-Outcome - 1440,a0e61000006JOUwAAO-1440,true,false,false,false,false,false
+0jiVY00000002CXYAY,Newly housed-Outcome - Drop-In,a0e61000006JOUwAAO-Drop-In,true,false,false,false,false,false
+0jiVY0000000229YAA,Newly housed-Outcome - Shelter,a0e61000006JOUwAAO-Shelter,true,false,false,false,false,false
+0jiVY00000001MlYAI,Newly housed-Outcome - TLP,a0e61000006JOUwAAO-TLP,true,false,false,false,false,false
+0jiVY00000002CYYAY,Night of stay - Drop-In,a0e61000001OIhWAAW-Drop-In,true,false,false,false,false,false
+0jiVY00000002MvYAI,Night of stay - Outreach,a0e61000001OIhWAAW-Outreach,true,false,false,false,false,false
+0jiVY000000022AYAQ,Night of stay - Shelter,a0e61000001OIhWAAW-Shelter,true,false,false,false,false,false
+0jiVY000000032jYAA,Nutrition Assistance- Food Bank,,true,false,false,false,false,false
+0jiVY00000001rvYAA,Outcome - Counseling - 1440,a0e4M00000ILcsrQAD-1440,true,false,false,false,false,false
+0jiVY000000022EYAQ,Outcome - Counseling - Shelter,a0e4M00000ILcsrQAD-Shelter,true,false,false,false,false,false
+0jiVY00000001rwYAA,Outreach contact to agency/organization/group - 1440,a0e8X00000mHh3wQAC-1440,true,false,false,false,false,false
+0jiVY00000001o0YAA,Outreach contact to agency/organization/group - Chase,a0e8X00000mHh3wQAC-Chase,true,false,false,false,false,false
+0jiVY00000002CdYAI,Outreach contact to agency/organization/group - Drop-In,a0e8X00000mHh3wQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002N0YAI,Outreach contact to agency/organization/group - Outreach,a0e8X00000mHh3wQAC-Outreach,true,false,false,false,false,false
+0jiVY000000022FYAQ,Outreach contact to agency/organization/group - Shelter,a0e8X00000mHh3wQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001MrYAI,Outreach contact to agency/organization/group - TLP,a0e8X00000mHh3wQAC-TLP,true,false,false,false,false,false
+0jiVY00000001rxYAA,Overnight guest - 1440,a0e4M00000C5mVdQAJ-1440,true,false,false,false,false,false
+0jiVY00000002jPYAQ,Overnight guest - Nest 56,a0e4M00000C5mVdQAJ-Nest 56,true,false,false,false,false,false
+0jiVY000000022GYAQ,Overnight guest - Shelter,a0e4M00000C5mVdQAJ-Shelter,true,false,false,false,false,false
+0jiVY00000001rzYAA,Participant attended court session - 1440,a0e8X00000mHiL8QAK-1440,true,false,false,false,false,false
+0jiVY00000001o3YAA,Participant attended court session - Chase,a0e8X00000mHiL8QAK-Chase,true,false,false,false,false,false
+0jiVY00000002CgYAI,Participant attended court session - Drop-In,a0e8X00000mHiL8QAK-Drop-In,true,false,false,false,false,false
+0jiVY00000002N3YAI,Participant attended court session - Outreach,a0e8X00000mHiL8QAK-Outreach,true,false,false,false,false,false
+0jiVY000000022IYAQ,Participant attended court session - Shelter,a0e8X00000mHiL8QAK-Shelter,true,false,false,false,false,false
+0jiVY00000001MuYAI,Participant attended court session - TLP,a0e8X00000mHiL8QAK-TLP,true,false,false,false,false,false
+0jiVY00000001s0YAA,Participant volunteer opportunity - 1440,a0e8X00000mHh41QAC-1440,true,false,false,false,false,false
+0jiVY00000001o4YAA,Participant volunteer opportunity - Chase,a0e8X00000mHh41QAC-Chase,true,false,false,false,false,false
+0jiVY00000002ChYAI,Participant volunteer opportunity - Drop-In,a0e8X00000mHh41QAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002N4YAI,Participant volunteer opportunity - Outreach,a0e8X00000mHh41QAC-Outreach,true,false,false,false,false,false
+0jiVY000000022JYAQ,Participant volunteer opportunity - Shelter,a0e8X00000mHh41QAC-Shelter,true,false,false,false,false,false
+0jiVY00000001MvYAI,Participant volunteer opportunity - TLP,a0e8X00000mHh41QAC-TLP,true,false,false,false,false,false
+0jiVY00000001tHYAQ,Peer - Mental Health Check-in - 1440,a0eUY000004c4l3YAA-1440,true,false,false,false,false,false
+0jiVY00000001pLYAQ,Peer - Mental Health Check-in - Chase,a0eUY000004c4l3YAA-Chase,true,false,false,false,false,false
+0jiVY00000002A6YAI,Peer - Mental Health Check-in - Shelter,a0eUY000004c4l3YAA-Shelter,true,false,false,false,false,false
+0jiVY00000003KTYAY,Person/Property Search,,true,false,false,false,false,false
+0jiVY00000001s4YAA,Personal hygiene general support - 1440,a0e8X00000mHh4GQAS-1440,true,false,false,false,false,false
+0jiVY00000001o8YAA,Personal hygiene general support - Chase,a0e8X00000mHh4GQAS-Chase,true,false,false,false,false,false
+0jiVY00000002ClYAI,Personal hygiene general support - Drop-In,a0e8X00000mHh4GQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002N8YAI,Personal hygiene general support - Outreach,a0e8X00000mHh4GQAS-Outreach,true,false,false,false,false,false
+0jiVY000000022NYAQ,Personal hygiene general support - Shelter,a0e8X00000mHh4GQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001MzYAI,Personal hygiene general support - TLP,a0e8X00000mHh4GQAS-TLP,true,false,false,false,false,false
+0jiVY00000001s7YAA,Points store use - 1440,a0e8X00000mHh4LQAS-1440,true,false,false,false,false,false
+0jiVY00000001oBYAQ,Points store use - Chase,a0e8X00000mHh4LQAS-Chase,true,false,false,false,false,false
+0jiVY00000002CoYAI,Points store use - Drop-In,a0e8X00000mHh4LQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002k4YAA,Points store use - Nest 56,a0e8X00000mHh4LQAS-Nest 56,true,false,false,false,false,false
+0jiVY00000002NBYAY,Points store use - Outreach,a0e8X00000mHh4LQAS-Outreach,true,false,false,false,false,false
+0jiVY000000022QYAQ,Points store use - Shelter,a0e8X00000mHh4LQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001N2YAI,Points store use - TLP,a0e8X00000mHh4LQAS-TLP,true,false,false,false,false,false
+0jiVY00000001s9YAA,Professional team engagement - 1440,a0e4M00000C5guoQAB-1440,true,false,false,false,false,false
+0jiVY00000001oDYAQ,Professional team engagement - Chase,a0e4M00000C5guoQAB-Chase,true,false,false,false,false,false
+0jiVY00000002CqYAI,Professional team engagement - Drop-In,a0e4M00000C5guoQAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002jOYAQ,Professional team engagement - Nest 56,a0e4M00000C5guoQAB-Nest 56,true,false,false,false,false,false
+0jiVY00000002NDYAY,Professional team engagement - Outreach,a0e4M00000C5guoQAB-Outreach,true,false,false,false,false,false
+0jiVY000000022SYAQ,Professional team engagement - Shelter,a0e4M00000C5guoQAB-Shelter,true,false,false,false,false,false
+0jiVY00000001N4YAI,Professional team engagement - TLP,a0e4M00000C5guoQAB-TLP,true,false,false,false,false,false
+0jiVY00000001sAYAQ,Prosocial or recreational activity - 1440,a0e61000003gImtAAE-1440,true,false,false,false,false,false
+0jiVY00000001oEYAQ,Prosocial or recreational activity - Chase,a0e61000003gImtAAE-Chase,true,false,false,false,false,false
+0jiVY00000002CrYAI,Prosocial or recreational activity - Drop-In,a0e61000003gImtAAE-Drop-In,true,false,false,false,false,false
+0jiVY00000002jgYAA,Prosocial or recreational activity - Nest 56,a0e61000003gImtAAE-Nest 56,true,false,false,false,false,false
+0jiVY00000002NEYAY,Prosocial or recreational activity - Outreach,a0e61000003gImtAAE-Outreach,true,false,false,false,false,false
+0jiVY000000022TYAQ,Prosocial or recreational activity - Shelter,a0e61000003gImtAAE-Shelter,true,false,false,false,false,false
+0jiVY00000001N5YAI,Prosocial or recreational activity - TLP,a0e61000003gImtAAE-TLP,true,false,false,false,false,false
+0jiVY00000001oFYAQ,Psychological evaluation-Onsite - Chase,a0e8X00000mHiLXQA0-Chase,true,false,false,false,false,false
+0jiVY00000001sCYAQ,Psychosocial assessment completed - 1440,a0e4M00000A2WsKQAV-1440,true,false,false,false,false,false
+0jiVY00000001oGYAQ,Psychosocial assessment completed - Chase,a0e4M00000A2WsKQAV-Chase,true,false,false,false,false,false
+0jiVY00000002CtYAI,Psychosocial assessment completed - Drop-In,a0e4M00000A2WsKQAV-Drop-In,true,false,false,false,false,false
+0jiVY00000002NGYAY,Psychosocial assessment completed - Outreach,a0e4M00000A2WsKQAV-Outreach,true,false,false,false,false,false
+0jiVY000000022VYAQ,Psychosocial assessment completed - Shelter,a0e4M00000A2WsKQAV-Shelter,true,false,false,false,false,false
+0jiVY00000001N7YAI,Psychosocial assessment completed - TLP,a0e4M00000A2WsKQAV-TLP,true,false,false,false,false,false
+0jiVY00000001sDYAQ,Public benefits support - 1440,a0e8X00000nsYlvQAE-1440,true,false,false,false,false,false
+0jiVY00000001oHYAQ,Public benefits support - Chase,a0e8X00000nsYlvQAE-Chase,true,false,false,false,false,false
+0jiVY00000002CuYAI,Public benefits support - Drop-In,a0e8X00000nsYlvQAE-Drop-In,true,false,false,false,false,false
+0jiVY00000002k7YAA,Public benefits support - Nest 56,a0e8X00000nsYlvQAE-Nest 56,true,false,false,false,false,false
+0jiVY00000002NHYAY,Public benefits support - Outreach,a0e8X00000nsYlvQAE-Outreach,true,false,false,false,false,false
+0jiVY000000022WYAQ,Public benefits support - Shelter,a0e8X00000nsYlvQAE-Shelter,true,false,false,false,false,false
+0jiVY00000001N8YAI,Public benefits support - TLP,a0e8X00000nsYlvQAE-TLP,true,false,false,false,false,false
+0jiVY00000001oIYAQ,QRTP assessment completed - Chase,a0e8X00000oREdDQAW-Chase,true,false,false,false,false,false
+0jiVY00000002CvYAI,QRTP assessment completed - Drop-In,a0e8X00000oREdDQAW-Drop-In,true,false,false,false,false,false
+0jiVY00000002NIYAY,QRTP assessment completed - Outreach,a0e8X00000oREdDQAW-Outreach,true,false,false,false,false,false
+0jiVY000000022XYAQ,QRTP assessment completed - Shelter,a0e8X00000oREdDQAW-Shelter,true,false,false,false,false,false
+0jiVY00000001N9YAI,QRTP assessment completed - TLP,a0e8X00000oREdDQAW-TLP,true,false,false,false,false,false
+0jiVY00000001sHYAQ,Reduced Substance Use-Outcome - 1440,a0e61000006JOTGAA4-1440,true,false,false,false,false,false
+0jiVY00000002CyYAI,Reduced Substance Use-Outcome - Drop-In,a0e61000006JOTGAA4-Drop-In,true,false,false,false,false,false
+0jiVY00000002NLYAY,Reduced Substance Use-Outcome - Outreach,a0e61000006JOTGAA4-Outreach,true,false,false,false,false,false
+0jiVY000000022aYAA,Reduced Substance Use-Outcome - Shelter,a0e61000006JOTGAA4-Shelter,true,false,false,false,false,false
+0jiVY00000001sIYAQ,Referral-Child welfare/Foster care/Chafee - 1440,a0e61000001GLqbAAG-1440,true,false,false,false,false,false
+0jiVY00000001oMYAQ,Referral-Child welfare/Foster care/Chafee - Chase,a0e61000001GLqbAAG-Chase,true,false,false,false,false,false
+0jiVY00000002CzYAI,Referral-Child welfare/Foster care/Chafee - Drop-In,a0e61000001GLqbAAG-Drop-In,true,false,false,false,false,false
+0jiVY00000002NMYAY,Referral-Child welfare/Foster care/Chafee - Outreach,a0e61000001GLqbAAG-Outreach,true,false,false,false,false,false
+0jiVY000000022bYAA,Referral-Child welfare/Foster care/Chafee - Shelter,a0e61000001GLqbAAG-Shelter,true,false,false,false,false,false
+0jiVY00000001NDYAY,Referral-Child welfare/Foster care/Chafee - TLP,a0e61000001GLqbAAG-TLP,true,false,false,false,false,false
+0jiVY00000001sJYAQ,Referral-Education program or institution - 1440,a0e61000002Qt3iAAC-1440,true,false,false,false,false,false
+0jiVY00000001oNYAQ,Referral-Education program or institution - Chase,a0e61000002Qt3iAAC-Chase,true,false,false,false,false,false
+0jiVY00000002D0YAI,Referral-Education program or institution - Drop-In,a0e61000002Qt3iAAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002NNYAY,Referral-Education program or institution - Outreach,a0e61000002Qt3iAAC-Outreach,true,false,false,false,false,false
+0jiVY000000022cYAA,Referral-Education program or institution - Shelter,a0e61000002Qt3iAAC-Shelter,true,false,false,false,false,false
+0jiVY00000001NEYAY,Referral-Education program or institution - TLP,a0e61000002Qt3iAAC-TLP,true,false,false,false,false,false
+0jiVY00000001sKYAQ,Referral-Equine therapy - 1440,a0e610000029svpAAA-1440,true,false,false,false,false,false
+0jiVY00000002D1YAI,Referral-Equine therapy - Drop-In,a0e610000029svpAAA-Drop-In,true,false,false,false,false,false
+0jiVY000000022dYAA,Referral-Equine therapy - Shelter,a0e610000029svpAAA-Shelter,true,false,false,false,false,false
+0jiVY00000001NFYAY,Referral-Equine therapy - TLP,a0e610000029svpAAA-TLP,true,false,false,false,false,false
+0jiVY00000001sLYAQ,Referral-GED tutoring - 1440,a0e4M00000IMltYQAT-1440,true,false,false,false,false,false
+0jiVY00000001oPYAQ,Referral-GED tutoring - Chase,a0e4M00000IMltYQAT-Chase,true,false,false,false,false,false
+0jiVY00000002D2YAI,Referral-GED tutoring - Drop-In,a0e4M00000IMltYQAT-Drop-In,true,false,false,false,false,false
+0jiVY00000002NPYAY,Referral-GED tutoring - Outreach,a0e4M00000IMltYQAT-Outreach,true,false,false,false,false,false
+0jiVY000000022eYAA,Referral-GED tutoring - Shelter,a0e4M00000IMltYQAT-Shelter,true,false,false,false,false,false
+0jiVY00000001NGYAY,Referral-GED tutoring - TLP,a0e4M00000IMltYQAT-TLP,true,false,false,false,false,false
+0jiVY00000001sMYAQ,Referral-Health-Dental provider - 1440,a0e4M00000ILca4QAD-1440,true,false,false,false,false,false
+0jiVY00000001oQYAQ,Referral-Health-Dental provider - Chase,a0e4M00000ILca4QAD-Chase,true,false,false,false,false,false
+0jiVY00000002D3YAI,Referral-Health-Dental provider - Drop-In,a0e4M00000ILca4QAD-Drop-In,true,false,false,false,false,false
+0jiVY00000002NQYAY,Referral-Health-Dental provider - Outreach,a0e4M00000ILca4QAD-Outreach,true,false,false,false,false,false
+0jiVY000000022fYAA,Referral-Health-Dental provider - Shelter,a0e4M00000ILca4QAD-Shelter,true,false,false,false,false,false
+0jiVY00000001NHYAY,Referral-Health-Dental provider - TLP,a0e4M00000ILca4QAD-TLP,true,false,false,false,false,false
+0jiVY00000001sNYAQ,Referral-Health-Medical provider - 1440,a0e61000002Qt4mAAC-1440,true,false,false,false,false,false
+0jiVY00000001oRYAQ,Referral-Health-Medical provider - Chase,a0e61000002Qt4mAAC-Chase,true,false,false,false,false,false
+0jiVY00000002D4YAI,Referral-Health-Medical provider - Drop-In,a0e61000002Qt4mAAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002NRYAY,Referral-Health-Medical provider - Outreach,a0e61000002Qt4mAAC-Outreach,true,false,false,false,false,false
+0jiVY000000022gYAA,Referral-Health-Medical provider - Shelter,a0e61000002Qt4mAAC-Shelter,true,false,false,false,false,false
+0jiVY00000001NIYAY,Referral-Health-Medical provider - TLP,a0e61000002Qt4mAAC-TLP,true,false,false,false,false,false
+0jiVY00000001sOYAQ,Referral-Health-Vision provider - 1440,a0e4M00000IMhUSQA1-1440,true,false,false,false,false,false
+0jiVY00000001oSYAQ,Referral-Health-Vision provider - Chase,a0e4M00000IMhUSQA1-Chase,true,false,false,false,false,false
+0jiVY00000002D5YAI,Referral-Health-Vision provider - Drop-In,a0e4M00000IMhUSQA1-Drop-In,true,false,false,false,false,false
+0jiVY00000002NSYAY,Referral-Health-Vision provider - Outreach,a0e4M00000IMhUSQA1-Outreach,true,false,false,false,false,false
+0jiVY000000022hYAA,Referral-Health-Vision provider - Shelter,a0e4M00000IMhUSQA1-Shelter,true,false,false,false,false,false
+0jiVY00000001NJYAY,Referral-Health-Vision provider - TLP,a0e4M00000IMhUSQA1-TLP,true,false,false,false,false,false
+0jiVY00000001sPYAQ,Referral-Housing program: 1440 Pine - 1440,a0e8X00000mHh3xQAC-1440,true,false,false,false,false,false
+0jiVY00000001oTYAQ,Referral-Housing program: 1440 Pine - Chase,a0e8X00000mHh3xQAC-Chase,true,false,false,false,false,false
+0jiVY00000002JXYAY,Referral-Housing program: 1440 Pine - Drop-In,a0e8X00000mHh3xQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002NTYAY,Referral-Housing program: 1440 Pine - Outreach,a0e8X00000mHh3xQAC-Outreach,true,false,false,false,false,false
+0jiVY000000022iYAA,Referral-Housing program: 1440 Pine - Shelter,a0e8X00000mHh3xQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001NKYAY,Referral-Housing program: 1440 Pine - TLP,a0e8X00000mHh3xQAC-TLP,true,false,false,false,false,false
+0jiVY00000001sQYAQ,Referral-Housing program: Non-TGTHR - 1440,a0e8X00000mHh3yQAC-1440,true,false,false,false,false,false
+0jiVY00000001oUYAQ,Referral-Housing program: Non-TGTHR - Chase,a0e8X00000mHh3yQAC-Chase,true,false,false,false,false,false
+0jiVY00000002JYYAY,Referral-Housing program: Non-TGTHR - Drop-In,a0e8X00000mHh3yQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002NUYAY,Referral-Housing program: Non-TGTHR - Outreach,a0e8X00000mHh3yQAC-Outreach,true,false,false,false,false,false
+0jiVY000000022jYAA,Referral-Housing program: Non-TGTHR - Shelter,a0e8X00000mHh3yQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001NLYAY,Referral-Housing program: Non-TGTHR - TLP,a0e8X00000mHh3yQAC-TLP,true,false,false,false,false,false
+0jiVY00000001sRYAQ,Referral-Housing program: TGTHR TLP/RRH - 1440,a0e8X00000mHh5iQAC-1440,true,false,false,false,false,false
+0jiVY00000001oVYAQ,Referral-Housing program: TGTHR TLP/RRH - Chase,a0e8X00000mHh5iQAC-Chase,true,false,false,false,false,false
+0jiVY00000002JZYAY,Referral-Housing program: TGTHR TLP/RRH - Drop-In,a0e8X00000mHh5iQAC-Drop-In,true,false,false,false,false,false
+0jiVY00000002NVYAY,Referral-Housing program: TGTHR TLP/RRH - Outreach,a0e8X00000mHh5iQAC-Outreach,true,false,false,false,false,false
+0jiVY000000022kYAA,Referral-Housing program: TGTHR TLP/RRH - Shelter,a0e8X00000mHh5iQAC-Shelter,true,false,false,false,false,false
+0jiVY00000001NMYAY,Referral-Housing program: TGTHR TLP/RRH - TLP,a0e8X00000mHh5iQAC-TLP,true,false,false,false,false,false
+0jiVY00000001sSYAQ,Referral-LGBTQ+ support provider - 1440,a0e61000002QWvaAAG-1440,true,false,false,false,false,false
+0jiVY00000001oWYAQ,Referral-LGBTQ+ support provider - Chase,a0e61000002QWvaAAG-Chase,true,false,false,false,false,false
+0jiVY00000002JaYAI,Referral-LGBTQ+ support provider - Drop-In,a0e61000002QWvaAAG-Drop-In,true,false,false,false,false,false
+0jiVY00000002NWYAY,Referral-LGBTQ+ support provider - Outreach,a0e61000002QWvaAAG-Outreach,true,false,false,false,false,false
+0jiVY000000022lYAA,Referral-LGBTQ+ support provider - Shelter,a0e61000002QWvaAAG-Shelter,true,false,false,false,false,false
+0jiVY00000001NNYAY,Referral-LGBTQ+ support provider - TLP,a0e61000002QWvaAAG-TLP,true,false,false,false,false,false
+0jiVY00000001sTYAQ,Referral-Mental/behavioral health provider - 1440,a0e61000001GLqlAAG-1440,true,false,false,false,false,false
+0jiVY00000001oXYAQ,Referral-Mental/behavioral health provider - Chase,a0e61000001GLqlAAG-Chase,true,false,false,false,false,false
+0jiVY00000002JbYAI,Referral-Mental/behavioral health provider - Drop-In,a0e61000001GLqlAAG-Drop-In,true,false,false,false,false,false
+0jiVY00000002NXYAY,Referral-Mental/behavioral health provider - Outreach,a0e61000001GLqlAAG-Outreach,true,false,false,false,false,false
+0jiVY000000022mYAA,Referral-Mental/behavioral health provider - Shelter,a0e61000001GLqlAAG-Shelter,true,false,false,false,false,false
+0jiVY00000001NOYAY,Referral-Mental/behavioral health provider - TLP,a0e61000001GLqlAAG-TLP,true,false,false,false,false,false
+0jiVY00000001sUYAQ,"Referral-Public benefits agency (SNAP, SSI, DIS) - 1440",a0e61000001GLqqAAG-1440,true,false,false,false,false,false
+0jiVY00000001oYYAQ,"Referral-Public benefits agency (SNAP, SSI, DIS) - Chase",a0e61000001GLqqAAG-Chase,true,false,false,false,false,false
+0jiVY00000002JcYAI,"Referral-Public benefits agency (SNAP, SSI, DIS) - Drop-In",a0e61000001GLqqAAG-Drop-In,true,false,false,false,false,false
+0jiVY00000002jbYAA,"Referral-Public benefits agency (SNAP, SSI, DIS) - Nest 56",a0e61000001GLqqAAG-Nest 56,true,false,false,false,false,false
+0jiVY00000002NYYAY,"Referral-Public benefits agency (SNAP, SSI, DIS) - Outreach",a0e61000001GLqqAAG-Outreach,true,false,false,false,false,false
+0jiVY000000022nYAA,"Referral-Public benefits agency (SNAP, SSI, DIS) - Shelter",a0e61000001GLqqAAG-Shelter,true,false,false,false,false,false
+0jiVY00000001NPYAY,"Referral-Public benefits agency (SNAP, SSI, DIS) - TLP",a0e61000001GLqqAAG-TLP,true,false,false,false,false,false
+0jiVY00000001sVYAQ,Referral-Sexual health services or testing provider - 1440,a0e6100000AZG9eAAH-1440,true,false,false,false,false,false
+0jiVY00000001oZYAQ,Referral-Sexual health services or testing provider - Chase,a0e6100000AZG9eAAH-Chase,true,false,false,false,false,false
+0jiVY00000002JdYAI,Referral-Sexual health services or testing provider - Drop-In,a0e6100000AZG9eAAH-Drop-In,true,false,false,false,false,false
+0jiVY00000002NZYAY,Referral-Sexual health services or testing provider - Outreach,a0e6100000AZG9eAAH-Outreach,true,false,false,false,false,false
+0jiVY000000022oYAA,Referral-Sexual health services or testing provider - Shelter,a0e6100000AZG9eAAH-Shelter,true,false,false,false,false,false
+0jiVY00000001NQYAY,Referral-Sexual health services or testing provider - TLP,a0e6100000AZG9eAAH-TLP,true,false,false,false,false,false
+0jiVY00000001sWYAQ,Referral-Source drop-in - 1440,a0e6100000296CyAAI-1440,true,false,false,false,false,false
+0jiVY00000001oaYAA,Referral-Source drop-in - Chase,a0e6100000296CyAAI-Chase,true,false,false,false,false,false
+0jiVY00000002JeYAI,Referral-Source drop-in - Drop-In,a0e6100000296CyAAI-Drop-In,true,false,false,false,false,false
+0jiVY00000002NaYAI,Referral-Source drop-in - Outreach,a0e6100000296CyAAI-Outreach,true,false,false,false,false,false
+0jiVY000000022pYAA,Referral-Source drop-in - Shelter,a0e6100000296CyAAI-Shelter,true,false,false,false,false,false
+0jiVY00000001NRYAY,Referral-Source drop-in - TLP,a0e6100000296CyAAI-TLP,true,false,false,false,false,false
+0jiVY00000001sYYAQ,Referral-Workforce or employment agency - 1440,a0e61000002Qt3JAAS-1440,true,false,false,false,false,false
+0jiVY00000001ocYAA,Referral-Workforce or employment agency - Chase,a0e61000002Qt3JAAS-Chase,true,false,false,false,false,false
+0jiVY00000002JgYAI,Referral-Workforce or employment agency - Drop-In,a0e61000002Qt3JAAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002NcYAI,Referral-Workforce or employment agency - Outreach,a0e61000002Qt3JAAS-Outreach,true,false,false,false,false,false
+0jiVY000000022rYAA,Referral-Workforce or employment agency - Shelter,a0e61000002Qt3JAAS-Shelter,true,false,false,false,false,false
+0jiVY00000001NTYAY,Referral-Workforce or employment agency - TLP,a0e61000002Qt3JAAS-TLP,true,false,false,false,false,false
+0jiVY00000001sZYAQ,Room/apartment search - 1440,a0e8X00000mHiLcQAK-1440,true,false,false,false,false,false
+0jiVY00000001odYAA,Room/apartment search - Chase,a0e8X00000mHiLcQAK-Chase,true,false,false,false,false,false
+0jiVY00000002JhYAI,Room/apartment search - Drop-In,a0e8X00000mHiLcQAK-Drop-In,true,false,false,false,false,false
+0jiVY00000002NdYAI,Room/apartment search - Outreach,a0e8X00000mHiLcQAK-Outreach,true,false,false,false,false,false
+0jiVY000000022sYAA,Room/apartment search - Shelter,a0e8X00000mHiLcQAK-Shelter,true,false,false,false,false,false
+0jiVY00000001TtYAI,Room/apartment search - TLP,a0e8X00000mHiLcQAK-TLP,true,false,false,false,false,false
+0jiVY00000002NfYAI,Safety Planning - Outreach,a0e8X00000ixi4yQAA-Outreach,true,false,false,false,false,false
+0jiVY00000001scYAA,Self-care general support - 1440,a0e8X00000mHh4QQAS-1440,true,false,false,false,false,false
+0jiVY00000001ogYAA,Self-care general support - Chase,a0e8X00000mHh4QQAS-Chase,true,false,false,false,false,false
+0jiVY00000002JkYAI,Self-care general support - Drop-In,a0e8X00000mHh4QQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002k5YAA,Self-care general support - Nest 56,a0e8X00000mHh4QQAS-Nest 56,true,false,false,false,false,false
+0jiVY00000002NgYAI,Self-care general support - Outreach,a0e8X00000mHh4QQAS-Outreach,true,false,false,false,false,false
+0jiVY000000022vYAA,Self-care general support - Shelter,a0e8X00000mHh4QQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001TwYAI,Self-care general support - TLP,a0e8X00000mHh4QQAS-TLP,true,false,false,false,false,false
+0jiVY00000001seYAA,Sexual health supply provided - 1440,a0e4M00000IYG8vQAH-1440,true,false,false,false,false,false
+0jiVY00000001oiYAA,Sexual health supply provided - Chase,a0e4M00000IYG8vQAH-Chase,true,false,false,false,false,false
+0jiVY00000002JmYAI,Sexual health supply provided - Drop-In,a0e4M00000IYG8vQAH-Drop-In,true,false,false,false,false,false
+0jiVY00000002NiYAI,Sexual health supply provided - Outreach,a0e4M00000IYG8vQAH-Outreach,true,false,false,false,false,false
+0jiVY000000022xYAA,Sexual health supply provided - Shelter,a0e4M00000IYG8vQAH-Shelter,true,false,false,false,false,false
+0jiVY00000001TyYAI,Sexual health supply provided - TLP,a0e4M00000IYG8vQAH-TLP,true,false,false,false,false,false
+0jiVY00000001sfYAA,Sexual health testing-Onsite - 1440,a0e6100000Bsl42AAB-1440,true,false,false,false,false,false
+0jiVY00000001ojYAA,Sexual health testing-Onsite - Chase,a0e6100000Bsl42AAB-Chase,true,false,false,false,false,false
+0jiVY00000002JnYAI,Sexual health testing-Onsite - Drop-In,a0e6100000Bsl42AAB-Drop-In,true,false,false,false,false,false
+0jiVY00000002NjYAI,Sexual health testing-Onsite - Outreach,a0e6100000Bsl42AAB-Outreach,true,false,false,false,false,false
+0jiVY000000022yYAA,Sexual health testing-Onsite - Shelter,a0e6100000Bsl42AAB-Shelter,true,false,false,false,false,false
+0jiVY00000001TzYAI,Sexual health testing-Onsite - TLP,a0e6100000Bsl42AAB-TLP,true,false,false,false,false,false
+0jiVY000000022zYAA,Shelter Referral - Shelter,a0e6100000296D8AAI-Shelter,true,false,false,false,false,false
+0jiVY00000003IrYAI,Shelter referral-Outreach,,true,false,false,false,false,false
+0jiVY00000001onYAA,Sponsor time - Chase,a0e61000002w05yAAA-Chase,true,false,false,false,false,false
+0jiVY00000002JrYAI,Sponsor time - Drop-In,a0e61000002w05yAAA-Drop-In,true,false,false,false,false,false
+0jiVY00000002NnYAI,Sponsor time - Outreach,a0e61000002w05yAAA-Outreach,true,false,false,false,false,false
+0jiVY0000000232YAA,Sponsor time - Shelter,a0e61000002w05yAAA-Shelter,true,false,false,false,false,false
+0jiVY00000001U3YAI,Sponsor time - TLP,a0e61000002w05yAAA-TLP,true,false,false,false,false,false
+0jiVY00000001skYAA,Stably Housed-Outcome - 1440,a0e61000006JOUMAA4-1440,true,false,false,false,false,false
+0jiVY00000002JsYAI,Stably Housed-Outcome - Drop-In,a0e61000006JOUMAA4-Drop-In,true,false,false,false,false,false
+0jiVY00000002NoYAI,Stably Housed-Outcome - Outreach,a0e61000006JOUMAA4-Outreach,true,false,false,false,false,false
+0jiVY0000000233YAA,Stably Housed-Outcome - Shelter,a0e61000006JOUMAA4-Shelter,true,false,false,false,false,false
+0jiVY00000001U4YAI,Stably Housed-Outcome - TLP,a0e61000006JOUMAA4-TLP,true,false,false,false,false,false
+0jiVY00000001osYAA,Substance use monitoring (urinalysis/blood test) - Chase,a0e8X00000mHiLIQA0-Chase,true,false,false,false,false,false
+0jiVY00000002JwYAI,Substance use monitoring (urinalysis/blood test) - Drop-In,a0e8X00000mHiLIQA0-Drop-In,true,false,false,false,false,false
+0jiVY00000002NsYAI,Substance use monitoring (urinalysis/blood test) - Outreach,a0e8X00000mHiLIQA0-Outreach,true,false,false,false,false,false
+0jiVY0000000237YAA,Substance use monitoring (urinalysis/blood test) - Shelter,a0e8X00000mHiLIQA0-Shelter,true,false,false,false,false,false
+0jiVY00000001U8YAI,Substance use monitoring (urinalysis/blood test) - TLP,a0e8X00000mHiLIQA0-TLP,true,false,false,false,false,false
+0jiVY00000001sqYAA,Substance use support (not clinical counseling) - 1440,a0e61000003hBtVAAU-1440,true,false,false,false,false,false
+0jiVY00000001ouYAA,Substance use support (not clinical counseling) - Chase,a0e61000003hBtVAAU-Chase,true,false,false,false,false,false
+0jiVY00000002JyYAI,Substance use support (not clinical counseling) - Drop-In,a0e61000003hBtVAAU-Drop-In,true,false,false,false,false,false
+0jiVY00000002jiYAA,Substance use support (not clinical counseling) - Nest 56,a0e61000003hBtVAAU-Nest 56,true,false,false,false,false,false
+0jiVY00000002NuYAI,Substance use support (not clinical counseling) - Outreach,a0e61000003hBtVAAU-Outreach,true,false,false,false,false,false
+0jiVY0000000239YAA,Substance use support (not clinical counseling) - Shelter,a0e61000003hBtVAAU-Shelter,true,false,false,false,false,false
+0jiVY00000001UAYAY,Substance use support (not clinical counseling) - TLP,a0e61000003hBtVAAU-TLP,true,false,false,false,false,false
+0jiVY00000002NzYAI,TAY-VISPIDAT completed - Outreach,a0e4M00000C4t3NQAR-Outreach,true,false,false,false,false,false
+0jiVY00000001t1YAA,Transportation-Bus pass or ride provided - 1440,a0e61000001GLqHAAW-1440,true,false,false,false,false,false
+0jiVY00000001p5YAA,Transportation-Bus pass or ride provided - Chase,a0e61000001GLqHAAW-Chase,true,false,false,false,false,false
+0jiVY00000002K9YAI,Transportation-Bus pass or ride provided - Drop-In,a0e61000001GLqHAAW-Drop-In,true,false,false,false,false,false
+0jiVY00000002O5YAI,Transportation-Bus pass or ride provided - Outreach,a0e61000001GLqHAAW-Outreach,true,false,false,false,false,false
+0jiVY000000023KYAQ,Transportation-Bus pass or ride provided - Shelter,a0e61000001GLqHAAW-Shelter,true,false,false,false,false,false
+0jiVY00000001ULYAY,Transportation-Bus pass or ride provided - TLP,a0e61000001GLqHAAW-TLP,true,false,false,false,false,false
+0jiVY00000001t2YAA,Transportation-Training or information provided - 1440,a0e8X00000mHh4VQAS-1440,true,false,false,false,false,false
+0jiVY00000001p6YAA,Transportation-Training or information provided - Chase,a0e8X00000mHh4VQAS-Chase,true,false,false,false,false,false
+0jiVY00000002KAYAY,Transportation-Training or information provided - Drop-In,a0e8X00000mHh4VQAS-Drop-In,true,false,false,false,false,false
+0jiVY00000002k6YAA,Transportation-Training or information provided - Nest 56,a0e8X00000mHh4VQAS-Nest 56,true,false,false,false,false,false
+0jiVY00000002O6YAI,Transportation-Training or information provided - Outreach,a0e8X00000mHh4VQAS-Outreach,true,false,false,false,false,false
+0jiVY000000023LYAQ,Transportation-Training or information provided - Shelter,a0e8X00000mHh4VQAS-Shelter,true,false,false,false,false,false
+0jiVY00000001UMYAY,Transportation-Training or information provided - TLP,a0e8X00000mHh4VQAS-TLP,true,false,false,false,false,false
+0jiVY000000039BYAQ,Vital Document Verification,,true,false,false,false,false,false

@@ -1,0 +1,31 @@
+<apex:page controller="LaunchTheSourceIntakeController" showHeader="false" sidebar="false" standardStylesheets="false" applyHtmlTag="false" applyBodyTag="false">
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Launch The Source Intake</title>
+    <script>
+        function launchSource() {
+            var target = '{!JSENCODE(targetUrl)}';
+            window.open(target, '_blank', 'noopener,noreferrer');
+            setTimeout(function () { window.close(); }, 150);
+        }
+        window.onload = launchSource;
+    </script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    Opening The Source Intake...
+</body>
+</html>
+</apex:page>

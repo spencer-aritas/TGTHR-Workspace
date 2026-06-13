@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Last_Amendment_Date__c</fullName>
-    <label>Last Amendment Date</label>
     <description>DateTime of the most recent amendment to this locked interview.</description>
-    <type>DateTime</type>
+    <label>Last Amendment Date</label>
     <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>DateTime</type>
 </CustomField>

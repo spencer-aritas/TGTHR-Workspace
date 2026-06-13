@@ -102,24 +102,9 @@ public class BenefitAssignmentServiceTest {
         TestDataFactory.CoreData core = TestDataFactory.createCoreData();
         if (core == null || core.enrollment == null) return;
 
-        // Create a BenefitType to satisfy required lookup constraints
-        SObject bt = Schema.getGlobalDescribe().get('BenefitType').newSObject();
-        bt.put('Name', 'Test Active Benefit Type');
-        try { bt.put('Type', 'Service'); } catch (Exception ignored) {}
-        try { bt.put('ProcessType', 'ProgramManagement'); } catch (Exception ignored) {}
-        Database.SaveResult btResult = Database.insert(bt, false);
-        Id benefitTypeId = btResult.isSuccess() ? btResult.getId() : null;
-
-        // Create an active Benefit linked to the test program
-        SObject activeBenefit = Schema.getGlobalDescribe().get('Benefit').newSObject();
-        activeBenefit.put('ProgramId', core.program.get('Id'));
-        activeBenefit.put('Name', 'Active Loop Coverage Benefit');
-        activeBenefit.put('IsActive', true);
-        try { activeBenefit.put('Lifecycle_State__c', 'Active'); } catch (Exception ignored) {}
-        if (benefitTypeId != null) {
-            try { activeBenefit.put('BenefitTypeId', benefitTypeId); } catch (Exception ignored) {}
-        }
-        Database.insert(activeBenefit, false);  // proceed regardless; loop runs if IsActive persists
+        // Create a second active Benefit linked to the test program via the factory
+        // (factory handles UnitOfMeasure → BenefitType → Benefit chain correctly)
+        TestDataFactory.createBenefit((Id)core.program.get('Id'), 'Active Loop Coverage Benefit', true, false, false);
 
         Test.startTest();
         List<String> results = BenefitAssignmentService.createBenefitAssignments(
@@ -150,12 +135,7 @@ public class BenefitAssignmentServiceTest {
         if (core == null) return;
 
         // Create an active benefit so the for-loop body is entered
-        SObject activeBenefit = Schema.getGlobalDescribe().get('Benefit').newSObject();
-        activeBenefit.put('ProgramId', core.program.get('Id'));
-        activeBenefit.put('Name', 'Catch Path Benefit');
-        activeBenefit.put('IsActive', true);
-        try { activeBenefit.put('Lifecycle_State__c', 'Active'); } catch (Exception ignored) {}
-        Database.insert(activeBenefit, false);
+        TestDataFactory.createBenefit((Id)core.program.get('Id'), 'Catch Path Benefit', true, false, false);
 
         Test.startTest();
         try {

@@ -725,10 +725,3 @@ public class InteractionSummaryServiceTest {
     System.assertNotEquals(null, awaiting);
   }
 }
-
-
-
-
-
-
-

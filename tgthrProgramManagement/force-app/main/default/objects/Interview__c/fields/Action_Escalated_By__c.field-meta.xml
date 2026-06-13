@@ -3,7 +3,6 @@
     <fullName>Action_Escalated_By__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>The supervisor who flagged this interview for action. Can recall the action flag.</description>
-    <externalId>false</externalId>
     <inlineHelpText>The supervisor who escalated this action item.</inlineHelpText>
     <label>Action Escalated By</label>
     <referenceTo>User</referenceTo>
@@ -11,5 +10,6 @@
     <relationshipName>Escalated_Interview_Actions</relationshipName>
     <required>false</required>
     <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Lookup</type>
 </CustomField>

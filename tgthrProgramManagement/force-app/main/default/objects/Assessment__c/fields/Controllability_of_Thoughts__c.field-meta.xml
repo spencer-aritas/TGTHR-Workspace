@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Controllability_of_Thoughts__c</fullName>
+    <inlineHelpText>Could/can you stop thinking about killing yourself or wanting to die if you want to?</inlineHelpText>
+    <label>Controllability of Thoughts</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>Controllability</valueSetName>
+    </valueSet>
+</CustomField>

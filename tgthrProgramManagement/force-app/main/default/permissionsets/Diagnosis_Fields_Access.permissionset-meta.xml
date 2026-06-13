@@ -41,11 +41,6 @@
     <!-- Diagnosis__c Field Permissions - ALL FIELDS -->
     <fieldPermissions>
         <editable>true</editable>
-        <field>Diagnosis__c.Client__c</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
         <field>Diagnosis__c.ICD10Code__c</field>
         <readable>true</readable>
     </fieldPermissions>

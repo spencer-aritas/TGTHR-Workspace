@@ -2,7 +2,6 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Interview__c</fullName>
     <description>Reference to the Interview record that this document represents</description>
-    <externalId>false</externalId>
     <label>Interview</label>
     <referenceTo>Interview__c</referenceTo>
     <relationshipLabel>Interview Documents</relationshipLabel>

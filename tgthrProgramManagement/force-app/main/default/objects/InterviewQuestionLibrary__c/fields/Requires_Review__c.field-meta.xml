@@ -3,9 +3,8 @@
     <fullName>Requires_Review__c</fullName>
     <defaultValue>false</defaultValue>
     <description>When checked, downstream template questions copied from this library entry should require explicit carry-forward review.</description>
-    <externalId>false</externalId>
     <label>Requires Review</label>
-    <required>false</required>
+    <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
     <type>Checkbox</type>
 </CustomField>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Wish_to_be_Dead_Description__c</fullName>
+    <inlineHelpText>Have you wished you were dead or wished you could go to sleep and not wake up? 
+
+If yes, describe:</inlineHelpText>
+    <label>Wish to be Dead Description</label>
+    <length>32768</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Html</type>
+    <visibleLines>25</visibleLines>
+</CustomField>

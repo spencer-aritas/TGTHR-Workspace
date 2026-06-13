@@ -3,7 +3,6 @@
     <fullName>Approver__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>User (Program Director) who will approve this template</description>
-    <externalId>false</externalId>
     <inlineHelpText>The Program Director assigned to make this approval decision</inlineHelpText>
     <label>Approver</label>
     <referenceTo>User</referenceTo>

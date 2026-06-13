@@ -1,0 +1,82 @@
+{
+  "status": 0,
+  "result": {
+    "records": [
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099Sw0YAE"
+        },
+        "Id": "a0yVY0000099Sw0YAE",
+        "Name": "Casey Life Skills - Short Form"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099Ts4YAE"
+        },
+        "Id": "a0yVY0000099Ts4YAE",
+        "Name": "Casey Life Skills - Short Form"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099SvzYAE"
+        },
+        "Id": "a0yVY0000099SvzYAE",
+        "Name": "Comprehensive Clinical Intake Assessment"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099Ts3YAE"
+        },
+        "Id": "a0yVY0000099Ts3YAE",
+        "Name": "Comprehensive Clinical Intake Assessment"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099SvxYAE"
+        },
+        "Id": "a0yVY0000099SvxYAE",
+        "Name": "Drop-In and Outreach"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099Ts1YAE"
+        },
+        "Id": "a0yVY0000099Ts1YAE",
+        "Name": "Drop-In and Outreach"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099SvyYAE"
+        },
+        "Id": "a0yVY0000099SvyYAE",
+        "Name": "Psycho-Social Intake"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY0000099Ts2YAE"
+        },
+        "Id": "a0yVY0000099Ts2YAE",
+        "Name": "Psycho-Social Intake"
+      },
+      {
+        "attributes": {
+          "type": "InterviewTemplate__c",
+          "url": "/services/data/v66.0/sobjects/InterviewTemplate__c/a0yVY00000997JeYAI"
+        },
+        "Id": "a0yVY00000997JeYAI",
+        "Name": "Treatment Plan"
+      }
+    ],
+    "totalSize": 9,
+    "done": true
+  },
+  "warnings": []
+}

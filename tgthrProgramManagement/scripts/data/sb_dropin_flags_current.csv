@@ -1,0 +1,62 @@
+Name,Available_for_Clinical__c,Available_for_Peer__c,Available_for_Case_Management__c
+Crisis Intervention,true,false,true
+Outreach Engagement,true,false,true
+Screening/Assessment,true,false,true
+Drop-In Day,false,false,false
+BIPOC Support,true,true,true
+Bus pass,true,true,true
+Case Management Meeting,false,false,false
+Community Engagement,true,false,false
+Community Resource Navigation,false,true,true
+Conflict Resolution Support,true,true,true
+Education,false,false,true
+Education Support,false,false,true
+"Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",true,true,true
+Emotional Processing,true,true,true
+Employment Support,false,true,true
+Eviction/ Mutual Rescission Support,false,false,true
+External Medical Provider,false,false,true
+External Professional Team,false,false,true
+External Therapy Provider,true,false,true
+Family Reunification Support,false,false,true
+Financial Education and Navigation,false,false,true
+Food Access,false,true,true
+Food Pantry Access - Onsite,true,true,true
+GED Group,true,true,true
+Group Support,true,false,false
+Housekeeping,false,true,true
+Individual Session,true,false,false
+Individual Support,true,true,true
+Initial Planning Meeting,false,true,true
+Initial Planning Meeting (goal setting),false,true,true
+Lease Violation Meeting,false,false,true
+Legal Support,false,true,true
+LGBTQIA Support,true,true,true
+Life Skills Group,true,true,true
+Meal Provided,false,false,false
+"Medical, Legal, or Employment",true,true,true
+Mental Health,true,false,true
+Mental Health Support,true,true,true
+Move Out Assistance,false,false,true
+Other supports,false,false,true
+Parenting Support,false,false,true
+Peer Support,false,true,false
+Peer Support Group,false,true,false
+Physical Health,true,false,true
+Physical/Mental Wellness - Community Outing,true,true,true
+Point Store Access,true,true,true
+Police Interaction- Arrest,true,true,true
+Police Interaction- General Support,true,true,true
+Pre-Lease Violation Support,true,true,true
+Prosocial,false,false,false
+Public Benefits Support,false,false,true
+Rental Assistance with Budget,false,false,true
+Resident Advisory Council,true,true,true
+Substance Use Support,true,false,false
+Tenant Retention Plan,false,false,true
+Therapeutic Group,true,false,false
+Updates and Progress,false,false,true
+Updates and Progress (goal setting),false,false,true
+Vital Document Support,false,false,true
+Voucher Support,false,false,true
+"Wellness, Mental Health, Mindfulness and Meditation Group",true,true,true

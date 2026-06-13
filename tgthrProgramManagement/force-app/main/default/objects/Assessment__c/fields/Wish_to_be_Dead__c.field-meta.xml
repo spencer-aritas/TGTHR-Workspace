@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Wish_to_be_Dead__c</fullName>
+    <defaultValue>false</defaultValue>
+    <inlineHelpText>Person endorses thoughts about a wish to be dead or not alive anymore or wish to fall asleep and not wake up.</inlineHelpText>
+    <label>Wish to be Dead</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

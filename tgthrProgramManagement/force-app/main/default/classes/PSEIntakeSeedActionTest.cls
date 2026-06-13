@@ -36,4 +36,25 @@ private class PSEIntakeSeedActionTest {
         Test.stopTest();
         System.assertNotEquals(null, results);
     }
+
+    @isTest
+    static void testPSEIntakeTypes_defaultConstructor() {
+        PSEIntakeTypes.IntakeIncomeRow row = new PSEIntakeTypes.IntakeIncomeRow();
+        System.assertEquals(null, row.Key);
+        System.assertEquals(null, row.HasIncome);
+    }
+
+    @isTest
+    static void testPSEIntakeTypes_paramConstructor() {
+        PSEIntakeTypes.IntakeIncomeRow row = new PSEIntakeTypes.IntakeIncomeRow(
+            '1', 'EARNED_INCOME', 'Earned Income', true, 1234.56, true, 'note'
+        );
+        System.assertEquals('1', row.Key);
+        System.assertEquals('EARNED_INCOME', row.SourceApiName);
+        System.assertEquals('Earned Income', row.SourceLabel);
+        System.assertEquals(true, row.HasIncome);
+        System.assertEquals(1234.56, row.StatedMonthlyIncome);
+        System.assertEquals(true, row.DocumentationProvided);
+        System.assertEquals('note', row.Notes);
+    }
 }

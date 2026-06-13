@@ -3,11 +3,11 @@
     <fullName>CaseManager_Signed_By__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>User who signed as Case Manager for this interview/treatment plan</description>
-    <externalId>false</externalId>
     <label>Case Manager Signed By</label>
     <referenceTo>User</referenceTo>
     <relationshipName>CaseManager_Interviews</relationshipName>
     <required>false</required>
     <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Lookup</type>
 </CustomField>

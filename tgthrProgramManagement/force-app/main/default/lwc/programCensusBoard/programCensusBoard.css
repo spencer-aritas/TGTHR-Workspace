@@ -7,11 +7,11 @@
 
 /* Default theme for missing Program_Theme__mdt records */
 :host {
-    --program-color: #b71c1c; /* Red: maintenance/needs attention */
-    --program-accent: #f8bbd0; /* Light pink accent */
-    --slds-c-badge-color-background: var(--program-accent, #f8bbd0);
-    --slds-c-badge-text-color: #222; /* Black for visibility on light backgrounds */
-    --slds-c-badge-icon-color-foreground: var(--program-color, #b71c1c);
+    --program-color: #4f6bbd;
+    --program-accent: #8fa8d8;
+    --slds-c-badge-color-background: var(--program-accent, #8fa8d8);
+    --slds-c-badge-text-color: white;
+    --slds-c-badge-icon-color-foreground: var(--program-color, #4f6bbd);
 }
 
 /* Standard theme fallback for any program */

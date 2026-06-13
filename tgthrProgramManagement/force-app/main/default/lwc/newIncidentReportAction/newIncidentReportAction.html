@@ -1,0 +1,138 @@
+<template>
+    <div class="action-form">
+
+        <div class="slds-grid slds-wrap slds-gutters_small">
+
+            <!-- Incident Type -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                <lightning-combobox
+                    label="Incident Type"
+                    placeholder="Select type..."
+                    value={incidentType}
+                    options={incidentTypeOptions}
+                    required
+                    onchange={handleIncidentTypeChange}>
+                </lightning-combobox>
+            </div>
+
+            <!-- Date -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                <lightning-input
+                    type="date"
+                    label="Incident Date"
+                    value={incidentDate}
+                    required
+                    onchange={handleDateChange}>
+                </lightning-input>
+            </div>
+
+            <!-- Time -->
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-bottom_small">
+                <lightning-input
+                    type="time"
+                    label="Incident Time"
+                    value={incidentTime}
+                    required
+                    onchange={handleTimeChange}>
+                </lightning-input>
+            </div>
+
+            <!-- Other Staff Present -->
+            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                <lightning-input
+                    type="text"
+                    label="Other Staff Present"
+                    value={otherStaffPresent}
+                    max-length="250"
+                    onchange={handleOtherStaffPresentChange}>
+                </lightning-input>
+            </div>
+
+            <!-- Description -->
+            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                <lightning-textarea
+                    label="Description"
+                    value={description}
+                    max-length="5000"
+                    onchange={handleDescriptionChange}>
+                </lightning-textarea>
+            </div>
+
+            <!-- Emergency Services Involved -->
+            <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                <lightning-input
+                    type="checkbox"
+                    label="Emergency Services Involved"
+                    checked={emergencyServicesInvolved}
+                    onchange={handleEmergencyServicesChange}>
+                </lightning-input>
+            </div>
+
+            <!-- Emergency Services Details (shown when emergency is checked) -->
+            <template lwc:if={emergencyServicesInvolved}>
+                <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                    <lightning-textarea
+                        label="Emergency Services Details"
+                        value={emergencyServicesDetails}
+                        max-length="5000"
+                        placeholder="Agencies responded, officer/badge numbers, report numbers, actions taken..."
+                        onchange={handleEmergencyDetailsChange}>
+                    </lightning-textarea>
+                </div>
+            </template>
+
+            <!-- Notify Care Team (hidden when emergency is checked — auto-notifies) -->
+            <template lwc:if={showNotifyCareTeam}>
+                <div class="slds-col slds-size_1-of-1 slds-m-bottom_small">
+                    <lightning-input
+                        type="checkbox"
+                        label="Notify Care Team"
+                        checked={notifyCareTeam}
+                        onchange={handleNotifyCareTeamChange}>
+                    </lightning-input>
+                </div>
+            </template>
+
+            <!-- Signature -->
+            <div class="slds-col slds-size_1-of-1 slds-m-top_small">
+                <p class="slds-form-element__label">
+                    <abbr class="slds-required" title="required">*</abbr> Staff Signature
+                </p>
+                <c-signature-pad
+                    hide-controls
+                    enable-saved-signature
+                    title="Sign below">
+                </c-signature-pad>
+            </div>
+
+        </div>
+
+        <template lwc:if={saveError}>
+            <p class="slds-text-color_error slds-m-top_x-small slds-m-bottom_small">{saveError}</p>
+        </template>
+
+        <template lwc:if={saving}>
+            <div class="slds-m-top_small slds-m-bottom_small">
+                <lightning-spinner alternative-text="Saving..." size="small"></lightning-spinner>
+                <span class="slds-m-left_small slds-text-body_small">Creating record and generating document…</span>
+            </div>
+        </template>
+
+        <div class="action-footer slds-m-top_medium">
+            <lightning-button
+                variant="brand"
+                label="Save"
+                onclick={handleSubmit}
+                disabled={saving}
+                class="slds-m-right_small">
+            </lightning-button>
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                onclick={handleCancel}
+                disabled={saving}>
+            </lightning-button>
+        </div>
+
+    </div>
+</template>

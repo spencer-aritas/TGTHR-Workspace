@@ -1,0 +1,424 @@
+Id,Name,ProgramId
+0jiVY00000001KIYAY,Clinical counseling-Crisis intervention - Drop-In,11WVY000000GC212AG
+0jiVY00000002A7YAI,Action plan created - Drop-In,11WVY000000GC212AG
+0jiVY00000002A8YAI,Actively seeking employment-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002A9YAI,Actively Using-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002AAYAY,After Care - Drop-In,11WVY000000GC212AG
+0jiVY00000002ACYAY,Already in CE - Drop-In,11WVY000000GC212AG
+0jiVY00000002AEYAY,Apartment Hygiene - Drop-In,11WVY000000GC212AG
+0jiVY00000002AFYAY,Arrested-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002AGYAY,Attempt to contact participant - Drop-In,11WVY000000GC212AG
+0jiVY00000002AHYAY,Basic Needs/Supplies - Drop-In,11WVY000000GC212AG
+0jiVY00000002AIYAY,BCAP Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002AJYAY,Benefits - Drop-In,11WVY000000GC212AG
+0jiVY00000002AKYAY,Benefits: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002ALYAY,Budgeting and financial management-General support - Drop-In,11WVY000000GC212AG
+0jiVY00000002AMYAY,Case management activity with participant - Drop-In,11WVY000000GC212AG
+0jiVY00000002ANYAY,Case management activity without participant present - Drop-In,11WVY000000GC212AG
+0jiVY00000002AOYAY,CE Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002APYAY,CHAFEE - Drop-In,11WVY000000GC212AG
+0jiVY00000002AQYAY,Chase House-Free time - Drop-In,11WVY000000GC212AG
+0jiVY00000002ARYAY,Clinical counseling-Family therapy - Drop-In,11WVY000000GC212AG
+0jiVY00000002ASYAY,Clinical counseling-Group substance use support - Drop-In,11WVY000000GC212AG
+0jiVY00000002ATYAY,Clinical counseling-Group therapy - Drop-In,11WVY000000GC212AG
+0jiVY00000002AUYAY,Clinical counseling-Individual session - Drop-In,11WVY000000GC212AG
+0jiVY00000002AVYAY,Clinical counseling-Mental health check-in - Drop-In,11WVY000000GC212AG
+0jiVY00000002AWYAY,Clinical Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002AXYAY,Community Clean Up - Drop-In,11WVY000000GC212AG
+0jiVY00000002AYYAY,Completed CE - Drop-In,11WVY000000GC212AG
+0jiVY00000002AaYAI,Conflict resolution general support - Drop-In,11WVY000000GC212AG
+0jiVY00000002AbYAI,Conflict resolution or mediation training (formal training) - Drop-In,11WVY000000GC212AG
+0jiVY00000002AdYAI,Continued School Engagement-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002AeYAI,Cooking/meal preparation support - Drop-In,11WVY000000GC212AG
+0jiVY00000002AfYAI,Counseling-Career - Drop-In,11WVY000000GC212AG
+0jiVY00000002AgYAI,Creative - Drop-In,11WVY000000GC212AG
+0jiVY00000002AhYAI,Creative expression activity - Drop-In,11WVY000000GC212AG
+0jiVY00000002AiYAI,Deacons Closet Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002AjYAI,Dental Assistance - Drop-In,11WVY000000GC212AG
+0jiVY00000002AkYAI,DHHS Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002AlYAI,DI-Case Management - Drop-In,11WVY000000GC212AG
+0jiVY00000002AmYAI,Drop-in Facility Use - Drop-In,11WVY000000GC212AG
+0jiVY00000002AnYAI,Drop-in Mail Pickup - Drop-In,11WVY000000GC212AG
+0jiVY00000002AqYAI,Education-GED tutoring or homework - Drop-In,11WVY000000GC212AG
+0jiVY00000002ArYAI,Education-General support - Drop-In,11WVY000000GC212AG
+0jiVY00000002AtYAI,Emergency financial assistance provided - Drop-In,11WVY000000GC212AG
+0jiVY00000002AuYAI,Employment-General support - Drop-In,11WVY000000GC212AG
+0jiVY00000002AvYAI,Employment-Job readiness training - Drop-In,11WVY000000GC212AG
+0jiVY00000002AwYAI,Employment-Job retention support - Drop-In,11WVY000000GC212AG
+0jiVY00000002AxYAI,Employment-Job search support - Drop-In,11WVY000000GC212AG
+0jiVY00000002AyYAI,Employment-Job skills training (job-specific skills) - Drop-In,11WVY000000GC212AG
+0jiVY00000002AzYAI,Employment: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002B0YAI,Equine Therapy - Drop-In,11WVY000000GC212AG
+0jiVY00000002B1YAI,Equine therapy session - Drop-In,11WVY000000GC212AG
+0jiVY00000002B2YAI,ESA support - Drop-In,11WVY000000GC212AG
+0jiVY00000002B4YAI,Family Coaching - Drop-In,11WVY000000GC212AG
+0jiVY00000002B5YAI,Family Coaching Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002B6YAI,Family engagement general support (not clinical counseling) - Drop-In,11WVY000000GC212AG
+0jiVY00000002B7YAI,Financial Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002B9YAI,GED Obtained at The Source - Drop-In,11WVY000000GC212AG
+0jiVY00000002BAYAY,GED/Education Class (2 hrs) - Drop-In,11WVY000000GC212AG
+0jiVY00000002BBYAY,GED/Education Class (3 hrs) - Drop-In,11WVY000000GC212AG
+0jiVY00000002BCYAY,GED/Education Class (4 hrs) - Drop-In,11WVY000000GC212AG
+0jiVY00000002BIYAY,Group service-BIPOC support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BJYAY,Group service-Cooking/meal preparation support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BKYAY,Group service-Creative explorations - Drop-In,11WVY000000GC212AG
+0jiVY00000002BLYAY,Group service-Field trip or outing - Drop-In,11WVY000000GC212AG
+0jiVY00000002BMYAY,Group service-Games - Drop-In,11WVY000000GC212AG
+0jiVY00000002BNYAY,Group service-LGBTQ+ support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BOYAY,Group Service-Life Skills - Drop-In,11WVY000000GC212AG
+0jiVY00000002BPYAY,Group service-Peer support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BQYAY,Group service-Prosocial or recreational activity on-site - Drop-In,11WVY000000GC212AG
+0jiVY00000002BRYAY,Group service-Sexual health support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BSYAY,Group service-Tenant association - Drop-In,11WVY000000GC212AG
+0jiVY00000002BVYAY,Group-Employment - Drop-In,11WVY000000GC212AG
+0jiVY00000002BWYAY,Group-Mental Health - Drop-In,11WVY000000GC212AG
+0jiVY00000002BXYAY,Harm Reduction Kit - Drop-In,11WVY000000GC212AG
+0jiVY00000002BYYAY,Harvest of Hope Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002BZYAY,Health First Colorado Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002BaYAI,Health-First aid or hygiene supply provided - Drop-In,11WVY000000GC212AG
+0jiVY00000002BbYAI,Health-General sexual health support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BcYAI,Health-Medical appointment-Offsite - Drop-In,11WVY000000GC212AG
+0jiVY00000002BdYAI,Health-Medical appointment-Onsite - Drop-In,11WVY000000GC212AG
+0jiVY00000002BeYAI,"Hep C Kits (condoms, lube, etc) - Drop-In",11WVY000000GC212AG
+0jiVY00000002BfYAI,Hitchhikers Guide to Safe Sex - Drop-In,11WVY000000GC212AG
+0jiVY00000002BgYAI,HIV/HEP C Testing - Drop-In,11WVY000000GC212AG
+0jiVY00000002BhYAI,"Homelessness/Crisis (BCC, Feeds, etc) Referral - Drop-In",11WVY000000GC212AG
+0jiVY00000002BjYAI,Hopelight Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002BkYAI,Housed with family-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002BlYAI,Housing - Drop-In,11WVY000000GC212AG
+0jiVY00000002BmYAI,Housing application support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BnYAI,Housing Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002BoYAI,Housing search support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BpYAI,Housing-Apartment maintenance/hygiene support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BqYAI,Housing-Landlord interview or visit support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BrYAI,Housing-Lease education - Drop-In,11WVY000000GC212AG
+0jiVY00000002BsYAI,Housing-Lease renewal support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BtYAI,Housing-Lease violation follow-up support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BuYAI,Housing-Move in assistance - Drop-In,11WVY000000GC212AG
+0jiVY00000002BvYAI,Housing-Move out assistance - Drop-In,11WVY000000GC212AG
+0jiVY00000002BwYAI,Housing-New tenant orientation - Drop-In,11WVY000000GC212AG
+0jiVY00000002BxYAI,Housing-related disability accommodation - Drop-In,11WVY000000GC212AG
+0jiVY00000002ByYAI,Housing-Rent support - Drop-In,11WVY000000GC212AG
+0jiVY00000002BzYAI,Housing-Tenant rights education - Drop-In,11WVY000000GC212AG
+0jiVY00000002C0YAI,Housing-Tenant-based voucher support - Drop-In,11WVY000000GC212AG
+0jiVY00000002C1YAI,Housing-Voucher income verification - Drop-In,11WVY000000GC212AG
+0jiVY00000002C2YAI,Housing-Voucher recertification - Drop-In,11WVY000000GC212AG
+0jiVY00000002C3YAI,Housing: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002C4YAI,ID and vital documents general support - Drop-In,11WVY000000GC212AG
+0jiVY00000002C5YAI,ID and vital documents secured-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002C6YAI,Identification Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002C7YAI,Identification: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002C8YAI,Interaction with participant's school - Drop-In,11WVY000000GC212AG
+0jiVY00000002CBYAY,Legal issue general support - Drop-In,11WVY000000GC212AG
+0jiVY00000002CCYAY,Legal Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002CEYAY,LGBTQ Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002CFYAY,LGBTQ+ support - Drop-In,11WVY000000GC212AG
+0jiVY00000002CGYAY,Life skills-Not covered by other service - Drop-In,11WVY000000GC212AG
+0jiVY00000002CHYAY,Lost Housing-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CIYAY,Lost Job-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CJYAY,Mail Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002CKYAY,Meal provided - Drop-In,11WVY000000GC212AG
+0jiVY00000002CLYAY,Medical Assistance - Drop-In,11WVY000000GC212AG
+0jiVY00000002CMYAY,Medical care access general support - Drop-In,11WVY000000GC212AG
+0jiVY00000002CNYAY,Medical evaluation-Onsite - Drop-In,11WVY000000GC212AG
+0jiVY00000002COYAY,Medical: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002CPYAY,Mental Health Crisis-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CQYAY,Mental Health Engagement-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CRYAY,Mental health general support (not clinical counseling) - Drop-In,11WVY000000GC212AG
+0jiVY00000002CSYAY,Mental Health: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002CTYAY,Mental/behavioral health appointment-Offsite - Drop-In,11WVY000000GC212AG
+0jiVY00000002CUYAY,MHP Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002CVYAY,New School Enrollment-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CWYAY,Newly Employed-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CXYAY,Newly housed-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CYYAY,Night of stay - Drop-In,11WVY000000GC212AG
+0jiVY00000002CZYAY,Obtained GED-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CaYAI,Obtained Job Certification-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CbYAI,Other Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002CcYAI,Outcome - Counseling - Drop-In,11WVY000000GC212AG
+0jiVY00000002CdYAI,Outreach contact to agency/organization/group - Drop-In,11WVY000000GC212AG
+0jiVY00000002CeYAI,Overnight guest - Drop-In,11WVY000000GC212AG
+0jiVY00000002CgYAI,Participant attended court session - Drop-In,11WVY000000GC212AG
+0jiVY00000002ChYAI,Participant volunteer opportunity - Drop-In,11WVY000000GC212AG
+0jiVY00000002CiYAI,Pathway's Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002CjYAI,PEAK Application Completed - Drop-In,11WVY000000GC212AG
+0jiVY00000002CkYAI,People's Clinic Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002ClYAI,Personal hygiene general support - Drop-In,11WVY000000GC212AG
+0jiVY00000002CmYAI,Physical Recreational Activity - Drop-In,11WVY000000GC212AG
+0jiVY00000002CoYAI,Points store use - Drop-In,11WVY000000GC212AG
+0jiVY00000002CqYAI,Professional team engagement - Drop-In,11WVY000000GC212AG
+0jiVY00000002CrYAI,Prosocial or recreational activity - Drop-In,11WVY000000GC212AG
+0jiVY00000002CsYAI,Psychological evaluation-Onsite - Drop-In,11WVY000000GC212AG
+0jiVY00000002CtYAI,Psychosocial assessment completed - Drop-In,11WVY000000GC212AG
+0jiVY00000002CuYAI,Public benefits support - Drop-In,11WVY000000GC212AG
+0jiVY00000002CvYAI,QRTP assessment completed - Drop-In,11WVY000000GC212AG
+0jiVY00000002CwYAI,Recovery Cafe Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002CxYAI,Recreational Activity - Drop-In,11WVY000000GC212AG
+0jiVY00000002CyYAI,Reduced Substance Use-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002CzYAI,Referral-Child welfare/Foster care/Chafee - Drop-In,11WVY000000GC212AG
+0jiVY00000002D0YAI,Referral-Education program or institution - Drop-In,11WVY000000GC212AG
+0jiVY00000002D1YAI,Referral-Equine therapy - Drop-In,11WVY000000GC212AG
+0jiVY00000002D2YAI,Referral-GED tutoring - Drop-In,11WVY000000GC212AG
+0jiVY00000002D3YAI,Referral-Health-Dental provider - Drop-In,11WVY000000GC212AG
+0jiVY00000002D4YAI,Referral-Health-Medical provider - Drop-In,11WVY000000GC212AG
+0jiVY00000002D5YAI,Referral-Health-Vision provider - Drop-In,11WVY000000GC212AG
+0jiVY00000002JXYAY,Referral-Housing program: 1440 Pine - Drop-In,11WVY000000GC212AG
+0jiVY00000002JYYAY,Referral-Housing program: Non-TGTHR - Drop-In,11WVY000000GC212AG
+0jiVY00000002JZYAY,Referral-Housing program: TGTHR TLP/RRH - Drop-In,11WVY000000GC212AG
+0jiVY00000002JaYAI,Referral-LGBTQ+ support provider - Drop-In,11WVY000000GC212AG
+0jiVY00000002JbYAI,Referral-Mental/behavioral health provider - Drop-In,11WVY000000GC212AG
+0jiVY00000002JcYAI,"Referral-Public benefits agency (SNAP, SSI, DIS) - Drop-In",11WVY000000GC212AG
+0jiVY00000002JdYAI,Referral-Sexual health services or testing provider - Drop-In,11WVY000000GC212AG
+0jiVY00000002JeYAI,Referral-Source drop-in - Drop-In,11WVY000000GC212AG
+0jiVY00000002JfYAI,Referral-Substance abuse counseling provider or Substance use support (not cli - Drop-In,11WVY000000GC212AG
+0jiVY00000002JgYAI,Referral-Workforce or employment agency - Drop-In,11WVY000000GC212AG
+0jiVY00000002JhYAI,Room/apartment search - Drop-In,11WVY000000GC212AG
+0jiVY00000002JiYAI,Safe Lot Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002JjYAI,Safety Planning - Drop-In,11WVY000000GC212AG
+0jiVY00000002JkYAI,Self-care general support - Drop-In,11WVY000000GC212AG
+0jiVY00000002JlYAI,Sexual Health Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002JmYAI,Sexual health supply provided - Drop-In,11WVY000000GC212AG
+0jiVY00000002JnYAI,Sexual health testing-Onsite - Drop-In,11WVY000000GC212AG
+0jiVY00000002JoYAI,Shelter Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002JqYAI,SOP Contact - Drop-In,11WVY000000GC212AG
+0jiVY00000002JrYAI,Sponsor time - Drop-In,11WVY000000GC212AG
+0jiVY00000002JsYAI,Stably Housed-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002JtYAI,Still Employed-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002JuYAI,Substance Abuse - Drop-In,11WVY000000GC212AG
+0jiVY00000002JvYAI,Substance Abuse: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002JwYAI,Substance use monitoring (urinalysis/blood test) - Drop-In,11WVY000000GC212AG
+0jiVY00000002JxYAI,Substance Use Relapse-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002JyYAI,Substance use support (not clinical counseling) - Drop-In,11WVY000000GC212AG
+0jiVY00000002K0YAI,Supportive Employment - Drop In Hours - Drop-In,11WVY000000GC212AG
+0jiVY00000002K1YAI,Supportive Employment - Group - Drop-In,11WVY000000GC212AG
+0jiVY00000002K3YAI,TAY-VISPIDAT completed - Drop-In,11WVY000000GC212AG
+0jiVY00000002K5YAI,The Source Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002K6YAI,TLP-Case Management - Drop-In,11WVY000000GC212AG
+0jiVY00000002K7YAI,Transportation - Drop-In,11WVY000000GC212AG
+0jiVY00000002K8YAI,Transportation Referral - Drop-In,11WVY000000GC212AG
+0jiVY00000002K9YAI,Transportation-Bus pass or ride provided - Drop-In,11WVY000000GC212AG
+0jiVY00000002KAYAY,Transportation-Training or information provided - Drop-In,11WVY000000GC212AG
+0jiVY00000002KBYAY,Transportation: Level 3 - Drop-In,11WVY000000GC212AG
+0jiVY00000002KNYAY,Youth Outreach Contact - Drop-In,11WVY000000GC212AG
+0jiVY00000002KOYAY,Peer - Counseling Group - Drop-In,11WVY000000GC212AG
+0jiVY00000002KPYAY,Peer - Mental Health Check-in - Drop-In,11WVY000000GC212AG
+0jiVY00000002KQYAY,Action plan created - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KRYAY,Actively seeking employment-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KTYAY,After Care - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KUYAY,Agape Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KVYAY,Already in CE - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KWYAY,Angel Initiative Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KXYAY,Apartment Hygiene - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KYYAY,Arrested-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KZYAY,Attempt to contact participant - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KaYAI,Basic Needs/Supplies - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KbYAI,BCAP Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KcYAI,Benefits - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KdYAI,Benefits: Level 3 - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KeYAI,Budgeting and financial management-General support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KfYAI,Case management activity with participant - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KgYAI,Case management activity without participant present - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KhYAI,CE Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KiYAI,CHAFEE - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KjYAI,Chase House-Free time - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KkYAI,Clinical counseling-Family therapy - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KlYAI,Clinical counseling-Group substance use support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KmYAI,Clinical counseling-Group therapy - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KnYAI,Clinical counseling-Individual session - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KoYAI,Clinical counseling-Mental health check-in - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KpYAI,Clinical Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KqYAI,Community Clean Up - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KrYAI,Completed CE - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KsYAI,Completed Safe Lot - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KtYAI,Conflict resolution general support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KuYAI,Conflict resolution or mediation training (formal training) - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KvYAI,Connected with LEAD CM - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KwYAI,Continued School Engagement-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KxYAI,Cooking/meal preparation support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002KyYAI,Counseling-Career - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L0YAI,Creative expression activity - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L1YAI,Deacons Closet Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L2YAI,Dental Assistance - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L3YAI,DHHS Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L4YAI,DI-Case Management - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L5YAI,Drop-in Facility Use - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L6YAI,Drop-in Mail Pickup - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L8YAI,Educated on Ordinance - Outreach,11WVY000000GC0P2AW
+0jiVY00000002L9YAI,Education-GED tutoring or homework - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LAYAY,Education-General support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LCYAY,Emergency financial assistance provided - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LDYAY,Employment-General support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LEYAY,Employment-Job readiness training - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LFYAY,Employment-Job retention support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LGYAY,Employment-Job search support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LHYAY,Employment-Job skills training (job-specific skills) - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LJYAY,Equine Therapy - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LKYAY,Equine therapy session - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LLYAY,ESA support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LOYAY,Family Coaching Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LPYAY,Family engagement general support (not clinical counseling) - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LQYAY,Financial Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LSYAY,GED Obtained at The Source - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LTYAY,GED/Education Class (2 hrs) - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LbYAI,Group service-BIPOC support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LcYAI,Group service-Cooking/meal preparation support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LdYAI,Group service-Creative explorations - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LeYAI,Group service-Field trip or outing - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LfYAI,Group service-Games - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LgYAI,Group service-LGBTQ+ support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LhYAI,Group Service-Life Skills - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LiYAI,Group service-Peer support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LjYAI,Group service-Prosocial or recreational activity on-site - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LkYAI,Group service-Sexual health support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LlYAI,Group service-Tenant association - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LoYAI,Group-Employment - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LpYAI,Group-Mental Health - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LqYAI,Harm Reduction Kit - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LrYAI,Harvest of Hope Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LsYAI,Health First Colorado Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LtYAI,Health-First aid or hygiene supply provided - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LuYAI,Health-General sexual health support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LvYAI,Health-Medical appointment-Offsite - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LwYAI,Health-Medical appointment-Onsite - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LxYAI,"Hep C Kits (condoms, lube, etc) - Outreach",11WVY000000GC0P2AW
+0jiVY00000002LyYAI,Hitchhikers Guide to Safe Sex - Outreach,11WVY000000GC0P2AW
+0jiVY00000002LzYAI,HIV/HEP C Testing - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M0YAI,"Homelessness/Crisis (BCC, Feeds, etc) Referral - Outreach",11WVY000000GC0P2AW
+0jiVY00000002M1YAI,HOPE Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M2YAI,Hopelight Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M4YAI,Housing - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M5YAI,Housing application support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M6YAI,Housing Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M7YAI,Housing search support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M8YAI,Housing-Apartment maintenance/hygiene support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002M9YAI,Housing-Landlord interview or visit support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MAYAY,Housing-Lease education - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MBYAY,Housing-Lease renewal support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MCYAY,Housing-Lease violation follow-up support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MDYAY,Housing-Move in assistance - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MEYAY,Housing-Move out assistance - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MFYAY,Housing-New tenant orientation - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MGYAY,Housing-related disability accommodation - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MHYAY,Housing-Rent support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MIYAY,Housing-Tenant rights education - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MJYAY,Housing-Tenant-based voucher support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MKYAY,Housing-Voucher income verification - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MLYAY,Housing-Voucher recertification - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MNYAY,ID and vital documents general support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MOYAY,ID and vital documents secured-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MPYAY,Identification Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MRYAY,Interaction with participant's school - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MSYAY,LEAD Conversation - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MTYAY,LEAD Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MUYAY,Legal issue general support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MVYAY,Legal Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MXYAY,LGBTQ Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MYYAY,LGBTQ+ support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MZYAY,Life skills-Not covered by other service - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MaYAI,Lost Housing-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MbYAI,Lost Job-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002McYAI,Mail Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MdYAI,Meal provided - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MeYAI,Medical Assistance - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MfYAI,Medical care access general support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MgYAI,Medical evaluation-Onsite - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MiYAI,Mental Health Crisis-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MnYAI,Mental Health Engagement-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MoYAI,Mental health general support (not clinical counseling) - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MqYAI,Mental/behavioral health appointment-Offsite - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MrYAI,MHP Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MsYAI,New School Enrollment-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MtYAI,Newly Employed-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MuYAI,Newly housed-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MvYAI,Night of stay - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MwYAI,Obtained GED-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MxYAI,Obtained Job Certification-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MyYAI,Other Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002MzYAI,Outcome - Counseling - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N0YAI,Outreach contact to agency/organization/group - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N1YAI,Overnight guest - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N3YAI,Participant attended court session - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N4YAI,Participant volunteer opportunity - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N5YAI,Pathway's Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N6YAI,PEAK Application Completed - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N7YAI,People's Clinic Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N8YAI,Personal hygiene general support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002N9YAI,Physical Recreational Activity - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NBYAY,Points store use - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NDYAY,Professional team engagement - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NEYAY,Prosocial or recreational activity - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NFYAY,Psychological evaluation-Onsite - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NGYAY,Psychosocial assessment completed - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NHYAY,Public benefits support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NIYAY,QRTP assessment completed - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NJYAY,Recovery Cafe Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NKYAY,Recreational Activity - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NLYAY,Reduced Substance Use-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NMYAY,Referral-Child welfare/Foster care/Chafee - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NNYAY,Referral-Education program or institution - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NOYAY,Referral-Equine therapy - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NPYAY,Referral-GED tutoring - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NQYAY,Referral-Health-Dental provider - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NRYAY,Referral-Health-Medical provider - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NSYAY,Referral-Health-Vision provider - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NTYAY,Referral-Housing program: 1440 Pine - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NUYAY,Referral-Housing program: Non-TGTHR - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NVYAY,Referral-Housing program: TGTHR TLP/RRH - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NWYAY,Referral-LGBTQ+ support provider - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NXYAY,Referral-Mental/behavioral health provider - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NYYAY,"Referral-Public benefits agency (SNAP, SSI, DIS) - Outreach",11WVY000000GC0P2AW
+0jiVY00000002NZYAY,Referral-Sexual health services or testing provider - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NaYAI,Referral-Source drop-in - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NbYAI,Referral-Substance abuse counseling provider or Substance use support (not cli - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NcYAI,Referral-Workforce or employment agency - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NdYAI,Room/apartment search - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NeYAI,Safe Lot Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NfYAI,Safety Planning - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NgYAI,Self-care general support - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NhYAI,Sexual Health Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NiYAI,Sexual health supply provided - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NjYAI,Sexual health testing-Onsite - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NkYAI,Shelter Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NmYAI,SOP Contact - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NnYAI,Sponsor time - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NoYAI,Stably Housed-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NpYAI,Still Employed-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NqYAI,Substance Abuse - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NsYAI,Substance use monitoring (urinalysis/blood test) - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NtYAI,Substance Use Relapse-Outcome - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NuYAI,Substance use support (not clinical counseling) - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NwYAI,Supportive Employment - Drop In Hours - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NxYAI,Supportive Employment - Group - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NyYAI,Talking Points - Outreach,11WVY000000GC0P2AW
+0jiVY00000002NzYAI,TAY-VISPIDAT completed - Outreach,11WVY000000GC0P2AW
+0jiVY00000002O0YAI,The HUB Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002O1YAI,The Source Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002O2YAI,TLP-Case Management - Outreach,11WVY000000GC0P2AW
+0jiVY00000002O4YAI,Transportation Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002O5YAI,Transportation-Bus pass or ride provided - Outreach,11WVY000000GC0P2AW
+0jiVY00000002O6YAI,Transportation-Training or information provided - Outreach,11WVY000000GC0P2AW
+0jiVY00000002O9YAI,VCP Referral - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OBYAY,Visited Deacons - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OCYAY,Visited Harvest of Hope - Outreach,11WVY000000GC0P2AW
+0jiVY00000002ODYAY,Visited HOPE - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OEYAY,Visited People's Clinic - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OFYAY,Visited Recovery Cafe - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OGYAY,Visited Shelter - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OHYAY,Visited The HUB - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OIYAY,Visited VCP - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OJYAY,Youth Outreach Contact - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OKYAY,Peer - Counseling Group - Outreach,11WVY000000GC0P2AW
+0jiVY00000002OLYAY,Peer - Mental Health Check-in - Outreach,11WVY000000GC0P2AW
+0jiVY00000002d7YAA,Creative Expression Activity - Drop-In,11WVY000000GC212AG
+0jiVY00000002d8YAA,Returned to Services-Outcome - Drop-In,11WVY000000GC212AG
+0jiVY00000002d9YAA,Education-GED testing - Drop-In,11WVY000000GC212AG
+0jiVY00000002dAYAQ,Family Coaching - Drop-In,11WVY000000GC212AG
+0jiVY00000002dBYAQ,Clinical counseling-Crisis intervention - Drop-In,11WVY000000GC212AG
+0jiVY00000002kGYAQ,Creative Expression Activity - Outreach,11WVY000000GC0P2AW
+0jiVY00000002kIYAQ,Education-GED testing - Outreach,11WVY000000GC0P2AW
+0jiVY00000002kJYAQ,Family Coaching - Outreach,11WVY000000GC0P2AW
+0jiVY00000002kKYAQ,Clinical counseling-Crisis intervention - Outreach,11WVY000000GC0P2AW
+0jiVY00000002kzYAA,Judith Vargas Employment,11WVY000000GC212AG
+0jiVY00000002mbYAA,JG,11WVY000000GC212AG
+0jiVY00000003HFYAY,Harm reduction kit - Outreach,11WVY000000GC0P2AW
+0jiVY00000003IrYAI,Shelter referral-Outreach,11WVY000000GC0P2AW

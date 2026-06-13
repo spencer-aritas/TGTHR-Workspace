@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Restraining_Orders__c</fullName>
-    <externalId>false</externalId>
     <inlineHelpText>Does this person have any restraining orders (against them or protecting them)?</inlineHelpText>
     <label>Restraining Orders</label>
     <required>false</required>
@@ -12,8 +11,46 @@
         <restricted>true</restricted>
         <valueSetDefinition>
             <sorted>false</sorted>
-            <value><fullName>Yes</fullName><default>false</default><label>Yes</label></value>
-            <value><fullName>No</fullName><default>false</default><label>No</label></value>
+            <value>
+                <fullName>Yes</fullName>
+                <default>false</default>
+                <label>Yes</label>
+            </value>
+            <value>
+                <fullName>No</fullName>
+                <default>false</default>
+                <label>No</label>
+            </value>
+            <value>
+                <fullName>Client Doesn&apos;t Know</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Client Doesn&apos;t Know</label>
+            </value>
+            <value>
+                <fullName>Prefers Not to Answer</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Prefers Not to Answer</label>
+            </value>
+            <value>
+                <fullName>Yes - Against Me</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Yes - Against Me</label>
+            </value>
+            <value>
+                <fullName>Yes - Both</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Yes - Both</label>
+            </value>
+            <value>
+                <fullName>Yes - Protecting Me</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Yes - Protecting Me</label>
+            </value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

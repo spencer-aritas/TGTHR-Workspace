@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Ideation_No_Plan_No_Intent__c</fullName>
+    <defaultValue>false</defaultValue>
+    <inlineHelpText>Person endorses thoughts of suicide and has thought of at least one method during the assessment period. This is different than a specific plan with time, place or method details worked out (e.g., thought of method to kill self but not a specific plan).  Includes person who would say, “I thought about taking an overdose but I never made a specific plan as to when, where or how I would actually do it…and I would never go through with it.”</inlineHelpText>
+    <label>Active Ideation - No Plan/No Intent</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

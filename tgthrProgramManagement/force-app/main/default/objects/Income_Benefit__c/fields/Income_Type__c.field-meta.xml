@@ -36,14 +36,14 @@
                 <label>Social Security Disability Income (SSDI)</label>
             </value>
             <value>
-                <fullName>Veteran's Service-Connected Disability Compensation</fullName>
+                <fullName>Veteran&apos;s Service-Connected Disability Compensation</fullName>
                 <default>false</default>
-                <label>Veteran's Service-Connected Disability Compensation</label>
+                <label>Veteran&apos;s Service-Connected Disability Compensation</label>
             </value>
             <value>
-                <fullName>Veteran's Non-Service-Connected Disability Compensation</fullName>
+                <fullName>Veteran&apos;s Non-Service-Connected Disability Compensation</fullName>
                 <default>false</default>
-                <label>Veteran's Non-Service-Connected Disability Compensation</label>
+                <label>Veteran&apos;s Non-Service-Connected Disability Compensation</label>
             </value>
             <value>
                 <fullName>Private Disability Insurance</fullName>
@@ -51,9 +51,9 @@
                 <label>Private Disability Insurance</label>
             </value>
             <value>
-                <fullName>Worker's Compensation</fullName>
+                <fullName>Worker&apos;s Compensation</fullName>
                 <default>false</default>
-                <label>Worker's Compensation</label>
+                <label>Worker&apos;s Compensation</label>
             </value>
             <value>
                 <fullName>Temporary Assistance for Needy Families (TANF)</fullName>
@@ -101,9 +101,9 @@
                 <label>Other Sources</label>
             </value>
             <value>
-                <fullName>Client Doesn't Know</fullName>
+                <fullName>Client Doesn&apos;t Know</fullName>
                 <default>false</default>
-                <label>Client Doesn't Know</label>
+                <label>Client Doesn&apos;t Know</label>
             </value>
             <value>
                 <fullName>Prefers not to answer</fullName>
@@ -154,6 +154,108 @@
                 <fullName>Other Benefit Source</fullName>
                 <default>false</default>
                 <label>Other Benefit Source</label>
+            </value>
+            <value>
+                <fullName>Alimony/Spousal Support</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Alimony/Spousal Support</label>
+            </value>
+            <value>
+                <fullName>Earned Income (Employment)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Earned Income (Employment)</label>
+            </value>
+            <value>
+                <fullName>General Assistance</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>General Assistance</label>
+            </value>
+            <value>
+                <fullName>Medicaid</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Medicaid</label>
+            </value>
+            <value>
+                <fullName>Medicare</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Medicare</label>
+            </value>
+            <value>
+                <fullName>Other Income Source</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Other Income Source</label>
+            </value>
+            <value>
+                <fullName>Other Non-Cash Benefit</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Other Non-Cash Benefit</label>
+            </value>
+            <value>
+                <fullName>Pension/Retirement from Former Job</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Pension/Retirement from Former Job</label>
+            </value>
+            <value>
+                <fullName>Retirement (Social Security)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Retirement (Social Security)</label>
+            </value>
+            <value>
+                <fullName>SNAP (Food Stamps)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>SNAP (Food Stamps)</label>
+            </value>
+            <value>
+                <fullName>SSDI (Social Security Disability Insurance)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>SSDI (Social Security Disability Insurance)</label>
+            </value>
+            <value>
+                <fullName>SSI (Supplemental Security Income)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>SSI (Supplemental Security Income)</label>
+            </value>
+            <value>
+                <fullName>Section 8/Housing Voucher</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Section 8/Housing Voucher</label>
+            </value>
+            <value>
+                <fullName>TANF (Cash Assistance)</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>TANF (Cash Assistance)</label>
+            </value>
+            <value>
+                <fullName>VA Disability Pension</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>VA Disability Pension</label>
+            </value>
+            <value>
+                <fullName>WIC</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>WIC</label>
+            </value>
+            <value>
+                <fullName>Workers Compensation</fullName>
+                <default>false</default>
+                <isActive>false</isActive>
+                <label>Workers Compensation</label>
             </value>
         </valueSetDefinition>
     </valueSet>

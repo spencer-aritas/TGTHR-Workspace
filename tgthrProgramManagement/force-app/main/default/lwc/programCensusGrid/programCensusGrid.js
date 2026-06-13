@@ -1,5 +1,5 @@
 /* eslint-disable consistent-return */
-import { LightningElement, api, track, wire } from "lwc";
+import { LightningElement, api, track } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getBenefitTypes from "@salesforce/apex/BenefitService.getBenefitTypes";
@@ -18,6 +18,7 @@ import checkBenefitAssignmentsWithParams from "@salesforce/apex/BenefitDisbursem
 import createMissingBenefitAssignments from "@salesforce/apex/BenefitDisbursementService.createMissingBenefitAssignments";
 import recentDisbursementsByProgramId from "@salesforce/apex/InteractionSummaryService.recentDisbursementsByProgramId";
 import getThemeByProgramId from "@salesforce/apex/ProgramThemeService.getThemeByProgramId";
+import getThemeByProgramName from "@salesforce/apex/ProgramThemeService.getThemeByProgramName";
 import logRecordAccessWithPii from "@salesforce/apex/RecordAccessService.logRecordAccessWithPii";
 //import UserPreferencesShowTerritoryTimeZoneShifts from "@salesforce/schema/User.UserPreferencesShowTerritoryTimeZoneShifts";
 
@@ -30,53 +31,149 @@ const MULTI_NOTE_OPTIONS = [
   { label: "Individual Case Notes per Participant", value: "individual" }
 ];
 
+const HOUSING_COLUMNS = [
+  {
+    label: "Unit",
+    fieldName: "unit",
+    sortable: true,
+    initialWidth: 80,
+    cellAttributes: { alignment: "center" },
+    editable: true,
+    type: "text"
+  },
+  {
+    label: "Resident Name",
+    fieldName: "residentLink",
+    type: "url",
+    typeAttributes: {
+      label: { fieldName: "residentName" },
+      target: "_blank"
+    },
+    wrapText: false,
+    sortable: true,
+    initialWidth: 200,
+    cellAttributes: {
+      alignment: "left",
+      class: { fieldName: "rowClass" }
+    }
+  },
+  {
+    label: "Pronouns",
+    fieldName: "pronouns",
+    cellAttributes: { alignment: "left" },
+    initialWidth: 100,
+    editable: true,
+    type: "text"
+  },
+  {
+    label: "Pets",
+    fieldName: "pets",
+    wrapText: true,
+    initialWidth: 150,
+    cellAttributes: { alignment: "left" },
+    editable: true,
+    type: "text"
+  },
+  {
+    label: "Case Manager",
+    fieldName: "caseManager",
+    wrapText: false,
+    initialWidth: 200,
+    cellAttributes: { alignment: "left" }
+  },
+  {
+    label: "Out of Unit",
+    fieldName: "outOfUnit",
+    initialWidth: 100,
+    cellAttributes: {
+      alignment: "center",
+      class: { fieldName: "outOfUnitClass" }
+    },
+    editable: true,
+    type: "text"
+  },
+  {
+    label: "Referral Source",
+    fieldName: "referralSource",
+    wrapText: true,
+    initialWidth: 180,
+    cellAttributes: { alignment: "left" }
+  }
+];
+
+const OUTREACH_DROPIN_COLUMNS = [
+  {
+    label: "Participant Name",
+    fieldName: "residentLink",
+    type: "url",
+    typeAttributes: {
+      label: { fieldName: "residentName" },
+      target: "_blank"
+    },
+    wrapText: false,
+    sortable: true,
+    initialWidth: 200,
+    cellAttributes: {
+      alignment: "left",
+      class: { fieldName: "rowClass" }
+    }
+  },
+  {
+    label: "Pronouns",
+    fieldName: "pronouns",
+    cellAttributes: { alignment: "left" },
+    initialWidth: 100,
+    editable: true,
+    type: "text"
+  },
+  {
+    label: "Pets",
+    fieldName: "pets",
+    wrapText: true,
+    initialWidth: 150,
+    cellAttributes: { alignment: "left" },
+    editable: true,
+    type: "text"
+  },
+  {
+    label: "Case Manager",
+    fieldName: "caseManager",
+    wrapText: false,
+    initialWidth: 200,
+    cellAttributes: { alignment: "left" }
+  },
+  {
+    label: "Last Interaction / Check-In Date",
+    fieldName: "lastInteractionOrCheckInDate",
+    sortable: true,
+    initialWidth: 190,
+    cellAttributes: { alignment: "left" },
+    type: "text"
+  },
+  {
+    label: "Referral Source",
+    fieldName: "referralSource",
+    wrapText: true,
+    initialWidth: 180,
+    cellAttributes: { alignment: "left" }
+  }
+];
+
 export default class ProgramCensusGrid extends NavigationMixin(LightningElement) {
   _loggedParticipantIds = new Set();
   _loggedEnrollmentIds = new Set();
   _loggedEngagementIds = new Set();
+  _programReloadQueued = false;
+  _isEditingCell = false;
   @api
   set programName(value) {
+    if (this._programName === value) {
+      return;
+    }
     this._programName = value;
     console.log("programName API property set to:", value);
 
-    // Do minimal work for programName changes: only update UI class and try to
-    // resolve programId if parent hasn't provided one. Heavy loads are driven
-    // by programId changes (see programId setter) to avoid race conditions.
-    // Wait a tick to allow a parent to synchronously set `programId` via property
-    // binding before we attempt our best-effort name->id resolution. This avoids
-    // duplicate/competing loads and makes program switching deterministic.
-    Promise.resolve().then(async () => {
-      try {
-        await nextTick(); // give parent code a chance to set programId
-
-        // If we still don't have a canonical programId, try to resolve one (best-effort)
-        if (!this._programId && this._programName && !this.programId) {
-          try {
-            const resolved = await getProgramIdByName({
-              programName: this._programName
-            });
-            if (resolved) {
-              // Only apply the resolved id if a parent hasn't provided one in the meantime
-              if (!this.programId) {
-                this._programId = resolved;
-                // Trigger program-scoped loads when we successfully resolve an id
-                this.loadBenefitTypes();
-                this.loadBenefits();
-                this.loadProgramEnrollments();
-                this.loadRecentEngagements();
-              }
-            }
-          } catch (err) {
-            console.warn(
-              "Could not resolve programId from programName (deferred):",
-              err
-            );
-          }
-        }
-      } catch (err) {
-        console.error("Error handling programName change (deferred):", err);
-      }
-    });
+    this.queueProgramScopedReload();
   }
   get programName() {
     return this._programName;
@@ -128,6 +225,7 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
     // Defer heavy loads so the DOM can update first
     Promise.resolve().then(() => {
       // When parent provides a programId, re-load program-scoped data
+      this.loadProgramTheme();
       this.loadBenefitTypes();
       this.loadBenefits();
       this.loadProgramEnrollments();
@@ -158,118 +256,30 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
   @track _isProcessingClinicalDisbursement = false; // Flag to prevent infinite recursion during clinical disbursement
   @track _clinicalDisbursementParticipants = []; // Store participants for clinical disbursement to avoid re-querying
 
-  columns = [
-    {
-      label: "Unit",
-      fieldName: "unit",
-      sortable: true,
-      initialWidth: 80,
-      cellAttributes: { alignment: "center" },
-      editable: true,
-      type: "text"
-    },
-    {
-      label: "Resident Name",
-      fieldName: "residentLink",
-      type: "url",
-      typeAttributes: {
-        label: { fieldName: "residentName" },
-        target: "_blank"
-      },
-      wrapText: false,
-      sortable: true,
-      initialWidth: 200,
-      cellAttributes: {
-        alignment: "left",
-        class: { fieldName: "rowClass" }
-      }
-    },
-    {
-      label: "Pronouns",
-      fieldName: "pronouns",
-      cellAttributes: { alignment: "left" },
-      initialWidth: 100,
-      editable: true,
-      type: "text"
-    },
-    {
-      label: "Pets",
-      fieldName: "pets",
-      wrapText: true,
-      initialWidth: 150,
-      cellAttributes: { alignment: "left" },
-      editable: true,
-      type: "text"
-    },
-    {
-      label: "Case Manager",
-      fieldName: "caseManager",
-      wrapText: false,
-      initialWidth: 200,
-      cellAttributes: { alignment: "left" }
-    },
-    {
-      label: "Out of Unit",
-      fieldName: "outOfUnit",
-      initialWidth: 100,
-      cellAttributes: {
-        alignment: "center",
-        class: { fieldName: "outOfUnitClass" }
-      },
-      editable: true,
-      type: "picklist",
-      typeAttributes: {
-        placeholder: "Choose value",
-        options: [
-          { label: "Yes", value: "Yes" },
-          { label: "No", value: "No" }
-        ]
-      }
-    },
-    {
-      label: "Referral Source",
-      fieldName: "referralSource",
-      wrapText: true,
-      initialWidth: 180,
-      cellAttributes: { alignment: "left" }
-    }
-  ];
+  get columns() {
+    return this.isOutreachDropInProgram
+      ? OUTREACH_DROPIN_COLUMNS
+      : HOUSING_COLUMNS;
+  }
+
+  get isOutreachDropInProgram() {
+    const normalizedProgramName = (this.programName || "").toLowerCase();
+    const hasOutreach = normalizedProgramName.includes("outreach");
+    const hasDropIn =
+      normalizedProgramName.includes("drop-in") ||
+      normalizedProgramName.includes("drop in") ||
+      normalizedProgramName.includes("dropin");
+    return hasOutreach && hasDropIn;
+  }
 
   get hideCheckboxes() {
     return false;
   }
   get disburseDisabled() {
-    const hasSelection = this.selection.length > 0;
+    const hasSelection = Array.isArray(this.selection) && this.selection.length > 0;
     const hasBenefitId = !!this.benefitId;
     const hasServiceDate = !!this.serviceDate;
     const hasQuantity = this.quantity > 0;
-
-    try {
-      console.log(
-        "Disburse button state check:",
-        JSON.stringify({
-          hasSelection,
-          selectionLength: Array.isArray(this.selection)
-            ? this.selection.length
-            : 0,
-          hasBenefitId,
-          benefitId: this.benefitId,
-          hasServiceDate,
-          serviceDate: this.serviceDate,
-          hasQuantity,
-          quantity: this.quantity,
-          clinicalFlow: this.isClinical
-        })
-      );
-    } catch (err) {
-      console.warn(err);
-      console.log(
-        "Disburse button state check: hasSelection=" +
-          hasSelection +
-          ", selectionLength=" +
-          (Array.isArray(this.selection) ? this.selection.length : 0)
-      );
-    }
 
     return !(hasSelection && hasBenefitId && hasServiceDate && hasQuantity);
   }
@@ -360,52 +370,45 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
     return Array.isArray(this.selection) ? this.selection.length : 0;
   }
 
-  // Exposed boolean for template to show clinical-specific inputs
+  // Look up the currently selected benefit option (carries channel flags from Apex)
+  get selectedBenefitOption() {
+    if (!this.benefitId || !Array.isArray(this.benefitOptions)) return null;
+    return this.benefitOptions.find((o) => o && o.value === this.benefitId) || null;
+  }
+
+  // Census-channel benefit — always creates an InteractionSummary wrapper for the disbursement.
+  // The Census Board only surfaces Census benefits, but we still gate on the flag in case the
+  // option list is loaded from a non-filtered source.
+  get isCensusBenefit() {
+    const opt = this.selectedBenefitOption;
+    // If the loader doesn't set the flag (legacy data), assume true when a benefit is selected
+    // on the Census Board — the board itself only loads Census benefits.
+    if (opt && opt.availableForProgramEngagement === false) return false;
+    return !!this.benefitId;
+  }
+
+  // Require Case Note — sub-flag on Census benefits that makes Meeting Notes mandatory.
+  get requireCaseNote() {
+    const opt = this.selectedBenefitOption;
+    return !!(opt && opt.requireCaseNote === true);
+  }
+
+  // Legacy alias retained for templates / references — Census Board no longer uses
+  // Available_for_Clinical__c (that flag drives which Note modal the benefit appears in,
+  // not Census Board behavior).
   get isClinical() {
-    // eventType may be an Id (value) - find the option label and inspect it
-    if (!this.eventType) return false;
+    return false;
+  }
 
-    // Try to find the option by value first (for when eventType is an ID)
-    let label = "";
-    if (this.eventTypeOptions && this.eventTypeOptions.length > 0) {
-      const opt = this.eventTypeOptions.find((o) => o.value === this.eventType);
-      if (opt) {
-        label = opt.label;
-      }
-    }
+  // True when the disbursement should open the notes/datetime modal
+  get needsInteractionModal() {
+    return this.isCensusBenefit;
+  }
 
-    // If we couldn't find it by value, use the eventType directly if it's a string
-    if (!label && typeof this.eventType === "string") {
-      label = this.eventType;
-    }
-
-    // Define clinical benefit types
-    const clinicalBenefitTypes = [
-      "Care Coordination",
-      "Case Management",
-      "Clinical Counseling",
-      "Group Session",
-      "Peer Clinical",
-      "Social/Emotional"
-    ];
-
-    // Return true if the label matches any clinical benefit type (case insensitive)
-    const result =
-      (label &&
-        clinicalBenefitTypes.some(
-          (type) => type.toLowerCase() === label.toLowerCase()
-        )) ||
-      false;
-
-    console.log(
-      "isClinical computed - eventType:",
-      this.eventType,
-      "label:",
-      label,
-      "result:",
-      result
-    );
-    return result;
+  // Modal title — the modal is always the Interaction Summary editor on the Census Board.
+  // The Require Note flag only changes whether the Note field is mandatory.
+  get clinicalModalTitle() {
+    return "Interaction Summary Details";
   }
 
   // Check if this is a police intervention benefit
@@ -630,56 +633,24 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
     // Initialize weekly date range to the current week
     this.initializeWeekDates();
 
-    // Defer initial loads until we have a programId (resolve from name if needed)
-    Promise.resolve()
-      .then(() => this.ensureProgramId())
-      .then((pid) => {
-        if (pid) {
-          this._programId = pid;
-        }
-        // Load program-scoped data after resolving id (or best-effort if still null)
-        this.loadBenefitTypes();
-        this.loadBenefits();
-        this.loadProgramEnrollments();
-        this.loadRecentEngagements();
-      })
-      .catch((e) => {
-        console.warn("connectedCallback: ensureProgramId failed, proceeding best-effort", e);
-        this.loadRecentEngagements();
-      });
-
-    // Listen for parent-provided programId in case the attribute binding arrives late
-    this._onParentProgramIdChange = (evt) => {
-      try {
-        const id = evt.detail && evt.detail.programId;
-        if (id && !this._programId) {
-          console.log(
-            "Received programidchange event from parent with id:",
-            id
-          );
-          this._programId = id;
-          // Trigger program-scoped loads
-          this.loadBenefitTypes();
-          this.loadBenefits();
-          this.loadProgramEnrollments();
-          this.loadRecentEngagements();
-        }
-      } catch {
-        console.error("Error handling programidchange event");
-      }
-    };
-    this.addEventListener("programidchange", this._onParentProgramIdChange);
-
-    // Load the program theme on initialization
-    this.loadProgramTheme();
+    // Run one startup load pass; subsequent refreshes are driven by programId setter.
+    this.queueProgramScopedReload();
   }
 
-  disconnectedCallback() {
-    if (this._onParentProgramIdChange)
-      this.removeEventListener(
-        "programidchange",
-        this._onParentProgramIdChange
-      );
+  queueProgramScopedReload() {
+    if (this._programReloadQueued) return;
+    this._programReloadQueued = true;
+
+    Promise.resolve().then(() => {
+      this._programReloadQueued = false;
+      this.loadProgramTheme();
+      this.loadBenefitTypes();
+      this.loadProgramEnrollments();
+      this.loadRecentEngagements();
+      if (this.eventType) {
+        this.loadBenefits();
+      }
+    });
   }
 
   // Initialize the start and end dates of the current week (Sun-Sat)
@@ -850,8 +821,8 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
       });
   }
 
-  // Wire the active program enrollments data
-  @wire(getActiveProgramEnrollmentsByProgramId, { programId: "$programId" })
+  // Keep this method for debugging reference, but do not wire it.
+  // Imperative loading in loadProgramEnrollments() avoids duplicate fetches and UI lag.
   wiredProgramEnrollments({ error, data }) {
     console.log(
       "wiredProgramEnrollments triggered. programId:",
@@ -907,6 +878,7 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
 
       // Process active enrollments
       const activeEnrollments = data.activeEnrollments || [];
+      const lastInteractionByAccountId = data.lastInteractionByAccountId || {};
       this.rows = activeEnrollments.map((enrollment) => {
         const account = enrollment.Account || {};
         // Case manager is now a text field directly on the account, not a relationship
@@ -915,10 +887,14 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
         let pets = account.Pets__c || "None";
 
         // Add row highlighting for out of unit participants
-        const isOutOfUnit = account.Out_Of_Unit__c === true;
+        const isOutOfUnit =
+          !this.isOutreachDropInProgram && account.Out_Of_Unit__c === true;
+        const rawLastInteraction =
+          lastInteractionByAccountId[enrollment.AccountId] || null;
 
         return {
           accountId: enrollment.AccountId,
+          caseId: enrollment.Case__c || null,
           unit: account.Unit__c || "",
           residentName: account.Name || "",
           pronouns: account.PersonPronouns || "",
@@ -926,9 +902,10 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
           caseManager: account.Case_Manager__pc || "",
           outOfUnit: account.Out_Of_Unit__c ? "Yes" : "No",
           outOfUnitClass: isOutOfUnit ? "highlighted-row" : "",
+          lastInteractionOrCheckInDate: this.formatDate(rawLastInteraction),
           referralSource: account.Referral_Source__c || "",
           enrollmentId: enrollment.Id,
-          residentLink: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`,
+          residentLink: this.buildActiveResidentLink(enrollment),
           status: enrollment.Status,
           rowClass: isOutOfUnit ? "highlighted-row" : ""
         };
@@ -944,11 +921,13 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
         );
         return {
           accountId: enrollment.AccountId,
-          caseId: enrollment.Case__c,
+          caseId: enrollment.Case__c || null,
           residentName: account.Name || "",
           startDate: this.formatDate(enrollment.StartDate),
           enrollmentId: enrollment.Id,
-          residentLink: caseManagerHomeUrl || "javascript:void(0);",
+          residentLink: enrollment.Case__c
+            ? `/lightning/r/Case/${enrollment.Case__c}/view`
+            : caseManagerHomeUrl || "#",
           RecordUrl: caseManagerHomeUrl || `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
         };
       });
@@ -959,12 +938,13 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
         const account = enrollment.Account || {};
         return {
           accountId: enrollment.AccountId,
+          caseId: enrollment.Case__c || null,
           residentName: account.Name || "",
           status: enrollment.Status,
           endDate: this.formatDate(enrollment.EndDate),
           enrollmentId: enrollment.Id,
-          residentLink: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`,
-          RecordUrl: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
+          residentLink: this.buildActiveResidentLink(enrollment),
+          RecordUrl: this.buildActiveResidentLink(enrollment)
         };
       });
     } else if (error) {
@@ -1047,14 +1027,19 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
     this.isLoading = false;
 
     const activeEnrollments = data.activeEnrollments || [];
+    const lastInteractionByAccountId = data.lastInteractionByAccountId || {};
     this.rows = activeEnrollments.map((enrollment) => {
       const account = enrollment.Account || {};
       // Case manager is now a text field directly on the account, not a relationship
       let pets = account.Pets__c || "None";
-      const isOutOfUnit = account.Out_Of_Unit__c === true;
+      const isOutOfUnit =
+        !this.isOutreachDropInProgram && account.Out_Of_Unit__c === true;
+      const rawLastInteraction =
+        lastInteractionByAccountId[enrollment.AccountId] || null;
 
       return {
         accountId: enrollment.AccountId,
+        caseId: enrollment.Case__c || null,
         unit: account.Unit__c || "",
         residentName: account.Name || "",
         pronouns: account.PersonPronouns || "",
@@ -1062,9 +1047,10 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
         caseManager: account.Case_Manager__pc || "",
         outOfUnit: account.Out_Of_Unit__c ? "Yes" : "No",
         outOfUnitClass: isOutOfUnit ? "highlighted-row" : "",
+        lastInteractionOrCheckInDate: this.formatDate(rawLastInteraction),
         referralSource: account.Referral_Source__c || "",
         enrollmentId: enrollment.Id,
-        residentLink: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`,
+        residentLink: this.buildActiveResidentLink(enrollment),
         status: enrollment.Status,
         rowClass: isOutOfUnit ? "highlighted-row" : ""
       };
@@ -1079,11 +1065,13 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
       );
       return {
         accountId: enrollment.AccountId,
-        caseId: enrollment.Case__c,
+        caseId: enrollment.Case__c || null,
         residentName: account.Name || "",
         startDate: this.formatDate(enrollment.StartDate),
         enrollmentId: enrollment.Id,
-        residentLink: caseManagerHomeUrl || "javascript:void(0);",
+        residentLink: enrollment.Case__c
+          ? `/lightning/r/Case/${enrollment.Case__c}/view`
+          : caseManagerHomeUrl || "#",
         RecordUrl: caseManagerHomeUrl || `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
       };
     });
@@ -1093,12 +1081,13 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
       const account = enrollment.Account || {};
       return {
         accountId: enrollment.AccountId,
+        caseId: enrollment.Case__c || null,
         residentName: account.Name || "",
         status: enrollment.Status,
         endDate: this.formatDate(enrollment.EndDate),
         enrollmentId: enrollment.Id,
-        residentLink: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`,
-        RecordUrl: `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`
+        residentLink: this.buildActiveResidentLink(enrollment),
+        RecordUrl: this.buildActiveResidentLink(enrollment)
       };
     });
   }
@@ -1138,6 +1127,18 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
     }
 
     return url;
+  }
+
+  buildActiveResidentLink(enrollment) {
+    if (!enrollment || !enrollment.Id) {
+      return "#";
+    }
+
+    if (enrollment.Case__c) {
+      return `/lightning/r/Case/${enrollment.Case__c}/view`;
+    }
+
+    return `/lightning/r/ProgramEnrollment/${enrollment.Id}/view`;
   }
 
   // Load recent engagement data for the calendar
@@ -1413,11 +1414,11 @@ async loadRecentEngagements() {
 
   // handlers
   handleSelection(e) {
+    // Prevent selection state updates during inline cell edits to avoid layout thrash.
+    if (this._isEditingCell) return;
+    
     this.selection = e.detail.selectedRows || [];
     this.isClinicalDisbursement = false;
-    const count = this.selectionCount;
-    console.log("Selection updated:", this.selection);
-    console.log("Number of selected rows:", count);
 
     if (Array.isArray(this.selection) && this.selection.length > 0) {
       this.selection.forEach((row) => {
@@ -1574,11 +1575,12 @@ async loadRecentEngagements() {
       }
 
       const isClinical = this.isClinical;
-      this.isClinicalDisbursement = isClinical && ids.length > 0;
+      const needsInteractionModal = this.needsInteractionModal;
+      this.isClinicalDisbursement = needsInteractionModal && ids.length > 0;
 
-      if (isClinical) {
+      if (needsInteractionModal) {
         console.log(
-          "Clinical benefit detected; opening modal for participant input"
+          "Census/Clinical benefit detected; opening modal for participant input"
         );
         this.prepareClinicalModal(ids);
         this.showClinicalModal = true;
@@ -2067,24 +2069,30 @@ async loadRecentEngagements() {
     const draftValues = event.detail.draftValues;
     if (!draftValues || draftValues.length === 0) return;
 
+    this._isEditingCell = true;
     this.isLoading = true;
 
     // Process draft values into update records
     const updates = draftValues.map((draftValue) => {
-      // Find the corresponding row using accountId
-      const accountId = draftValue.accountId;
-      if (!accountId) {
-        // If there's no accountId in the draft value, look it up from the row
-        const rowId = draftValue.id;
-        const matchingRow = this.rows.find((row) => row.accountId === rowId);
-        if (matchingRow) {
-          draftValue.accountId = matchingRow.accountId;
-        }
-      }
+      const draftRowId =
+        draftValue.id || draftValue.Id || draftValue.enrollmentId || null;
+
+      // Resolve accountId from draft values even when key-field is enrollmentId.
+      const matchingRow = this.rows.find(
+        (row) =>
+          row.accountId === draftValue.accountId ||
+          row.enrollmentId === draftValue.enrollmentId ||
+          row.enrollmentId === draftValue.id ||
+          row.enrollmentId === draftValue.Id ||
+          row.accountId === draftValue.id ||
+          row.accountId === draftValue.Id ||
+          row.enrollmentId === draftRowId
+      );
+      const resolvedAccountId = draftValue.accountId || matchingRow?.accountId;
 
       // Build the update object with field mappings
       const update = {
-        accountId: draftValue.accountId,
+        accountId: resolvedAccountId,
         fields: {}
       };
 
@@ -2102,8 +2110,9 @@ async loadRecentEngagements() {
       }
 
       if (draftValue.outOfUnit !== undefined) {
-        // Convert 'Yes'/'No' string to boolean for the field
-        update.fields.Out_Of_Unit__c = draftValue.outOfUnit === "Yes";
+        const normalized = String(draftValue.outOfUnit).trim().toLowerCase();
+        update.fields.Out_Of_Unit__c =
+          normalized === "yes" || normalized === "true" || normalized === "1";
       }
 
       return update;
@@ -2116,10 +2125,11 @@ async loadRecentEngagements() {
 
     if (validUpdates.length === 0) {
       this.isLoading = false;
+      this._isEditingCell = false;
+      this.toast("Warning", "No valid changes to save", "warning");
       return;
     }
 
-    // Call Apex to update the records
     updateParticipantFields({ updates: validUpdates })
       .then(() => {
         // On success
@@ -2132,7 +2142,6 @@ async loadRecentEngagements() {
             (row) => row.accountId === update.accountId
           );
           if (rowIndex >= 0) {
-            // Update each field in the row
             if (update.fields.Unit__c !== undefined) {
               updatedRows[rowIndex].unit = update.fields.Unit__c;
             }
@@ -2146,6 +2155,10 @@ async loadRecentEngagements() {
               updatedRows[rowIndex].outOfUnit = update.fields.Out_Of_Unit__c
                 ? "Yes"
                 : "No";
+              updatedRows[rowIndex].outOfUnitClass =
+                update.fields.Out_Of_Unit__c === true ? "highlighted-row" : "";
+              updatedRows[rowIndex].rowClass =
+                update.fields.Out_Of_Unit__c === true ? "highlighted-row" : "";
             }
           }
         });
@@ -2164,6 +2177,7 @@ async loadRecentEngagements() {
       })
       .finally(() => {
         this.isLoading = false;
+        this._isEditingCell = false;
       });
   }
 
@@ -2250,21 +2264,18 @@ async loadRecentEngagements() {
         `Opening record for ${enrollment.residentName}`,
         "info"
       );
-      if (caseId || intakeEnrollment?.caseId) {
-        const targetCaseId = caseId || intakeEnrollment.caseId;
-        const targetAccountId = accountId || intakeEnrollment.accountId;
-        const targetUrl = this.buildCaseManagerHomeUrl(
-          targetCaseId,
-          targetAccountId
-        );
-
-        if (targetUrl) {
-          window.location.assign(targetUrl);
-          return;
-        }
-
-        console.error(
-          "Unable to build Case Management URL for Awaiting Intake row."
+      const targetCaseId = caseId || intakeEnrollment?.caseId || exitEnrollment?.caseId;
+      if (targetCaseId) {
+        this[NavigationMixin.Navigate](
+          {
+            type: "standard__recordPage",
+            attributes: {
+              recordId: targetCaseId,
+              objectApiName: "Case",
+              actionName: "view"
+            }
+          },
+          true
         );
         return;
       }
@@ -2374,6 +2385,34 @@ async loadRecentEngagements() {
     }
     this.individualCaseNotesByParticipant = individualNotesMap;
 
+    // Enforce Meeting Notes when the Benefit requires a Case Note
+    if (this.requireCaseNote) {
+      if (this.clinicalNoteOption === "single") {
+        if (!caseNotesValue || !caseNotesValue.trim()) {
+          this.toast(
+            "Meeting Notes Required",
+            "Please enter Meeting Notes for this Benefit.",
+            "error"
+          );
+          this._isProcessingClinicalDisbursement = false;
+          return;
+        }
+      } else if (this.clinicalNoteOption === "individual") {
+        const missing = (this.individualCaseNotes || []).filter(
+          (n) => !(n.caseNotes || "").trim()
+        );
+        if (missing.length > 0) {
+          this.toast(
+            "Meeting Notes Required",
+            "Please enter Meeting Notes for every participant.",
+            "error"
+          );
+          this._isProcessingClinicalDisbursement = false;
+          return;
+        }
+      }
+    }
+
     const startDateTimeValue =
       this.normalizeDateTimeValue(this.modalStartDateTime) || null;
     const endDateTimeValue =
@@ -2478,27 +2517,65 @@ async loadRecentEngagements() {
     this.recentEngagements.sort((a, b) => (b.sortKey || 0) - (a.sortKey || 0));
   }
 
+  applyThemeVars(colorHex, accentHex) {
+    const host = this.template.host;
+    if (colorHex) {
+      host.style.setProperty("--program-color", colorHex);
+    }
+    if (accentHex) {
+      host.style.setProperty("--program-accent", accentHex);
+    }
+  }
+
+  applyAutoTheme(seedInput) {
+    const seed = String(seedInput || "default");
+    const palettes = [
+      { color: "#4f6bbd", accent: "#8fa8d8" },
+      { color: "#2d7a3e", accent: "#7ba878" },
+      { color: "#8b4513", accent: "#c0915a" },
+      { color: "#5a3d8c", accent: "#9980b8" },
+      { color: "#2d6b7a", accent: "#7ab0b0" },
+      { color: "#6b5a3d", accent: "#a89878" }
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < seed.length; i += 1) {
+      hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    }
+    const palette = palettes[hash % palettes.length];
+    this.applyThemeVars(palette.color, palette.accent);
+  }
+
   // Load and apply the program theme
   async loadProgramTheme() {
-    if (!this.programId) {
+    const currentProgramId = this.programId || this._programId;
+    const currentProgramName = this.programName;
+    if (!currentProgramId && !currentProgramName) {
       console.warn("No programId available to load theme.");
       return;
     }
 
     try {
-      console.log("Loading theme for programId:", this.programId);
-      const theme = await getThemeByProgramId({ programId: this.programId });
+      let theme = null;
+      if (currentProgramId) {
+        console.log("Loading theme for programId:", currentProgramId);
+        theme = await getThemeByProgramId({ programId: currentProgramId });
+      }
+      if (!theme && currentProgramName) {
+        console.log("Falling back to theme for programName:", currentProgramName);
+        theme = await getThemeByProgramName({ programName: currentProgramName });
+      }
       console.log("Theme retrieved:", theme);
 
-      const host = this.template.host; // Target the shadow DOM host element
-      if (theme.colorHex) {
-        host.style.setProperty("--program-color", theme.colorHex);
-      }
-      if (theme.accentHex) {
-        host.style.setProperty("--program-accent", theme.accentHex);
+      if (theme && (theme.colorHex || theme.accentHex)) {
+        this.applyThemeVars(theme.colorHex, theme.accentHex);
+      } else {
+        // No metadata theme found: generate deterministic variant for newly active programs.
+        this.applyAutoTheme(currentProgramId || currentProgramName);
       }
     } catch (error) {
       console.error("Error loading program theme:", error);
+      this.applyAutoTheme(currentProgramId || currentProgramName);
     }
   }
 

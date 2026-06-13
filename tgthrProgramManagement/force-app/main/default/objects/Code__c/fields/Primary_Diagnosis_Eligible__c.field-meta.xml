@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Primary_Diagnosis_Eligible__c</fullName>
+    <description>Can this Code be set as a Primary Diagnosis and be billed as primary?  Used in filter on Care Plan</description>
+    <inlineHelpText>Can this Code be set as a Primary Diagnosis and be billed as primary?</inlineHelpText>
+    <label>Primary Diagnosis Eligible?</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>Yes_No</valueSetName>
+    </valueSet>
+</CustomField>

@@ -3,7 +3,6 @@
     <fullName>Action_Assigned_To__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>The user assigned to take action on this interview. Only this user or the escalator can clear the flag.</description>
-    <externalId>false</externalId>
     <inlineHelpText>The person responsible for addressing this action item.</inlineHelpText>
     <label>Action Assigned To</label>
     <referenceTo>User</referenceTo>
@@ -11,5 +10,6 @@
     <relationshipName>Assigned_Interview_Actions</relationshipName>
     <required>false</required>
     <trackHistory>true</trackHistory>
+    <trackTrending>false</trackTrending>
     <type>Lookup</type>
 </CustomField>

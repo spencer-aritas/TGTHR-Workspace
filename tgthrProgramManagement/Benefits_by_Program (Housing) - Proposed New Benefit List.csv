@@ -1,0 +1,61 @@
+Benefit Name,Benefit Type,New Benefit type,Unit of Measurement ,New Unit of Measurement ,Benefit Type Category,New Benefit Type Category,Who uses this 
+BIPOC Support,Clinical Counseling,Social/Emotional ,Session,,Clinical ,,Clinical / Case Management / Peer
+Bus pass,Transportation Assistance,Transportation assistance,Pass,,Material Support,,Clinical / Case Management / Peer
+"Care coordination- External Medical Provider (please change to ""External Medical Provider"" in SF)",Case Management,Care Coordination,Referral,Session,Case Management,,Case Management 
+Case Management Meeting,Case Management,Not Needed,,,Case Management,,
+Community Engagement,Community Outing,Group,Group Hour,,Clinical ,,Clinical
+Community Resource Navigation,Social/Emotional ,Case Management ,Session,,Case Management,,Case Management / Peer
+Conflict Resolution Support ,Social/Emotional ,Social/Emotional ,Session,,Case Management,,Clinical / Case Management / Peer
+Education,Education,External Referral,Referral,,Case Management,,Case Management 
+Education Support,Education,Case Management ,Session,,Case Management,,Case Management 
+"Emergency Service Coordination (STAR, Emergency Room/ Urgent Care support)",Police intervention,Care Coordination,Session,,Case Management,,Clinical / Case Management / Peer
+Emotional Processing,Social/Emotional ,Social/Emotional ,Session,,Case Management,,Clinical / Case Management / Peer
+Employment Support,Employment ,Case Management ,Session,,Case Management,,Case Management / Peer
+Eviction/ Mutual Rescission Support ,Housing Navigation ,Housing Support,Session,,Case Management,,Case Management
+External Professional Team ,Case Management,Care Coordination,Referral,Session,Case Management,,Case Management
+External Therapy Provider ,Case Management,Care Coordination,Referral,Session,Case Management,,Case Management / Clinical
+Family Reunification Support,Social/Emotional ,Care Coordination,Session,,Case Management,,Case Management
+Financial Education and Navigation,Education,Case Management ,Session,,Case Management,,Case Management
+Food Access,Community Outing,Community Outing ,Group Hour,,Clinical ,Material Support,Case Manament / Peer
+Food Pantry Access- Onsite ,Basic Needs,Basic Needs,Voucher,,Material Support,,All
+GED Group,Education,Group,Group Hour,,Case Management,,All
+Group Support ,Peer Clinical,Clinical Counseling,Group Hour,,Case Management,,Clinical
+Housekeeping ,Housing Navigation ,Housing Support,Session,,Case Management,,Case Manament / Peer
+Housing (is this needed?),Housing ,Housing Support,Bed night,,Housing,,All
+Individual Session ,Clinical Counseling,Clinical Counseling,Session,,Clinical ,,Clinical
+Individual Support ,Community Outing,Community Outing ,Session,,Clinical ,,Clinical / Case Management / Peer
+Initial Planning Meeting (goal setting),Care Coordination,Case Management ,Session,,Clinical ,,Case Manament / Peer
+Lease Violation Meeting,Housing Navigation ,Housing Support,Session,,Case Management,,Case Manament 
+Legal Support,Education,Care Coordination,Session,,Case Management,,Case Maangment / Peer
+LGBTQIA Support,Clinical Counseling,Social/Emotional ,Session,,Clinical ,,Clinical / Case Management / Peer
+Life Skills Group,Basic Needs,Group,Group Hour,,Material Support,,All
+Meal Provided,Basic Needs,Basic Needs,,,Material Support,,All
+"Medical, Legal, or Employment",Care Coordination,Transportation assistance,Session,,Clinical ,Material Support,All
+Mental Health,Social/Emotional ,External Referral,Referral,,Case Management,,Case Management / Clinical
+Mental Health Support,Social/Emotional ,Social/Emotional ,Session,,Case Management,,Clinical / Case Management / Peer
+Move Out Assistance,Housing Navigation ,Housing Support,Session,,Case Management,,Case Manament 
+Other supports,Social/Emotional ,External Referral,Referral,,Case Management,,Case Manament 
+Parenting Support ,Social/Emotional ,Case Management ,Session,,Case Management,,Case Manament 
+Peer Support ,Peer Clinical,Peer Support,Session,,Case Management,,Peer 
+"Peer Support (please change to ""Peer Support Group"" in SF)",Group Session ,Peer Support,Group Hour,,Clinical ,,Peer 
+Physical Health,Physical Health Referral ,External Referral,Referral,,Clinical ,,Case Managment
+Physical/Mental Wellness - Community Outing,Community Outing,Community Outing ,Group Hour,,Clinical ,,All
+Point Store Access ,Basic Needs,Basic Needs,Voucher,,Material Support,,All
+Police Interaction- Arrest,Police intervention,police intervention,Session,,Case Management,,All
+Police Interaction- General Support ,Police intervention,police intervention,Session,,Case Management,,All
+Pre-Lease Violation Support ,Housing Navigation ,Housing Support,Session,,Case Management,,Clinical / Case Management / Peer
+Prosocial ,Community Outing,Not Needed,,,Clinical ,,
+Public Benefits Support,Education,Case Management ,Session,,Case Management,,Case Managment 
+Rental Assistance with Budget,Housing Navigation ,Housing Support,Session,,Case Management,,Case Managment 
+Resident Advisory Council ,Group Session ,Group,Group Hour,,Clinical ,,All
+Substance Use Support,Clinical Counseling,Clinical Counseling,Session,,Clinical ,,Clinical 
+Substance Use Support ,Social/Emotional ,Social/Emotional ,Case Mgmt Hour,,Case Management,,Case Managment / Peer
+Tenant Retention Plan ,Housing Navigation ,Housing Support,Session,,Case Management,,Case Management
+"Therapeutic (please change to ""Therapeutic Group"" in SF)",Peer Clinical,Clinical Counseling,Group Hour,,Clinical ,,Clinical 
+Updates and Progress (goal setting),Care Coordination,Case Management ,Session,,Case Management,,Case Management
+Vital Document Support ,Education,Case Management ,Session,,Case Management,,Case Management
+Voucher Support,Housing Navigation ,Housing Support,Session,,Case Management,,Case Management
+"Wellness, Mental Health, Mindfulness and Meditation Group",Social/Emotional ,Group,Group Hour,,Case Management,,All
+,,,,,,,
+New Benefit,,,,,,,
+Therapeutic Group,,Clinical Counseling,Group Hour,,,,

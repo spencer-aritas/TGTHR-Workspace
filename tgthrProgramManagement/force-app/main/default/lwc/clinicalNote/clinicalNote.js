@@ -18,7 +18,7 @@ import requestManagerApproval from '@salesforce/apex/PendingDocumentationControl
 import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logRecordAccessWithPii';
 
 import INTERACTION_OBJECT from '@salesforce/schema/InteractionSummary';
-import POS_FIELD from '@salesforce/schema/InteractionSummary.POS__c';
+import POS_FIELD from '@salesforce/schema/InteractionSummary.Place_of_Service__c';
 
 const DEFAULT_RICH_TEXT_FORMATS = ['bold', 'italic', 'underline', 'strike', 'list', 'link'];
 

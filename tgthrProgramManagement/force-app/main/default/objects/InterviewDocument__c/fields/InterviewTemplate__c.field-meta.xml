@@ -3,7 +3,6 @@
     <fullName>InterviewTemplate__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <description>Template used to generate this document</description>
-    <externalId>false</externalId>
     <label>Interview Template</label>
     <referenceTo>InterviewTemplate__c</referenceTo>
     <relationshipLabel>Interview Documents</relationshipLabel>

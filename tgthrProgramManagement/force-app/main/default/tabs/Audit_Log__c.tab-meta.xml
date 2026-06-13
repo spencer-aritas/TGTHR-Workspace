@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customObject>true</customObject>
+    <description>Includes fields for PHI access tracking, data purges, error handling, and compliance references for HIPAA and record retention documentation.</description>
+    <motif>Custom26: Flag</motif>
+</CustomTab>

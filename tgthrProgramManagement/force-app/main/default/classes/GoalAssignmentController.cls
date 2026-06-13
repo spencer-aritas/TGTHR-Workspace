@@ -37,12 +37,16 @@ public with sharing class GoalAssignmentController {
         Boolean hasCurrentProgress = fieldMap.containsKey('CurrentProgress__c');
         Boolean hasTotalSessions = fieldMap.containsKey('TotalSessions__c');
         Boolean hasLastWorkedOnDate = fieldMap.containsKey('LastWorkedOnDate__c');
+        Boolean hasCaseField = fieldMap.containsKey('Case__c');
         
         List<String> selectFields = new List<String>{
             'Id', 'CustomGoalName', 'Description', 'Service_Modality__c', 'Goal_Notes__c',
             'StartDate', 'TargetCompletionDate', 'Frequency__c', 'Priority', 'Status',
-            'GoalAssigneeId', 'Case__c'
+            'GoalAssigneeId'
         };
+        if (hasCaseField) {
+            selectFields.add('Case__c');
+        }
         if (hasCurrentProgress) {
             selectFields.add('CurrentProgress__c');
         }
@@ -56,7 +60,7 @@ public with sharing class GoalAssignmentController {
         String query = 'SELECT ' + String.join(selectFields, ', ') + ' FROM GoalAssignment WHERE ';
         List<String> conditions = new List<String>();
         
-        if (caseId != null) {
+        if (caseId != null && hasCaseField) {
             conditions.add('Case__c = :caseId');
         }
         if (accountId != null) {
@@ -110,7 +114,7 @@ public with sharing class GoalAssignmentController {
             dto.priority = (String)goal.get('Priority');
             dto.status = (String)goal.get('Status');
             dto.accountId = (Id)goal.get('GoalAssigneeId');
-            dto.caseId = (Id)goal.get('Case__c');
+            dto.caseId = hasCaseField ? (Id)goal.get('Case__c') : null;
             results.add(dto);
         }
         

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Active_Ideation_Some_Intent_No_Plan__c</fullName>
+    <defaultValue>false</defaultValue>
+    <inlineHelpText>Active suicidal thoughts of killing oneself and person reports having some intent to act on such thoughts, as opposed to “I have the thoughts but I definitely will not do anything about them.”</inlineHelpText>
+    <label>Active Ideation - Some Intent/No Plan</label>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

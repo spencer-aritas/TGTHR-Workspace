@@ -355,6 +355,12 @@ public with sharing class InterviewSessionController {
                 return result;
             }
 
+            if (shouldRequireManagerApproval && request.managerApproverId == UserInfo.getUserId()) {
+                result.success = false;
+                result.errorMessage = 'You cannot select yourself as the manager co-sign approver. Please select another Signing Authority approver.';
+                return result;
+            }
+
             result.requiresManagerApproval = shouldRequireManagerApproval;
             result.managerApprovalForced = managerApprovalForced;
 

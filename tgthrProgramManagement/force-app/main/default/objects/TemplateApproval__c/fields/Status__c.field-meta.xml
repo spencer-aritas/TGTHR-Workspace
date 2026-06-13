@@ -2,7 +2,6 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Status__c</fullName>
     <description>Approval status: Pending, Approved, or Rejected</description>
-    <externalId>false</externalId>
     <inlineHelpText>Current approval status</inlineHelpText>
     <label>Status</label>
     <required>true</required>

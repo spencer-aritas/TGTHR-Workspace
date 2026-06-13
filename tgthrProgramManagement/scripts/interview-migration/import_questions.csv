@@ -1,0 +1,475 @@
+Name,InterviewTemplateVersion__c,Section__c,Order__c,API_Name__c,Label__c,Help_Text__c,Response_Type__c,Picklist_Values__c,Required__c,Sensitive__c,Score_Weight__c,Maps_To__c,UUID__c,Status__c,Question_Text__c,Version_Number__c,Validation_Rule__c,Visibility_Rules__c,Data_Binding__c,Protected__c,Compliance_Flags__c,Field_Set_Group__c,Allow_Carry_Forward__c,Requires_Review__c
+a0oRT000002M5r7,a0xVY0000043QTVYA2,Housing History,1,Last_Permanent_Address_Type__c,Last Permanent Address Type,HMIS-compliant housing type for last permanent address,Picklist,"[""Foster care home or foster care group home"",""Jail, Prison or Other Juvenile Facility"",""Substance Abuse Treatment Facility or Detox Center"",""Residential project of halfway house with no homeless criteria"",""Owned by Client, No Housing Subsidy"",""Owned by Client, With Housing Subsidy"",""Rental by Client, with no ongoing housing subsidy"",""Rental by Client, with other ongoing housing subsidy"",""Staying or Living in a Family Member's Room, Apartment or House"",""Staying or Living in a Friend's Room, Apartment, or House"",""Permanent Housing for Formerly Homeless Persons"",""Transitional Housing for Homeless Persons (including homeless youth)"",""Client Doesn't Know"",""Client Refused"",""Data not collected""]",True,False,,Assessment__c.Last_Permanent_Address_Type__c,,,,,,,,False,,,False,False
+a0oRT000002M5r8,a0xVY0000043QTVYA2,Housing History,2,Last_Perm_Address_Street__c,Last Permanent Address - Street,Street address of last permanent address,Text,,False,False,,Assessment__c.Last_Perm_Address_Street__c,,,,,,,,False,,,False,False
+a0oRT000002M5r9,a0xVY0000043QTVYA2,Housing History,3,Last_Perm_Address_City__c,Last Permanent Address - City,City of last permanent address,Text,,False,False,,Assessment__c.Last_Perm_Address_City__c,,,,,,,,False,,,False,False
+a0oRT000002M5rA,a0xVY0000043QTVYA2,Housing History,4,Last_Perm_Address_County__c,Last Permanent Address - County,County of last permanent address,Text,,False,False,,Assessment__c.Last_Perm_Address_County__c,,,,,,,,False,,,False,False
+a0oRT000002M5rB,a0xVY0000043QTVYA2,Housing History,5,Last_Perm_Address_State__c,Last Permanent Address - State,State of last permanent address,Text,,False,False,,Assessment__c.Last_Perm_Address_State__c,,,,,,,,False,,,False,False
+a0oRT000002M5rC,a0xVY0000043QTVYA2,Housing History,6,Last_Perm_Address_Zip__c,Last Permanent Address - Zip Code,Zip code of last permanent address,Text,,False,False,,Assessment__c.Last_Perm_Address_Zip__c,,,,,,,,False,,,False,False
+a0oRT000002M5rD,a0xVY0000043QTVYA2,Housing History,7,Where_Stayed_Last_Night__c,Where Did You Stay Last Night?,HMIS-compliant residence type for current living situation,Picklist,"[""Place not meant for habitation (car, park, abandoned building, bus/train station)"",""Emergency shelter, including hotel/motel paid for with emergency shelter voucher"",""Safe Haven"",""Transitional housing for homeless persons"",""Hotel or motel paid for without ES voucher"",""Staying with family temporary tenure"",""Staying with friends temporary tenure"",""Rental by client - no subsidy"",""Rental by client - with subsidy"",""Owned by client - with subsidy"",""Owned by client - no subsidy"",""Institutional setting (jail, hospital, treatment)"",""Foster care home or group home"",""Residential project or halfway house"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",True,False,,Assessment__c.Where_Stayed_Last_Night__c,,,,,,,,False,,,False,False
+a0oRT000002M5rE,a0xVY0000043QTVYA2,Housing History,8,Length_of_Stay_Prior_Situation__c,How Long Did You Stay There?,Length of time in prior living situation,Picklist,"[""One night or less"",""Two to six nights"",""One week or more, but less than one month"",""One month or more, but less than 90 days"",""90 days or more, but less than one year"",""One year or longer"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Length_of_Stay_Prior_Situation__c,,,,,,,,False,,,False,False
+a0oRT000002M5rF,a0xVY0000043QTVYA2,Housing History,9,Homelessness_Episode_Start_Date__c,When Did This Homelessness Episode Begin?,Date this current episode of homelessness began,Date,,False,False,,Assessment__c.Homelessness_Episode_Start_Date__c,,,,,,,,False,,,False,False
+a0oRT000002M5rG,a0xVY0000043QTVYA2,Housing History,10,Times_Homeless_Past_3_Years__c,How Many Times Homeless in Past 3 Years?,Number of times experiencing homelessness in the past 3 years,Picklist,"[""One time"",""Two times"",""Three times"",""Four or more times"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Times_Homeless_Past_3_Years__c,,,,,,,,False,,,False,False
+a0oRT000002M5rH,a0xVY0000043QTVYA2,Housing History,11,Total_Months_Homeless_Past_3_Years__c,Total Months Homeless in Past 3 Years?,Total number of months homeless in the past 3 years (including current episode),Number,,False,False,,Assessment__c.Total_Months_Homeless_Past_3_Years__c,,,,,,,,False,,,False,False
+a0oRT000002M5rI,a0xVY0000043QTVYA2,Housing History,12,Chronic_Homelessness_Qualifier__c,Meets Chronic Homelessness Criteria?,Does this person meet HUD chronic homelessness criteria?,Picklist,"[""Yes"",""No"",""Pending Verification"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Chronic_Homelessness_Qualifier__c,,,,,,,,False,,,False,False
+a0oRT000002M5rJ,a0xVY0000043QTVYA2,Contributing Factors,13,Contributing_Factors_to_Homelessness__c,What Factors Contributed to Your Homelessness?,Select all factors that contributed to becoming homeless,Picklist,"[""Sexual/Physical Abuse"",""Substance Use"",""Relationship Issues with Family"",""Aging Out of Foster Care"",""Family Could Not Afford Housing"",""Eviction"",""Job Loss/Unemployment"",""Lost Housing Assistance"",""Incarceration"",""Mental Health Issues"",""Physical Health Issues"",""Disability"",""Domestic Violence"",""Immigration Issues"",""LGBTQ+ Discrimination"",""Lack of Affordable Housing"",""Natural Disaster"",""Death of Family Member"",""Other""]",False,False,,Assessment__c.Contributing_Factors_to_Homelessness__c,,,,,,,,False,,,False,False
+a0oRT000002M5rK,a0xVY0000043QTVYA2,Contributing Factors,14,Critical_Issues_Facing__c,What Are the Most Critical Issues You Are Facing?,Select all critical issues currently facing this person,Picklist,"[""Mental Health"",""Physical Disability"",""Developmental Disability"",""Chronic Health Condition"",""Substance Use Disorder"",""Unemployment"",""Domestic Violence"",""Legal Issues"",""Childcare"",""Transportation"",""Lack of Education/Training"",""Language Barriers"",""Credit/Debt Issues"",""Lack of Identification"",""Age-Related Challenges"",""Other""]",False,False,,Assessment__c.Critical_Issues_Facing__c,,,,,,,,False,,,False,False
+a0oRT000002M5rL,a0xVY0000043QTVYA2,Domestic Violence,10,DV_Experience__c,Have You Experienced Domestic Violence?,"History of domestic violence, dating violence, sexual assault, or stalking",Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.DV_Experience__c,,,,,,,,False,,,True,True
+a0oRT000002M5rM,a0xVY0000043QTVYA2,Domestic Violence,11,DV_How_Long_Ago__c,How Long Ago Did the Violence Occur?,Timeframe of most recent domestic violence,Picklist,"[""Within the past 3 months"",""3 to 6 months ago"",""6 to 12 months ago"",""1 year or more ago"",""Client Does Not Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.DV_How_Long_Ago__c,,,,,,,,False,,,False,False
+a0oRT000002M5rN,a0xVY0000043QTVYA2,Domestic Violence,12,Currently_Fleeing_DV__c,Are You Currently Fleeing Domestic Violence?,Is this person currently fleeing domestic violence?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Currently_Fleeing_DV__c,,,,,,,,False,,,False,False
+a0oRT000002M5rO,a0xVY0000043QTVYA2,Domestic Violence,13,DV_Safety_Concerns__c,Safety Concerns and Plan,Current safety concerns and safety planning needs,LongText,,False,False,,Assessment__c.DV_Safety_Concerns__c,,,,,,,,False,,,False,False
+a0oRT000002M5rP,a0xVY0000043QTVYA2,Disabilities,14,Physical_Disability__c,Physical Disability?,Does this person have a physical disability?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Physical_Disability__c,,,,,,,,False,,,False,False
+a0oRT000002M5rQ,a0xVY0000043QTVYA2,Disabilities,15,Physical_Disability_Long_Term__c,Is Physical Disability Long-Term?,Expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Physical_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000002M5rR,a0xVY0000043QTVYA2,Disabilities,16,Developmental_Disability__c,Developmental Disability?,Does this person have a developmental disability?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Developmental_Disability__c,,,,,,,,False,,,False,False
+a0oRT000002M5rS,a0xVY0000043QTVYA2,Disabilities,17,Developmental_Disability_Long_Term__c,Is Developmental Disability Long-Term?,Expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Developmental_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000002M5rT,a0xVY0000043QTVYA2,Disabilities,18,Chronic_Health_Condition__c,Chronic Health Condition?,Does this person have a chronic health condition?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Chronic_Health_Condition__c,,,,,,,,False,,,False,False
+a0oRT000002M5rU,a0xVY0000043QTVYA2,Disabilities,19,Chronic_Health_Condition_Long_Term__c,Is Chronic Health Condition Long-Term?,Expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Chronic_Health_Condition_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000002M5rV,a0xVY0000043QTVYA2,Disabilities,20,Mental_Health_Disability__c,Mental Health Disability?,Does this person have a mental health disability?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Mental_Health_Disability__c,,,,,,,,False,,,False,False
+a0oRT000002M5rW,a0xVY0000043QTVYA2,Disabilities,21,Mental_Health_Disability_Long_Term__c,Is Mental Health Disability Long-Term?,Expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Mental_Health_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000002M5rX,a0xVY0000043QTVYA2,Disabilities,22,Substance_Use_Disability__c,Substance Use Disability?,Does this person have a substance use disorder?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Substance_Use_Disability__c,,,,,,,,False,,,False,False
+a0oRT000002M5rY,a0xVY0000043QTVYA2,Disabilities,23,Substance_Use_Disability_Long_Term__c,Is Substance Use Disability Long-Term?,Expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Substance_Use_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000002M5rZ,a0xVY0000043QTVYA2,Health Status,24,HIV_AIDS_Status__c,HIV/AIDS Status,HIV/AIDS status,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,True,,Assessment__c.HIV_AIDS_Status__c,,,,,,,,False,,,False,False
+a0oRT000002M5ra,a0xVY0000043QTVYA2,Health Status,25,Pregnant__c,Are You Pregnant?,Is this person currently pregnant?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Pregnant__c,,,,,,,,False,,,False,False
+a0oRT000002M5rb,a0xVY0000043QTVYA2,Health Status,26,Pregnancy_Due_Date__c,Pregnancy Due Date,Expected due date if pregnant,Date,,False,False,,Assessment__c.Pregnancy_Due_Date__c,,,,,,,,False,,,False,False
+a0oRT000002M5rd,a0xVY0000043QTVYA2,Foster Care & Justice,28,Foster_Care_History__c,Foster Care History?,History of foster care or group home placement,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Foster_Care_History__c,,,,,,,,False,,,False,False
+a0oRT000002M5re,a0xVY0000043QTVYA2,Foster Care & Justice,29,Foster_Care_Duration__c,How Long in Foster Care?,Approximate duration of foster care placement,Text,,False,False,,Assessment__c.Foster_Care_Duration__c,,,,,,,,False,,,False,False
+a0oRT000002M5rf,a0xVY0000043QTVYA2,Foster Care & Justice,30,Foster_Care_Location__c,Foster Care Location,Where was the foster care placement?,Text,,False,False,,Assessment__c.Foster_Care_Location__c,,,,,,,,False,,,False,False
+a0oRT000002M5rg,a0xVY0000043QTVYA2,Foster Care & Justice,31,Juvenile_Justice_Involvement__c,Juvenile Justice Involvement?,History of juvenile justice system involvement,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Juvenile_Justice_Involvement__c,,,,,,,,False,,,False,False
+a0oRT000002M5rh,a0xVY0000043QTVYA2,Foster Care & Justice,32,Juvenile_Justice_Duration__c,How Long in Juvenile Justice?,Approximate duration of juvenile justice involvement,Text,,False,False,,Assessment__c.Juvenile_Justice_Duration__c,,,,,,,,False,,,False,False
+a0oRT000002M5rj,a0xVY0000043QTVYA2,Employment,34,Employment_Status__c,Employment Status,Current employment status,Picklist,"[""Employed Full-Time"",""Employed Part-Time"",""Self-Employed"",""Gig Economy/Contract Work"",""Unemployed - Seeking Work"",""Unemployed - Not Seeking Work"",""Retired"",""Student"",""Disabled - Unable to Work"",""Other""]",False,False,,Assessment__c.Employment_Status__c,,,,,,,,False,,,False,False
+a0oRT000002M5rk,a0xVY0000043QTVYA2,Employment,35,Employment_Type__c,Employment Type,Type of employment,Picklist,"[""W-2 Employee"",""1099 Contractor"",""Gig Economy"",""Day Labor"",""Cash/Under Table"",""Other""]",False,False,,Assessment__c.Employment_Type__c,,,,,,,,False,,,False,False
+a0oRT000002M5rl,a0xVY0000043QTVYA2,Employment,35,Employer_Name__c,Employer Name,Current employer name,Text,,False,False,,Assessment__c.Employer_Name__c,,,,,,,,False,,,False,False
+a0oRT000002M5rm,a0xVY0000043QTVYA2,Employment,36,Hours_Per_Week__c,Hours Per Week,Average hours worked per week,Number,,False,False,,Assessment__c.Hours_Per_Week__c,,,,,,,,False,,,False,False
+a0oRT000002M5rn,a0xVY0000043QTVYA2,Employment,37,Pay_Rate__c,Pay Rate,Hourly or salary rate,Number,,False,False,,Assessment__c.Pay_Rate__c,,,,,,,,False,,,False,False
+a0oRT000002M5ro,a0xVY0000043QTVYA2,Employment,38,Employment_Barriers__c,Employment Barriers,Barriers to employment or better employment,LongText,,False,False,,Assessment__c.Employment_Barriers__c,,,,,,,,False,,,False,False
+a0oRT000002M5rp,a0xVY0000043QTVYA2,Employment,39,Employment_Goals__c,Employment Goals,Career or employment goals,LongText,,False,False,,Assessment__c.Employment_Goals__c,,,,,,,,False,,,False,False
+a0oRT000002M5rq,a0xVY0000043QTVYA2,Education,40,Last_Grade_Completed__c,Last Grade Completed,Highest level of education completed,Picklist,"[""Less than Grade 5"",""Grades 5-6"",""Grades 7-8"",""Grades 9-11"",""Grade 12/High School Diploma"",""GED"",""Some College"",""Associate Degree"",""Bachelor Degree"",""Graduate Degree"",""Vocational Certification"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Last_Grade_Completed__c,,,,,,,,False,,,True,True
+a0oRT000002M5rr,a0xVY0000043QTVYA2,Education,41,Currently_in_School__c,Currently in School?,Is this person currently enrolled in school?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Currently_in_School__c,,,,,,,,False,,,True,True
+a0oRT000002M5rs,a0xVY0000043QTVYA2,Education,42,School_Name__c,School Name,Name of school currently attending,Text,,False,False,,Assessment__c.School_Name__c,,,,,,,,False,,,True,True
+a0oRT000002M5rt,a0xVY0000043QTVYA2,Education,43,Interested_in_GED__c,Interested in GED?,Is this person interested in pursuing GED?,Picklist,"[""Yes"",""No"",""Already Have GED/Diploma"",""Client Does Not Know"",""Data Not Collected""]",False,False,,Assessment__c.Interested_in_GED__c,,,,,,,,False,,,False,False
+a0oRT000002M5ru,a0xVY0000043QTVYA2,Education,44,Post_Secondary_Goals__c,Post-Secondary Goals,"College, vocational training, or other educational goals",LongText,,False,False,,Assessment__c.Post_Secondary_Goals__c,,,,,,,,False,,,False,False
+a0oRT000002M5rv,a0xVY0000043QTVYA2,Permanent Connections,45,Community_Familiarity__c,Community Familiarity,How familiar are you with this community?,Picklist,"[""Very Familiar"",""Somewhat Familiar"",""Not Familiar"",""Data Not Collected""]",False,False,,Assessment__c.Community_Familiarity__c,,,,,,,,False,,,False,False
+a0oRT000002M5rw,a0xVY0000043QTVYA2,Permanent Connections,46,Social_Connections__c,Social Connections,Who are the most important people in your life?,LongText,,False,False,,Assessment__c.Social_Connections__c,,,,,,,,False,,,True,True
+a0oRT000002M5rx,a0xVY0000043QTVYA2,Permanent Connections,47,Social_Networks__c,Social Support Network,Describe the person social support network,LongText,,False,False,,Assessment__c.Social_Networks__c,,,,,,,,False,,,True,True
+a0oRT000002M5ry,a0xVY0000043QTVYA2,Permanent Connections,48,Connection_Goals__c,Connection Goals,Goals for building or strengthening connections,LongText,,False,False,,Assessment__c.Connection_Goals__c,,,,,,,,False,,,False,False
+a0oRT000002M5rz,a0xVY0000043QTVYA2,Housing Pathways,49,Hometown__c,Hometown,Where did you grow up?,Text,,False,False,,Assessment__c.Hometown__c,,,,,,,,False,,,False,False
+a0oRT000002M5s0,a0xVY0000043QTVYA2,Housing Pathways,50,Previous_Lease_Experience__c,Previous Lease Experience?,Have you had your own lease before?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Data Not Collected""]",False,False,,Assessment__c.Previous_Lease_Experience__c,,,,,,,,False,,,False,False
+a0oRT000002M5s1,a0xVY0000043QTVYA2,Housing Pathways,51,Eviction_History__c,Eviction History?,History of evictions,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Eviction_History__c,,,,,,,,False,,,False,False
+a0oRT000002M5s2,a0xVY0000043QTVYA2,Housing Pathways,52,Housing_Program_Experience__c,Housing Program Experience,Previous experience with housing programs or subsidies,LongText,,False,False,,Assessment__c.Housing_Program_Experience__c,,,,,,,,False,,,False,False
+a0oRT000002M5s3,a0xVY0000043QTVYA2,Housing Pathways,53,Housing_Challenges__c,Housing Challenges,What challenges have you faced in maintaining housing?,LongText,,False,False,,Assessment__c.Housing_Challenges__c,,,,,,,,False,,,False,False
+a0oRT000002M5s4,a0xVY0000043QTVYA2,Housing Pathways,54,Housing_Goals__c,Housing Goals,Describe your ideal living situation,LongText,,False,False,,Assessment__c.Housing_Goals__c,,,,,,,,False,,,False,False
+a0oRT000002M5s5,a0xVY0000043QTVYA2,Health Information,55,Current_Health_Concerns__c,Current Health Concerns,"Current health concerns, conditions, or symptoms",LongText,,False,False,,Assessment__c.Current_Health_Concerns__c,,,,,,,,False,,,True,True
+a0oRT000002M5s6,a0xVY0000043QTVYA2,Health Information,56,Medical_Provider_Name__c,Primary Care Provider Name,Name of current primary care provider or doctor,Text,,False,False,,Assessment__c.Medical_Provider_Name__c,,,,,,,,False,,,True,True
+a0oRT000002M5s7,a0xVY0000043QTVYA2,Health Information,57,Medical_Provider_Phone__c,Provider Phone Number,Phone number for medical provider,Text,,False,False,,Assessment__c.Medical_Provider_Phone__c,,,,,,,,False,,,False,False
+a0oRT000002M5s8,a0xVY0000043QTVYA2,Health Information,58,Birth_Control__c,Using Birth Control?,Is this person currently using birth control?,Picklist,"[""Yes"",""No"",""Not Applicable"",""Client Does Not Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.Birth_Control__c,,,,,,,,False,,,False,False
+a0oRT000002M5s9,a0xVY0000043QTVYA2,Health Information,59,Number_of_Children__c,Number of Children,Number of children this person has,Number,,False,False,,Assessment__c.Number_of_Children__c,,,,,,,,False,,,False,False
+a0oRT000002M5sA,a0xVY0000043QTVYA2,Health Information,60,Children_Details__c,Tell Us About Your Children,"Details about children (ages, custody, living situation)",LongText,,False,False,,Assessment__c.Children_Details__c,,,,,,,,False,,,False,False
+a0oRT000002M5sB,a0xVY0000043QTVYA2,Health Information,61,Counseling_History__c,Counseling History,"History of counseling, therapy, or mental health treatment",LongText,,False,False,,Assessment__c.Counseling_History__c,,,,,,,,False,,,False,False
+a0oRT000002M5sC,a0xVY0000043QTVYA2,Health Information,62,Mental_Health_Hospitalizations__c,Mental Health Hospitalizations,Number of times hospitalized for mental health,Number,,False,False,,Assessment__c.Mental_Health_Hospitalizations__c,,,,,,,,False,,,False,False
+a0oRT000002M5sD,a0xVY0000043QTVYA2,Health Information,63,Self_Harm_History__c,History of Self-Harm?,History of self-harm or self-injurious behavior,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer""]",False,True,,Assessment__c.Self_Harm_History__c,,,,,,,,False,,,False,False
+a0oRT000002M5sE,a0xVY0000043QTVYA2,Health Information,64,Suicide_Attempts__c,Number of Suicide Attempts,Number of suicide attempts,Number,,False,True,,Assessment__c.Suicide_Attempts__c,,,,,,,,False,,,False,False
+a0oRT000002M5sF,a0xVY0000043QTVYA2,Health Information,65,Current_Substance_Use__c,Current Substance Use,Current substance use (types of substances),LongText,,False,False,,Assessment__c.Current_Substance_Use__c,,,,,,,,False,,,True,True
+a0oRT000002M5sG,a0xVY0000043QTVYA2,Health Information,66,Substance_Use_Frequency__c,How Often Do You Use Substances?,How frequently does this person use substances?,Picklist,"[""Daily"",""Weekly"",""Monthly"",""Occasionally"",""Never"",""In Recovery"",""Client Does Not Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.Substance_Use_Frequency__c,,,,,,,,False,,,True,True
+a0oRT000002M5sH,a0xVY0000043QTVYA2,Health Information,67,Support_System__c,Who Do You Turn To for Support?,Who does this person turn to for support?,LongText,,False,False,,Assessment__c.Support_System__c,,,,,,,,False,,,False,False
+a0oRT000002M5sI,a0xVY0000043QTVYA2,Health Information,68,Health_Goals__c,Health Goals,Physical and mental health goals,LongText,,False,False,,Assessment__c.Health_Goals__c,,,,,,,,False,,,False,False
+a0oRT000002M5sJ,a0xVY0000043QTVYA2,Safety & Legal,69,Legal_System_Involvement__c,Legal System Involvement?,Is this person currently involved with the legal system?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.Legal_System_Involvement__c,,,,,,,,False,,,True,True
+a0oRT000002M5sK,a0xVY0000043QTVYA2,Safety & Legal,70,On_Probation_Parole__c,On Probation or Parole?,Is this person currently on probation or parole?,Picklist,"[""Yes - Probation"",""Yes - Parole"",""Yes - Both"",""No"",""Client Does Not Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.On_Probation_Parole__c,,,,,,,,False,,,True,True
+a0oRT000002M5sL,a0xVY0000043QTVYA2,Safety & Legal,71,Probation_Officer_Name__c,Probation/Parole Officer Name,Name of probation or parole officer,Text,,False,False,,Assessment__c.Probation_Officer_Name__c,,,,,,,,False,,,False,False
+a0oRT000002M5sM,a0xVY0000043QTVYA2,Safety & Legal,72,Probation_Officer_Phone__c,Officer Phone Number,Phone number for probation or parole officer,Text,,False,False,,Assessment__c.Probation_Officer_Phone__c,,,,,,,,False,,,False,False
+a0oRT000002M5sN,a0xVY0000043QTVYA2,Safety & Legal,73,Restraining_Orders__c,Restraining Orders?,Does this person have any restraining orders?,Picklist,"[""Yes - Protecting Me"",""Yes - Against Me"",""Yes - Both"",""No"",""Client Does Not Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.Restraining_Orders__c,,,,,,,,False,,,False,False
+a0oRT000002M5sO,a0xVY0000043QTVYA2,Safety & Legal,74,Restraining_Order_Details__c,Restraining Order Details,Details about restraining orders,LongText,,False,False,,Assessment__c.Restraining_Order_Details__c,,,,,,,,False,,,False,False
+a0oRT000002M5sP,a0xVY0000043QTVYA2,Safety & Legal,75,Safety_Plan_Notes__c,Safety Plan Notes,Safety plan and de-escalation strategies,LongText,,False,False,,Assessment__c.Safety_Plan_Notes__c,,,,,,,,False,,,False,False
+a0oRT000002M5sS,a0xVY0000043QTVYA2,Trauma-Informed Safety Plan,78,What_Helps_Stay_In_Control__c,What helps you stay in control?,Strategies and techniques that help maintain control,LongText,,False,False,,Assessment__c.What_Helps_Stay_In_Control__c,,,,,,,,False,,,False,False
+a0oRT000002M5sT,a0xVY0000043QTVYA2,Trauma-Informed Safety Plan,79,What_Helps__c,What Helps When You Are Triggered?,What helps when feeling triggered or distressed?,LongText,,False,False,,Assessment__c.What_Helps__c,,,,,,,,False,,,False,False
+a0oRT000002M5sU,a0xVY0000043QTVYA2,Trauma-Informed Safety Plan,80,Comfortable_Spaces__c,Where Do You Feel Safe?,Places or spaces where the person feels safe,LongText,,False,False,,Assessment__c.Comfortable_Spaces__c,,,,,,,,False,,,False,False
+a0oRT000002M5sV,a0xVY0000043QTVYA2,Trauma-Informed Safety Plan,81,Alternative_Behaviors__c,Alternative Coping Behaviors,Alternative behaviors instead of harmful coping,LongText,,False,False,,Assessment__c.Alternative_Behaviors__c,,,,,,,,False,,,False,False
+a0oRT000002M5sW,a0xVY0000043QTVYA2,Trauma-Informed Safety Plan,82,Safety_Incentives__c,What Motivates You to Stay Safe?,What motivates this person to stay safe and healthy?,LongText,,False,False,,Assessment__c.Safety_Incentives__c,,,,,,,,False,,,False,False
+a0oRT000002M5sX,a0xVY0000043QTVYA2,Life Skills,83,Free_Time_Activities__c,What Do You Do in Your Free Time?,Hobbies and interests,LongText,,False,False,,Assessment__c.Free_Time_Activities__c,,,,,,,,False,,,False,False
+a0oRT000002M5sY,a0xVY0000043QTVYA2,Life Skills,84,Living_Concerns__c,What Concerns You About Living on Your Own?,Concerns about independent living,LongText,,False,False,,Assessment__c.Living_Concerns__c,,,,,,,,False,,,False,False
+a0oRT000002M5sZ,a0xVY0000043QTVYA2,Life Skills,85,Community_Impact_Goals__c,How Do You Want to Impact Your Community?,Goals for community involvement,LongText,,False,False,,Assessment__c.Community_Impact_Goals__c,,,,,,,,False,,,False,False
+a0oRT000002M5sa,a0xVY0000043QTVYA2,Life Skills,86,Significant_Life_Events__c,Significant Life Events,Important life events that shaped who you are,LongText,,False,False,,Assessment__c.Significant_Life_Events__c,,,,,,,,False,,,False,False
+a0oRT000002M5sb,a0xVY0000043QTVYA2,Life Skills,87,Motivation_for_Change__c,What Motivates You to Make Changes?,What motivates you to make changes in your life?,LongText,,False,False,,Assessment__c.Motivation_for_Change__c,,,,,,,,False,,,False,False
+a0oRT000002MJMD,a0xVY0000043QTVYA2,Health,27,Health_Insurance_Medicaid__c,Medicaid,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Medicaid__c,,,,,,,,False,,,False,False
+a0oRT000002MJME,a0xVY0000043QTVYA2,Health,27.01,Health_Insurance_Medicare__c,Medicare,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Medicare__c,,,,,,,,False,,,False,False
+a0oRT000002MJMF,a0xVY0000043QTVYA2,Health,27.02,Health_Insurance_State_Childrens_Health_Insurance__c,State Children's Health Insurance,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_State_Childrens_Health_Insurance__c,,,,,,,,False,,,False,False
+a0oRT000002MJMG,a0xVY0000043QTVYA2,Health,27.03,Health_Insurance_Veterans_Administration_VA_Medical_Services__c,Veterans Administration (VA) Medical Services,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Veterans_Administration_VA_Medical_Services__c,,,,,,,,False,,,False,False
+a0oRT000002MJMH,a0xVY0000043QTVYA2,Health,27.04,Health_Insurance_EmployerProvided_Health_Insurance__c,Employer-Provided Health Insurance,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_EmployerProvided_Health_Insurance__c,,,,,,,,False,,,False,False
+a0oRT000002MJMI,a0xVY0000043QTVYA2,Health,27.05,Health_Insurance_Health_Insurance_Obtained_Through_COBRA__c,Health Insurance Obtained Through COBRA,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Health_Insurance_Obtained_Through_COBRA__c,,,,,,,,False,,,False,False
+a0oRT000002MJMJ,a0xVY0000043QTVYA2,Health,27.06,Health_Insurance_Private_Pay_Health_Insurance__c,Private Pay Health Insurance,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Private_Pay_Health_Insurance__c,,,,,,,,False,,,False,False
+a0oRT000002MJMK,a0xVY0000043QTVYA2,Health,27.07,Health_Insurance_State_Health_Insurance_for_Adults__c,State Health Insurance for Adults,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_State_Health_Insurance_for_Adults__c,,,,,,,,False,,,False,False
+a0oRT000002MJML,a0xVY0000043QTVYA2,Health,27.08,Health_Insurance_Indian_Health_Services_Program__c,Indian Health Services Program,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Indian_Health_Services_Program__c,,,,,,,,False,,,False,False
+a0oRT000002MJMM,a0xVY0000043QTVYA2,Health,27.09,Health_Insurance_Other__c,Other,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Other__c,,,,,,,,False,,,False,False
+a0oRT000002MJMN,a0xVY0000043QTVYA2,Health,27.1,Health_Insurance_No_Health_Insurance__c,No Health Insurance,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_No_Health_Insurance__c,,,,,,,,False,,,False,False
+a0oRT000002MJMO,a0xVY0000043QTVYA2,Health,27.11,Health_Insurance_Client_Doesnt_Know__c,Client Doesn't Know,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Client_Doesnt_Know__c,,,,,,,,False,,,False,False
+a0oRT000002MJMP,a0xVY0000043QTVYA2,Health,27.12,Health_Insurance_Client_Prefers_Not_to_Answer__c,Client Prefers Not to Answer,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Client_Prefers_Not_to_Answer__c,,,,,,,,False,,,False,False
+a0oRT000002MJMQ,a0xVY0000043QTVYA2,Health,27.13,Health_Insurance_Data_Not_Collected__c,Data Not Collected,Select if you have this type of health insurance,Checkbox,,False,False,,Assessment__c.Health_Insurance_Data_Not_Collected__c,,,,,,,,False,,,False,False
+a0oRT000002MJMR,a0xVY0000043QTVYA2,Benefits,33,Non_Cash_Benefit_SNAP_Food_Stamps__c,SNAP (Food Stamps),Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_SNAP_Food_Stamps__c,,,,,,,,False,,,False,False
+a0oRT000002MJMS,a0xVY0000043QTVYA2,Benefits,33.01,Non_Cash_Benefit_TANF_Cash_Assistance__c,TANF (Cash Assistance),Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_TANF_Cash_Assistance__c,,,,,,,,False,,,False,False
+a0oRT000002MJMT,a0xVY0000043QTVYA2,Benefits,33.02,Non_Cash_Benefit_Section_8Housing_Choice_Voucher__c,Section 8/Housing Choice Voucher,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Section_8Housing_Choice_Voucher__c,,,,,,,,False,,,False,False
+a0oRT000002MJMU,a0xVY0000043QTVYA2,Benefits,33.03,Non_Cash_Benefit_Public_Housing__c,Public Housing,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Public_Housing__c,,,,,,,,False,,,False,False
+a0oRT000002MJMV,a0xVY0000043QTVYA2,Benefits,33.04,Non_Cash_Benefit_WIC__c,WIC,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_WIC__c,,,,,,,,False,,,False,False
+a0oRT000002MJMW,a0xVY0000043QTVYA2,Benefits,33.05,Non_Cash_Benefit_Medicaid__c,Medicaid,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Medicaid__c,,,,,,,,False,,,False,False
+a0oRT000002MJMX,a0xVY0000043QTVYA2,Benefits,33.06,Non_Cash_Benefit_Medicare__c,Medicare,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Medicare__c,,,,,,,,False,,,False,False
+a0oRT000002MJMY,a0xVY0000043QTVYA2,Benefits,33.07,Non_Cash_Benefit_CHIP__c,CHIP,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_CHIP__c,,,,,,,,False,,,False,False
+a0oRT000002MJMZ,a0xVY0000043QTVYA2,Benefits,33.08,Non_Cash_Benefit_SCHIP__c,SCHIP,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_SCHIP__c,,,,,,,,False,,,False,False
+a0oRT000002MJMa,a0xVY0000043QTVYA2,Benefits,33.09,Non_Cash_Benefit_VA_Medical_Services__c,VA Medical Services,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_VA_Medical_Services__c,,,,,,,,False,,,False,False
+a0oRT000002MJMb,a0xVY0000043QTVYA2,Benefits,33.1,Non_Cash_Benefit_Veteran_NonCash_Benefit__c,Veteran Non-Cash Benefit,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Veteran_NonCash_Benefit__c,,,,,,,,False,,,False,False
+a0oRT000002MJMc,a0xVY0000043QTVYA2,Benefits,33.11,Non_Cash_Benefit_SSDI__c,SSDI,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_SSDI__c,,,,,,,,False,,,False,False
+a0oRT000002MJMd,a0xVY0000043QTVYA2,Benefits,33.12,Non_Cash_Benefit_SSI__c,SSI,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_SSI__c,,,,,,,,False,,,False,False
+a0oRT000002MJMe,a0xVY0000043QTVYA2,Benefits,33.13,Non_Cash_Benefit_Other__c,Other,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Other__c,,,,,,,,False,,,False,False
+a0oRT000002MJMf,a0xVY0000043QTVYA2,Benefits,33.14,Non_Cash_Benefit_Client_Does_Not_Know__c,Client Does Not Know,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Client_Does_Not_Know__c,,,,,,,,False,,,False,False
+a0oRT000002MJMg,a0xVY0000043QTVYA2,Benefits,33.15,Non_Cash_Benefit_Data_Not_Collected__c,Data Not Collected,Select if you receive this benefit,Checkbox,,False,False,,Assessment__c.Non_Cash_Benefit_Data_Not_Collected__c,,,,,,,,False,,,False,False
+a0oRT000002MJMh,a0xVY0000043QTVYA2,Trauma & Crisis,76,Trauma_Trigger_Being_touched__c,Being touched,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Being_touched__c,,,,,,,,False,,,False,False
+a0oRT000002MJMi,a0xVY0000043QTVYA2,Trauma & Crisis,76.01,Trauma_Trigger_Time_of_year__c,Time of year,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Time_of_year__c,,,,,,,,False,,,False,False
+a0oRT000002MJMj,a0xVY0000043QTVYA2,Trauma & Crisis,76.02,Trauma_Trigger_Time_of_day__c,Time of day,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Time_of_day__c,,,,,,,,False,,,False,False
+a0oRT000002MJMk,a0xVY0000043QTVYA2,Trauma & Crisis,76.03,Trauma_Trigger_Being_around_women__c,Being around women,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Being_around_women__c,,,,,,,,False,,,False,False
+a0oRT000002MJMl,a0xVY0000043QTVYA2,Trauma & Crisis,76.04,Trauma_Trigger_Being_around_men__c,Being around men,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Being_around_men__c,,,,,,,,False,,,False,False
+a0oRT000002MJMm,a0xVY0000043QTVYA2,Trauma & Crisis,76.05,Trauma_Trigger_Not_having_input__c,Not having input,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Not_having_input__c,,,,,,,,False,,,False,False
+a0oRT000002MJMn,a0xVY0000043QTVYA2,Trauma & Crisis,76.06,Trauma_Trigger_Being_isolated__c,Being isolated,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Being_isolated__c,,,,,,,,False,,,False,False
+a0oRT000002MJMo,a0xVY0000043QTVYA2,Trauma & Crisis,76.07,Trauma_Trigger_People_being_close__c,People being close,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_People_being_close__c,,,,,,,,False,,,False,False
+a0oRT000002MJMp,a0xVY0000043QTVYA2,Trauma & Crisis,76.08,Trauma_Trigger_Being_forced_to_be_quiet__c,Being forced to be quiet,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Being_forced_to_be_quiet__c,,,,,,,,False,,,False,False
+a0oRT000002MJMq,a0xVY0000043QTVYA2,Trauma & Crisis,76.09,Trauma_Trigger_People_in_uniform__c,People in uniform,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_People_in_uniform__c,,,,,,,,False,,,False,False
+a0oRT000002MJMr,a0xVY0000043QTVYA2,Trauma & Crisis,76.1,Trauma_Trigger_Yelling__c,Yelling,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Yelling__c,,,,,,,,False,,,False,False
+a0oRT000002MJMs,a0xVY0000043QTVYA2,Trauma & Crisis,76.11,Trauma_Trigger_Fighting__c,Fighting,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Fighting__c,,,,,,,,False,,,False,False
+a0oRT000002MJMt,a0xVY0000043QTVYA2,Trauma & Crisis,76.12,Trauma_Trigger_Anniversaries__c,Anniversaries,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Anniversaries__c,,,,,,,,False,,,False,False
+a0oRT000002MJMu,a0xVY0000043QTVYA2,Trauma & Crisis,76.13,Trauma_Trigger_Loud_noises__c,Loud noises,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Loud_noises__c,,,,,,,,False,,,False,False
+a0oRT000002MJMv,a0xVY0000043QTVYA2,Trauma & Crisis,76.14,Trauma_Trigger_Being_forced_to_talk__c,Being forced to talk,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Being_forced_to_talk__c,,,,,,,,False,,,False,False
+a0oRT000002MJMw,a0xVY0000043QTVYA2,Trauma & Crisis,76.15,Trauma_Trigger_Seeing_others_out_of_it__c,Seeing others out of it,Select if this is a trauma reminder or trigger,Checkbox,,False,False,,Assessment__c.Trauma_Trigger_Seeing_others_out_of_it__c,,,,,,,,False,,,False,False
+a0oRT000002MJMx,a0xVY0000043QTVYA2,Trauma & Crisis,77,Warning_Sign_Sweating__c,Sweating,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Sweating__c,,,,,,,,False,,,False,False
+a0oRT000002MJMy,a0xVY0000043QTVYA2,Trauma & Crisis,77.01,Warning_Sign_Red_face__c,Red face,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Red_face__c,,,,,,,,False,,,False,False
+a0oRT000002MJMz,a0xVY0000043QTVYA2,Trauma & Crisis,77.02,Warning_Sign_Shortness_of_breath__c,Shortness of breath,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Shortness_of_breath__c,,,,,,,,False,,,False,False
+a0oRT000002MJN0,a0xVY0000043QTVYA2,Trauma & Crisis,77.03,Warning_Sign_Being_rude__c,Being rude,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Being_rude__c,,,,,,,,False,,,False,False
+a0oRT000002MJN1,a0xVY0000043QTVYA2,Trauma & Crisis,77.04,Warning_Sign_Pacing__c,Pacing,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Pacing__c,,,,,,,,False,,,False,False
+a0oRT000002MJN2,a0xVY0000043QTVYA2,Trauma & Crisis,77.05,Warning_Sign_Heavy_breathing__c,Heavy breathing,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Heavy_breathing__c,,,,,,,,False,,,False,False
+a0oRT000002MJN3,a0xVY0000043QTVYA2,Trauma & Crisis,77.06,Warning_Sign_Loud_voice__c,Loud voice,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Loud_voice__c,,,,,,,,False,,,False,False
+a0oRT000002MJN4,a0xVY0000043QTVYA2,Trauma & Crisis,77.07,Warning_Sign_Crying__c,Crying,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Crying__c,,,,,,,,False,,,False,False
+a0oRT000002MJN5,a0xVY0000043QTVYA2,Trauma & Crisis,77.08,Warning_Sign_Cant_sit_still__c,Can't sit still,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Cant_sit_still__c,,,,,,,,False,,,False,False
+a0oRT000002MJN6,a0xVY0000043QTVYA2,Trauma & Crisis,77.09,Warning_Sign_Eating_more__c,Eating more,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Eating_more__c,,,,,,,,False,,,False,False
+a0oRT000002MJN7,a0xVY0000043QTVYA2,Trauma & Crisis,77.1,Warning_Sign_Racing_heart__c,Racing heart,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Racing_heart__c,,,,,,,,False,,,False,False
+a0oRT000002MJN8,a0xVY0000043QTVYA2,Trauma & Crisis,77.11,Warning_Sign_Sleeping_a_lot__c,Sleeping a lot,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Sleeping_a_lot__c,,,,,,,,False,,,False,False
+a0oRT000002MJN9,a0xVY0000043QTVYA2,Trauma & Crisis,77.12,Warning_Sign_Sleeping_less__c,Sleeping less,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Sleeping_less__c,,,,,,,,False,,,False,False
+a0oRT000002MJNA,a0xVY0000043QTVYA2,Trauma & Crisis,77.13,Warning_Sign_Rocking__c,Rocking,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Rocking__c,,,,,,,,False,,,False,False
+a0oRT000002MJNB,a0xVY0000043QTVYA2,Trauma & Crisis,77.14,Warning_Sign_Hyper__c,Hyper,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Hyper__c,,,,,,,,False,,,False,False
+a0oRT000002MJNC,a0xVY0000043QTVYA2,Trauma & Crisis,77.15,Warning_Sign_Singing_inappropriate_songs__c,Singing inappropriate songs,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Singing_inappropriate_songs__c,,,,,,,,False,,,False,False
+a0oRT000002MJND,a0xVY0000043QTVYA2,Trauma & Crisis,77.16,Warning_Sign_Clenching_teeth__c,Clenching teeth,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Clenching_teeth__c,,,,,,,,False,,,False,False
+a0oRT000002MJNE,a0xVY0000043QTVYA2,Trauma & Crisis,77.17,Warning_Sign_Bouncing_legs__c,Bouncing legs,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Bouncing_legs__c,,,,,,,,False,,,False,False
+a0oRT000002MJNF,a0xVY0000043QTVYA2,Trauma & Crisis,77.18,Warning_Sign_Squatting__c,Squatting,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Squatting__c,,,,,,,,False,,,False,False
+a0oRT000002MJNG,a0xVY0000043QTVYA2,Trauma & Crisis,77.19,Warning_Sign_Clenching_fists__c,Clenching fists,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Clenching_fists__c,,,,,,,,False,,,False,False
+a0oRT000002MJNH,a0xVY0000043QTVYA2,Trauma & Crisis,77.2,Warning_Sign_Swearing__c,Swearing,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Swearing__c,,,,,,,,False,,,False,False
+a0oRT000002MJNI,a0xVY0000043QTVYA2,Trauma & Crisis,77.21,Warning_Sign_Eating_less__c,Eating less,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Eating_less__c,,,,,,,,False,,,False,False
+a0oRT000002MJNJ,a0xVY0000043QTVYA2,Trauma & Crisis,77.22,Warning_Sign_Isolating__c,Isolating,Select if this is a warning sign,Checkbox,,False,False,,Assessment__c.Warning_Sign_Isolating__c,,,,,,,,False,,,False,False
+a0oRT000002QDID,a0xVY0000043QTXYA2,Presenting Problem,1,Presenting_Problem__c,What are you seeking help for today? (Presenting problem/issue),,Textarea,,True,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIE,a0xVY0000043QTXYA2,Presenting Problem,2,Presenting_Problem_Duration__c,"How long has it been a concern? (Duration, recent changes)",,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIF,a0xVY0000043QTXYA2,Mental and Behavioral Health,3,Mental_Health_History__c,Have you ever been involved with a therapist or psychiatrist in the past?,,Boolean,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIG,a0xVY0000043QTXYA2,Mental and Behavioral Health,4,Previous_Helpful_Interventions__c,"If so, what are previous interventions that you found helpful?",,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIH,a0xVY0000043QTXYA2,Mental and Behavioral Health,5,Previous_Unhelpful_Interventions__c,Are there things we should know about the work with a previous therapist/psychiatrist that were not helpful?,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDII,a0xVY0000043QTXYA2,Mental and Behavioral Health,6,Screen_Symptoms_Depression__c,Screen Symptoms of Depression,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIJ,a0xVY0000043QTXYA2,Mental and Behavioral Health,7,Screen_Symptoms_Mania__c,Screen Symptoms of Mania,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIK,a0xVY0000043QTXYA2,Mental and Behavioral Health,8,Screen_Symptoms_Anxiety__c,Screen Symptoms of Anxiety,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIL,a0xVY0000043QTXYA2,Mental and Behavioral Health,9,Screen_Symptoms_Trauma__c,Screen Symptoms of Trauma,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIM,a0xVY0000043QTXYA2,Mental and Behavioral Health,10,Screen_Symptoms_Psychosis__c,Screen Symptoms of Psychosis,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIN,a0xVY0000043QTXYA2,Mental and Behavioral Health,11,Screen_Symptoms_Substance_Use__c,Screen Symptoms of Substance Use Disorder,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIO,a0xVY0000043QTXYA2,Mental and Behavioral Health,12,Screen_Symptoms_Attachment__c,Screen Symptoms of Attachment,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIP,a0xVY0000043QTXYA2,Mental and Behavioral Health,13,Past_Mental_Health_Diagnoses__c,Are you aware of any past mental health diagnoses?,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIQ,a0xVY0000043QTXYA2,Mental and Behavioral Health,14,Family_Mental_Health_History__c,What is your Family history of mental health?,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIR,a0xVY0000043QTXYA2,Mental and Behavioral Health,15,Mental_Health_Hospitalizations__c,Previous hospitalizations or involuntary treatment for mental health,,Textarea,,False,False,,Assessment__c.Mental_Health_Hospitalizations__c,,,,,,,,False,,,False,False
+a0oRT000002QDIS,a0xVY0000043QTXYA2,Mental and Behavioral Health,16,Psychiatric_Prescriber__c,"Do you have a current psychiatric prescriber? If so, who:",,Text,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIT,a0xVY0000043QTXYA2,Mental and Behavioral Health,17,Current_Psychiatric_Medications__c,Current psychiatric medications (Medication / Dose),,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIU,a0xVY0000043QTXYA2,Mental and Behavioral Health,18,Daily_Functioning__c,"Current daily functioning (able to meet ADL’s? physical, emotional, learning and developmental functioning)",,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIV,a0xVY0000043QTXYA2,Scaling Questions,19,Dissociation_Scale_1__c,"I look at the clock and realize that time has gone by and I can’t remember what has happened. (0=Always, 10=Never)",,Number,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIW,a0xVY0000043QTXYA2,Scaling Questions,20,Dissociation_Scale_2__c,"Something inside of me seems to make me do things that I don’t want to do. (0=Always, 10=Never)",,Number,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIX,a0xVY0000043QTXYA2,Scaling Questions,21,Dissociation_Scale_3__c,"I find that I can’t tell whether I am just remembering something or if it is actually happening to me. (0=Always, 10=Never)",,Number,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIY,a0xVY0000043QTXYA2,Mental Status Exam,22,MSE_Appearance__c,Appearance,,Picklist,"Neat
+Disheveled
+Inappropriate
+Bizarre
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIZ,a0xVY0000043QTXYA2,Mental Status Exam,23,MSE_Speech__c,Speech,,Picklist,"Normal
+Tangential
+Pressured
+Impoverished
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIa,a0xVY0000043QTXYA2,Mental Status Exam,24,MSE_Eye_Contact__c,Eye Contact,,Picklist,"Normal
+Intense
+Avoidant
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIb,a0xVY0000043QTXYA2,Mental Status Exam,25,MSE_Motor_Activity__c,Motor Activity,,Picklist,"Normal
+Restless
+Tics
+Slowed
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIc,a0xVY0000043QTXYA2,Mental Status Exam,26,MSE_Affect__c,Affect,,Picklist,"Full
+Constricted
+Flat
+Labile
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDId,a0xVY0000043QTXYA2,Mental Status Exam,27,MSE_Mood__c,Mood,,Picklist,"Euthymic
+Angry
+Anxious
+Depressed
+Euphoric
+Irritable
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIe,a0xVY0000043QTXYA2,Mental Status Exam,28,MSE_Orientation_Impairment__c,Orientation Impairment,,Picklist,"None
+Place
+Object
+Person
+Time",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIf,a0xVY0000043QTXYA2,Mental Status Exam,29,MSE_Memory_Impairment__c,Memory Impairment,,Picklist,"None
+Short-Term
+Long-Term
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIg,a0xVY0000043QTXYA2,Mental Status Exam,30,MSE_Attention__c,Attention,,Picklist,"Normal
+Distracted
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIh,a0xVY0000043QTXYA2,Mental Status Exam,31,MSE_Hallucinations__c,Hallucinations,,Picklist,"None
+Auditory
+Visual
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIi,a0xVY0000043QTXYA2,Mental Status Exam,32,MSE_Perception_Other__c,Other,,Picklist,"None
+Derealization
+Depersonalization",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIj,a0xVY0000043QTXYA2,Mental Status Exam,33,MSE_Suicidality__c,Suicidality,,Picklist,"None
+Ideation
+Plan
+Intent
+Self-Harm",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIk,a0xVY0000043QTXYA2,Mental Status Exam,34,MSE_Homicidality__c,Homicidality,,Picklist,"None
+Aggressive
+Intent
+Plan",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIl,a0xVY0000043QTXYA2,Mental Status Exam,35,MSE_Delusions__c,Delusions,,Picklist,"None
+Grandiose
+Paranoid
+Religious
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIm,a0xVY0000043QTXYA2,Mental Status Exam,36,MSE_Behavior__c,Behavior,,Picklist,"Cooperative
+Guarded
+Hyperactive
+Agitated
+Paranoid
+Stereotyped
+Aggressive
+Bizarre
+Withdrawn
+Other",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIn,a0xVY0000043QTXYA2,Mental Status Exam,37,MSE_Insight__c,Insight,,Picklist,"Good
+Fair
+Poor",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIo,a0xVY0000043QTXYA2,Mental Status Exam,38,MSE_Judgment__c,Judgment,,Picklist,"Good
+Fair
+Poor",False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIp,a0xVY0000043QTXYA2,Mental Status Exam,39,MSE_Comments__c,MSE Comments,,LongText,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIr,a0xVY0000043QTXYA2,Substance Use,41,Substance_Use_History__c,History of substance use (age of first use; previous interventions and treatment),,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIs,a0xVY0000043QTXYA2,Substance Use,42,Current_Substance_Use__c,Current use,,Textarea,,False,False,,Assessment__c.Current_Substance_Use__c,,,,,,,,False,,,True,True
+a0oRT000002QDIt,a0xVY0000043QTXYA2,Substance Use,43,Family_Substance_Use_History__c,Family history of substance use,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIu,a0xVY0000043QTXYA2,Substance Use,44,Substance_Use_Needs__c,Needs/concerns,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIv,a0xVY0000043QTXYA2,Physical Health,45,Current_Health_Concerns__c,Any current health concerns?,,Textarea,,False,False,,Assessment__c.Current_Health_Concerns__c,,,,,,,,False,,,True,True
+a0oRT000002QDIw,a0xVY0000043QTXYA2,Physical Health,46,Chronic_Health_Conditions__c,"Any chronic conditions? (asthma, diabetes)",,Textarea,,False,False,,Assessment__c.Chronic_Health_Condition__c,,,,,,,,False,,,False,False
+a0oRT000002QDIx,a0xVY0000043QTXYA2,Physical Health,47,Allergies__c,Allergies,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIy,a0xVY0000043QTXYA2,Physical Health,48,Dental_Needs__c,Any dental needs/concerns? Do you have a dental provider?,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDIz,a0xVY0000043QTXYA2,Physical Health,49,Health_Care_Provider__c,"Do you have a health care provider? If yes, who/where?",,Text,,False,False,,Assessment__c.Medical_Provider_Name__c,,,,,,,,False,,,False,False
+a0oRT000002QDJ0,a0xVY0000043QTXYA2,Physical Health,50,Current_Physical_Medications__c,Current medications (Medication / Dose / Condition / Prescriber),,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJ1,a0xVY0000043QTXYA2,Physical Health,51,Advanced_Directives__c,Do you have any Advanced Directives in place?,,Boolean,,True,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJ2,a0xVY0000043QTXYA2,Personal/Social Development,52,Current_Living_Situation__c,Current Living Situation,,Textarea,,False,False,,Assessment__c.Where_Stayed_Last_Night__c,,,,,,,,False,,,False,False
+a0oRT000002QDJ3,a0xVY0000043QTXYA2,Personal/Social Development,53,Significant_Life_Changes__c,Significant life changes in the past year,,Textarea,,False,False,,Assessment__c.Significant_Life_Events__c,,,,,,,,False,,,False,False
+a0oRT000002QDJ4,a0xVY0000043QTXYA2,Personal/Social Development,54,Cultural_Background__c,Cultural/Ethnic background,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJ5,a0xVY0000043QTXYA2,Personal/Social Development,55,Cultural_Factors_Treatment__c,Any cultural factors that may impact treatment,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJ6,a0xVY0000043QTXYA2,Personal/Social Development,56,Support_System__c,Current support system,,Textarea,,False,False,,Assessment__c.Support_System__c,,,,,,,,False,,,False,False
+a0oRT000002QDJ7,a0xVY0000043QTXYA2,Personal/Social Development,57,Family_Background__c,"Familial background, current familial relationships, and current familial dynamics",,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJ8,a0xVY0000043QTXYA2,Personal/Social Development,58,Meaningful_Activities__c,Meaningful Activities/ hobbies,,Textarea,,False,False,,Assessment__c.Free_Time_Activities__c,,,,,,,,False,,,False,False
+a0oRT000002QDJ9,a0xVY0000043QTXYA2,Personal/Social Development,59,Strengths_Assets__c,Strengths/assets,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJA,a0xVY0000043QTXYA2,Personal/Social Development,60,Abilities_Interests__c,Abilities and Interests,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJB,a0xVY0000043QTXYA2,Personal/Social Development,61,Treatment_Barriers__c,Barriers to treatment,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJC,a0xVY0000043QTXYA2,Personal/Social Development,62,Other_Social_Info__c,Other information,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJD,a0xVY0000043QTXYA2,Trauma,63,Trauma_History__c,"History of trauma (including any abuse/neglect, witness of violence, community violence)",,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJE,a0xVY0000043QTXYA2,Legal,64,Legal_History__c,History with legal system,,Textarea,,False,False,,Assessment__c.Legal_System_Involvement__c,,,,,,,,False,,,False,False
+a0oRT000002QDJF,a0xVY0000043QTXYA2,Legal,65,Current_Legal_Status__c,Current legal status,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJG,a0xVY0000043QTXYA2,Legal,66,Legal_Needs__c,Needs/concerns,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJH,a0xVY0000043QTXYA2,Education,67,Education_Level__c,Education level,,Text,,False,False,,Assessment__c.Last_Grade_Completed__c,,,,,,,,False,,,False,False
+a0oRT000002QDJI,a0xVY0000043QTXYA2,Vocational,68,Currently_Employed__c,Currently employed?,,Boolean,,False,False,,Assessment__c.Employment_Status__c,,,,,,,,False,,,True,True
+a0oRT000002QDJJ,a0xVY0000043QTXYA2,Vocational,69,Profession_Trade_Skill__c,Do you have a profession/trade/skill?,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJK,a0xVY0000043QTXYA2,Vocational,70,Vocational_Needs__c,Any vocational needs/concerns,,Textarea,,False,False,,Assessment__c.Employment_Goals__c,,,,,,,,False,,,False,False
+a0oRT000002QDJL,a0xVY0000043QTXYA2,Military,71,Military_Service__c,Have you ever served in the Military?,,Boolean,,True,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJM,a0xVY0000043QTXYA2,Plan,72,Clinical_Formulation__c,Clinical Formulation,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJN,a0xVY0000043QTXYA2,Plan,73,DSM_Diagnosis_Primary__c,Current DSM Diagnosis (Primary),,Text,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJO,a0xVY0000043QTXYA2,Plan,74,DSM_Diagnosis_Secondary__c,Current DSM Diagnosis (Secondary),,Text,,False,False,,,,,,,,,,False,,,False,False
+a0oRT000002QDJP,a0xVY0000043QTXYA2,Plan,75,Treatment_Recommendations__c,Treatment Recommendations,,Textarea,,False,False,,,,,,,,,,False,,,False,False
+CLS Internet Safety,a0xVY0000043QTYYA2,Casey Life Skills,1,CLS_Internet_Safety__c,I know how to access information on the internet safely.,Digital safety and evaluating online information.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Internet_Safety__c,b5ac0839a6c077d41c9ca470e957a32a,Active,,,,,,False,,,False,False
+CLS Food Labels,a0xVY0000043QTYYA2,Casey Life Skills,2,CLS_Food_Labels__c,"I understand why it is important to read and understand the food labels to see calories, serving size, fat, sugar, and salt for healthy eating.",Reading labels to make healthier food choices.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Food_Labels__c,2e52a248d96108ec93dc89de2d4f4894,Active,,,,,,False,,,False,False
+CLS Laundry,a0xVY0000043QTYYA2,Casey Life Skills,3,CLS_Laundry__c,"I know how to use a washer, dryer, and detergent to clean my clothes.",Laundry basics and routine self-care tasks.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Laundry__c,7762b3ca47a1c972f06244b46a41a016,Active,,,,,,False,,,False,False
+CLS Mental Health Coping,a0xVY0000043QTYYA2,Casey Life Skills,4,CLS_Mental_Health_Coping__c,I know how to positively manage my mental health when I am having a difficult day.,Coping skills and emotional regulation.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Mental_Health_Coping__c,b283364075ba4de7187917f7c9d37549,Active,,,,,,False,,,False,False
+CLS Safe Sex Info,a0xVY0000043QTYYA2,Casey Life Skills,5,CLS_Safe_Sex_Info__c,I know where to get reliable information about safe sex and pregnancy.,Reliable reproductive health information.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Safe_Sex_Info__c,0c78dd4e9b9d7cbb527f018f3c0867a2,Active,,,,,,False,,,False,False
+CLS Respect Differences,a0xVY0000043QTYYA2,Casey Life Skills,6,CLS_Respect_Differences__c,"I know how to be respectful of people with different beliefs, opinions, and cultures.",Respect and cultural responsiveness.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Respect_Differences__c,aadf30127bb49f0d6cc0a76467b7a0b4,Active,,,,,,False,,,False,False
+CLS Abuse Relationship Signs,a0xVY0000043QTYYA2,Casey Life Skills,7,CLS_Abuse_Relationship_Signs__c,"I know how to identify if my relationships show signs of any emotional, physical, and mental abuse.",Recognizing unsafe or abusive relationship patterns.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Abuse_Relationship_Signs__c,6c6710ec2d7ebc7b2603bb6cd580ef6b,Active,,,,,,False,,,False,False
+CLS Online Banking,a0xVY0000043QTYYA2,Casey Life Skills,8,CLS_Online_Banking__c,I understand how to use online banking to keep track of my money.,Tracking money and financial activity online.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Online_Banking__c,5c6c759bd9926a1d7f9c275f327a2463,Active,,,,,,False,,,False,False
+CLS Budgeting Planning,a0xVY0000043QTYYA2,Casey Life Skills,9,CLS_Budgeting_Planning__c,"I plan for bills and other expenses that I must pay for regularly (e.g., car and/or health insurance, cell phone, eating out, rent, video games).",Budgeting and planning for recurring expenses.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Budgeting_Planning__c,af2fbe310e763d1ee02699c78d8dcf5d,Active,,,,,,False,,,False,False
+CLS Transportation Safety,a0xVY0000043QTYYA2,Casey Life Skills,10,CLS_Transportation_Safety__c,I know how to safely use public transportation (or rideshare services such as Uber/Lyft) to get to where I need to go.,Safe travel and transportation planning.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Transportation_Safety__c,30af1b71d5834f3e97c56e449d1a9191,Active,,,,,,False,,,False,False
+CLS Work Documents,a0xVY0000043QTYYA2,Casey Life Skills,11,CLS_Work_Documents__c,"I know who to ask to get documents I need for work (e.g., social security card, birth certificate, state ID, or work permit).",Getting required documents for employment.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Work_Documents__c,eb6f8c8f8f768e677e5123c5c0cca3a2,Active,,,,,,False,,,False,False
+CLS Planner Calendar,a0xVY0000043QTYYA2,Casey Life Skills,12,CLS_Planner_Calendar__c,"I know how to use a planner, calendar, or phone to plan and keep track of important dates and assignments.","Planning, reminders, and time management.",Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Planner_Calendar__c,60147e7d8647d600a03fc3d376445158,Active,,,,,,False,,,False,False
+CLS Job Training Research,a0xVY0000043QTYYA2,Casey Life Skills,13,CLS_Job_Training_Research__c,I know how to use reliable online platforms to find information about job training opportunities.,Finding training and workforce development information.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Job_Training_Research__c,9e8c558e35ff7d881626bd8c006e7c3b,Active,,,,,,False,,,False,False
+CLS Education Program Advice,a0xVY0000043QTYYA2,Casey Life Skills,14,CLS_Education_Program_Advice__c,I know where to find advice about how to choose an education program.,Choosing an education or certification program.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Education_Program_Advice__c,1f996563018b35d1b8ad1a9aa44369fa,Active,,,,,,False,,,False,False
+CLS Responsible Civic Voice,a0xVY0000043QTYYA2,Casey Life Skills,15,CLS_Responsible_Civic_Voice__c,I know how to share my views on news and politics responsibly.,Responsible civic participation and discussion.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Responsible_Civic_Voice__c,4f929d2649c19471ed67ce3dd8457c73,Active,,,,,,False,,,False,False
+CLS Research Skills,a0xVY0000043QTYYA2,Casey Life Skills,16,CLS_Research_Skills__c,I know how to research information to improve my own understanding of a topic.,Research skills and source evaluation.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Research_Skills__c,34786d4dbca12a8a192bf30a374bf202,Active,,,,,,False,,,False,False
+CLS Permanency Goal,a0xVY0000043QTYYA2,Casey Life Skills,17,CLS_Permanency_Goal__c,"I know my permanency goal (e.g., adoption, guardianship, independence, and return to home).",Understanding permanency planning goals.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Permanency_Goal__c,14f42db140205b25790cfc62719e3792,Active,,,,,,False,,,False,False
+CLS Extended Foster Care,a0xVY0000043QTYYA2,Casey Life Skills,18,CLS_Extended_Foster_Care__c,I understand if I am eligible for extended foster care in my state after I am 18 years old.,Understanding extended foster care eligibility.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Extended_Foster_Care__c,268f01dcfd7b47882d9c2dcceb0839bb,Active,,,,,,False,,,False,False
+CLS Support System Belief,a0xVY0000043QTYYA2,Casey Life Skills,19,CLS_Support_System_Belief__c,I believe I have a support system that will help me succeed.,Confidence in social and practical supports.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Support_System_Belief__c,32624f45efee9ef17db90ba9ae10eb73,Active,,,,,,False,,,False,False
+CLS Proud Life Direction,a0xVY0000043QTYYA2,Casey Life Skills,20,CLS_Proud_Life_Direction__c,"Most days, I feel proud of the way I am leading my life.",Sense of pride and direction in daily life.,Picklist,"Yes
+Mostly Yes
+Somewhat
+Mostly No
+No",False,False,,Assessment__c.CLS_Proud_Life_Direction__c,b93123c36c3241819527fc80ac4de296,Active,,,,,,False,,,False,False
+a0oRT000003NDfZ,a0xVY0000043QTZYA2,Housing History,1,Last_Permanent_Address_Type__c,Last Permanent Address Type,HMIS: type of last permanent address before becoming homeless,Picklist,"[""Foster care home or foster care group home"",""Jail, Prison or Other Juvenile Facility"",""Substance Abuse Treatment Facility or Detox Center"",""Residential project of halfway house with no homeless criteria"",""Owned by Client, No Housing Subsidy"",""Owned by Client, With Housing Subsidy"",""Rental by Client, with no ongoing housing subsidy"",""Rental by Client, with other ongoing housing subsidy"",""Staying or Living in a Family Member's Room, Apartment or House"",""Staying or Living in a Friend's Room, Apartment, or House"",""Permanent Housing for Formerly Homeless Persons"",""Transitional Housing for Homeless Persons (including homeless youth)"",""Client Doesn't Know"",""Client Refused"",""Data Not Collected""]",False,False,,Assessment__c.Last_Permanent_Address_Type__c,,,,,,,,False,,,False,False
+a0oRT000003NDfa,a0xVY0000043QTZYA2,Housing History,2,Where_Stayed_Last_Night__c,Where Did You Stay Last Night?,HMIS: current or most recent living situation,Picklist,"[""Place not meant for habitation (car, park, abandoned building, bus/train station)"",""Emergency shelter, including hotel/motel paid for with emergency shelter voucher"",""Safe Haven"",""Foster care home or foster care group home"",""Psychiatric Hospital or other Psychiatric Facility"",""Hospital or other residential non-Psychiatric facility"",""Long-term Care Facility or nursing home"",""Jail, Prison or Other Juvenile Facility"",""Substance Abuse Treatment Facility or Detox Center"",""Hotel or Motel Paid for without an Emergency Shelter Voucher"",""Residential project of halfway house with no homeless criteria"",""Owned by Client, No Housing Subsidy"",""Owned by Client, With Housing Subsidy"",""Staying or Living in a Family Member's Room, Apartment or House"",""Staying or Living in a Friend's Room, Apartment, or House"",""Permanent Housing for Formerly Homeless Persons"",""Transitional Housing for Homeless Persons (including homeless youth)"",""Rental by Client, with no ongoing housing subsidy"",""Rental by Client with VASH Housing Subsidy"",""Rental by Client, with GPD TIP subsidy"",""Rental by Client, with other ongoing housing subsidy"",""Client Doesn't Know"",""Client Refused""]",True,False,,Assessment__c.Where_Stayed_Last_Night__c,,,,,,,,False,,,False,False
+a0oRT000003NDfb,a0xVY0000043QTZYA2,Housing History,3,Length_of_Stay_Prior_Situation__c,How Long Did You Stay There?,HMIS: length of time in prior living situation,Picklist,"[""One night or less"",""Two to six nights"",""One week or more, but less than one month"",""One month or more, but less than 90 days"",""90 days or more, but less than one year"",""One year or longer"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Length_of_Stay_Prior_Situation__c,,,,,,,,False,,,False,False
+a0oRT000003NDfc,a0xVY0000043QTZYA2,Housing History,4,Homelessness_Episode_Start_Date__c,When Did This Homelessness Episode Begin?,Date current episode of homelessness began,Date,,False,False,,Assessment__c.Homelessness_Episode_Start_Date__c,,,,,,,,False,,,False,False
+a0oRT000003NDfd,a0xVY0000043QTZYA2,Housing History,5,Times_Homeless_Past_3_Years__c,How Many Times Homeless in Past 3 Years?,HMIS: number of times experiencing homelessness in the past 3 years,Picklist,"[""One time"",""Two times"",""Three times"",""Four or more times"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Times_Homeless_Past_3_Years__c,,,,,,,,False,,,False,False
+a0oRT000003NDfe,a0xVY0000043QTZYA2,Housing History,6,Total_Months_Homeless_Past_3_Years__c,Total Months Homeless in Past 3 Years,HMIS: total months homeless in the past 3 years including current episode,Number,,False,False,,Assessment__c.Total_Months_Homeless_Past_3_Years__c,,,,,,,,False,,,False,False
+a0oRT000003NDff,a0xVY0000043QTZYA2,Housing History,7,Contributing_Factors_to_Homelessness__c,What Factors Contributed to Your Homelessness?,Select all contributing factors,Picklist,"[""Sexual/Physical Abuse"",""Substance Use"",""Relationship Issues with Family"",""Aging Out of Foster Care"",""Family Could Not Afford Housing"",""Eviction"",""Job Loss/Unemployment"",""Lost Housing Assistance"",""Incarceration"",""Mental Health Issues"",""Physical Health Issues"",""Disability"",""Domestic Violence"",""Immigration Issues"",""LGBTQ+ Discrimination"",""Lack of Affordable Housing"",""Natural Disaster"",""Death of Family Member"",""Other""]",False,False,,Assessment__c.Contributing_Factors_to_Homelessness__c,,,,,,,,False,,,False,False
+a0oRT000003NDfg,a0xVY0000043QTZYA2,Housing History,8,Chronic_Homelessness_Qualifier__c,Meets Chronic Homelessness Criteria?,Does this person meet HUD chronic homelessness criteria?,Picklist,"[""Yes"",""No"",""Pending Verification"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Chronic_Homelessness_Qualifier__c,,,,,,,,False,,,False,False
+a0oRT000003NDfh,a0xVY0000043QTZYA2,Housing History,9,Current_Living_Situation__c,Additional Notes on Living Situation,Narrative context about living situation or housing history,LongText,,False,False,,Assessment__c.Current_Living_Situation__c,,,,,,,,False,,,False,False
+a0oRT000003NDfi,a0xVY0000043QTZYA2,Veteran Status,10,Military_Service__c,Currently Serving or Veteran of the U.S. Military?,Has this person served or is currently serving in the U.S. armed forces?,Boolean,,False,False,,Assessment__c.Military_Service__c,,,,,,,,False,,,False,False
+a0oRT000003NDfj,a0xVY0000043QTZYA2,Health Insurance,11,Health_Insurance_Medicaid__c,Medicaid / Colorado Medicaid (PEAK)?,HMIS: covered by Medicaid,Boolean,,False,False,,Assessment__c.Health_Insurance_Medicaid__c,,,,,,,,False,,,False,False
+a0oRT000003NDfk,a0xVY0000043QTZYA2,Health Insurance,12,Health_Insurance_Medicare__c,Medicare?,HMIS: covered by Medicare,Boolean,,False,False,,Assessment__c.Health_Insurance_Medicare__c,,,,,,,,False,,,False,False
+a0oRT000003NDfl,a0xVY0000043QTZYA2,Health Insurance,13,HI_State_Health_Insurance_for_Adults__c,State Health Insurance for Adults (CICP or similar adult benefit plan)?,HMIS: state-funded health insurance for adults,Boolean,,False,False,,Assessment__c.HI_State_Health_Insurance_for_Adults__c,,,,,,,,False,,,False,False
+a0oRT000003NDfm,a0xVY0000043QTZYA2,Health Insurance,14,HI_State_Childrens_Health_Insurance__c,State Children's Health Insurance (CHIP / CHP+)?,HMIS: covered under CHIP or CHP+,Boolean,,False,False,,Assessment__c.HI_State_Childrens_Health_Insurance__c,,,,,,,,False,,,False,False
+a0oRT000003NDfn,a0xVY0000043QTZYA2,Health Insurance,15,HI_VA_Medical_Services__c,VA Medical Services?,HMIS: receives VA medical services,Boolean,,False,False,,Assessment__c.HI_VA_Medical_Services__c,,,,,,,,False,,,False,False
+a0oRT000003NDfo,a0xVY0000043QTZYA2,Health Insurance,16,HI_Employer_Provided__c,Employer-Provided Health Insurance?,HMIS: covered by employer-provided insurance,Boolean,,False,False,,Assessment__c.HI_Employer_Provided__c,,,,,,,,False,,,False,False
+a0oRT000003NDfp,a0xVY0000043QTZYA2,Health Insurance,17,HI_COBRA__c,COBRA?,HMIS: covered under COBRA continuation coverage,Boolean,,False,False,,Assessment__c.HI_COBRA__c,,,,,,,,False,,,False,False
+a0oRT000003NDfq,a0xVY0000043QTZYA2,Health Insurance,18,HI_Private_Pay_Health_Insurance__c,Private Pay or Marketplace Insurance Plan?,HMIS: private pay or ACA marketplace plan,Boolean,,False,False,,Assessment__c.HI_Private_Pay_Health_Insurance__c,,,,,,,,False,,,False,False
+a0oRT000003NDfr,a0xVY0000043QTZYA2,Health Insurance,19,HI_Indian_Health_Services_Program__c,Indian Health Services Program?,HMIS: covered through Indian Health Services,Boolean,,False,False,,Assessment__c.HI_Indian_Health_Services_Program__c,,,,,,,,False,,,False,False
+a0oRT000003NDfs,a0xVY0000043QTZYA2,Health Insurance,20,Health_Insurance_No_Health_Insurance__c,No Health Insurance?,HMIS: client has no health insurance coverage,Boolean,,False,False,,Assessment__c.Health_Insurance_No_Health_Insurance__c,,,,,,,,False,,,False,False
+a0oRT000003NDft,a0xVY0000043QTZYA2,Health Insurance,21,Health_Insurance_Other__c,Other Health Insurance?,HMIS: other health insurance not listed above,Boolean,,False,False,,Assessment__c.Health_Insurance_Other__c,,,,,,,,False,,,False,False
+a0oRT000003NDfu,a0xVY0000043QTZYA2,Health Insurance,22,HI_Client_Doesnt_Know__c,Client Doesn't Know (Health Insurance)?,HMIS: client does not know their health insurance status,Boolean,,False,False,,Assessment__c.HI_Client_Doesnt_Know__c,,,,,,,,False,,,False,False
+a0oRT000003NDfv,a0xVY0000043QTZYA2,Health Insurance,23,HI_Client_Prefers_Not_to_Answer__c,Client Prefers Not to Answer (Health Insurance)?,HMIS: client prefers not to disclose health insurance information,Boolean,,False,False,,Assessment__c.HI_Client_Prefers_Not_to_Answer__c,,,,,,,,False,,,False,False
+a0oRT000003NDfw,a0xVY0000043QTZYA2,Health Insurance,24,Health_Insurance_Data_Not_Collected__c,Health Insurance Data Not Collected?,HMIS: health insurance data not collected at this time,Boolean,,False,False,,Assessment__c.Health_Insurance_Data_Not_Collected__c,,,,,,,,False,,,False,False
+a0oRT000003NDfx,a0xVY0000043QTZYA2,Employment,25,Employment_Status__c,Employment Status,Current employment status,Picklist,"[""Employed Full-Time"",""Employed Part-Time"",""Self-Employed"",""Gig Economy/Contract Work"",""Unemployed - Seeking Work"",""Unemployed - Not Seeking Work"",""Retired"",""Student"",""Disabled - Unable to Work"",""Other""]",False,False,,Assessment__c.Employment_Status__c,,,,,,,,False,,,False,False
+a0oRT000003NDfy,a0xVY0000043QTZYA2,Employment,26,Employment_Type__c,Employment Type,Type of employment arrangement (if currently employed),Picklist,"[""W-2 Employee"",""1099 Contractor"",""Gig Economy"",""Day Labor"",""Cash/Under Table"",""Other""]",False,False,,Assessment__c.Employment_Type__c,,,,,,,,False,,,False,False
+a0oRT000003NDfz,a0xVY0000043QTZYA2,Employment,27,Employer_Name__c,Employer Name,Name of current employer (if employed),Text,,False,False,,Assessment__c.Employer_Name__c,,,,,,,,False,,,False,False
+a0oRT000003NDg0,a0xVY0000043QTZYA2,Employment,28,Hours_Per_Week__c,Hours Worked Per Week,Average number of hours worked per week,Number,,False,False,,Assessment__c.Hours_Per_Week__c,,,,,,,,False,,,False,False
+a0oRT000003NDg1,a0xVY0000043QTZYA2,Employment,29,Employment_Barriers__c,Reasons for Not Working / Employment Barriers,Barriers to employment or reasons client is not currently working,LongText,,False,False,,Assessment__c.Employment_Barriers__c,,,,,,,,False,,,False,False
+a0oRT000003NDg2,a0xVY0000043QTZYA2,Income Sources,30,Income_Source__c,Income Sources,All current income sources — select all that apply,Picklist,"[""Earned Income"",""Unemployment"",""SSI"",""SSDI"",""Veteran's Disability"",""Private Disability"",""Worker's Comp"",""TANF"",""General Assistance"",""Retirement (Social Security)"",""Pension"",""Child Support"",""Alimony"",""Other"",""No Income""]",False,False,,Assessment__c.Income_Source__c,,,,,,,,False,,,False,False
+a0oRT000003NDg3,a0xVY0000043QTZYA2,Non-Cash Benefits,31,Non_Cash_Benefit_SNAP_Food_Stamps__c,SNAP / Food Stamps?,HMIS: currently receiving SNAP / Food Stamps,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_SNAP_Food_Stamps__c,,,,,,,,False,,,False,False
+a0oRT000003NDg4,a0xVY0000043QTZYA2,Non-Cash Benefits,32,Non_Cash_Benefit_WIC__c,WIC?,HMIS: currently receiving WIC benefits,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_WIC__c,,,,,,,,False,,,False,False
+a0oRT000003NDg5,a0xVY0000043QTZYA2,Non-Cash Benefits,33,NCB_Section_8Housing_Choice_Voucher__c,Section 8 / Housing Choice Voucher?,HMIS: holds an active Section 8 / Housing Choice Voucher,Boolean,,False,False,,Assessment__c.NCB_Section_8Housing_Choice_Voucher__c,,,,,,,,False,,,False,False
+a0oRT000003NDg6,a0xVY0000043QTZYA2,Non-Cash Benefits,34,Non_Cash_Benefit_TANF_Cash_Assistance__c,TANF Cash Assistance?,HMIS: currently receiving TANF cash assistance,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_TANF_Cash_Assistance__c,,,,,,,,False,,,False,False
+a0oRT000003NDg7,a0xVY0000043QTZYA2,Non-Cash Benefits,35,Non_Cash_Benefit_Public_Housing__c,Public Housing?,HMIS: currently in public housing,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_Public_Housing__c,,,,,,,,False,,,False,False
+a0oRT000003NDg8,a0xVY0000043QTZYA2,Non-Cash Benefits,36,Non_Cash_Benefit_Medicaid__c,Medicaid (Non-Cash Benefit)?,HMIS: currently receiving Medicaid,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_Medicaid__c,,,,,,,,False,,,False,False
+a0oRT000003NDg9,a0xVY0000043QTZYA2,Non-Cash Benefits,37,Non_Cash_Benefit_Medicare__c,Medicare (Non-Cash Benefit)?,HMIS: currently receiving Medicare,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_Medicare__c,,,,,,,,False,,,False,False
+a0oRT000003NDgA,a0xVY0000043QTZYA2,Non-Cash Benefits,38,Non_Cash_Benefit_CHIP__c,CHIP (Non-Cash Benefit)?,HMIS: currently covered under CHIP,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_CHIP__c,,,,,,,,False,,,False,False
+a0oRT000003NDgB,a0xVY0000043QTZYA2,Non-Cash Benefits,39,Non_Cash_Benefit_SCHIP__c,SCHIP (Non-Cash Benefit)?,HMIS: currently covered under SCHIP,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_SCHIP__c,,,,,,,,False,,,False,False
+a0oRT000003NDgC,a0xVY0000043QTZYA2,Non-Cash Benefits,40,Non_Cash_Benefit_VA_Medical_Services__c,VA Medical Services (Non-Cash Benefit)?,HMIS: currently receiving VA medical services,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_VA_Medical_Services__c,,,,,,,,False,,,False,False
+a0oRT000003NDgD,a0xVY0000043QTZYA2,Non-Cash Benefits,41,NCB_Veteran_NonCash_Benefit__c,Veterans Non-Cash Benefit Program?,HMIS: currently receiving other veteran non-cash benefits,Boolean,,False,False,,Assessment__c.NCB_Veteran_NonCash_Benefit__c,,,,,,,,False,,,False,False
+a0oRT000003NDgE,a0xVY0000043QTZYA2,Non-Cash Benefits,42,Non_Cash_Benefit_SSI__c,SSI (Non-Cash Benefit)?,HMIS: currently receiving SSI,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_SSI__c,,,,,,,,False,,,False,False
+a0oRT000003NDgF,a0xVY0000043QTZYA2,Non-Cash Benefits,43,Non_Cash_Benefit_SSDI__c,SSDI (Non-Cash Benefit)?,HMIS: currently receiving SSDI,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_SSDI__c,,,,,,,,False,,,False,False
+a0oRT000003NDgG,a0xVY0000043QTZYA2,Non-Cash Benefits,44,Non_Cash_Benefit_Other__c,Other Non-Cash Benefit?,HMIS: other non-cash benefit not listed above,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_Other__c,,,,,,,,False,,,False,False
+a0oRT000003NDgH,a0xVY0000043QTZYA2,Non-Cash Benefits,45,Non_Cash_Benefit_Client_Does_Not_Know__c,Client Doesn't Know (Non-Cash Benefits)?,HMIS: client does not know their non-cash benefit status,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_Client_Does_Not_Know__c,,,,,,,,False,,,False,False
+a0oRT000003NDgI,a0xVY0000043QTZYA2,Non-Cash Benefits,46,Non_Cash_Benefit_Data_Not_Collected__c,Non-Cash Benefit Data Not Collected?,HMIS: non-cash benefit data not collected at this time,Boolean,,False,False,,Assessment__c.Non_Cash_Benefit_Data_Not_Collected__c,,,,,,,,False,,,False,False
+a0oRT000003NDgJ,a0xVY0000043QTZYA2,Foster Care History,47,Foster_Care_History__c,Foster Care History?,Has this person been in foster care?,Picklist,"[""Yes"",""No"",""Client doesn't know"",""Client refused""]",False,False,,Assessment__c.Foster_Care_History__c,,,,,,,,False,,,False,False
+a0oRT000003NDgK,a0xVY0000043QTZYA2,Foster Care History,48,Foster_Care_Duration__c,Foster Care Duration,How long was this person in foster care?,Picklist,"[""Less than one year"",""1-3 years"",""3-5+ years""]",False,False,,Assessment__c.Foster_Care_Duration__c,,,,,,,,False,,,False,False
+a0oRT000003NDgL,a0xVY0000043QTZYA2,Foster Care History,49,Foster_Care_Location__c,Foster Care State (Colorado or Out of State),State(s) where this person was in foster care,Text,,False,False,,Assessment__c.Foster_Care_Location__c,,,,,,,,False,,,False,False
+a0oRT000003NDgM,a0xVY0000043QTZYA2,Juvenile Justice,50,Juvenile_Justice_Involvement__c,Juvenile Justice Involvement?,Has this person been involved with the juvenile justice system?,Picklist,"[""Yes"",""No"",""Client doesn't know"",""Client refused""]",False,False,,Assessment__c.Juvenile_Justice_Involvement__c,,,,,,,,False,,,False,False
+a0oRT000003NDgN,a0xVY0000043QTZYA2,Juvenile Justice,51,Juvenile_Justice_Duration__c,Juvenile Justice Duration,How long was this person involved with the juvenile justice system?,Picklist,"[""Less than one year"",""1-3 years"",""3-5+ years""]",False,False,,Assessment__c.Juvenile_Justice_Duration__c,,,,,,,,False,,,False,False
+a0oRT000003NDgO,a0xVY0000043QTZYA2,Education,52,Education_Level__c,Highest Education Level Completed,Highest level of education this person has completed,Picklist,"[""Less than high school"",""Some high school"",""High school diploma/GED"",""Some college"",""Associate degree"",""Bachelor's degree"",""Graduate degree"",""Other""]",False,False,,Assessment__c.Education_Level__c,,,,,,,,False,,,False,False
+a0oRT000003NDgP,a0xVY0000043QTZYA2,Education,53,Currently_in_School__c,Currently Enrolled in School or Training?,Is this person currently enrolled in school or a training program?,Picklist,"[""Yes"",""No"",""Client Doesn't Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.Currently_in_School__c,,,,,,,,False,,,False,False
+a0oRT000003NDgQ,a0xVY0000043QTZYA2,Education,54,Interested_in_GED__c,Interested in GED or High School Equivalency?,Is this person interested in obtaining a GED or high school equivalency?,Picklist,"[""Yes"",""No"",""Already has diploma/GED"",""Client Doesn't Know"",""Prefers Not to Answer""]",False,False,,Assessment__c.Interested_in_GED__c,,,,,,,,False,,,False,False
+a0oRT000003NDgR,a0xVY0000043QTZYA2,Disabilities,55,Physical_Disability__c,Physical Disability?,HMIS: does this person have a physical disability?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Physical_Disability__c,,,,,,,,False,,,False,False
+a0oRT000003NDgS,a0xVY0000043QTZYA2,Disabilities,56,Physical_Disability_Long_Term__c,Is Physical Disability Long-Term?,HMIS: expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Physical_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000003NDgT,a0xVY0000043QTZYA2,Disabilities,57,Developmental_Disability__c,Developmental Disability?,HMIS: does this person have a developmental disability?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Developmental_Disability__c,,,,,,,,False,,,False,False
+a0oRT000003NDgU,a0xVY0000043QTZYA2,Disabilities,58,Developmental_Disability_Long_Term__c,Is Developmental Disability Long-Term?,HMIS: expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Developmental_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000003NDgV,a0xVY0000043QTZYA2,Disabilities,59,Chronic_Health_Condition__c,Chronic Health Condition?,HMIS: does this person have a chronic health condition?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Chronic_Health_Condition__c,,,,,,,,False,,,False,False
+a0oRT000003NDgW,a0xVY0000043QTZYA2,Disabilities,60,Chronic_Health_Condition_Long_Term__c,Is Chronic Health Condition Long-Term?,HMIS: expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Chronic_Health_Condition_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000003NDgX,a0xVY0000043QTZYA2,Disabilities,61,HIV_AIDS_Status__c,HIV / AIDS?,HMIS: does this person have HIV / AIDS?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,True,,Assessment__c.HIV_AIDS_Status__c,,,,,,,,False,,,False,False
+a0oRT000003NDgY,a0xVY0000043QTZYA2,Disabilities,62,Mental_Health_Disability__c,Mental Health Disability?,HMIS: does this person have a mental health disability?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Mental_Health_Disability__c,,,,,,,,False,,,False,False
+a0oRT000003NDgZ,a0xVY0000043QTZYA2,Disabilities,63,Mental_Health_Disability_Long_Term__c,Is Mental Health Disability Long-Term?,HMIS: expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Mental_Health_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000003NDga,a0xVY0000043QTZYA2,Disabilities,64,Substance_Use_Disability__c,Substance Use Disorder?,HMIS: does this person have a substance use disorder?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Substance_Use_Disability__c,,,,,,,,False,,,False,False
+a0oRT000003NDgb,a0xVY0000043QTZYA2,Disabilities,65,Substance_Use_Disability_Long_Term__c,Is Substance Use Disorder Long-Term?,HMIS: expected to be of long-continued and indefinite duration,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,False,,Assessment__c.Substance_Use_Disability_Long_Term__c,,,,,,,,False,,,False,False
+a0oRT000003NDgc,a0xVY0000043QTZYA2,Disabilities,66,Chronic_Health_Conditions__c,Describe Current Health Concerns or Chronic Conditions,"Narrative description of health concerns, conditions, or treatment needs",LongText,,False,False,,Assessment__c.Chronic_Health_Conditions__c,,,,,,,,False,,,False,False
+a0oRT000003NDgd,a0xVY0000043QTZYA2,Medications,67,Current_Physical_Medications__c,Current Medications,"List all current medications, including dose and prescriber if known",LongText,,False,True,,Assessment__c.Current_Physical_Medications__c,,,,,,,,False,,,False,False
+a0oRT000003NDge,a0xVY0000043QTZYA2,Domestic Violence,68,DV_Experience__c,Have You Experienced Domestic Violence?,"History of domestic violence, dating violence, sexual assault, or stalking",Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,True,,Assessment__c.DV_Experience__c,,,,,,,,False,,,False,False
+a0oRT000003NDgf,a0xVY0000043QTZYA2,Domestic Violence,69,DV_How_Long_Ago__c,How Long Ago Did the Violence Occur?,Timeframe of most recent domestic violence incident,Picklist,"[""Within the past 3 months"",""3 to 6 months ago"",""6 to 12 months ago"",""1 year or more ago"",""Client Does Not Know"",""Prefers Not to Answer""]",False,True,,Assessment__c.DV_How_Long_Ago__c,,,,,,,,False,,,False,False
+a0oRT000003NDgg,a0xVY0000043QTZYA2,Domestic Violence,70,Currently_Fleeing_DV__c,Are You Currently Fleeing Domestic Violence?,Is this person currently fleeing domestic violence or violence in the home?,Picklist,"[""Yes"",""No"",""Client Does Not Know"",""Prefers Not to Answer"",""Data Not Collected""]",False,True,,Assessment__c.Currently_Fleeing_DV__c,,,,,,,,False,,,False,False
+a0oRT000003NDgh,a0xVY0000043QTZYA2,Domestic Violence,71,DV_Safety_Concerns__c,Safety Concerns and Planning Notes,"Current safety concerns, risks, and safety planning needs",LongText,,False,True,,Assessment__c.DV_Safety_Concerns__c,,,,,,,,False,,,False,False
+a0oRT000003NDgi,a0xVY0000043QTZYA2,Pregnancy,72,Pregnant__c,Currently Pregnant?,Is this person currently pregnant?,Picklist,"[""Yes"",""No"",""Client doesn't know"",""Client refused""]",False,False,,Assessment__c.Pregnant__c,,,,,,,,False,,,False,False
+a0oRT000003NDgj,a0xVY0000043QTZYA2,Pregnancy,73,Pregnancy_Due_Date__c,Expected Due Date,Expected due date if pregnant,Date,,False,False,,Assessment__c.Pregnancy_Due_Date__c,,,,,,,,False,,,False,False
+a0oRT000003NDgk,a0xVY0000043QTZYA2,Safety Screening,74,,Work Exploitation: Has anyone taken the client's earnings or not paid them for work they performed?,Human trafficking work exploitation screening indicator (HMIS HUD 4.11),Boolean,,False,True,,,,,,,,,,False,,,False,False
+a0oRT000003NDgl,a0xVY0000043QTZYA2,Safety Screening,75,,"Commercial Sexual Exploitation: Has anyone pressured or forced the client into sexual activity for money, housing, food, or other things?",Human trafficking commercial sexual exploitation screening indicator (HMIS HUD 4.11),Boolean,,False,True,,,,,,,,,,False,,,False,False
+a0oRT000003NDgm,a0xVY0000043QTZYA2,Safety Screening,76,Risk_Safety_Notes__c,Safety Screening Notes,"Staff notes on safety screening, risk indicators, or follow-up needed",LongText,,False,True,,Assessment__c.Risk_Safety_Notes__c,,,,,,,,False,,,False,False
+a0oRT000003NDgn,a0xVY0000043QTZYA2,Presenting Problem,77,Presenting_Problem__c,What Brought the Client to Drop-In or Outreach Today?,"Presenting concern, reason for visit, or immediate needs",LongText,,False,False,,Assessment__c.Presenting_Problem__c,,,,,,,,False,,,False,False
+a0oRT000003NDgo,a0xVY0000043QTZYA2,Presenting Problem,78,Other_Social_Info__c,"Services, Supports, or Referrals the Client Is Interested In",Services requested or referrals to explore during this visit,LongText,,False,False,,Assessment__c.Other_Social_Info__c,,,,,,,,False,,,False,False
+a0oRT000003NDgp,a0xVY0000043QTZYA2,Presenting Problem,79,,Additional Intake Notes or Observations,"Any additional context, observations, or follow-up items not captured above",LongText,,False,False,,,,,,,,,,False,,,False,False
