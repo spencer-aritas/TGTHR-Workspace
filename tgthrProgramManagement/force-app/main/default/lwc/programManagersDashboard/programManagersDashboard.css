@@ -5,9 +5,19 @@
   --pm-color-incident: #ba0517;
 }
 
-/* ─── Program tabs ─── */
-.pm-program-tabs {
-  padding: 0.5rem 0;
+/* ─── Filter section label (Programs, etc.) ─── */
+.pm-filter-section {
+  margin-bottom: 0.5rem;
+}
+
+.pm-filter-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin-bottom: 0.3rem;
 }
 
 .pm-program-tab {
@@ -193,9 +203,95 @@
 .pm-chip-documentation { background: var(--pm-color-documentation); }
 .pm-chip-incident      { background: var(--pm-color-incident); }
 
+/* ─── Program group header row ─── */
+.pm-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.75rem;
+  background: #f0f4ff;
+  border-bottom: 1px solid #d8e0f8;
+  border-left: 4px solid var(--pm-color-documentation);
+  cursor: default;
+}
+
+.pm-group-header:hover { background: #f0f4ff; }
+
+.pm-group-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #2e3a8c;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pm-group-count {
+  font-size: 0.75rem;
+  color: #666;
+}
+
 /* ─── Pager ─── */
 .pm-pager .pm-page-size {
   width: 9rem;
+}
+
+/* ─── Activity Detail Modal ─── */
+.pm-modal-body {
+  padding: 0;
+  overflow-y: auto;
+  max-height: calc(80vh - 10rem);
+}
+
+.pm-modal-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+}
+
+.pm-modal-meta-sep {
+  color: #ccc;
+  margin: 0 0.15rem;
+}
+
+.pm-modal-status {
+  font-weight: 600;
+  color: #444;
+}
+
+/* Tabs panel: give content area comfortable scrollable space */
+.pm-modal-tab-panel {
+  padding: 0.75rem 1rem;
+  min-height: 200px;
+}
+
+/* PDF tab: no padding so the iframe fills edge-to-edge */
+.pm-modal-pdf-panel {
+  padding: 0;
+}
+
+/* Toolbar above the iframe — download button etc */
+.pm-pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fafbfc;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+/* Full-height PDF viewer — sized to fill the modal content area */
+.pm-pdf-iframe {
+  display: block;
+  width: 100%;
+  height: calc(70vh - 3rem);
+  border: none;
+}
+
+.pm-incident-detail .slds-col {
+  padding-bottom: 1rem;
 }
 
 /* Narrow viewports: hide low-priority columns rather than horizontal-scroll. */

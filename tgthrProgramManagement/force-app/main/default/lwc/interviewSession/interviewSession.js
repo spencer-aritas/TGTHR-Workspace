@@ -2,6 +2,7 @@ import { LightningElement, api, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { CurrentPageReference } from 'lightning/navigation';
+import USER_ID from '@salesforce/user/Id';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 import initializeSession from '@salesforce/apex/InterviewSessionController.initializeSession';
 import saveInterviewSession from '@salesforce/apex/InterviewSessionController.saveInterviewSession';
@@ -122,6 +123,7 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @track managerInfo = null;
     @track signingAuthorityOptions = [];
     @track selectedApproverId = null;
+    currentUserId = USER_ID;
     
     // Accordion state - open all sections by default for better UX
     activeSections = [];
@@ -177,10 +179,12 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     @wire(getSigningAuthorities)
     wiredSigningAuthorities({ data, error }) {
         if (data) {
-            this.signingAuthorityOptions = data.map(user => ({
-                label: user.Name,
-                value: user.Id
-            }));
+            this.signingAuthorityOptions = data
+                .filter(user => user?.Id && user.Id !== this.currentUserId)
+                .map(user => ({
+                    label: user.Name,
+                    value: user.Id
+                }));
             
             // If we have a manager, ensure they are in the list or pre-selected?
             if (this.managerInfo && this.managerInfo.hasManager && !this.selectedApproverId) {
@@ -663,7 +667,9 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
             // without requiring the user to manually re-select it.
             if (data.managerApproverId) {
                 this.requestManagerCoSign = true;
-                this.selectedApproverId = data.managerApproverId;
+                this.selectedApproverId = data.managerApproverId === this.currentUserId
+                    ? null
+                    : data.managerApproverId;
             }
 
             // ── Diagnoses ──
@@ -1410,6 +1416,15 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
     }
 
     handleApproverChange(event) {
+        if (event.detail.value === this.currentUserId) {
+            this.selectedApproverId = null;
+            this.showToast(
+                'Invalid Approver Selection',
+                'You cannot select yourself as the manager co-sign approver. Please select another Signing Authority user.',
+                'error'
+            );
+            return;
+        }
         this.selectedApproverId = event.detail.value;
     }
 
@@ -2352,6 +2367,17 @@ export default class InterviewSession extends NavigationMixin(LightningElement) 
                 this.isLateEntryManagerApprovalRequired
                     ? 'This interview was entered outside the 72-hour reporting window. Select a Signing Authority approver on the Review tab before saving.'
                     : 'Select a Signing Authority approver on the Review tab before saving.',
+                'error'
+            );
+            return false;
+        }
+
+        if (this.selectedApproverId === this.currentUserId) {
+            this.navigateToReviewForApproval();
+            this.selectedApproverId = null;
+            this.showToast(
+                'Approver Required',
+                'You cannot select yourself as the manager co-sign approver. Select another Signing Authority approver on the Review tab before saving.',
                 'error'
             );
             return false;

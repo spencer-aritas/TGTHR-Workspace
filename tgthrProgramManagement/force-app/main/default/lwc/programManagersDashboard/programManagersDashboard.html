@@ -5,31 +5,32 @@
       <span class="slds-text-heading_medium">Program Managers Dashboard</span>
     </div>
 
-    <!-- ─── Program tabs ─── -->
-    <div class="slds-var-p-horizontal_medium">
-      <div class="slds-grid slds-gutters_x-small slds-wrap pm-program-tabs">
-        <template for:each={programTabs} for:item="tab">
-          <div key={tab.id} class="slds-col">
-            <button
-              data-id={tab.id}
-              class={tab.cssClass}
-              onclick={handleProgramClick}
-            >
-              <lightning-icon
-                icon-name="standard:home"
-                size="x-small"
-                alternative-text="Program"
-                class="slds-var-m-right_xx-small"
-              ></lightning-icon>
-              {tab.name}
-            </button>
-          </div>
-        </template>
-      </div>
-    </div>
-
     <!-- ─── Filter bar ─── -->
     <div class="slds-var-p-around_medium slds-border_top slds-border_bottom pm-filter-bar">
+      <!-- Programs multi-select pills -->
+      <div class="pm-filter-section slds-var-m-bottom_small">
+        <span class="pm-filter-label">Programs</span>
+        <div class="slds-grid slds-gutters_x-small slds-wrap">
+          <template for:each={programPills} for:item="pill">
+            <div key={pill.id} class="slds-col slds-no-flex">
+              <button
+                data-id={pill.id}
+                class={pill.cssClass}
+                onclick={handleProgramPillToggle}
+              >
+                <lightning-icon
+                  icon-name="standard:home"
+                  size="x-small"
+                  alternative-text="Program"
+                  class="slds-var-m-right_xx-small"
+                ></lightning-icon>
+                {pill.name}
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+      <!-- Date / User / Type filters -->
       <div class="slds-grid slds-gutters_small slds-wrap slds-grid_vertical-align-end">
         <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
           <lightning-input
@@ -151,29 +152,34 @@
                 role="row"
                 data-id={row.recordId}
                 onclick={handleRowClick}
-                title="Open record"
               >
-                <span class="pm-cell pm-cell-date">{row.dateDisplay}</span>
-                <span class="pm-cell pm-cell-type">
-                  <span class={row.chipClass}>{row.category}</span>
-                </span>
-                <span class="pm-cell pm-cell-subject">{row.subject}</span>
-                <span class="pm-cell pm-cell-purpose">{row.purposeText}</span>
-                <span class="pm-cell pm-cell-participant">{row.participant}</span>
-                <span class="pm-cell pm-cell-owner">{row.owner}</span>
-                <span class="pm-cell pm-cell-status">{row.statusText}</span>
-                <span class="pm-cell pm-cell-preview">{row.previewText}</span>
-                <span class="pm-cell pm-cell-actions">
-                  <lightning-button-icon
-                    icon-name="utility:new_window"
-                    alternative-text="Open in new tab"
-                    title="Open in new tab"
-                    variant="bare"
-                    size="small"
-                    data-id={row.recordId}
-                    onclick={handleOpenInNewTab}
-                  ></lightning-button-icon>
-                </span>
+                <template if:true={row.isGroupHeader}>
+                  <span class="pm-group-label">{row.programName}</span>
+                  <span class="pm-group-count">{row.rowCount} records</span>
+                </template>
+                <template if:false={row.isGroupHeader}>
+                  <span class="pm-cell pm-cell-date">{row.dateDisplay}</span>
+                  <span class="pm-cell pm-cell-type">
+                    <span class={row.chipClass}>{row.category}</span>
+                  </span>
+                  <span class="pm-cell pm-cell-subject">{row.subject}</span>
+                  <span class="pm-cell pm-cell-purpose">{row.purposeText}</span>
+                  <span class="pm-cell pm-cell-participant">{row.participant}</span>
+                  <span class="pm-cell pm-cell-owner">{row.owner}</span>
+                  <span class="pm-cell pm-cell-status">{row.statusText}</span>
+                  <span class="pm-cell pm-cell-preview">{row.previewText}</span>
+                  <span class="pm-cell pm-cell-actions">
+                    <lightning-button-icon
+                      icon-name="utility:new_window"
+                      alternative-text="Open in new tab"
+                      title="Open in new tab"
+                      variant="bare"
+                      size="small"
+                      data-id={row.recordId}
+                      onclick={handleOpenInNewTab}
+                    ></lightning-button-icon>
+                  </span>
+                </template>
               </div>
             </template>
           </div>
@@ -234,4 +240,179 @@
       </div>
     </template>
   </lightning-card>
+
+  <!-- ─── Activity Detail Modal ─── -->
+  <template if:true={showDetailModal}>
+    <section
+      role="dialog"
+      tabindex="-1"
+      aria-modal="true"
+      aria-labelledby="pm-detail-modal-heading"
+      class="slds-modal slds-fade-in-open slds-modal_large"
+    >
+      <div class="slds-modal__container">
+        <!-- Header -->
+        <header class="slds-modal__header">
+          <lightning-button-icon
+            class="slds-modal__close"
+            icon-name="utility:close"
+            alternative-text="Close"
+            variant="bare-inverse"
+            onclick={handleCloseModal}
+          ></lightning-button-icon>
+          <h2 id="pm-detail-modal-heading" class="slds-text-heading_medium slds-truncate">
+            {modalRow.subject}
+          </h2>
+          <div class="slds-modal__header-description pm-modal-meta">
+            <span class={modalChipClass}>{modalRow.category}</span>
+            <template if:true={modalRow.statusText}>
+              <span class="pm-modal-status">{modalRow.statusText}</span>
+            </template>
+            <template if:true={modalRow.participant}>
+              <span class="pm-modal-meta-sep">·</span>
+              <span>{modalRow.participant}</span>
+            </template>
+            <template if:true={modalRow.owner}>
+              <span class="pm-modal-meta-sep">·</span>
+              <span class="slds-text-color_weak">{modalRow.owner}</span>
+            </template>
+            <template if:true={modalRow.dateDisplay}>
+              <span class="pm-modal-meta-sep">·</span>
+              <span class="slds-text-color_weak">{modalRow.dateDisplay}</span>
+            </template>
+          </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="slds-modal__content pm-modal-body">
+          <div class="slds-tabs_default">
+            <ul class="slds-tabs_default__nav" role="tablist">
+              <li
+                class={detailTabClass}
+                title="Details"
+                role="presentation"
+              >
+                <a
+                  class="slds-tabs_default__link"
+                  role="tab"
+                  data-tab="details"
+                  onclick={handleModalTabClick}
+                >
+                  <lightning-icon icon-name="utility:list" size="x-small" class="slds-var-m-right_xx-small"></lightning-icon>
+                  Details
+                </a>
+              </li>
+              <template if:true={modalHasDocumentTab}>
+                <li
+                  class={documentTabClass}
+                  title="Document"
+                  role="presentation"
+                >
+                  <a
+                    class="slds-tabs_default__link"
+                    role="tab"
+                    data-tab="document"
+                    onclick={handleModalTabClick}
+                  >
+                    <lightning-icon icon-name="utility:file" size="x-small" class="slds-var-m-right_xx-small"></lightning-icon>
+                    Document
+                  </a>
+                </li>
+              </template>
+            </ul>
+
+            <!-- Details Tab Content -->
+            <template if:true={isModalDetailTab}>
+              <div class="slds-tabs_default__content slds-show pm-modal-tab-panel">
+                <template if:true={modalIsIncident}>
+                  <div class="pm-incident-detail slds-grid slds-wrap slds-gutters_small slds-var-p-around_medium">
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                      <span class="slds-text-title_caps slds-text-color_weak">Type</span>
+                      <p class="slds-text-body_regular">{modalRow.purposeText}</p>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                      <span class="slds-text-title_caps slds-text-color_weak">Status</span>
+                      <p class="slds-text-body_regular">{modalRow.statusText}</p>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                      <span class="slds-text-title_caps slds-text-color_weak">Date</span>
+                      <p class="slds-text-body_regular">{modalRow.dateDisplay}</p>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                      <span class="slds-text-title_caps slds-text-color_weak">Participant</span>
+                      <p class="slds-text-body_regular">{modalRow.participant}</p>
+                    </div>
+                    <div class="slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+                      <span class="slds-text-title_caps slds-text-color_weak">Owner</span>
+                      <p class="slds-text-body_regular">{modalRow.owner}</p>
+                    </div>
+                    <template if:true={modalRow.previewText}>
+                      <div class="slds-col slds-size_1-of-1">
+                        <span class="slds-text-title_caps slds-text-color_weak">Description</span>
+                        <p class="slds-text-body_regular">{modalRow.previewText}</p>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+                <template if:false={modalIsIncident}>
+                  <c-note-detail-display
+                    record-id={modalRow.recordId}
+                    record-type={modalNoteRecordType}
+                    completed-view={modalCompletedView}
+                  ></c-note-detail-display>
+                </template>
+              </div>
+            </template>
+
+            <!-- Document Tab Content — inline PDF preview via ContentVersion renditionDownload -->
+            <template if:true={isModalDocumentTab}>
+              <div class="slds-tabs_default__content slds-show pm-modal-tab-panel pm-modal-pdf-panel">
+                <!-- Toolbar -->
+                <div class="pm-pdf-toolbar">
+                  <lightning-button
+                    label="Download PDF"
+                    icon-name="utility:download"
+                    variant="neutral"
+                    onclick={handleDownloadPdf}
+                  ></lightning-button>
+                </div>
+                <!-- Loading state while fetching version ID -->
+                <template if:true={modalPdfLoading}>
+                  <div class="slds-align_absolute-center slds-var-p-around_large">
+                    <lightning-spinner alternative-text="Loading document" size="medium"></lightning-spinner>
+                  </div>
+                </template>
+                <!-- PDF iframe -->
+                <template if:true={modalPdfPreviewUrl}>
+                  <iframe
+                    src={modalPdfPreviewUrl}
+                    class="pm-pdf-iframe"
+                    title="Document Preview"
+                    frameborder="0"
+                  ></iframe>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="slds-modal__footer">
+          <lightning-button
+            label="Open in Salesforce"
+            icon-name="utility:new_window"
+            variant="neutral"
+            onclick={handleOpenInSalesforce}
+            class="slds-var-m-right_small"
+          ></lightning-button>
+          <lightning-button
+            label="Close"
+            variant="brand"
+            onclick={handleCloseModal}
+          ></lightning-button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
 </template>

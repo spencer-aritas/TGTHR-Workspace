@@ -7,6 +7,15 @@ export default class ProgramCensusBoard extends LightningElement {
   activeTabIndex = 0;
   _externalProgramId = null;
   theme = null;
+  programThemeAssignments = new Map();
+  paletteChoices = [
+    { colorHex: "#4f6bbd", accentHex: "#8fa8d8" },
+    { colorHex: "#2d7a3e", accentHex: "#7ba878" },
+    { colorHex: "#c94f4f", accentHex: "#e29b9b" },
+    { colorHex: "#5a3d8c", accentHex: "#9980b8" },
+    { colorHex: "#2d6b7a", accentHex: "#7ab0b0" },
+    { colorHex: "#a23d8c", accentHex: "#cb8fc1" }
+  ];
 
   get programId() {
     if (this._externalProgramId) return this._externalProgramId;
@@ -59,24 +68,101 @@ export default class ProgramCensusBoard extends LightningElement {
 
   getAutoTheme(seedInput) {
     const seed = String(seedInput || "default");
-    const palettes = [
-      { colorHex: "#4f6bbd", accentHex: "#8fa8d8" },
-      { colorHex: "#2d7a3e", accentHex: "#7ba878" },
-      { colorHex: "#8b4513", accentHex: "#c0915a" },
-      { colorHex: "#5a3d8c", accentHex: "#9980b8" },
-      { colorHex: "#2d6b7a", accentHex: "#7ab0b0" },
-      { colorHex: "#6b5a3d", accentHex: "#a89878" }
-    ];
     let hash = 0;
     for (let i = 0; i < seed.length; i += 1) {
       hash = (hash << 5) - hash + seed.charCodeAt(i);
       hash |= 0;
     }
-    const palette = palettes[Math.abs(hash) % palettes.length];
+    const palette = this.paletteChoices[Math.abs(hash) % this.paletteChoices.length];
     return {
       colorHex: palette.colorHex,
       accentHex: palette.accentHex
     };
+  }
+
+  getProgramTheme(program) {
+    if (!program || !program.Id) {
+      return this.getAutoTheme(program?.Name || program?.Id || "default");
+    }
+
+    const existingTheme = this.programThemeAssignments.get(program.Id);
+    if (existingTheme) {
+      return existingTheme;
+    }
+
+    const theme = this.getAutoTheme(program.Name || program.Id);
+    this.programThemeAssignments.set(program.Id, theme);
+    return theme;
+  }
+
+  syncProgramThemes(programs) {
+    const currentPrograms = Array.isArray(programs) ? programs : [];
+    const usageCounts = new Map(
+      this.paletteChoices.map((_, index) => [index, 0])
+    );
+
+    currentPrograms.forEach((program) => {
+      const theme = this.programThemeAssignments.get(program.Id);
+      const paletteIndex = this.paletteChoices.findIndex(
+        (palette) =>
+          theme &&
+          theme.colorHex === palette.colorHex &&
+          theme.accentHex === palette.accentHex
+      );
+      if (paletteIndex >= 0) {
+        usageCounts.set(paletteIndex, (usageCounts.get(paletteIndex) || 0) + 1);
+      }
+    });
+
+    currentPrograms.forEach((program) => {
+      if (!program || !program.Id || this.programThemeAssignments.has(program.Id)) {
+        return;
+      }
+
+      const paletteIndex = this.pickLeastUsedPaletteIndex(
+        usageCounts,
+        program.Name || program.Id
+      );
+      const palette = this.paletteChoices[paletteIndex];
+      this.programThemeAssignments.set(program.Id, {
+        colorHex: palette.colorHex,
+        accentHex: palette.accentHex
+      });
+      usageCounts.set(paletteIndex, (usageCounts.get(paletteIndex) || 0) + 1);
+    });
+  }
+
+  pickLeastUsedPaletteIndex(usageCounts, seedInput) {
+    let leastUsed = Number.POSITIVE_INFINITY;
+    const candidates = [];
+
+    this.paletteChoices.forEach((_, index) => {
+      const count = usageCounts.get(index) || 0;
+      if (count < leastUsed) {
+        leastUsed = count;
+        candidates.length = 0;
+        candidates.push(index);
+      } else if (count === leastUsed) {
+        candidates.push(index);
+      }
+    });
+
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+
+    const seed = String(seedInput || "default");
+    let hash = 0;
+    for (let i = 0; i < seed.length; i += 1) {
+      hash = (hash << 5) - hash + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    return candidates[Math.abs(hash) % candidates.length];
+  }
+
+  getProgramButtonStyle(program) {
+    const theme = this.getProgramTheme(program);
+    return `--program-color: ${theme.colorHex}; --program-accent: ${theme.accentHex};`;
   }
 
   applyTheme(theme) {
@@ -90,20 +176,13 @@ export default class ProgramCensusBoard extends LightningElement {
     if (theme.accentHex) {
       host.style.setProperty("--program-accent", theme.accentHex);
     }
-    // Ensure program header buttons get themed colors too
-    const buttons = this.template.querySelectorAll(".program-header");
-    if (buttons && buttons.length > 0) {
-      buttons.forEach((btn) => {
-        btn.style.setProperty("--program-color", theme.colorHex || "#4f6bbd");
-        btn.style.setProperty("--program-accent", theme.accentHex || "#2D9CDB");
-      });
-    }
   }
 
   async loadActivePrograms() {
   try {
     const programs = await getActivePrograms();
     this.programs = programs || [];
+    this.syncProgramThemes(this.programs);
     this.activeTabIndex = 0;
 
     // Ensure programId exists before loadTheme
@@ -152,7 +231,8 @@ export default class ProgramCensusBoard extends LightningElement {
       id: p.Id,
       name: p.Name,
       active: idx === this.activeTabIndex,
-      idx
+      idx,
+      style: this.getProgramButtonStyle(p)
     }));
   }
 

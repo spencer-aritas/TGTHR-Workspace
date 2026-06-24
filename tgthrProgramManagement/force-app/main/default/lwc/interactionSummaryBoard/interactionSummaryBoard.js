@@ -80,7 +80,10 @@ export default class InteractionSummaryBoard extends LightningElement {
   }
   @track sortDirection = "desc"; // Default sort direction (newest first)
   @track currentInteraction = null; // Stores the current interaction being created
-  @track interactionPurpose = "";
+  // Interaction Purpose is no longer user-selectable from the board. Every
+  // record created here is a 'Communication Log' wrapper; Notes and Interviews
+  // come through their dedicated controllers, which stamp their own purpose.
+  @track interactionPurpose = "Communication Log";
   @track meetingNotes = "";
   @track interactionDate = "";
   @track notifyCaseManager = false;
@@ -1278,7 +1281,7 @@ export default class InteractionSummaryBoard extends LightningElement {
 
   // Reset modal form fields
   resetModalFields() {
-    this.interactionPurpose = "";
+    this.interactionPurpose = "Communication Log";
     this.meetingNotes = "";
 
     // Set today's date in YYYY-MM-DD format for HTML date input
@@ -1315,12 +1318,6 @@ export default class InteractionSummaryBoard extends LightningElement {
       "table",
       "header"
     ];
-  }
-
-  // Handle purpose dropdown change
-  handlePurposeChange(event) {
-    this.interactionPurpose = event.detail.value;
-    this.formModified = true; // Mark form as modified
   }
 
   // Handle notes field change (for backward compatibility)
@@ -1361,9 +1358,6 @@ export default class InteractionSummaryBoard extends LightningElement {
         this.interactionDate = dateValue;
         debugLog("Date field updated to:", this.interactionDate);
       }
-    } else if (fieldName === "interaction-purpose") {
-      this.interactionPurpose = event.target.value;
-      debugLog("Purpose updated to:", this.interactionPurpose);
     } else if (fieldName === "notify-case-manager") {
       this.notifyCaseManager = event.target.checked;
       debugLog("Notify case manager updated to:", this.notifyCaseManager);
@@ -1380,17 +1374,6 @@ export default class InteractionSummaryBoard extends LightningElement {
   }
 
   // Purpose options for dropdown
-  get purposeOptions() {
-    return [
-      { label: "Initial Meeting", value: "Initial Meeting" },
-      { label: "Follow-up Meeting", value: "Follow-up Meeting" },
-      { label: "Case Management", value: "Case Management" },
-      { label: "Crisis Intervention", value: "Crisis Intervention" },
-      { label: "Phone Call", value: "Phone Call" },
-      { label: "Other", value: "Other" }
-    ];
-  }
-
   // Page size options for dropdowns
   get pageSizeOptions() {
     return [
@@ -1772,17 +1755,8 @@ export default class InteractionSummaryBoard extends LightningElement {
         return;
       }
 
-      // Validate required fields
-      if (!this.interactionPurpose) {
-        this.dispatchEvent(
-          new ShowToastEvent({
-            title: "Error",
-            message: "Please select an Interaction Purpose",
-            variant: "error"
-          })
-        );
-        return;
-      }
+      // Interaction Purpose is stamped server-side ('Communication Log') —
+      // no user-facing validation here.
 
       // Check for empty meeting notes and handle HTML content properly
       if (

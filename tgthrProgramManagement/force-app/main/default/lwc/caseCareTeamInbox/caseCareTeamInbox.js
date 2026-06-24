@@ -7,6 +7,29 @@ import createFollowUp from "@salesforce/apex/CaseCareTeamInboxController.createF
 
 const CASE_FIELDS = ["Case.CaseNumber", "Case.AccountId"];
 
+// Mirrors interactionSummaryBoard.toDateKey: parses Salesforce date-only
+// strings ("YYYY-MM-DD") as LOCAL dates so they sort consistently against
+// full ISO datetime strings returned for incidents/CreatedDate fallbacks.
+function toSortKey(dateValue) {
+  if (!dateValue) return 0;
+  if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+    return dateValue.getTime();
+  }
+  if (typeof dateValue === "string") {
+    const ymd = dateValue.substring(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (ymd) {
+      const dt = new Date(
+        parseInt(ymd[1], 10),
+        parseInt(ymd[2], 10) - 1,
+        parseInt(ymd[3], 10)
+      );
+      return isNaN(dt.getTime()) ? 0 : dt.getTime();
+    }
+  }
+  const parsed = new Date(dateValue);
+  return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
 export default class CaseCareTeamInbox extends LightningElement {
   @api recordId;
 
@@ -123,9 +146,7 @@ export default class CaseCareTeamInbox extends LightningElement {
       items = [...this.interactions, ...this.incidents];
     }
     items.sort((a, b) => {
-      const da = a.sortDate ? new Date(a.sortDate) : new Date(0);
-      const db = b.sortDate ? new Date(b.sortDate) : new Date(0);
-      return db - da;
+      return toSortKey(b.sortDate) - toSortKey(a.sortDate);
     });
     return items;
   }

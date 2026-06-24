@@ -67,7 +67,9 @@
                             <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12">
                                 <h2 class="slds-text-heading_medium">{selectedPendingItem.title}</h2>
                                 <div class="slds-m-top_xx-small">
-                                    <span class={selectedPendingItem.statusBadgeClass} style="margin-right:0.375rem;">{selectedPendingItem.statusBadgeLabel}</span>
+                                    <template if:true={selectedPendingItem.statusBadgeLabel}>
+                                        <span class={selectedPendingItem.statusBadgeClass} style="margin-right:0.375rem;">{selectedPendingItem.statusBadgeLabel}</span>
+                                    </template>
                                     <template if:true={selectedPendingItem.actionBadgeLabel}>
                                         <span class={selectedPendingItem.actionBadgeClass}>{selectedPendingItem.actionBadgeLabel}</span>
                                     </template>

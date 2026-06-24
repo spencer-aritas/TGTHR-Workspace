@@ -341,9 +341,58 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
     get pendingItems() {
         const items = [];
         const managerQueueInterviewIds = new Set();
+        const activeInterviewWorkflowIds = new Set();
+
+        const isInterviewLike = (pendingItem) => {
+            return pendingItem?.recordType === 'Interview'
+                || pendingItem?.approvalRecordType === 'Interview'
+                || pendingItem?.documentType === 'Interview'
+                || !!pendingItem?.templateVersionId
+                || !!pendingItem?.linkedInterviewId;
+        };
+
+        const getInterviewId = (pendingItem) => pendingItem?.linkedInterviewId || pendingItem?.sourceRecordId || pendingItem?.approvalRecordId || pendingItem?.id;
+
+        const isInterviewWorkflowActive = (pendingItem) => {
+            if (pendingItem?.recordType !== 'Interview') {
+                return false;
+            }
+            const hasPendingCaseManager = pendingItem?.caseManagerAssignedToId && !pendingItem?.caseManagerSigned;
+            const hasPendingPeerSupport = pendingItem?.peerSupportAssignedToId && !pendingItem?.peerSupportSigned;
+            const hasPendingManager = pendingItem?.requiresManagerApproval && !pendingItem?.managerSigned;
+            return hasPendingCaseManager || hasPendingPeerSupport || hasPendingManager;
+        };
+
+        // Build an index of active manager-approval interview stages so we can suppress
+        // stale action cards from prior interview versions in the same case/template.
+        (this.pendingApprovals || []).forEach(item => {
+            const pendingItem = this.buildPendingItem('PendingApproval', item);
+            if (isInterviewWorkflowActive(pendingItem)) {
+                const interviewId = getInterviewId(pendingItem);
+                if (interviewId) {
+                    activeInterviewWorkflowIds.add(interviewId);
+                }
+            }
+        });
+        (this.unsignedInterviews || []).forEach(item => {
+            const pendingItem = this.buildPendingItem('Interview', item);
+            if (isInterviewWorkflowActive(pendingItem)) {
+                const interviewId = getInterviewId(pendingItem);
+                if (interviewId) {
+                    activeInterviewWorkflowIds.add(interviewId);
+                }
+            }
+        });
 
         (this.actionItems || []).forEach(item => {
-            items.push(this.buildPendingItem('ActionItem', item));
+            const pendingItem = this.buildPendingItem('ActionItem', item);
+            if (isInterviewLike(pendingItem) && pendingItem.actionRequired) {
+                const interviewId = getInterviewId(pendingItem);
+                if (interviewId && activeInterviewWorkflowIds.has(interviewId)) {
+                    return;
+                }
+            }
+            items.push(pendingItem);
         });
         (this.pendingApprovals || []).forEach(item => {
             const pendingItem = this.buildPendingItem('PendingApproval', item);
@@ -366,8 +415,25 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             items.push(this.buildPendingItem('Draft', item));
         });
 
-        return items
-            .sort((leftItem, rightItem) => this.comparePendingItems(leftItem, rightItem))
+        const sortedItems = items
+            .sort((leftItem, rightItem) => this.comparePendingItems(leftItem, rightItem));
+
+        // Hard dedupe by Interview record identity after sorting so one Interview
+        // renders exactly once, preferring the highest-priority workflow state.
+        const seenInterviewIds = new Set();
+        const dedupedItems = [];
+        sortedItems.forEach(item => {
+            const interviewId = isInterviewLike(item) ? getInterviewId(item) : null;
+            if (interviewId) {
+                if (seenInterviewIds.has(interviewId)) {
+                    return;
+                }
+                seenInterviewIds.add(interviewId);
+            }
+            dedupedItems.push(item);
+        });
+
+        return dedupedItems
             .map(item => ({
                 ...item,
                 itemClass: `pending-item ${item.key === this.selectedPendingKey ? 'pending-item-selected' : ''}${item.lateEntryManagerApprovalRequired ? ' pending-item-late-entry' : ''}`
@@ -430,6 +496,7 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             isOverdue: item.isOverdue,
             editLockReason: item.editLockReason,
             lateEntryManagerApprovalRequired: item.lateEntryManagerApprovalRequired,
+            linkedInterviewId: item.linkedInterviewId,
             templateVersionId: item.templateVersionId,
             caseId: item.caseId,
             id: item.id,
@@ -550,8 +617,15 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             const hasPendingCaseManager = item?.caseManagerAssignedToId && !item?.caseManagerSigned;
             const hasPendingPeerSupport = item?.peerSupportAssignedToId && !item?.peerSupportSigned;
             if (hasPendingCaseManager || hasPendingPeerSupport) {
+                const waitingOn = [];
+                if (hasPendingCaseManager) {
+                    waitingOn.push(item.caseManagerAssignedToName || 'Case Manager');
+                }
+                if (hasPendingPeerSupport) {
+                    waitingOn.push(item.peerSupportAssignedToName || 'Peer Support');
+                }
                 return {
-                    label: 'Awaiting Signatures',
+                    label: `Waiting on ${waitingOn.join(' / ')}`,
                     icon: 'utility:clock',
                     className: 'pending-badge pending-badge--approval'
                 };
@@ -559,7 +633,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
         }
         if (item?.requiresManagerApproval && !item?.managerSigned) {
             return {
-                label: 'Pending Approval',
+                label: item?.canApproveAsManager
+                    ? 'Waiting on You'
+                    : `Waiting on ${item?.managerApproverName || 'Manager Approver'}`,
                 icon: 'utility:clock',
                 className: 'pending-badge pending-badge--approval'
             };
@@ -626,7 +702,9 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             }
         }
         if (item.requiresManagerApproval && !item.managerSigned) {
-            return { label: 'Signed Draft', className: 'pending-badge pending-badge--draft' };
+            // Suppress legacy generic status badge for manager co-sign state.
+            // The workflow/state badges are shown via getBadgeConfig + getActionBadgeConfig.
+            return { label: '', className: '' };
         }
         if (item.isEditLocked) {
             return { label: 'Locked', className: 'pending-badge pending-badge--action' };
@@ -652,11 +730,26 @@ export default class PendingDocumentation extends NavigationMixin(LightningEleme
             const hasPendingCaseManager = item.caseManagerAssignedToId && !item.caseManagerSigned;
             const hasPendingPeerSupport = item.peerSupportAssignedToId && !item.peerSupportSigned;
             if (hasPendingCaseManager || hasPendingPeerSupport) {
-                return { label: 'Awaiting Signatures', className: 'pending-badge pending-badge--approval' };
+                const waitingOn = [];
+                if (hasPendingCaseManager) {
+                    waitingOn.push(item.caseManagerAssignedToName || 'Case Manager');
+                }
+                if (hasPendingPeerSupport) {
+                    waitingOn.push(item.peerSupportAssignedToName || 'Peer Support');
+                }
+                return {
+                    label: `Waiting on ${waitingOn.join(' / ')}`,
+                    className: 'pending-badge pending-badge--approval'
+                };
             }
         }
         if (item.requiresManagerApproval && !item.managerSigned) {
-            return { label: 'Awaiting Manager Approval', className: 'pending-badge pending-badge--approval' };
+            return {
+                label: item.canApproveAsManager
+                    ? 'Waiting on You'
+                    : `Waiting on ${item.managerApproverName || 'Manager Approver'}`,
+                className: 'pending-badge pending-badge--approval'
+            };
         }
         if (item.isEditLocked) {
             return { label: 'Addendum Required', className: 'pending-badge pending-badge--action' };

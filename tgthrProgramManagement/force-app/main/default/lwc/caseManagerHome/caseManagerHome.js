@@ -223,12 +223,14 @@ export default class CaseManagerHome extends NavigationMixin(LightningElement) {
 
     handleOpenCase() {
         if (!this.selectedClient) return;
-        this[NavigationMixin.Navigate]({
+        this[NavigationMixin.GenerateUrl]({
             type: 'standard__recordPage',
             attributes: {
                 recordId  : this.selectedClient.caseId,
                 actionName: 'view'
             }
+        }).then(url => {
+            window.open(url, '_blank');
         });
     }
 
