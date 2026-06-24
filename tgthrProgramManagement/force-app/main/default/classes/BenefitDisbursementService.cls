@@ -709,8 +709,10 @@ public with sharing class BenefitDisbursementService {
       }
     }
 
-    // Census benefits always create an InteractionSummary wrapper for the disbursement.
-    Boolean createInteractionSummary = isClinicalBenefit || isCensusBenefit;
+    // Census benefits create an InteractionSummary wrapper only when Require Note is on.
+    // Plain Census (no Require Note) is just a disbursement — no IS, no modal.
+    // Clinical benefits always wrap in IS (legacy clinical flow).
+    Boolean createInteractionSummary = isClinicalBenefit || (isCensusBenefit && requireCaseNote);
     System.debug('Clinical benefit: ' + isClinicalBenefit + '; Census benefit: ' + isCensusBenefit + '; Require case note: ' + requireCaseNote);
 
     // Validate notes when Case Note is required (Meeting Notes mandatory).
@@ -806,6 +808,28 @@ public with sharing class BenefitDisbursementService {
       : existingAssignments(acctIdSet, benefitId);
 
     // 3) Build disbursements
+    //
+    // SOURCE OF TRUTH for the disbursement's StartDate:
+    //   1. The linked InteractionSummary.Start_Time__c (the exact wall-clock
+    //      the clinician/case manager entered on the wrapper). This is the
+    //      clinical/billing record-of-truth and must drive the disbursement.
+    //   2. Otherwise, the caller-supplied req.startDateTime (parsed in the
+    //      running user's TZ via Datetime.valueOf), but only if it lands on
+    //      the same calendar day as svcDate.
+    //   3. Otherwise, noon-local on svcDate (housing bed-nights and other
+    //      whole-day disbursements with no time component).
+    Datetime authoritativeStart = resolveAuthoritativeStart(
+      req.interactionSummaryId,
+      req.startDateTime,
+      svcDate
+    );
+    System.debug(
+      'BenefitDisbursementService: authoritativeStart=' + authoritativeStart +
+      ' (svcDate=' + svcDate +
+      ', interactionSummaryId=' + req.interactionSummaryId +
+      ', req.startDateTime=' + req.startDateTime + ')'
+    );
+
     List<SObject> toInsert = new List<SObject>();
     Map<Integer, Id> indexToAccount = new Map<Integer, Id>();
     Integer idx = 0;
@@ -825,7 +849,11 @@ public with sharing class BenefitDisbursementService {
       d.put('BenefitAssignmentId', ba.get('Id')); // Master-Detail to BenefitAssignment
       if (pe != null)
         d.put('ProgramEnrollmentId', pe.get('Id'));
-      d.put('StartDate', svcDate); // Use StartDate instead of DisbursementDate
+      // BenefitDisbursement.StartDate is a Datetime in this org's NPC schema.
+      // Write the authoritative Datetime resolved above (parent
+      // InteractionSummary.Start_Time__c when present) so the disbursement
+      // reflects the exact moment the user recorded the interaction.
+      putAuthoritativeDateTime(d, 'StartDate', authoritativeStart, svcDate);
 
       // Set standard NPS fields according to the documentation:
       // https://developer.salesforce.com/docs/atlas.en-us.nonprofit_cloud.meta/nonprofit_cloud/npc_pm_objects_benefitdisbursement_standard_fields.htm
@@ -838,7 +866,7 @@ public with sharing class BenefitDisbursementService {
       } catch (Exception ignore) {
       }
       try {
-        d.put('DisbursementDate', svcDate);
+        putAuthoritativeDateTime(d, 'DisbursementDate', authoritativeStart, svcDate);
       } catch (Exception ignore) {
       }
       try {
@@ -1298,9 +1326,11 @@ public with sharing class BenefitDisbursementService {
             .newSObject();
           disbursement.put('BenefitAssignmentId', assignmentId);
           disbursement.put('ProgramEnrollmentId', enrollmentId);
-          disbursement.put('StartDate', serviceDate);
+          // Use noon-local Datetime so StartDate (Datetime in this org) does not
+          // shift to the previous day when displayed in user TZ.
+          putDateOrDatetime(disbursement, 'StartDate', serviceDate, null);
           try {
-            disbursement.put('DisbursementDate', serviceDate);
+            putDateOrDatetime(disbursement, 'DisbursementDate', serviceDate, null);
           } catch (Exception ignore) {
           }
           try {
@@ -1400,6 +1430,152 @@ public with sharing class BenefitDisbursementService {
       return Datetime.newInstance(serviceDate, Time.newInstance(12, 0, 0, 0));
     } catch (Exception e) {
       return Datetime.now();
+    }
+  }
+
+  /**
+   * Sets a BenefitDisbursement field that may be either Date or Datetime in the
+   * target org. Datetime fields receive a noon-local Datetime built from svcDate
+   * (or parsed from the caller-supplied ISO startDateTime when available) so the
+   * displayed date matches the user-entered service/interaction date instead of
+   * shifting to the previous day via midnight-GMT coercion.
+   */
+  private static void putDateOrDatetime(
+    SObject record,
+    String fieldApiName,
+    Date svcDate,
+    String startDateTimeIso
+  ) {
+    if (record == null || String.isBlank(fieldApiName) || svcDate == null) {
+      return;
+    }
+    Schema.DescribeFieldResult fd;
+    try {
+      Schema.SObjectField token = record.getSObjectType()
+        .getDescribe()
+        .fields.getMap()
+        .get(fieldApiName);
+      if (token == null) {
+        return;
+      }
+      fd = token.getDescribe();
+    } catch (Exception describeEx) {
+      return;
+    }
+    Schema.DisplayType dt = fd.getType();
+    if (dt == Schema.DisplayType.DateTime) {
+      Datetime value = null;
+      if (String.isNotBlank(startDateTimeIso)) {
+        try {
+          value = Datetime.valueOf(startDateTimeIso.replace('T', ' '));
+          // Guard against parsed values landing on a different calendar day in
+          // user TZ (e.g. 23:30 the prior night) by snapping back to svcDate noon.
+          if (value.date() != svcDate) {
+            value = null;
+          }
+        } catch (Exception ignore) {
+          value = null;
+        }
+      }
+      if (value == null) {
+        value = Datetime.newInstance(svcDate, Time.newInstance(12, 0, 0, 0));
+      }
+      record.put(fieldApiName, value);
+    } else {
+      // Date or other — write the plain Date so no coercion can occur.
+      record.put(fieldApiName, svcDate);
+    }
+  }
+
+  /**
+   * Resolves the authoritative StartDate Datetime for a disbursement.
+   * Preference order:
+   *   1. Parent InteractionSummary.Start_Time__c (exact moment user entered).
+   *   2. req.startDateTime parsed in user TZ, if it lands on svcDate.
+   *   3. Noon-local on svcDate (whole-day disbursements with no time).
+   */
+  private static Datetime resolveAuthoritativeStart(
+    String interactionSummaryId,
+    String startDateTimeIso,
+    Date svcDate
+  ) {
+    // 1. Parent InteractionSummary
+    if (String.isNotBlank(interactionSummaryId)) {
+      try {
+        Id isId = Id.valueOf(interactionSummaryId);
+        List<SObject> rows = Database.query(
+          'SELECT Start_Time__c, Date_of_Interaction__c FROM InteractionSummary WHERE Id = :isId LIMIT 1'
+        );
+        if (!rows.isEmpty()) {
+          Datetime parentStart = (Datetime) rows[0].get('Start_Time__c');
+          if (parentStart != null) {
+            return parentStart;
+          }
+          // Parent has only a Date — anchor at noon-local on that date.
+          Date parentDate = (Date) rows[0].get('Date_of_Interaction__c');
+          if (parentDate != null) {
+            return Datetime.newInstance(parentDate, Time.newInstance(12, 0, 0, 0));
+          }
+        }
+      } catch (Exception ex) {
+        System.debug(
+          'resolveAuthoritativeStart: failed to load parent InteractionSummary ' +
+          interactionSummaryId + ': ' + ex.getMessage()
+        );
+      }
+    }
+
+    // 2. Caller-supplied startDateTime, if it parses cleanly and is same-day.
+    if (String.isNotBlank(startDateTimeIso)) {
+      try {
+        Datetime parsed = Datetime.valueOf(startDateTimeIso.replace('T', ' '));
+        if (svcDate == null || parsed.date() == svcDate) {
+          return parsed;
+        }
+      } catch (Exception ignore) {
+      }
+    }
+
+    // 3. Noon-local on svcDate.
+    if (svcDate != null) {
+      return Datetime.newInstance(svcDate, Time.newInstance(12, 0, 0, 0));
+    }
+    return Datetime.now();
+  }
+
+  /**
+   * Writes the resolved authoritative Datetime to a Date- or Datetime-typed
+   * field on a BenefitDisbursement (or similar) record. For Date fields, the
+   * calendar day of the authoritative value (in the running user's TZ) is used.
+   */
+  private static void putAuthoritativeDateTime(
+    SObject record,
+    String fieldApiName,
+    Datetime authoritative,
+    Date svcDate
+  ) {
+    if (record == null || String.isBlank(fieldApiName) || authoritative == null) {
+      return;
+    }
+    Schema.DescribeFieldResult fd;
+    try {
+      Schema.SObjectField token = record.getSObjectType()
+        .getDescribe()
+        .fields.getMap()
+        .get(fieldApiName);
+      if (token == null) {
+        return;
+      }
+      fd = token.getDescribe();
+    } catch (Exception describeEx) {
+      return;
+    }
+    if (fd.getType() == Schema.DisplayType.DateTime) {
+      record.put(fieldApiName, authoritative);
+    } else {
+      // Date field — prefer svcDate (already the user-entered calendar day);
+      // fall back to the authoritative Datetime's local date.
+      record.put(fieldApiName, svcDate != null ? svcDate : authoritative.date());
     }
   }
 

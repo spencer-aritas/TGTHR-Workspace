@@ -35,7 +35,8 @@ public with sharing class ProgramManagersDashboardController {
     // ─── DTOs ────────────────────────────────────────────────────────────────
 
     public class ActivityFilter {
-        @AuraEnabled public String  programId;
+        @AuraEnabled public String       programId;        // single-program (legacy)
+        @AuraEnabled public List<String> programIds;       // multi-program (preferred)
         @AuraEnabled public String  startDate;   // ISO yyyy-MM-dd
         @AuraEnabled public String  endDate;     // ISO yyyy-MM-dd
         @AuraEnabled public String  userId;      // OwnerId filter
@@ -58,6 +59,7 @@ public with sharing class ProgramManagersDashboardController {
         @AuraEnabled public String  preview;
         @AuraEnabled public String  pdfFileId;
         @AuraEnabled public String  recordUrl;
+        @AuraEnabled public String  programId;
     }
 
     public class ActivityPage {
@@ -82,6 +84,52 @@ public with sharing class ProgramManagersDashboardController {
     }
 
     // ─── Picklist helpers ────────────────────────────────────────────────────
+
+    /**
+     * Returns users who have activity across the given set of programs.
+     * Falls back to all active standard users when no activity is found.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<UserOption> getProgramUsersForPrograms(List<String> programIds) {
+        if (programIds == null || programIds.isEmpty()) return new List<UserOption>();
+        Set<Id> idSet = new Set<Id>();
+        for (String p : programIds) { if (String.isNotBlank(p)) idSet.add((Id) p); }
+        if (idSet.isEmpty()) return new List<UserOption>();
+        List<UserOption> out = new List<UserOption>();
+        Set<Id> seen = new Set<Id>();
+        for (AggregateResult ar : [
+            SELECT OwnerId own, Owner.Name ownerName
+            FROM InteractionSummary
+            WHERE Program__c IN :idSet AND OwnerId != null
+            GROUP BY OwnerId, Owner.Name
+            ORDER BY Owner.Name
+            LIMIT 200
+        ]) {
+            Id oid = (Id) ar.get('own');
+            if (seen.add(oid)) out.add(new UserOption(oid, (String) ar.get('ownerName')));
+        }
+        if (out.isEmpty()) {
+            for (User u : [SELECT Id, Name FROM User
+                           WHERE IsActive = TRUE AND UserType = 'Standard'
+                           ORDER BY Name LIMIT 200]) {
+                out.add(new UserOption(u.Id, u.Name));
+            }
+        }
+        return out;
+    }
+
+    // Returns the latest ContentVersionId for a given ContentDocumentId.
+    // Used by the dashboard modal to build an inline-renderable PDF preview URL.
+    @AuraEnabled(cacheable=true)
+    public static String getContentVersionId(String contentDocumentId) {
+        if (String.isBlank(contentDocumentId)) return null;
+        List<ContentVersion> versions = [
+            SELECT Id FROM ContentVersion
+            WHERE ContentDocumentId = :contentDocumentId AND IsLatest = true
+            LIMIT 1
+        ];
+        return versions.isEmpty() ? null : versions[0].Id;
+    }
 
     @AuraEnabled(cacheable=true)
     public static List<ProgramOption> getActivePrograms() {
@@ -142,10 +190,15 @@ public with sharing class ProgramManagersDashboardController {
     @AuraEnabled
     public static ActivityPage getActivity(String filterJson) {
         ActivityFilter f = (ActivityFilter) JSON.deserialize(filterJson, ActivityFilter.class);
-        if (String.isBlank(f.programId)) {
+        Set<Id> programIdSet = new Set<Id>();
+        if (f.programIds != null && !f.programIds.isEmpty()) {
+            for (String pid : f.programIds) { if (String.isNotBlank(pid)) programIdSet.add((Id) pid); }
+        } else if (String.isNotBlank(f.programId)) {
+            programIdSet.add((Id) f.programId);
+        }
+        if (programIdSet.isEmpty()) {
             throw new AuraHandledException('A Program is required.');
         }
-        Id programId = (Id) f.programId;
         Date startDate = parseIsoDate(f.startDate);
         Date endDate   = parseIsoDate(f.endDate);
         DateTime startDt = startDate != null ? DateTime.newInstance(startDate, Time.newInstance(0,0,0,0)) : null;
@@ -165,13 +218,13 @@ public with sharing class ProgramManagersDashboardController {
         };
 
         if (wanted.contains(TYPE_INTERACTION) || wanted.contains(TYPE_NOTE)) {
-            all.addAll(queryInteractionSummaries(programId, startDate, endDate, userId, wanted, typeCounts));
+            all.addAll(queryInteractionSummaries(programIdSet, startDate, endDate, userId, wanted, typeCounts));
         }
         if (wanted.contains(TYPE_INCIDENT)) {
-            all.addAll(queryIncidents(programId, startDt, endDt, userId, typeCounts));
+            all.addAll(queryIncidents(programIdSet, startDt, endDt, userId, typeCounts));
         }
         if (wanted.contains(TYPE_INTERVIEW)) {
-            all.addAll(queryInterviews(programId, startDt, endDt, userId, typeCounts));
+            all.addAll(queryInterviews(programIdSet, startDt, endDt, userId, typeCounts));
         }
 
         all.sort(new RowDateComparator());
@@ -199,15 +252,15 @@ public with sharing class ProgramManagersDashboardController {
     // ─── Per-object queries ──────────────────────────────────────────────────
 
     private static List<ActivityRow> queryInteractionSummaries(
-        Id programId, Date startDate, Date endDate, Id userId,
+        Set<Id> programIdSet, Date startDate, Date endDate, Id userId,
         Set<String> wanted, Map<String, Integer> typeCounts
     ) {
         List<ActivityRow> rows = new List<ActivityRow>();
 
         String q = 'SELECT Id, Name, AccountId, Account.Name, OwnerId, Owner.Name, ' +
-                   'Date_of_Interaction__c, Start_Time__c, ' +
+                   'Date_of_Interaction__c, Start_Time__c, Program__c, ' +
                    'InteractionPurpose, Status, MeetingNotes, PDF_File_Id__c, CreatedDate ' +
-                   'FROM InteractionSummary WHERE Program__c = :programId';
+                   'FROM InteractionSummary WHERE Program__c IN :programIdSet';
         if (startDate != null) q += ' AND Date_of_Interaction__c >= :startDate';
         if (endDate   != null) q += ' AND Date_of_Interaction__c <= :endDate';
         if (userId    != null) q += ' AND OwnerId = :userId';
@@ -217,13 +270,12 @@ public with sharing class ProgramManagersDashboardController {
 
         for (SObject s : Database.query(q)) {
             String purpose = (String) s.get('InteractionPurpose');
-            String notes   = (String) s.get('MeetingNotes');
-            // Classify as Documentation when:
-            //   - purpose is in the canonical NOTE_PURPOSES set, OR
-            //   - purpose is NULL but the record has a non-empty MeetingNotes body
-            //     (covers staff who write notes via a UI path that doesn't set purpose).
-            Boolean isNote = (purpose != null && NOTE_PURPOSES.contains(purpose))
-                          || (purpose == null && String.isNotBlank(notes));
+            // Classify as Documentation only when InteractionPurpose is explicitly
+            // one of the canonical NOTE_PURPOSES. NULL-purpose records (including
+            // those with a MeetingNotes body) default to Interaction — programs
+            // like 1440 Pine log every interaction with notes but no purpose, so
+            // a null+notes heuristic miscategorizes their entire activity stream.
+            Boolean isNote = purpose != null && NOTE_PURPOSES.contains(purpose);
             String type = isNote ? TYPE_NOTE : TYPE_INTERACTION;
             if (!wanted.contains(type)) continue;
 
@@ -242,9 +294,10 @@ public with sharing class ProgramManagersDashboardController {
             r.ownerId        = (Id) s.get('OwnerId');
             r.ownerName      = s.getSObject('Owner') != null ? (String) s.getSObject('Owner').get('Name') : null;
             r.status         = (String) s.get('Status');
-            r.preview        = truncate((String) s.get('MeetingNotes'), 240);
+            r.preview        = truncate(stripHtml((String) s.get('MeetingNotes')), 240);
             r.pdfFileId      = (String) s.get('PDF_File_Id__c');
             r.recordUrl      = '/lightning/r/InteractionSummary/' + r.recordId + '/view';
+            r.programId      = String.valueOf(s.get('Program__c'));
             rows.add(r);
             typeCounts.put(type, typeCounts.get(type) + 1);
         }
@@ -252,19 +305,24 @@ public with sharing class ProgramManagersDashboardController {
     }
 
     private static List<ActivityRow> queryIncidents(
-        Id programId, DateTime startDt, DateTime endDt, Id userId,
+        Set<Id> programIdSet, DateTime startDt, DateTime endDt, Id userId,
         Map<String, Integer> typeCounts
     ) {
         List<ActivityRow> rows = new List<ActivityRow>();
         if (!Schema.getGlobalDescribe().containsKey('PublicComplaint')) return rows;
 
+        Map<Id, Id> acctProgramMap = new Map<Id, Id>();
         Set<Id> acctIds = new Set<Id>();
         for (SObject pe : Database.query(
-            'SELECT AccountId FROM ProgramEnrollment ' +
-            'WHERE ProgramId = :programId LIMIT 5000'
+            'SELECT AccountId, ProgramId FROM ProgramEnrollment ' +
+            'WHERE ProgramId IN :programIdSet LIMIT 5000'
         )) {
             Id aid = (Id) pe.get('AccountId');
-            if (aid != null) acctIds.add(aid);
+            Id progId = (Id) pe.get('ProgramId');
+            if (aid != null) {
+                acctIds.add(aid);
+                if (!acctProgramMap.containsKey(aid)) acctProgramMap.put(aid, progId);
+            }
         }
         if (acctIds.isEmpty()) return rows;
 
@@ -292,9 +350,11 @@ public with sharing class ProgramManagersDashboardController {
             r.ownerId        = (Id) s.get('OwnerId');
             r.ownerName      = s.getSObject('Owner') != null ? (String) s.getSObject('Owner').get('Name') : null;
             r.status         = (String) s.get('Status');
-            r.preview        = truncate((String) s.get('Description'), 240);
+            r.preview        = truncate(stripHtml((String) s.get('Description')), 240);
             r.pdfFileId      = (String) s.get('PDF_File_Id__c');
             r.recordUrl      = '/lightning/r/PublicComplaint/' + r.recordId + '/view';
+            r.programId      = r.participantId != null && acctProgramMap.containsKey(r.participantId)
+                               ? String.valueOf(acctProgramMap.get(r.participantId)) : null;
             rows.add(r);
             typeCounts.put(TYPE_INCIDENT, typeCounts.get(TYPE_INCIDENT) + 1);
         }
@@ -302,16 +362,31 @@ public with sharing class ProgramManagersDashboardController {
     }
 
     private static List<ActivityRow> queryInterviews(
-        Id programId, DateTime startDt, DateTime endDt, Id userId,
+        Set<Id> programIdSet, DateTime startDt, DateTime endDt, Id userId,
         Map<String, Integer> typeCounts
     ) {
         List<ActivityRow> rows = new List<ActivityRow>();
         if (!Schema.getGlobalDescribe().containsKey('Interview__c')) return rows;
 
+        // Interview__c has no direct program link; derive via Client__c → ProgramEnrollment.
+        Map<Id, Id> acctProgramMap = new Map<Id, Id>();
+        Set<Id> acctIds = new Set<Id>();
+        for (SObject pe : Database.query(
+            'SELECT AccountId, ProgramId FROM ProgramEnrollment ' +
+            'WHERE ProgramId IN :programIdSet LIMIT 5000'
+        )) {
+            Id aid = (Id) pe.get('AccountId');
+            Id progId = (Id) pe.get('ProgramId');
+            if (aid != null) {
+                acctIds.add(aid);
+                if (!acctProgramMap.containsKey(aid)) acctProgramMap.put(aid, progId);
+            }
+        }
+        if (acctIds.isEmpty()) return rows;
+
         String q = 'SELECT Id, Name, Client__c, Client__r.Name, OwnerId, Owner.Name, ' +
-                   'Status__c, Started_On__c, Completed_On__c, PDF_File_Id__c, ' +
-                   'Program_Enrollment__c, CreatedDate ' +
-                   'FROM Interview__c WHERE Program_Enrollment__r.ProgramId = :programId';
+                   'Status__c, Started_On__c, Completed_On__c, PDF_File_Id__c, CreatedDate ' +
+                   'FROM Interview__c WHERE Client__c IN :acctIds';
         if (startDt != null) q += ' AND CreatedDate >= :startDt';
         if (endDt   != null) q += ' AND CreatedDate <= :endDt';
         if (userId  != null) q += ' AND OwnerId = :userId';
@@ -337,6 +412,9 @@ public with sharing class ProgramManagersDashboardController {
             r.preview        = null;
             r.pdfFileId      = (String) s.get('PDF_File_Id__c');
             r.recordUrl      = '/lightning/r/Interview__c/' + r.recordId + '/view';
+            Id clientId = r.participantId;
+            r.programId      = clientId != null && acctProgramMap.containsKey(clientId)
+                               ? String.valueOf(acctProgramMap.get(clientId)) : null;
             rows.add(r);
             typeCounts.put(TYPE_INTERVIEW, typeCounts.get(TYPE_INTERVIEW) + 1);
         }
@@ -353,6 +431,23 @@ public with sharing class ProgramManagersDashboardController {
     private static String truncate(String s, Integer n) {
         if (s == null) return null;
         return s.length() <= n ? s : s.substring(0, n) + '…';
+    }
+
+    // Strip HTML tags and collapse whitespace for plain-text preview snippets.
+    private static String stripHtml(String s) {
+        if (String.isBlank(s)) return s;
+        // Remove tags
+        String stripped = s.replaceAll('<[^>]+>', ' ');
+        // Decode common HTML entities
+        stripped = stripped.replace('&amp;',  '&')
+                           .replace('&lt;',   '<')
+                           .replace('&gt;',   '>')
+                           .replace('&quot;', '"')
+                           .replace('&#39;',  '\'')
+                           .replace('&nbsp;', ' ');
+        // Collapse runs of whitespace/newlines into a single space
+        stripped = stripped.replaceAll('[\r\n\t]+', ' ').replaceAll('  +', ' ').trim();
+        return stripped;
     }
 
     private static DateTime combineDateTime(Date d, DateTime preferred, DateTime fallback) {

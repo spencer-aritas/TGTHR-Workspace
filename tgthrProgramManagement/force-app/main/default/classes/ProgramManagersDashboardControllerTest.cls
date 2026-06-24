@@ -196,4 +196,61 @@ private class ProgramManagersDashboardControllerTest {
         System.assert(cmp.compare(a, c) < 0, 'non-null sorts first');
         System.assertEquals(0, cmp.compare(c, c));
     }
+
+    @IsTest
+    static void getProgramUsersForPrograms_emptyList() {
+        Test.startTest();
+        List<ProgramManagersDashboardController.UserOption> result =
+            ProgramManagersDashboardController.getProgramUsersForPrograms(new List<String>());
+        Test.stopTest();
+        System.assertNotEquals(null, result);
+        System.assertEquals(0, result.size(), 'Empty programIds should return empty list');
+    }
+
+    @IsTest
+    static void getProgramUsersForPrograms_withProgramId() {
+        Id pid = getProgramId();
+        Test.startTest();
+        List<ProgramManagersDashboardController.UserOption> result =
+            ProgramManagersDashboardController.getProgramUsersForPrograms(
+                pid != null ? new List<String>{ String.valueOf(pid) } : new List<String>()
+            );
+        Test.stopTest();
+        System.assertNotEquals(null, result);
+    }
+
+    @IsTest
+    static void getActivity_withProgramIds_multiProgram() {
+        Id pid = getProgramId();
+        Id aid = getAccountId();
+        Id cid = getCaseId();
+        System.assertNotEquals(null, pid, 'Program seed missing');
+
+        SObject is1 = TestDataFactory.createInteractionSummary(cid, aid, 'Multi program row');
+        try { is1.put('Program__c', pid); is1.put('InteractionPurpose', 'Case Management Visit'); update is1; } catch (Exception e) {}
+
+        ProgramManagersDashboardController.ActivityFilter f =
+            new ProgramManagersDashboardController.ActivityFilter();
+        f.programIds = new List<String>{ String.valueOf(pid) };
+        f.startDate  = Date.today().addDays(-1).format();
+        f.endDate    = Date.today().addDays(1).format();
+        f.pageSize   = 10;
+        f.pageNumber = 1;
+        f.types = new List<String>{ 'Interaction', 'Note', 'Interview' };
+
+        Test.startTest();
+        ProgramManagersDashboardController.ActivityPage page =
+            ProgramManagersDashboardController.getActivity(JSON.serialize(f));
+        Test.stopTest();
+
+        System.assertNotEquals(null, page);
+        System.assertNotEquals(null, page.rows);
+        // Each row should have programId populated
+        for (ProgramManagersDashboardController.ActivityRow row : page.rows) {
+            if (row.recordType == 'Interaction' || row.recordType == 'Note') {
+                System.assertEquals(String.valueOf(pid), row.programId,
+                    'programId should be set on row ' + row.subject);
+            }
+        }
+    }
 }

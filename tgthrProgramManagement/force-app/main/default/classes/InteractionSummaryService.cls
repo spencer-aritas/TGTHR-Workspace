@@ -358,13 +358,18 @@ public with sharing class InteractionSummaryService {
       // Set POS field to default outreach location
       newInteraction.put('POS__c', '27 - Outreach Site / Street');
 
-      // Use the user-provided values for purpose and notes
-      if (String.isNotBlank(purpose)) {
-        newInteraction.put('InteractionPurpose', purpose);
-      } else {
-        // Default purpose if not provided
-        newInteraction.put('InteractionPurpose', 'Follow-up interaction');
-      }
+      // InteractionPurpose contract:
+      //   - Note controllers (Clinical/Case/Peer) stamp the note label themselves.
+      //   - Interview controller stamps 'Interview'.
+      //   - Every other entry point — the Interaction Summary Board, Census Board
+      //     wrapper, Care Team Inbox follow-ups — is a Communication Log.
+      // 'Follow-up interaction' is not a valid picklist value and was silently
+      // dropped on restricted picklists, producing the null-purpose backlog that
+      // misclassified entire programs on the Program Managers Dashboard.
+      newInteraction.put(
+        'InteractionPurpose',
+        String.isNotBlank(purpose) ? purpose : 'Communication Log'
+      );
 
       if (String.isNotBlank(notes)) {
         newInteraction.put('MeetingNotes', notes);
@@ -607,8 +612,7 @@ public with sharing class InteractionSummaryService {
         'Date_of_Interaction__c, Program__c, InteractionPurpose, Name, ' +
         'Requires_Manager_Approval__c, Manager_Signed__c ' +
         'FROM InteractionSummary ' +
-        'WHERE Program__c = :pid ' +
-        'AND Date_of_Interaction__c >= :startDate ' +
+        'WHERE Date_of_Interaction__c >= :startDate ' +
         'AND (Status = \'Published\' OR Status = NULL) ' +
         'AND (InteractionPurpose = NULL OR (InteractionPurpose NOT IN :clinicalNotePurposes AND InteractionPurpose != \'Interview\')) ' +
         'AND Id NOT IN (SELECT Interaction_Summary__c FROM Interview__c WHERE Interaction_Summary__c != NULL) ' +

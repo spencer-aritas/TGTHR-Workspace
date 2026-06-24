@@ -317,7 +317,7 @@ public with sharing class ClinicalNoteController {
                     'modifier1' => serviceLineFields.containsKey('modifier_1__c') ? sl.get('Modifier_1__c') : null,
                     'modifier2' => serviceLineFields.containsKey('modifier_2__c') ? sl.get('Modifier_2__c') : null,
                     'durationMinutes' => serviceLineFields.containsKey('duration_minutes__c') ? sl.get('Duration_Minutes__c') : null,
-                    'units' => serviceLineFields.containsKey('units__c') ? sl.get('Units__c') : null,
+                    'units' => serviceLineFields.containsKey('units__c') ? normalizeUnitsForCpt(code, (Decimal) sl.get('Units__c')) : null,
                     'status' => serviceLineFields.containsKey('billing_status__c') ? sl.get('Billing_Status__c') : null
                 });
             }
@@ -2876,8 +2876,7 @@ public with sharing class ClinicalNoteController {
                 Decimal durationMinutes = Decimal.valueOf(durationMs) / 60000;
                 putFieldIfExists(serviceLine, fieldMap, 'Duration_Minutes__c', durationMinutes);
                 
-                // Calculate units (15-minute increments for most codes)
-                Decimal units = (durationMinutes / 15).setScale(2);
+                Decimal units = calculateUnitsForServiceLine(config.code, durationMinutes);
                 putFieldIfExists(serviceLine, fieldMap, 'Units__c', units);
             }
             
@@ -2912,6 +2911,23 @@ public with sharing class ClinicalNoteController {
             
             System.debug('Created ' + successCount + ' service lines for ' + noteType + ' note (' + failCount + ' failed)');
         }
+    }
+
+    public static Decimal calculateUnitsForServiceLine(String cptCode, Decimal durationMinutes) {
+        if (cptCode == '90791') {
+            return 1;
+        }
+        if (durationMinutes == null) {
+            return null;
+        }
+        return (durationMinutes / 15).setScale(2);
+    }
+
+    public static Decimal normalizeUnitsForCpt(String cptCode, Decimal units) {
+        if (cptCode == '90791') {
+            return 1;
+        }
+        return units;
     }
 
     /**

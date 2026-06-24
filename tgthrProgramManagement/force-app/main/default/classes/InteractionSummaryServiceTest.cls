@@ -30,12 +30,18 @@ public class InteractionSummaryServiceTest {
 
     insert interactions;
 
-    // Act: Call the method
+    // Act: Call the method with an explicit window that brackets both
+    // fixtures (yesterday + today). Omitting dates falls back to the current
+    // calendar month, which loses 'today - 1' on the first day of any month.
+    Date yesterday = Date.today().addDays(-1);
+    Date tomorrow  = Date.today().addDays(1);
+    String startStr = String.valueOf(yesterday);
+    String endStr   = String.valueOf(tomorrow);
     Test.startTest();
     List<Map<String, Object>> engagements = InteractionSummaryService.getRecentEngagements(
       programName,
-      null,
-      null,
+      startStr,
+      endStr,
       10
     );
     Test.stopTest();

@@ -2029,5 +2029,185 @@ private class ClinicalNoteControllerTest {
         Test.stopTest();
         System.assertNotEquals(null, result);
     }
+
+    // ══════════════════════════════════════════════════════════════
+    //  CPT 90791 Helper Methods — Binary (Performed/Not Performed)
+    //  Covers calculateUnitsForServiceLine and normalizeUnitsForCpt
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Tests calculateUnitsForServiceLine for CPT 90791 (non-time-based code).
+     * Must always return 1 regardless of duration.
+     */
+    @isTest
+    static void testCalculateUnitsForServiceLine_90791_ReturnsOne() {
+        Test.startTest();
+        
+        // Test 90791 with various durations — all should return 1
+        Decimal result1 = ClinicalNoteController.calculateUnitsForServiceLine('90791', 0);
+        Decimal result2 = ClinicalNoteController.calculateUnitsForServiceLine('90791', 15);
+        Decimal result3 = ClinicalNoteController.calculateUnitsForServiceLine('90791', 45);
+        Decimal result4 = ClinicalNoteController.calculateUnitsForServiceLine('90791', 120);
+        Decimal result5 = ClinicalNoteController.calculateUnitsForServiceLine('90791', null);
+        
+        Test.stopTest();
+        
+        System.assertEquals(1, result1, '90791 with 0 min should return 1');
+        System.assertEquals(1, result2, '90791 with 15 min should return 1');
+        System.assertEquals(1, result3, '90791 with 45 min should return 1');
+        System.assertEquals(1, result4, '90791 with 120 min should return 1');
+        System.assertEquals(1, result5, '90791 with null duration should return 1');
+    }
+
+    /**
+     * Tests calculateUnitsForServiceLine for time-based CPT codes (NOT 90791).
+     * Must return duration / 15 (rounded to 2 decimal places).
+     */
+    @isTest
+    static void testCalculateUnitsForServiceLine_TimeBasedCpt_CalculateFromDuration() {
+        Test.startTest();
+        
+        // Test time-based codes (90834, 90837, etc.)
+        Decimal result1 = ClinicalNoteController.calculateUnitsForServiceLine('90834', 15);
+        Decimal result2 = ClinicalNoteController.calculateUnitsForServiceLine('90834', 30);
+        Decimal result3 = ClinicalNoteController.calculateUnitsForServiceLine('90834', 45);
+        Decimal result4 = ClinicalNoteController.calculateUnitsForServiceLine('90837', 90);
+        Decimal result5 = ClinicalNoteController.calculateUnitsForServiceLine('90837', null);
+        
+        Test.stopTest();
+        
+        System.assertEquals(1.00, result1, '90834 with 15 min should return 1.00');
+        System.assertEquals(2.00, result2, '90834 with 30 min should return 2.00');
+        System.assertEquals(3.00, result3, '90834 with 45 min should return 3.00');
+        System.assertEquals(6.00, result4, '90837 with 90 min should return 6.00');
+        System.assertEquals(null, result5, 'Time-based code with null duration should return null');
+    }
+
+    /**
+     * Tests normalizeUnitsForCpt for CPT 90791 (non-time-based).
+     * Must always return 1 regardless of input units.
+     */
+    @isTest
+    static void testNormalizeUnitsForCpt_90791_ForcesOne() {
+        Test.startTest();
+        
+        // Test 90791 with various unit values — all should return 1
+        Decimal result1 = ClinicalNoteController.normalizeUnitsForCpt('90791', 0);
+        Decimal result2 = ClinicalNoteController.normalizeUnitsForCpt('90791', 1);
+        Decimal result3 = ClinicalNoteController.normalizeUnitsForCpt('90791', 3);
+        Decimal result4 = ClinicalNoteController.normalizeUnitsForCpt('90791', 5);
+        Decimal result5 = ClinicalNoteController.normalizeUnitsForCpt('90791', null);
+        
+        Test.stopTest();
+        
+        System.assertEquals(1, result1, '90791 with units=0 should normalize to 1');
+        System.assertEquals(1, result2, '90791 with units=1 should stay 1');
+        System.assertEquals(1, result3, '90791 with units=3 should normalize to 1');
+        System.assertEquals(1, result4, '90791 with units=5 (incorrect time-based calc) should normalize to 1');
+        System.assertEquals(1, result5, '90791 with null units should normalize to 1');
+    }
+
+    /**
+     * Tests normalizeUnitsForCpt for time-based CPT codes (NOT 90791).
+     * Must return the units unchanged (pass-through).
+     */
+    @isTest
+    static void testNormalizeUnitsForCpt_TimeBasedCpt_PassThrough() {
+        Test.startTest();
+        
+        // Test time-based codes return units unchanged
+        Decimal result1 = ClinicalNoteController.normalizeUnitsForCpt('90834', 0);
+        Decimal result2 = ClinicalNoteController.normalizeUnitsForCpt('90834', 1);
+        Decimal result3 = ClinicalNoteController.normalizeUnitsForCpt('90834', 2.5);
+        Decimal result4 = ClinicalNoteController.normalizeUnitsForCpt('90837', 4);
+        Decimal result5 = ClinicalNoteController.normalizeUnitsForCpt('90837', null);
+        
+        Test.stopTest();
+        
+        System.assertEquals(0, result1, '90834 with units=0 should return 0');
+        System.assertEquals(1, result2, '90834 with units=1 should return 1');
+        System.assertEquals(2.5, result3, '90834 with units=2.5 should return 2.5');
+        System.assertEquals(4, result4, '90837 with units=4 should return 4');
+        System.assertEquals(null, result5, '90837 with null units should return null');
+    }
+
+    /**
+     * Integration test: Create service line with 90791, verify it saves with units=1,
+     * then export and verify normalization outputs units=1 (not duration-derived).
+     */
+    @isTest
+    static void testCpt90791_EndToEndServiceLineCreationAndExport() {
+        Case c = getTestCase();
+        
+        // Create clinical note with 90791 selected
+        String requestJson = buildSaveRequestJson(c, new Map<String, Object>{
+            'selectedCptCodes' => new List<String>{ '90791' },
+            'markCompleted' => true
+        });
+        
+        Test.startTest();
+        ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(requestJson);
+        Test.stopTest();
+        
+        System.assertEquals(true, result.success, 'Should create note with 90791');
+        
+        // Verify the service line was created with units=1
+        if (result.success) {
+            List<SObject> serviceLines = Database.query(
+                'SELECT Id, Service_Code__c, Units__c, Duration_Minutes__c ' +
+                'FROM Interaction_Service_Line__c ' +
+                'WHERE Service_Code__c = \'90791\' ' +
+                'ORDER BY CreatedDate DESC LIMIT 1'
+            );
+            System.assert(!serviceLines.isEmpty(), 'Should have created a 90791 service line');
+            if (!serviceLines.isEmpty()) {
+                System.assertEquals(1, serviceLines[0].get('Units__c'), 
+                    'Service line units should be 1 (binary)');
+            }
+        }
+    }
+
+    /**
+     * Test: Verify that 90791 and other CPT codes in the same note
+     * are handled correctly (90791=1, others=duration-based).
+     */
+    @isTest
+    static void testCpt90791_MixedWithTimeBasedCpts() {
+        Case c = getTestCase();
+        
+        // Create note with both 90791 (binary) and 90834 (time-based)
+        String requestJson = buildSaveRequestJson(c, new Map<String, Object>{
+            'selectedCptCodes' => new List<String>{ '90791', '90834' },
+            'markCompleted' => true
+        });
+        
+        Test.startTest();
+        ClinicalNoteController.SaveResult result = ClinicalNoteController.saveClinicalNoteRequest(requestJson);
+        Test.stopTest();
+        
+        System.assertEquals(true, result.success);
+        
+        // Verify both service lines were created correctly
+        if (result.success) {
+            List<SObject> lines = Database.query(
+                'SELECT Service_Code__c, Units__c ' +
+                'FROM Interaction_Service_Line__c ' +
+                'WHERE Service_Code__c IN (\'90791\', \'90834\') ' +
+                'ORDER BY Service_Code__c'
+            );
+            System.assert(lines.size() >= 2, 'Should have created at least 2 service lines');
+            
+            for (SObject line : lines) {
+                String code = (String) line.get('Service_Code__c');
+                Decimal units = (Decimal) line.get('Units__c');
+                
+                if (code == '90791') {
+                    System.assertEquals(1, units, '90791 must have units=1');
+                } else if (code == '90834') {
+                    System.assertNotEquals(null, units, '90834 should have calculated units');
+                }
+            }
+        }
+    }
 }
 
