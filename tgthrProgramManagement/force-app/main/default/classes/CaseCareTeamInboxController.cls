@@ -174,7 +174,13 @@ public with sharing class CaseCareTeamInboxController {
             'WHERE AccountId = :accountId ' +
             'AND (InteractionPurpose = NULL OR (InteractionPurpose NOT IN :clinicalNotePurposes AND InteractionPurpose != \'Interview\')) ' +
             'AND Id NOT IN (SELECT Interaction_Summary__c FROM Interview__c WHERE Interaction_Summary__c != NULL) ' +
-            'ORDER BY Date_of_Interaction__c DESC, CreatedDate DESC ' +
+            // NULLS LAST is required — SOQL defaults `DESC` to NULLS FIRST, and
+            // records with NULL Date_of_Interaction__c (e.g. legacy Communication
+            // Log entries) would otherwise crowd the top of the result set and
+            // push recent dated interactions past the LIMIT. The LWC resorts the
+            // returned page by effective date (with a CreatedDate fallback) so
+            // null-dated rows still appear in the correct chronological slot.
+            'ORDER BY Date_of_Interaction__c DESC NULLS LAST, CreatedDate DESC ' +
             'LIMIT 50';
 
         List<SObject> records = Database.query(query);
@@ -184,16 +190,23 @@ public with sharing class CaseCareTeamInboxController {
             String purposeLabel = (String) r.get('InteractionPurpose');
             if (String.isBlank(purposeLabel)) purposeLabel = 'Interaction';
 
+            // Mirror the incident branch: fall back to the date portion of
+            // CreatedDate when Date_of_Interaction__c is null, so the card
+            // always renders a date for Interaction Summaries in production.
+            Date doi = (Date) r.get('Date_of_Interaction__c');
+            Datetime createdDt = (Datetime) r.get('CreatedDate');
+            Object displayDate = doi != null
+                ? (Object) doi
+                : (createdDt != null ? (Object) createdDt.date() : null);
+
             results.add(new Map<String, Object>{
                 'Id' => r.get('Id'),
                 'type' => 'interaction',
                 'accountId' => r.get('AccountId'),
                 'programId' => r.get('Program__c'),
-                'date' => r.get('Date_of_Interaction__c'),
+                'date' => displayDate,
                 'timeValue' => r.get('Interaction_Time__c'),
-                'sortDate' => r.get('Date_of_Interaction__c') != null
-                    ? r.get('Date_of_Interaction__c')
-                    : r.get('CreatedDate'),
+                'sortDate' => displayDate,
                 'purpose' => purposeLabel,
                 'notes' => r.get('MeetingNotes'),
                 'createdDate' => r.get('CreatedDate'),

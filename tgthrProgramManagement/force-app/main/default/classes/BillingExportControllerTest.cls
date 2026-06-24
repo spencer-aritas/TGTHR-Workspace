@@ -147,6 +147,40 @@ private class BillingExportControllerTest {
     }
 
     @IsTest
+    static void getExportDataNormalizes90791UnitsToOne() {
+        InteractionSummary summary = getTestSummary();
+        Interaction_Service_Line__c sl = new Interaction_Service_Line__c(
+            Interaction_Summary__c = summary.Id,
+            Name = '90791 - Intake w/o Medical Services',
+            Service_Code__c = '90791',
+            Service_Date__c = Date.today(),
+            Duration_Minutes__c = 75,
+            Units__c = 5,
+            Billing_Status__c = 'Draft'
+        );
+        insert sl;
+
+        BillingExportController.ExportFilter filter = new BillingExportController.ExportFilter();
+        String filterJson = JSON.serialize(filter);
+
+        Test.startTest();
+        List<BillingExportController.ExportRow> rows = BillingExportController.getExportData(filterJson);
+        Test.stopTest();
+
+        BillingExportController.ExportRow matchRow = null;
+        for (BillingExportController.ExportRow row : rows) {
+            if (row.serviceLineId == sl.Id) {
+                matchRow = row;
+                break;
+            }
+        }
+
+        System.assertNotEquals(null, matchRow, 'Should return the inserted 90791 service line.');
+        System.assertEquals('90791', matchRow.cptCode, 'CPT code should match.');
+        System.assertEquals(1, matchRow.units, '90791 must export as 1 unit regardless of stored units.');
+    }
+
+    @IsTest
     static void getExportDataPopulatesPdfTitle() {
         BillingExportController.ExportFilter filter = new BillingExportController.ExportFilter();
         String filterJson = JSON.serialize(filter);
@@ -156,6 +190,73 @@ private class BillingExportControllerTest {
         BillingExportController.ExportRow row = rows[0];
         System.assertNotEquals(null, row.pdfFileId, 'PDF file ID should be populated.');
         System.assertEquals('Test_Note_PDF', row.pdfTitle, 'PDF title should match uploaded content.');
+    }
+
+    @IsTest
+    static void getExportDataInterviewUsesInterviewLabelAndPdfFallback() {
+        Account person = TestDataFactory.createPersonAccount('Interview', 'Client');
+
+        InteractionSummary interviewSummary = new InteractionSummary(
+            Name = 'Interview - ' + Date.today().format(),
+            Date_of_Interaction__c = Date.today(),
+            InteractionPurpose = 'Interview',
+            Status = 'Published',
+            AccountId = person.Id
+        );
+        insert interviewSummary;
+
+        Interaction_Service_Line__c sl = new Interaction_Service_Line__c(
+            Interaction_Summary__c = interviewSummary.Id,
+            Name = '90791 - Intake w/o Medical Services',
+            Service_Code__c = '90791',
+            Service_Date__c = Date.today(),
+            Units__c = 2,
+            Billing_Status__c = 'Draft'
+        );
+        insert sl;
+
+        ContentVersion cv = new ContentVersion(
+            Title = 'Comp_Assess_Test_PDF',
+            PathOnClient = 'Comp_Assess_Test_PDF.pdf',
+            VersionData = Blob.valueOf('fake interview pdf content'),
+            Origin = 'H'
+        );
+        insert cv;
+        ContentVersion insertedCv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+
+        Interview__c interview = new Interview__c(
+            Name = 'Comprehensive Clinical Intake Assessment - Test Client - 6/22/2026',
+            Status__c = 'Signed',
+            Client__c = person.Id,
+            Interaction_Summary__c = interviewSummary.Id,
+            PDF_File_Id__c = insertedCv.ContentDocumentId
+        );
+        insert interview;
+
+        BillingExportController.ExportFilter filter = new BillingExportController.ExportFilter();
+        filter.noteType = 'Interview';
+
+        Test.startTest();
+        List<BillingExportController.ExportRow> rows = BillingExportController.getExportData(JSON.serialize(filter));
+        Test.stopTest();
+
+        BillingExportController.ExportRow matchRow;
+        for (BillingExportController.ExportRow row : rows) {
+            if (row.serviceLineId == sl.Id) {
+                matchRow = row;
+                break;
+            }
+        }
+
+        System.assertNotEquals(null, matchRow, 'Interview service line should be returned.');
+        System.assertEquals('Comprehensive Clinical Intake Assessment - Test Client - 6/22/2026', matchRow.noteName,
+            'Interview note name should use Interview__c label when available.');
+        System.assertEquals('Comprehensive Clinical Intake Assessment', matchRow.noteType,
+            'Interview note type should surface interview template label.');
+        System.assertEquals(insertedCv.ContentDocumentId, matchRow.pdfFileId,
+            'Interview PDF should be used when summary PDF_File_Id__c is blank.');
+        System.assertEquals('Comp_Assess_Test_PDF', matchRow.pdfTitle,
+            'PDF title should resolve for interview fallback document.');
     }
 
     // ── updateBillingStatus ──
@@ -260,6 +361,49 @@ private class BillingExportControllerTest {
         } catch (AuraHandledException e) {
             System.assert(e != null, 'AuraHandledException should be thrown when no PDF exists.');
         }
+    }
+
+    @IsTest
+    static void getDocumentContentFallsBackToInterviewPdf() {
+        Account person = TestDataFactory.createPersonAccount('Fallback', 'Client');
+
+        InteractionSummary summary = new InteractionSummary(
+            Name = 'Interview - Fallback',
+            Date_of_Interaction__c = Date.today(),
+            InteractionPurpose = 'Interview',
+            Status = 'Published',
+            AccountId = person.Id
+        );
+        insert summary;
+
+        ContentVersion cv = new ContentVersion(
+            Title = 'Interview_Fallback_PDF',
+            PathOnClient = 'Interview_Fallback_PDF.pdf',
+            VersionData = Blob.valueOf('fallback pdf content'),
+            FirstPublishLocationId = summary.Id,
+            Origin = 'H'
+        );
+        insert cv;
+        ContentVersion insertedCv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+
+        Interview__c interview = new Interview__c(
+            Name = 'Comprehensive Clinical Intake Assessment - Fallback - 6/22/2026',
+            Status__c = 'Signed',
+            Client__c = person.Id,
+            Interaction_Summary__c = summary.Id,
+            PDF_File_Id__c = insertedCv.ContentDocumentId
+        );
+        insert interview;
+
+        Test.startTest();
+        BillingExportController.DocumentContent dc = BillingExportController.getDocumentContent(summary.Id);
+        Test.stopTest();
+
+        System.assertEquals(insertedCv.ContentDocumentId, dc.contentDocumentId,
+            'Should return interview PDF ContentDocumentId when summary PDF_File_Id__c is blank.');
+        System.assert(dc.fileName.contains('Interview_Fallback_PDF'), 'Filename should come from fallback PDF title.');
+        System.assertNotEquals(null, dc.base64Data, 'Base64 data should be populated for fallback PDF.');
+        System.assert(dc.base64Data.length() > 0, 'Base64 data should not be empty.');
     }
 
     @IsTest

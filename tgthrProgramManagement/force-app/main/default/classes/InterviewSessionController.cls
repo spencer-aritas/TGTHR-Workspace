@@ -380,33 +380,35 @@ public with sharing class InterviewSessionController {
             Boolean shouldAuditRecallResubmission = false;
             String recallResubmissionAuditDetails;
 
-            // Recall/resubmission path: if sourceInterviewId points to a recalled interview,
-            // update that same record tree in place instead of inserting a new Interview.
+            // Recall/amend resubmission path: any valid source interview for the same Case + template
+            // is reused in place so the Interview record remains the canonical key.
             Boolean isRecallResubmit = false;
             Id existingInterviewId;
             Id existingSummaryId;
             Id existingAssessmentId;
             if (sourceInterviewId != null) {
-                List<SObject> sourceInterviews = Database.query(
-                    'SELECT Id, Case__c, InterviewTemplateVersion__c, Interaction_Summary__c, Status__c ' +
-                    'FROM Interview__c WHERE Id = :sourceInterviewId LIMIT 1'
-                );
-                if (!sourceInterviews.isEmpty()) {
-                    SObject sourceInterview = sourceInterviews[0];
-                    String sourceStatus = (String) sourceInterview.get('Status__c');
-                    if ((Id) sourceInterview.get('Case__c') == request.caseId
-                        && (Id) sourceInterview.get('InterviewTemplateVersion__c') == request.templateVersionId
-                        && sourceStatus == DocumentStatus.INTERVIEW_RECALLED) {
-                        isRecallResubmit = true;
-                        existingInterviewId = (Id) sourceInterview.get('Id');
-                        existingSummaryId = (Id) sourceInterview.get('Interaction_Summary__c');
-                        List<SObject> sourceAssessments = Database.query(
-                            'SELECT Id FROM Assessment__c WHERE Interview__c = :existingInterviewId ORDER BY CreatedDate DESC LIMIT 1'
-                        );
-                        if (!sourceAssessments.isEmpty()) {
-                            existingAssessmentId = (Id) sourceAssessments[0].get('Id');
+                try {
+                    List<SObject> sourceInterviews = Database.query(
+                        'SELECT Id, Case__c, InterviewTemplateVersion__c, Interaction_Summary__c, Status__c ' +
+                        'FROM Interview__c WHERE Id = :sourceInterviewId LIMIT 1'
+                    );
+                    if (!sourceInterviews.isEmpty()) {
+                        SObject sourceInterview = sourceInterviews[0];
+                        if ((Id) sourceInterview.get('Case__c') == request.caseId
+                            && (Id) sourceInterview.get('InterviewTemplateVersion__c') == request.templateVersionId) {
+                            isRecallResubmit = true;
+                            existingInterviewId = (Id) sourceInterview.get('Id');
+                            existingSummaryId = (Id) sourceInterview.get('Interaction_Summary__c');
+                            List<SObject> sourceAssessments = Database.query(
+                                'SELECT Id FROM Assessment__c WHERE Interview__c = :existingInterviewId ORDER BY CreatedDate DESC LIMIT 1'
+                            );
+                            if (!sourceAssessments.isEmpty()) {
+                                existingAssessmentId = (Id) sourceAssessments[0].get('Id');
+                            }
                         }
                     }
+                } catch (Exception sourceLookupEx) {
+                    System.debug('Non-fatal source interview lookup error: ' + sourceLookupEx.getMessage());
                 }
             }
 
@@ -479,10 +481,10 @@ public with sharing class InterviewSessionController {
                 if (ivFields.containsKey('action_assigned_to__c')) interview.put('Action_Assigned_To__c', null);
                 if (ivFields.containsKey('action_escalated_by__c')) interview.put('Action_Escalated_By__c', null);
                 if (ivFields.containsKey('action_notes__c')) interview.put('Action_Notes__c', null);
-                if (ivFields.containsKey('requires_manager_approval__c')) interview.put('Requires_Manager_Approval__c', false);
                 if (ivFields.containsKey('manager_signed__c')) interview.put('Manager_Signed__c', false);
                 if (ivFields.containsKey('manager_signed_date__c')) interview.put('Manager_Signed_Date__c', null);
-                if (ivFields.containsKey('manager_approver__c')) interview.put('Manager_Approver__c', null);
+                if (ivFields.containsKey('manager_rejected__c')) interview.put('Manager_Rejected__c', false);
+                if (ivFields.containsKey('manager_rejection_reason__c')) interview.put('Manager_Rejection_Reason__c', null);
                 if (ivFields.containsKey('client_signed__c')) interview.put('Client_Signed__c', false);
                 if (ivFields.containsKey('staff_signed__c')) interview.put('Staff_Signed__c', false);
                 if (ivFields.containsKey('casemanager_signed__c')) interview.put('CaseManager_Signed__c', false);
@@ -498,9 +500,8 @@ public with sharing class InterviewSessionController {
                 insert interview;
             }
 
-            // Recall/resubmission path: carry forward signer assignments and care-plan snapshot
-            // directly from the recalled source interview so signing policy survives even when
-            // client-side restore state is partial.
+            // If the source interview was not reused in place, carry forward signer assignments and
+            // care-plan snapshot fields from the source into the new Interview record.
             if (!isRecallResubmit && sourceInterviewId != null) {
                 try {
                     Map<String, Schema.SObjectField> ivFieldMap =
@@ -561,7 +562,7 @@ public with sharing class InterviewSessionController {
 
                     update carry;
                 } catch (Exception carryEx) {
-                    System.debug('Non-fatal recall carry-forward error: ' + carryEx.getMessage());
+                    System.debug('Non-fatal source interview carry-forward error: ' + carryEx.getMessage());
                 }
             }
 
@@ -3605,7 +3606,7 @@ public with sharing class InterviewSessionController {
                 Long durationMs = endDateTime.getTime() - startDateTime.getTime();
                 Decimal durationMinutes = Decimal.valueOf(durationMs) / 60000;
                 putFieldIfExists(serviceLine, fieldMap, 'Duration_Minutes__c', durationMinutes);
-                Decimal units = (durationMinutes / 15).setScale(2);
+                Decimal units = calculateUnitsForServiceLine(config.code, durationMinutes);
                 putFieldIfExists(serviceLine, fieldMap, 'Units__c', units);
             }
             
@@ -3732,7 +3733,7 @@ public with sharing class InterviewSessionController {
                 Long durationMs = endDateTime.getTime() - startDateTime.getTime();
                 Decimal durationMinutes = Decimal.valueOf(durationMs) / 60000;
                 putFieldIfExists(serviceLine, fieldMap, 'Duration_Minutes__c', durationMinutes);
-                Decimal units = (durationMinutes / 15).setScale(2);
+                Decimal units = calculateUnitsForServiceLine(config.code, durationMinutes);
                 putFieldIfExists(serviceLine, fieldMap, 'Units__c', units);
             }
 
@@ -4044,6 +4045,16 @@ public with sharing class InterviewSessionController {
         } catch (Exception e) {
             System.debug('Could not clear existing Diagnosis_Note_Link__c rows: ' + e.getMessage());
         }
+    }
+
+    public static Decimal calculateUnitsForServiceLine(String cptCode, Decimal durationMinutes) {
+        if (cptCode == '90791') {
+            return 1;
+        }
+        if (durationMinutes == null) {
+            return null;
+        }
+        return (durationMinutes / 15).setScale(2);
     }
 
     /**

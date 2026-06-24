@@ -451,10 +451,11 @@ public with sharing class InterviewDocumentController {
                 DocumentationDeadlineService.DeadlineState noteDeadlineState = linkedInterview != null
                     ? DocumentationDeadlineService.evaluateInterview(linkedInterview)
                     : DocumentationDeadlineService.evaluateInteractionSummary(note);
+                Boolean noteHardLocked = hasField(fieldMap, 'Is_Locked__c')
+                    && note.get('Is_Locked__c') == true;
                 info.canRecall = noteDeadlineState != null
                     && noteDeadlineState.serviceDateTime != null
-                    && noteDeadlineState.isLocked != true
-                    && DateTime.now() < noteDeadlineState.lockAt;
+                    && !noteHardLocked;
 
                 // Notes don't have client signatures
                 info.clientSigned = false;
@@ -686,10 +687,15 @@ public with sharing class InterviewDocumentController {
             }
 
             DocumentationDeadlineService.DeadlineState interviewDeadlineState = buildInterviewDeadlineState(interview, doc.getSObject('Interaction_Summary__r'));
+            Boolean interviewHardLocked = false;
+            try {
+                interviewHardLocked = interview.get('Is_Locked__c') == true;
+            } catch (SObjectException ex) {
+                interviewHardLocked = false;
+            }
             info.canRecall = interviewDeadlineState != null
                 && interviewDeadlineState.serviceDateTime != null
-                && interviewDeadlineState.isLocked != true
-                && DateTime.now() < interviewDeadlineState.lockAt;
+                && !interviewHardLocked;
             
             // Template details
             SObject template = doc.getSObject('InterviewTemplate__r');
@@ -1058,14 +1064,18 @@ public with sharing class InterviewDocumentController {
         if (interviewDeadlineState == null || interviewDeadlineState.serviceDateTime == null) {
             throw new AuraHandledException('The service date for this document could not be determined.');
         }
-        if (DateTime.now() >= interviewDeadlineState.lockAt) {
-            throw new AuraHandledException('The 72-hour recall window has expired for this document.');
-        }
+        // 72-hour recall window relaxed: late recalls are allowed and will be
+        // routed through Manager Co-Sign on resubmit via the existing
+        // requiresManagerEscalationForLateEntry path. Only the explicit
+        // Is_Locked__c flag (manual lockdown / legal hold) blocks recall now.
 
         // Verify the record has not been hard-locked by the scheduler
         if (interviewDeadlineState.isLocked == true) {
             throw new AuraHandledException('This document has been locked and cannot be recalled.');
         }
+
+        // Snapshot pre-recall state for the delta view (Audit_Log__c reuse).
+        writeRecallSnapshotForInterview(interviewId, interview);
 
         // Reset the Interview back to In Progress and clear all signatures
         Interview__c interviewUpdate = new Interview__c(Id = interviewId);
@@ -1218,9 +1228,13 @@ public with sharing class InterviewDocumentController {
         if (noteDeadlineState == null || noteDeadlineState.serviceDateTime == null) {
             throw new AuraHandledException('The service date for this note could not be determined.');
         }
-        if (DateTime.now() >= noteDeadlineState.lockAt) {
-            throw new AuraHandledException('The 72-hour recall window has expired for this note.');
+        // 72-hour recall window relaxed (see recallInterviewDocument for rationale).
+        if (noteDeadlineState.isLocked == true) {
+            throw new AuraHandledException('This note has been locked and cannot be recalled.');
         }
+
+        // Snapshot pre-recall state for the delta view.
+        writeRecallSnapshotForNote(interactionSummaryId, note, linkedInterview);
 
         // Clear signature fields.
         // Manager_Approver__c is intentionally preserved so re-submission auto-routes back to the same approver.
@@ -1457,5 +1471,252 @@ public with sharing class InterviewDocumentController {
         // Fallback: Always use production docgen endpoint (configured as Trusted Site)
         // For local development, create DocGen_Settings__mdt custom metadata record
         return 'https://docgen.aritasconsulting.com';
+    }
+
+    // =====================================================================
+    // RECALL DELTA SUPPORT
+    // =====================================================================
+    // Universal recall (no 72-hour window) requires a compensating control:
+    // when a manager re-reviews a recalled-and-resubmitted document, they
+    // need to see what changed. We snapshot pre-recall state into
+    // Audit_Log__c.Audit_JSON__c at recall time (RECALL_SNAPSHOT) and a
+    // matching post-resubmit snapshot at save time (RECALL_RESUBMIT_DELTA,
+    // written by ClinicalNoteController/InterviewSessionController). The
+    // viewer LWC pulls the latest pair for a record via getRecallDelta.
+
+    private static final String ACTION_RECALL_SNAPSHOT = 'RECALL_SNAPSHOT';
+    private static final String ACTION_RECALL_RESUBMIT_DELTA = 'RECALL_RESUBMIT_DELTA';
+    private static final Set<String> NOTE_SNAPSHOT_FIELDS = new Set<String>{
+        'MeetingNotes',
+        'Description_of_Services__c',
+        'Response_and_Progress__c',
+        'Plan__c',
+        'Interpreter_Used__c',
+        'Place_of_Service__c',
+        'Start_Time__c',
+        'End_Time__c',
+        'Date_of_Interaction__c',
+        'InteractionPurpose'
+    };
+
+    private static void writeRecallSnapshotForNote(Id interactionSummaryId, SObject noteFromQuery, SObject linkedInterview) {
+        try {
+            Map<String, Object> payload = new Map<String, Object>();
+            payload.put('recordId', String.valueOf(interactionSummaryId));
+            payload.put('recordType', 'InteractionSummary');
+            payload.put('snapshotAt', DateTime.now());
+            payload.put('fields', snapshotInteractionSummaryFields(interactionSummaryId));
+            if (linkedInterview != null) {
+                payload.put('linkedInterviewId', String.valueOf(linkedInterview.get('Id')));
+                payload.put('interviewAnswerIds', snapshotInterviewAnswerIds((Id) linkedInterview.get('Id')));
+            }
+            insertAuditSnapshot(ACTION_RECALL_SNAPSHOT, interactionSummaryId, 'InteractionSummary', payload);
+        } catch (Exception ex) {
+            System.debug('Recall snapshot (note) failed (non-fatal): ' + ex.getMessage());
+        }
+    }
+
+    private static void writeRecallSnapshotForInterview(Id interviewId, SObject interviewFromQuery) {
+        try {
+            Map<String, Object> payload = new Map<String, Object>();
+            payload.put('recordId', String.valueOf(interviewId));
+            payload.put('recordType', 'Interview');
+            payload.put('snapshotAt', DateTime.now());
+            Id summaryId;
+            try {
+                SObject summaryRel = interviewFromQuery != null ? interviewFromQuery.getSObject('Interaction_Summary__r') : null;
+                if (summaryRel != null) {
+                    summaryId = (Id) summaryRel.get('Id');
+                }
+            } catch (Exception ignore) {
+                // Interaction_Summary__r may not have been selected on this query.
+            }
+            if (summaryId == null) {
+                // Fall back to a direct fetch.
+                List<SObject> ivs = Database.query('SELECT Interaction_Summary__c FROM Interview__c WHERE Id = :interviewId LIMIT 1');
+                if (!ivs.isEmpty()) {
+                    summaryId = (Id) ivs[0].get('Interaction_Summary__c');
+                }
+            }
+            if (summaryId != null) {
+                payload.put('interactionSummaryId', String.valueOf(summaryId));
+                payload.put('fields', snapshotInteractionSummaryFields(summaryId));
+            }
+            payload.put('interviewAnswerIds', snapshotInterviewAnswerIds(interviewId));
+            insertAuditSnapshot(ACTION_RECALL_SNAPSHOT, interviewId, 'Interview', payload);
+        } catch (Exception ex) {
+            System.debug('Recall snapshot (interview) failed (non-fatal): ' + ex.getMessage());
+        }
+    }
+
+    private static Map<String, Object> snapshotInteractionSummaryFields(Id summaryId) {
+        Map<String, Object> snap = new Map<String, Object>();
+        if (summaryId == null) {
+            return snap;
+        }
+        Map<String, Schema.SObjectField> fields = Schema.getGlobalDescribe().get('InteractionSummary').getDescribe().fields.getMap();
+        List<String> selectable = new List<String>();
+        for (String f : NOTE_SNAPSHOT_FIELDS) {
+            if (hasField(fields, f)) selectable.add(f);
+        }
+        if (selectable.isEmpty()) return snap;
+        String q = 'SELECT Id, ' + String.join(selectable, ', ') + ' FROM InteractionSummary WHERE Id = :summaryId LIMIT 1';
+        List<SObject> rows = Database.query(q);
+        if (rows.isEmpty()) return snap;
+        SObject row = rows[0];
+        for (String f : selectable) {
+            snap.put(f, row.get(f));
+        }
+        return snap;
+    }
+
+    private static List<String> snapshotInterviewAnswerIds(Id interviewId) {
+        List<String> ids = new List<String>();
+        if (interviewId == null) return ids;
+        try {
+            for (SObject row : Database.query('SELECT Id FROM InterviewAnswer__c WHERE Interview__c = :interviewId')) {
+                ids.add(String.valueOf(row.get('Id')));
+            }
+        } catch (Exception ignore) {
+            // Object/field may not be queryable in this org; degrade gracefully.
+        }
+        return ids;
+    }
+
+    private static void insertAuditSnapshot(String action, Id recordId, String recordType, Map<String, Object> payload) {
+        Map<String, Schema.SObjectField> auditFields = Schema.getGlobalDescribe().get('Audit_Log__c').getDescribe().fields.getMap();
+        SObject log = Schema.getGlobalDescribe().get('Audit_Log__c').newSObject();
+        if (hasField(auditFields, 'Action__c'))      log.put('Action__c', action);
+        if (hasField(auditFields, 'Record_Id__c'))   log.put('Record_Id__c', String.valueOf(recordId));
+        if (hasField(auditFields, 'Record_Type__c')) log.put('Record_Type__c', recordType);
+        if (hasField(auditFields, 'Object_Type__c')) log.put('Object_Type__c', recordType);
+        if (hasField(auditFields, 'User__c'))        log.put('User__c', UserInfo.getUserId());
+        if (hasField(auditFields, 'Timestamp__c'))   log.put('Timestamp__c', DateTime.now());
+        if (hasField(auditFields, 'Is_Amendment__c')) log.put('Is_Amendment__c', true);
+        if (hasField(auditFields, 'Event_Type__c'))  log.put('Event_Type__c', action);
+        if (hasField(auditFields, 'Description__c')) log.put('Description__c', action + ' for ' + recordType + ' ' + recordId);
+        if (hasField(auditFields, 'UUID__c'))        log.put('UUID__c', generateAuditUuid());
+        String json = JSON.serialize(payload);
+        if (hasField(auditFields, 'Audit_JSON__c')) {
+            if (json.length() > 32000) {
+                json = json.substring(0, 32000);
+            }
+            log.put('Audit_JSON__c', json);
+        }
+        insert log;
+    }
+
+    private static String generateAuditUuid() {
+        Blob b = Crypto.generateAesKey(128);
+        String h = EncodingUtil.convertToHex(b);
+        return h.substring(0,8) + '-' + h.substring(8,12) + '-' + h.substring(12,16) + '-' + h.substring(16,20) + '-' + h.substring(20,32);
+    }
+
+    /**
+     * Public DTO for the recall-delta viewer.
+     */
+    public class RecallDelta {
+        @AuraEnabled public String recordId;
+        @AuraEnabled public String recordType;
+        @AuraEnabled public DateTime snapshotAt;
+        @AuraEnabled public DateTime resubmittedAt;
+        @AuraEnabled public Map<String, Object> before;
+        @AuraEnabled public Map<String, Object> after;
+        @AuraEnabled public List<String> fieldsChanged;
+        @AuraEnabled public Map<String, Object> related;
+    }
+
+    /**
+     * Returns the most recent recall delta for a given record (InteractionSummary or Interview),
+     * combining the latest RECALL_SNAPSHOT (pre-recall) with the latest RECALL_RESUBMIT_DELTA
+     * (post-resubmit) when available. Returns null if no recall snapshot exists.
+     */
+    @AuraEnabled(cacheable=true)
+    public static RecallDelta getRecallDelta(Id recordId) {
+        if (recordId == null) return null;
+        String recordIdStr = String.valueOf(recordId);
+        String snapshotAction = ACTION_RECALL_SNAPSHOT;
+        String resubmitAction = ACTION_RECALL_RESUBMIT_DELTA;
+
+        List<SObject> snapshots = Database.query(
+            'SELECT Id, Audit_JSON__c, Timestamp__c, Record_Type__c ' +
+            'FROM Audit_Log__c ' +
+            'WHERE Record_Id__c = :recordIdStr AND Action__c = :snapshotAction ' +
+            'ORDER BY Timestamp__c DESC LIMIT 1'
+        );
+        if (snapshots.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> snapshotPayload = parseAuditJson((String) snapshots[0].get('Audit_JSON__c'));
+
+        List<SObject> resubmits = Database.query(
+            'SELECT Id, Audit_JSON__c, Timestamp__c ' +
+            'FROM Audit_Log__c ' +
+            'WHERE Record_Id__c = :recordIdStr AND Action__c = :resubmitAction ' +
+            'ORDER BY Timestamp__c DESC LIMIT 1'
+        );
+        Map<String, Object> resubmitPayload = resubmits.isEmpty()
+            ? null
+            : parseAuditJson((String) resubmits[0].get('Audit_JSON__c'));
+
+        RecallDelta delta = new RecallDelta();
+        delta.recordId = recordIdStr;
+        delta.recordType = (String) snapshots[0].get('Record_Type__c');
+        delta.snapshotAt = (DateTime) snapshots[0].get('Timestamp__c');
+        delta.before = (Map<String, Object>) snapshotPayload.get('fields');
+        if (delta.before == null) delta.before = new Map<String, Object>();
+
+        if (resubmitPayload != null) {
+            delta.resubmittedAt = (DateTime) resubmits[0].get('Timestamp__c');
+            Object afterObj = resubmitPayload.get('fields');
+            if (afterObj instanceof Map<String, Object>) {
+                delta.after = (Map<String, Object>) afterObj;
+            }
+            Object relObj = resubmitPayload.get('related');
+            if (relObj instanceof Map<String, Object>) {
+                delta.related = (Map<String, Object>) relObj;
+            }
+        }
+        if (delta.after == null) {
+            // No resubmit-delta yet — pull current values from the record so the UI still has something to render.
+            String recordType = delta.recordType != null ? delta.recordType : 'InteractionSummary';
+            if (recordType == 'InteractionSummary') {
+                delta.after = snapshotInteractionSummaryFields(recordId);
+            } else {
+                Id summaryId;
+                List<SObject> ivs = Database.query('SELECT Interaction_Summary__c FROM Interview__c WHERE Id = :recordId LIMIT 1');
+                if (!ivs.isEmpty()) summaryId = (Id) ivs[0].get('Interaction_Summary__c');
+                delta.after = snapshotInteractionSummaryFields(summaryId);
+            }
+        }
+
+        delta.fieldsChanged = new List<String>();
+        for (String key : delta.before.keySet()) {
+            Object b = delta.before.get(key);
+            Object a = delta.after != null ? delta.after.get(key) : null;
+            if (!objectsEqual(a, b)) {
+                delta.fieldsChanged.add(key);
+            }
+        }
+        return delta;
+    }
+
+    private static Map<String, Object> parseAuditJson(String auditJson) {
+        if (String.isBlank(auditJson)) return new Map<String, Object>();
+        try {
+            Object parsed = JSON.deserializeUntyped(auditJson);
+            if (parsed instanceof Map<String, Object>) {
+                return (Map<String, Object>) parsed;
+            }
+        } catch (Exception ignore) {
+            // Fall through to empty.
+        }
+        return new Map<String, Object>();
+    }
+
+    private static Boolean objectsEqual(Object a, Object b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return String.valueOf(a) == String.valueOf(b);
     }
 }

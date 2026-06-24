@@ -219,53 +219,17 @@ public with sharing class DocumentationDeadlineService {
         return null;
     }
 
+    // NOTE: Auto-hard-lock at 72 hours was disabled when the recall policy was
+    // relaxed. Late edits/recalls are now governed by manager co-sign routing
+    // (DocumentationDeadlineService.requiresManagerEscalationForLateEntry) +
+    // explicit Is_Locked__c set only via manual lockdown / legal hold.
+    // Schedulables that still invoke these methods become no-ops.
     public static void processInterviewLocks() {
-        Date staleServiceDate = Date.today().addDays(-3);
-        String interviewVoidedStatus = DocumentStatus.INTERVIEW_VOIDED;
-        Datetime startedOnLockCutoff = Datetime.now().addHours(-LOCK_HOURS);
-        List<SObject> interviews = Database.query(
-            'SELECT Id, Is_Locked__c, Started_On__c, CreatedDate, Completed_On__c, Status__c, ' +
-            'Interaction_Summary__r.Date_of_Interaction__c, Interaction_Summary__r.Start_Time__c ' +
-            'FROM Interview__c ' +
-            'WHERE (Is_Locked__c = false OR Is_Locked__c = null) ' +
-            'AND Status__c != :interviewVoidedStatus ' +
-            'AND ((Interaction_Summary__r.Date_of_Interaction__c != null AND Interaction_Summary__r.Date_of_Interaction__c <= :staleServiceDate) ' +
-            'OR (Interaction_Summary__c = null AND Started_On__c != null AND Started_On__c <= :startedOnLockCutoff)) ' +
-            'LIMIT 200'
-        );
-
-        for (SObject interview : interviews) {
-            DeadlineState state = evaluateInterview(interview);
-            if (state.isLocked != true || coerceBoolean(safeGet(interview, 'Is_Locked__c'))) {
-                continue;
-            }
-            InterviewCompletionService.lockInterview((Id) interview.get('Id'));
-        }
+        return;
     }
 
     public static void processNoteLocks() {
-        Date staleServiceDate = Date.today().addDays(-3);
-        List<SObject> notes = Database.query(
-            'SELECT Id, Name, InteractionPurpose, Date_of_Interaction__c, Start_Time__c, CreatedDate, Completed_On__c, Is_Locked__c ' +
-            'FROM InteractionSummary ' +
-            'WHERE (Is_Locked__c = false OR Is_Locked__c = null) ' +
-            'AND InteractionPurpose IN :NOTE_PURPOSES ' +
-            'AND Date_of_Interaction__c != null ' +
-            'AND Date_of_Interaction__c <= :staleServiceDate ' +
-            'LIMIT 200'
-        );
-
-        for (SObject note : notes) {
-            DeadlineState state = evaluateInteractionSummary(note);
-            if (state.isLocked != true || coerceBoolean(safeGet(note, 'Is_Locked__c'))) {
-                continue;
-            }
-
-            note.put('Is_Locked__c', true);
-            note.put('Locked_On__c', System.now());
-            update note;
-            AuditLogService.logAction('LOCK', String.valueOf(note.get('Id')), 'Auto-locked 72 hours after Date of Service.', 'InteractionSummary');
-        }
+        return;
     }
 
     public static void sendDeadlineNotifications() {

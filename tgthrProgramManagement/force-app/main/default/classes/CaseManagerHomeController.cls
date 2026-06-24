@@ -1010,6 +1010,21 @@ public with sharing class CaseManagerHomeController {
                 : 'Psycho-Social Intake';
         }
 
+        // When Intake_Template__c is not set on the Program, resolve the template ID
+        // by name so that getLatestInterviewForIntake can query interviews correctly.
+        if (templateId == null && !String.isBlank(templateName)) {
+            try {
+                List<SObject> templates = Database.query(
+                    'SELECT Id FROM InterviewTemplate__c WHERE Name = :templateName LIMIT 1'
+                );
+                if (!templates.isEmpty()) {
+                    templateId = (Id)templates[0].get('Id');
+                }
+            } catch (Exception e) {
+                System.debug('CaseManagerHome: template ID lookup by name failed for "' + templateName + '" — ' + e.getMessage());
+            }
+        }
+
         String templateVersionId = templateId != null
             ? resolveActiveTemplateVersionIdByTemplateId(templateId)
             : resolveActiveTemplateVersionIdByName(templateName);
@@ -1064,8 +1079,8 @@ public with sharing class CaseManagerHomeController {
                 'AND InterviewTemplateVersion__r.InterviewTemplate__c = :templateId ';
 
             if (completedOnly) {
-                query += 'AND Completed_On__c != null ';
-                query += 'ORDER BY Completed_On__c DESC, LastModifiedDate DESC LIMIT 1';
+                query += 'AND (Completed_On__c != null OR Status__c = \'Signed\') ';
+                query += 'ORDER BY Completed_On__c DESC NULLS LAST, LastModifiedDate DESC LIMIT 1';
             } else {
                 query += 'AND Status__c NOT IN (\'Voided\', \'Signed\') ';
                 query += 'AND Completed_On__c = null ';

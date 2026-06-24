@@ -63,6 +63,7 @@ public with sharing class PendingDocumentationController {
         @AuraEnabled public Id sourceRecordId; // The actual Interview__c or InteractionSummary Id
         @AuraEnabled public Id approvalRecordId; // Record to use for approval modal
         @AuraEnabled public String approvalRecordType; // 'Interaction' or 'Interview'
+        @AuraEnabled public Id linkedInterviewId; // If InteractionSummary is linked to Interview__c, use this for dedupe/identity
         @AuraEnabled public Id templateVersionId; // For Interview - needed to navigate to interview session
         // Owner info - for visibility across team
         @AuraEnabled public Id ownerId;
@@ -333,6 +334,7 @@ public with sharing class PendingDocumentationController {
         dto.id = (Id)interaction.get('Id');
         dto.approvalRecordId = dto.id;
         dto.approvalRecordType = 'Interaction';
+        dto.linkedInterviewId = (Id)interaction.get('Interview__c');
         dto.name = (String)interaction.get('Name');
         dto.dateOfInteraction = (Date)interaction.get('Date_of_Interaction__c');
         dto.purpose = (String)interaction.get('InteractionPurpose');
@@ -985,7 +987,7 @@ public with sharing class PendingDocumentationController {
                           'Manager_Signed__c, Manager_Signed_Date__c, Manager_Rejected__c, Manager_Rejection_Reason__c, ' +
                           'Action_Required__c, Action_Assigned_To__c, Action_Assigned_To__r.Name, ' +
                           'Action_Escalated_By__c, Action_Escalated_By__r.Name, Action_Notes__c, ' +
-                          'RelatedRecordId, CreatedById, CreatedBy.Name ' +
+                          'RelatedRecordId, CreatedById, CreatedBy.Name, Interview__c ' +
                           'FROM InteractionSummary ' +
                           'WHERE Action_Assigned_To__c = :currentUserId ' +
                           'AND Action_Required__c = true ' +
@@ -996,12 +998,53 @@ public with sharing class PendingDocumentationController {
             List<SObject> interactions = Database.query(interactionQuery);
             System.debug('🔍 Found ' + interactions.size() + ' InteractionSummary action items');
             Set<Id> actionSummaryIds = new Set<Id>();
+            Set<Id> linkedInterviewIds = new Set<Id>();
             for (SObject interaction : interactions) {
                 actionSummaryIds.add((Id)interaction.get('Id'));
+                Id linkedInterviewId = (Id)interaction.get('Interview__c');
+                if (linkedInterviewId != null) {
+                    linkedInterviewIds.add(linkedInterviewId);
+                }
             }
             Map<Id, String> referenceBySummaryId = getReferenceNumbersBySummaryIds(actionSummaryIds);
+
+            Set<Id> linkedInterviewsInWorkflow = new Set<Id>();
+            if (!linkedInterviewIds.isEmpty()) {
+                List<SObject> linkedInterviews = Database.query(
+                    'SELECT Id, Status__c, Action_Required__c, ' +
+                    'Staff_Signed__c, Client_Signed__c, ' +
+                    'CaseManager_Signed__c, CaseManager_Signed_By__c, ' +
+                    'PeerSupport_Signed__c, PeerSupport_Signed_By__c, ' +
+                    'Requires_Manager_Approval__c, Manager_Signed__c ' +
+                    'FROM Interview__c WHERE Id IN :linkedInterviewIds'
+                );
+
+                for (SObject linkedInterview : linkedInterviews) {
+                    String linkedStatus = (String)linkedInterview.get('Status__c');
+                    Boolean linkedActionRequired = linkedInterview.get('Action_Required__c') != null && (Boolean)linkedInterview.get('Action_Required__c') == true;
+                    Boolean hasPendingPrimarySignatures = linkedStatus != DocumentStatus.INTERVIEW_SUBMITTED && (
+                        linkedInterview.get('Staff_Signed__c') == null || (Boolean)linkedInterview.get('Staff_Signed__c') == false ||
+                        linkedInterview.get('Client_Signed__c') == null || (Boolean)linkedInterview.get('Client_Signed__c') == false
+                    );
+                    Boolean hasPendingCaseManager = linkedInterview.get('CaseManager_Signed_By__c') != null &&
+                        (linkedInterview.get('CaseManager_Signed__c') == null || (Boolean)linkedInterview.get('CaseManager_Signed__c') == false);
+                    Boolean hasPendingPeerSupport = linkedInterview.get('PeerSupport_Signed_By__c') != null &&
+                        (linkedInterview.get('PeerSupport_Signed__c') == null || (Boolean)linkedInterview.get('PeerSupport_Signed__c') == false);
+                    Boolean hasPendingManager = linkedInterview.get('Requires_Manager_Approval__c') != null && (Boolean)linkedInterview.get('Requires_Manager_Approval__c') == true &&
+                        (linkedInterview.get('Manager_Signed__c') == null || (Boolean)linkedInterview.get('Manager_Signed__c') == false);
+
+                    if (!linkedActionRequired && linkedStatus != DocumentStatus.INTERVIEW_VOIDED && linkedStatus != DocumentStatus.INTERVIEW_SIGNED && linkedStatus != DocumentStatus.INTERVIEW_AMENDED
+                        && (hasPendingPrimarySignatures || hasPendingCaseManager || hasPendingPeerSupport || hasPendingManager)) {
+                        linkedInterviewsInWorkflow.add((Id)linkedInterview.get('Id'));
+                    }
+                }
+            }
             
             for (SObject interaction : interactions) {
+                Id linkedInterviewId = (Id)interaction.get('Interview__c');
+                if (linkedInterviewId != null && linkedInterviewsInWorkflow.contains(linkedInterviewId)) {
+                    continue;
+                }
                 UnsignedInteractionDTO dto = buildInteractionDTO(interaction, currentUserId);
                 dto.recordType = 'Interaction';
                 dto.sourceRecordId = (Id)interaction.get('Id');
@@ -1028,9 +1071,70 @@ public with sharing class PendingDocumentationController {
                           'LIMIT 50';
             
             List<SObject> interviews = Database.query(interviewQuery);
+
+            Set<Id> actionCaseIds = new Set<Id>();
+            Set<Id> actionTemplateVersionIds = new Set<Id>();
+            for (SObject interview : interviews) {
+                Id actionCaseId = (Id)interview.get('Case__c');
+                Id actionTemplateVersionId = (Id)interview.get('InterviewTemplateVersion__c');
+                if (actionCaseId != null) {
+                    actionCaseIds.add(actionCaseId);
+                }
+                if (actionTemplateVersionId != null) {
+                    actionTemplateVersionIds.add(actionTemplateVersionId);
+                }
+            }
+
+            Set<String> activeWorkflowKeys = new Set<String>();
+            if (!actionCaseIds.isEmpty() && !actionTemplateVersionIds.isEmpty()) {
+                List<SObject> activeWorkflowInterviews = Database.query(
+                    'SELECT Id, Case__c, InterviewTemplateVersion__c, Status__c, ' +
+                    'Staff_Signed__c, Client_Signed__c, ' +
+                    'CaseManager_Signed__c, CaseManager_Signed_By__c, ' +
+                    'PeerSupport_Signed__c, PeerSupport_Signed_By__c, ' +
+                    'Requires_Manager_Approval__c, Manager_Signed__c, Action_Required__c ' +
+                    'FROM Interview__c ' +
+                    'WHERE Case__c IN :actionCaseIds ' +
+                    'AND InterviewTemplateVersion__c IN :actionTemplateVersionIds ' +
+                    'AND (Action_Required__c = false OR Action_Required__c = null) ' +
+                    'AND Status__c NOT IN (\'' + DocumentStatus.INTERVIEW_VOIDED + '\', \'' + DocumentStatus.INTERVIEW_SIGNED + '\', \'' + DocumentStatus.INTERVIEW_AMENDED + '\') ' +
+                    'AND ((' +
+                    'Status__c != \'' + DocumentStatus.INTERVIEW_SUBMITTED + '\' AND (' +
+                    'Staff_Signed__c = false OR Client_Signed__c = false' +
+                    ')) OR (' +
+                    'CaseManager_Signed_By__c != null AND (CaseManager_Signed__c = false OR CaseManager_Signed__c = null)' +
+                    ') OR (' +
+                    'PeerSupport_Signed_By__c != null AND (PeerSupport_Signed__c = false OR PeerSupport_Signed__c = null)' +
+                    ') OR (' +
+                    'Requires_Manager_Approval__c = true AND (Manager_Signed__c = false OR Manager_Signed__c = null)' +
+                    '))'
+                );
+
+                for (SObject activeInterview : activeWorkflowInterviews) {
+                    Id activeCaseId = (Id)activeInterview.get('Case__c');
+                    Id activeTemplateVersionId = (Id)activeInterview.get('InterviewTemplateVersion__c');
+                    if (activeCaseId != null && activeTemplateVersionId != null) {
+                        activeWorkflowKeys.add(String.valueOf(activeCaseId) + '|' + String.valueOf(activeTemplateVersionId));
+                    }
+                }
+            }
+
             Set<String> seenRecalledKeys = new Set<String>();
             for (SObject interview : interviews) {
                 String ivStatus = (String)interview.get('Status__c');
+                if (ivStatus == DocumentStatus.INTERVIEW_AMENDED) {
+                    continue;
+                }
+
+                Id interviewCaseId = (Id)interview.get('Case__c');
+                Id interviewTemplateVersionId = (Id)interview.get('InterviewTemplateVersion__c');
+                if (interviewCaseId != null && interviewTemplateVersionId != null) {
+                    String actionKey = String.valueOf(interviewCaseId) + '|' + String.valueOf(interviewTemplateVersionId);
+                    if (activeWorkflowKeys.contains(actionKey)) {
+                        continue;
+                    }
+                }
+
                 if (ivStatus == DocumentStatus.INTERVIEW_RECALLED) {
                     String recalledKey = String.valueOf(interview.get('Case__c')) + '|' + String.valueOf(interview.get('InterviewTemplateVersion__c'));
                     if (seenRecalledKeys.contains(recalledKey)) {
@@ -3418,12 +3522,13 @@ public with sharing class PendingDocumentationController {
             
             for (SObject line : serviceLines) {
                 Map<String, Object> cpt = new Map<String, Object>();
-                cpt.put('code', line.get('Service_Code__c'));
+                String code = (String) line.get('Service_Code__c');
+                cpt.put('code', code);
                 cpt.put('modifier1', line.get('Modifier_1__c'));
                 cpt.put('modifier2', line.get('Modifier_2__c'));
                 cpt.put('serviceDate', line.get('Service_Date__c'));
                 cpt.put('durationMinutes', line.get('Duration_Minutes__c'));
-                cpt.put('units', line.get('Units__c'));
+                cpt.put('units', normalizeUnitsForCpt(code, (Decimal) line.get('Units__c')));
                 cpt.put('status', line.get('Billing_Status__c'));
                 cptCodesList.add(cpt);
             }
@@ -3431,6 +3536,13 @@ public with sharing class PendingDocumentationController {
             System.debug('Could not fetch CPT codes: ' + e.getMessage());
         }
         return cptCodesList;
+    }
+
+    public static Decimal normalizeUnitsForCpt(String cptCode, Decimal units) {
+        if (cptCode == '90791') {
+            return 1;
+        }
+        return units;
     }
     
     /**

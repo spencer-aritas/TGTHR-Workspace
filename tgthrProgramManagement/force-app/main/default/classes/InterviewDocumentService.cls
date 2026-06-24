@@ -1086,7 +1086,7 @@ public with sharing class InterviewDocumentService {
                     'modifier1' => fieldMap.containsKey('modifier_1__c') ? line.get('Modifier_1__c') : null,
                     'modifier2' => fieldMap.containsKey('modifier_2__c') ? line.get('Modifier_2__c') : null,
                     'durationMinutes' => fieldMap.containsKey('duration_minutes__c') ? line.get('Duration_Minutes__c') : null,
-                    'units' => fieldMap.containsKey('units__c') ? line.get('Units__c') : null,
+                    'units' => fieldMap.containsKey('units__c') ? normalizeUnitsForCpt(code, (Decimal) line.get('Units__c')) : null,
                     'status' => fieldMap.containsKey('billing_status__c') ? line.get('Billing_Status__c') : null
                 });
             }
@@ -1095,6 +1095,13 @@ public with sharing class InterviewDocumentService {
         }
 
         return items;
+    }
+
+    public static Decimal normalizeUnitsForCpt(String cptCode, Decimal units) {
+        if (cptCode == '90791') {
+            return 1;
+        }
+        return units;
     }
 
     private static List<Object> buildInterviewDiagnoses(SObject interview) {

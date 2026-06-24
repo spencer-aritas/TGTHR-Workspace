@@ -2340,4 +2340,56 @@ private class PendingDocumentationControllerTest {
         System.assertEquals(true, (Boolean) saved.get('CaseManager_Signed__c'),
             'CM should be signed before activation runs');
     }
+
+    // ══════════════════════════════════════════════════════════════
+    //  CPT 90791 Helper — normalizeUnitsForCpt in pending doc service
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Tests normalizeUnitsForCpt for CPT 90791 (non-time-based).
+     * Pending documentation must always normalize to 1 in report output.
+     */
+    @isTest
+    static void testNormalizeUnitsForCpt_90791_ForcesOne() {
+        Test.startTest();
+        
+        // Test 90791 with various unit values — all should return 1
+        Decimal result1 = PendingDocumentationController.normalizeUnitsForCpt('90791', 0);
+        Decimal result2 = PendingDocumentationController.normalizeUnitsForCpt('90791', 1);
+        Decimal result3 = PendingDocumentationController.normalizeUnitsForCpt('90791', 3);
+        Decimal result4 = PendingDocumentationController.normalizeUnitsForCpt('90791', 5);
+        Decimal result5 = PendingDocumentationController.normalizeUnitsForCpt('90791', null);
+        
+        Test.stopTest();
+        
+        System.assertEquals(1, result1, '90791 with units=0 should normalize to 1');
+        System.assertEquals(1, result2, '90791 with units=1 should stay 1');
+        System.assertEquals(1, result3, '90791 with units=3 should normalize to 1');
+        System.assertEquals(1, result4, '90791 with units=5 (incorrect time-based calc) should normalize to 1');
+        System.assertEquals(1, result5, '90791 with null units should normalize to 1');
+    }
+
+    /**
+     * Tests normalizeUnitsForCpt for time-based CPT codes.
+     * Pending documentation must pass through units unchanged.
+     */
+    @isTest
+    static void testNormalizeUnitsForCpt_TimeBasedCpt_PassThrough() {
+        Test.startTest();
+        
+        // Test time-based codes return units unchanged
+        Decimal result1 = PendingDocumentationController.normalizeUnitsForCpt('90834', 0);
+        Decimal result2 = PendingDocumentationController.normalizeUnitsForCpt('90834', 1);
+        Decimal result3 = PendingDocumentationController.normalizeUnitsForCpt('90834', 2.5);
+        Decimal result4 = PendingDocumentationController.normalizeUnitsForCpt('90837', 4);
+        Decimal result5 = PendingDocumentationController.normalizeUnitsForCpt('90837', null);
+        
+        Test.stopTest();
+        
+        System.assertEquals(0, result1, '90834 with units=0 should return 0');
+        System.assertEquals(1, result2, '90834 with units=1 should return 1');
+        System.assertEquals(2.5, result3, '90834 with units=2.5 should return 2.5');
+        System.assertEquals(4, result4, '90837 with units=4 should return 4');
+        System.assertEquals(null, result5, '90837 with null units should return null');
+    }
 }

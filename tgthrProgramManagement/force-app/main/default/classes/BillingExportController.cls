@@ -325,6 +325,33 @@ public with sharing class BillingExportController {
             }
         }
 
+        // Interview metadata keyed by InteractionSummary for interview-specific labels and PDF fallback.
+        Map<Id, Interview__c> interviewBySummary = new Map<Id, Interview__c>();
+        if (!summaryIds.isEmpty()) {
+            for (Interview__c iv : [
+                SELECT Id, Name, PDF_File_Id__c, Interaction_Summary__c, CreatedDate
+                FROM Interview__c
+                WHERE Interaction_Summary__c IN :summaryIds
+                ORDER BY CreatedDate DESC
+            ]) {
+                if (!interviewBySummary.containsKey(iv.Interaction_Summary__c)) {
+                    interviewBySummary.put(iv.Interaction_Summary__c, iv);
+                }
+                if (String.isNotBlank(iv.PDF_File_Id__c)) {
+                    pdfDocIds.add(iv.PDF_File_Id__c);
+                }
+            }
+        }
+
+        // Re-query PDF titles after interview fallback IDs are added.
+        if (!pdfDocIds.isEmpty()) {
+            for (ContentDocument cd : [
+                SELECT Id, Title FROM ContentDocument WHERE Id IN :pdfDocIds
+            ]) {
+                pdfTitles.put(cd.Id, cd.Title);
+            }
+        }
+
         // Cases
         Map<Id, String> caseNumbers = new Map<Id, String>();
         if (!caseIds.isEmpty()) {
@@ -375,7 +402,7 @@ public with sharing class BillingExportController {
             row.serviceLineId = sl.Id;
             row.serviceLineName = sl.Name;
             row.cptCode = sl.Service_Code__c;
-            row.units = sl.Units__c;
+            row.units = normalizeUnitsForCpt(sl.Service_Code__c, sl.Units__c);
             row.durationMinutes = sl.Duration_Minutes__c;
             row.billingStatus = sl.Billing_Status__c;
             row.modifier1 = sl.Modifier_1__c;
@@ -400,9 +427,23 @@ public with sharing class BillingExportController {
             row.requiresManagerApproval = summary.Requires_Manager_Approval__c;
 
             // PDF
+            Interview__c linkedInterview = interviewBySummary.get(sid);
+            if (summary.InteractionPurpose == 'Interview' && linkedInterview != null) {
+                row.noteName = linkedInterview.Name;
+                String templateLabel = extractInterviewTemplateLabel(linkedInterview.Name);
+                if (String.isNotBlank(templateLabel)) {
+                    row.noteType = templateLabel;
+                }
+            }
+
             row.pdfFileId = summary.PDF_File_Id__c;
+            if (String.isBlank(row.pdfFileId) && linkedInterview != null && String.isNotBlank(linkedInterview.PDF_File_Id__c)) {
+                row.pdfFileId = linkedInterview.PDF_File_Id__c;
+            }
             if (String.isNotBlank(summary.PDF_File_Id__c) && pdfTitles.containsKey(summary.PDF_File_Id__c)) {
                 row.pdfTitle = pdfTitles.get(summary.PDF_File_Id__c);
+            } else if (String.isNotBlank(row.pdfFileId) && pdfTitles.containsKey(row.pdfFileId)) {
+                row.pdfTitle = pdfTitles.get(row.pdfFileId);
             }
 
             // Benefits
@@ -502,6 +543,13 @@ public with sharing class BillingExportController {
         return text.trim();
     }
 
+    public static Decimal normalizeUnitsForCpt(String cptCode, Decimal units) {
+        if (cptCode == '90791') {
+            return 1;
+        }
+        return units;
+    }
+
     private static String formatPersonMailingAddress(SObject accountRecord) {
         List<String> parts = new List<String>();
         String street = (String) accountRecord.get('PersonMailingStreet');
@@ -546,7 +594,22 @@ public with sharing class BillingExportController {
         }
 
         InteractionSummary summary = summaries[0];
-        if (String.isBlank(summary.PDF_File_Id__c)) {
+        String docId = summary.PDF_File_Id__c;
+        if (String.isBlank(docId)) {
+            List<Interview__c> interviews = [
+                SELECT PDF_File_Id__c
+                FROM Interview__c
+                WHERE Interaction_Summary__c = :summary.Id
+                  AND PDF_File_Id__c != null
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+            if (!interviews.isEmpty()) {
+                docId = interviews[0].PDF_File_Id__c;
+            }
+        }
+
+        if (String.isBlank(docId)) {
             throw new AuraHandledException(
                 'No PDF has been generated for "' + summary.Name + '". '
                 + 'The document may need to be regenerated.'
@@ -556,7 +619,7 @@ public with sharing class BillingExportController {
         List<ContentVersion> versions = [
             SELECT Title, FileExtension, VersionData, ContentDocumentId
             FROM ContentVersion
-            WHERE ContentDocumentId = :summary.PDF_File_Id__c
+                        WHERE ContentDocumentId = :docId
               AND IsLatest = true
               AND PublishStatus = 'P'
             LIMIT 1
@@ -565,7 +628,7 @@ public with sharing class BillingExportController {
         if (versions.isEmpty()) {
             throw new AuraHandledException(
                 'The PDF referenced by "' + summary.Name + '" (ContentDocument '
-                + summary.PDF_File_Id__c + ') could not be retrieved. '
+                + docId + ') could not be retrieved. '
                 + 'It may have been deleted or the document may need to be regenerated.'
             );
         }
@@ -576,5 +639,14 @@ public with sharing class BillingExportController {
         dc.fileName = cv.Title + '.' + (cv.FileExtension != null ? cv.FileExtension : 'pdf');
         dc.base64Data = EncodingUtil.base64Encode(cv.VersionData);
         return dc;
+    }
+
+    private static String extractInterviewTemplateLabel(String interviewName) {
+        if (String.isBlank(interviewName)) return null;
+        Integer idx = interviewName.indexOf(' - ');
+        if (idx > 0) {
+            return interviewName.substring(0, idx).trim();
+        }
+        return interviewName;
     }
 }
