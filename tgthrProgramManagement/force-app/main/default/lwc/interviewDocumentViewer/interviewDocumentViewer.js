@@ -28,6 +28,14 @@ export default class InterviewDocumentViewer extends NavigationMixin(LightningEl
             this._caseId = value;
         }
     }
+
+    @api
+    get preselectInterviewId() {
+        return this._preselectInterviewId;
+    }
+    set preselectInterviewId(value) {
+        this._preselectInterviewId = value || null;
+    }
     
     documents = [];
     selectedDocumentId = null;

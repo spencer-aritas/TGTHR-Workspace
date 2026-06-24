@@ -6,6 +6,7 @@ import logRecordAccessWithPii from '@salesforce/apex/RecordAccessService.logReco
 import approveNote from '@salesforce/apex/PendingDocumentationController.approveNote';
 import rejectNote from '@salesforce/apex/PendingDocumentationController.rejectNote';
 import generateNoteDocument from '@salesforce/apex/InterviewDocumentController.generateNoteDocument';
+import getRecallDelta from '@salesforce/apex/InterviewDocumentController.getRecallDelta';
 import { formatDateOnlyMountain, formatDateTimeMountain, getMountainTimeZoneLabel } from 'c/dateTimeDisplay';
 
 export default class NoteApprovalModal extends NavigationMixin(LightningElement) {
@@ -16,6 +17,8 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
     @track approvalNotes = '';
     @track rejectionReason = '';
     @track hasSignature = false;
+    @track recallDelta = null;
+    @track showRecallDelta = false;
     
     recordId = null;
     recordType = null;
@@ -51,6 +54,14 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
             console.log('Note data loaded successfully:', data);
             this.noteData = data;
             this.logAccess('PendingApprovalReview');
+            // Fetch recall delta for this record (if any). Non-fatal on failure.
+            try {
+                const delta = await getRecallDelta({ recordId: this.recordId });
+                this.recallDelta = delta || null;
+            } catch (deltaErr) {
+                console.warn('Failed to load recall delta (non-fatal):', deltaErr);
+                this.recallDelta = null;
+            }
         } catch (error) {
             console.error('Error loading note:', error);
             const errorMsg = this.reduceErrors(error);
@@ -100,6 +111,83 @@ export default class NoteApprovalModal extends NavigationMixin(LightningElement)
 
     get isLateEntryManagerApprovalRequired() {
         return this.noteData?.lateEntryManagerApprovalRequired === true;
+    }
+
+    // ---------------------------------------------------------------
+    // Recall-delta "View Changes" disclosure
+    // ---------------------------------------------------------------
+    get hasRecallDelta() {
+        return !!(this.recallDelta && (this.recallDelta.fieldsChanged?.length || this.recallDelta.before));
+    }
+
+    get recallDeltaHeading() {
+        if (!this.recallDelta) return '';
+        const count = this.recallDelta.fieldsChanged?.length || 0;
+        return count === 1
+            ? 'View Changes Since Recall (1 field changed)'
+            : `View Changes Since Recall (${count} fields changed)`;
+    }
+
+    get recallDeltaToggleLabel() {
+        return this.showRecallDelta ? 'Hide Changes' : this.recallDeltaHeading;
+    }
+
+    get recallDeltaSnapshotAtDisplay() {
+        if (!this.recallDelta?.snapshotAt) return '';
+        return formatDateTimeMountain(this.recallDelta.snapshotAt);
+    }
+
+    get recallDeltaResubmittedAtDisplay() {
+        if (!this.recallDelta?.resubmittedAt) return '';
+        return formatDateTimeMountain(this.recallDelta.resubmittedAt);
+    }
+
+    get recallDeltaRows() {
+        if (!this.recallDelta) return [];
+        const changed = this.recallDelta.fieldsChanged || [];
+        const before = this.recallDelta.before || {};
+        const after = this.recallDelta.after || {};
+        return changed.map((field) => ({
+            field,
+            label: this.labelizeField(field),
+            before: this.formatDeltaValue(before[field]),
+            after: this.formatDeltaValue(after[field])
+        }));
+    }
+
+    labelizeField(field) {
+        if (!field) return '';
+        const map = {
+            MeetingNotes: 'Meeting Notes',
+            Description_of_Services__c: 'Description of Services',
+            Response_and_Progress__c: 'Response and Progress',
+            Plan__c: 'Plan',
+            Interpreter_Used__c: 'Interpreter Used',
+            Place_of_Service__c: 'Place of Service',
+            Start_Time__c: 'Start Time',
+            End_Time__c: 'End Time',
+            Date_of_Interaction__c: 'Date of Interaction',
+            InteractionPurpose: 'Note Type'
+        };
+        return map[field] || field.replace(/__c$/, '').replace(/_/g, ' ');
+    }
+
+    formatDeltaValue(value) {
+        if (value === null || value === undefined || value === '') return '—';
+        if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+        const asStr = String(value);
+        // ISO datetime detect
+        if (/^\d{4}-\d{2}-\d{2}T/.test(asStr)) {
+            return formatDateTimeMountain(asStr);
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(asStr)) {
+            return formatDateOnlyMountain(asStr);
+        }
+        return asStr;
+    }
+
+    handleToggleRecallDelta() {
+        this.showRecallDelta = !this.showRecallDelta;
     }
 
     get lateEntryApprovalMessage() {

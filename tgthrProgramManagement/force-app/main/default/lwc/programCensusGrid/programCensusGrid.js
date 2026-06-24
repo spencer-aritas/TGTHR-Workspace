@@ -160,6 +160,17 @@ const OUTREACH_DROPIN_COLUMNS = [
 ];
 
 export default class ProgramCensusGrid extends NavigationMixin(LightningElement) {
+  programThemeAssignments = new Map();
+  paletteUsageCounts = new Map();
+  paletteChoices = [
+    { color: "#4f6bbd", accent: "#8fa8d8" },
+    { color: "#2d7a3e", accent: "#7ba878" },
+    { color: "#c94f4f", accent: "#e29b9b" },
+    { color: "#5a3d8c", accent: "#9980b8" },
+    { color: "#2d6b7a", accent: "#7ab0b0" },
+    { color: "#a23d8c", accent: "#cb8fc1" }
+  ];
+
   _loggedParticipantIds = new Set();
   _loggedEnrollmentIds = new Set();
   _loggedEngagementIds = new Set();
@@ -202,7 +213,7 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
   @track eventTypeOptions = [];
   @track benefitId = null;
   @track benefitOptions = [];
-  @track serviceDate = new Date().toISOString().slice(0, 10);
+  @track serviceDate = this.getLocalDateString();
   @track quantity = 1;
   @track startDateTime = ""; // ISO 8601 local (yyyy-MM-ddTHH:mm)
   @track endDateTime = "";
@@ -400,9 +411,11 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
     return false;
   }
 
-  // True when the disbursement should open the notes/datetime modal
+  // True when the disbursement should open the notes/datetime modal.
+  // Modal is only required when the benefit is Census AND Require Note is on;
+  // otherwise the Census Board just disburses without opening the InteractionSummary editor.
   get needsInteractionModal() {
-    return this.isCensusBenefit;
+    return this.isCensusBenefit && this.requireCaseNote;
   }
 
   // Modal title — the modal is always the Interaction Summary editor on the Census Board.
@@ -479,6 +492,17 @@ export default class ProgramCensusGrid extends NavigationMixin(LightningElement)
     const hours = pad(date.getHours());
     const minutes = pad(date.getMinutes());
     return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  getLocalDateString(dateInput = new Date()) {
+    const date =
+      dateInput instanceof Date && !Number.isNaN(dateInput.getTime())
+        ? dateInput
+        : new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )}`;
   }
 
   parseDateTimeLocal(value) {
@@ -2528,21 +2552,42 @@ async loadRecentEngagements() {
   }
 
   applyAutoTheme(seedInput) {
-    const seed = String(seedInput || "default");
-    const palettes = [
-      { color: "#4f6bbd", accent: "#8fa8d8" },
-      { color: "#2d7a3e", accent: "#7ba878" },
-      { color: "#8b4513", accent: "#c0915a" },
-      { color: "#5a3d8c", accent: "#9980b8" },
-      { color: "#2d6b7a", accent: "#7ab0b0" },
-      { color: "#6b5a3d", accent: "#a89878" }
-    ];
+    const programKey =
+      this.programId || this._programId || this.programName || seedInput || "default";
+    const cachedTheme = this.programThemeAssignments.get(programKey);
+    if (cachedTheme) {
+      this.applyThemeVars(cachedTheme.color, cachedTheme.accent);
+      return;
+    }
 
+    const seed = String(seedInput || "default");
     let hash = 0;
     for (let i = 0; i < seed.length; i += 1) {
       hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
     }
-    const palette = palettes[hash % palettes.length];
+    let leastUsed = Number.POSITIVE_INFINITY;
+    const leastUsedIndexes = [];
+    this.paletteChoices.forEach((_, index) => {
+      const usage = this.paletteUsageCounts.get(index) || 0;
+      if (usage < leastUsed) {
+        leastUsed = usage;
+        leastUsedIndexes.length = 0;
+        leastUsedIndexes.push(index);
+      } else if (usage === leastUsed) {
+        leastUsedIndexes.push(index);
+      }
+    });
+
+    const paletteIndex =
+      leastUsedIndexes.length > 1
+        ? leastUsedIndexes[hash % leastUsedIndexes.length]
+        : leastUsedIndexes[0];
+    const palette = this.paletteChoices[paletteIndex];
+    this.paletteUsageCounts.set(
+      paletteIndex,
+      (this.paletteUsageCounts.get(paletteIndex) || 0) + 1
+    );
+    this.programThemeAssignments.set(programKey, palette);
     this.applyThemeVars(palette.color, palette.accent);
   }
 
@@ -2609,10 +2654,28 @@ async loadRecentEngagements() {
     this.isLoading = true;
 
     try {
-        // Get Basic Needs benefits for this program
+      const normalizeText = (value) =>
+        String(value || "")
+          .trim()
+          .toLowerCase();
+
+      // Resolve Basic Needs benefit type from the active program configuration.
+      const eventTypes = await getEventTypesByProgramId({ programId });
+      const basicNeedsEventType = (eventTypes || []).find((eventTypeOption) => {
+        const label = normalizeText(eventTypeOption?.label);
+        const value = normalizeText(eventTypeOption?.value);
+        return label === "basic needs" || value === "basic needs";
+      });
+
+      if (!basicNeedsEventType) {
+        this.toast("Error", "Basic Needs benefit type is not configured for this program.", "error");
+        return;
+      }
+
+      // Get Basic Needs benefits for this program.
         const benefits = await getBenefitsByProgramId({
             programId: programId,
-            eventType: "0jhRT0000000PheYAE" // Basic Needs benefit type ID
+        eventType: basicNeedsEventType.value || basicNeedsEventType.label
         });
         
         console.log("Available benefits:", benefits);
@@ -2622,13 +2685,21 @@ async loadRecentEngagements() {
             return;
         }
 
-        // Find Food Pantry benefit
-        const foodPantryBenefit = benefits.find(benefit => 
-            benefit.label && benefit.label.toLowerCase().includes("food pantry")
-        );
+        // Find the Food Pantry Access benefit deterministically (with a safe fallback).
+        const foodPantryBenefit = benefits.find((benefit) => {
+          const label = normalizeText(benefit?.label);
+          return label === "food pantry access";
+        }) || benefits.find((benefit) => {
+          const label = normalizeText(benefit?.label);
+          return label.includes("food pantry");
+        });
 
         if (!foodPantryBenefit) {
-            this.toast("Error", "Food Pantry benefit not found for this program.", "error");
+            this.toast(
+              "Error",
+              "No active Food Pantry Access benefit is configured for this program.",
+              "error"
+            );
             return;
         }
 
@@ -2639,10 +2710,10 @@ async loadRecentEngagements() {
             participantAccountIds: participantIds,
             benefitId: foodPantryBenefit.value,
             programId: programId,
-            serviceDate: this.serviceDate || new Date().toISOString().split("T")[0],
+            serviceDate: this.serviceDate || this.getLocalDateString(),
             quantity: 1,
             notes: "Quick Food Pantry Log",
-            eventType: "0jhRT0000000PheYAE",
+          eventType: basicNeedsEventType.value || basicNeedsEventType.label,
             isClinical: false
         });
 

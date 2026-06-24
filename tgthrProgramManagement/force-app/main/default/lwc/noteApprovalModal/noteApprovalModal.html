@@ -69,6 +69,66 @@
                             </div>
                         </template>
 
+                        <template if:true={hasRecallDelta}>
+                            <div class="slds-box slds-m-bottom_medium slds-p-around_small" style="border-left: 4px solid #b67d11; background: #fff8e5;">
+                                <div class="slds-grid slds-grid_vertical-align-center slds-gutters_x-small">
+                                    <div class="slds-col slds-no-flex">
+                                        <lightning-icon icon-name="utility:change_record_type" size="small" alternative-text="Changes since recall"></lightning-icon>
+                                    </div>
+                                    <div class="slds-col">
+                                        <div class="slds-text-title_bold">Changes Since Recall</div>
+                                        <p class="slds-text-body_small slds-m-top_xx-small">
+                                            This document was recalled and re-submitted. Review what changed before approving.
+                                        </p>
+                                    </div>
+                                    <div class="slds-col slds-no-flex">
+                                        <lightning-button
+                                            label={recallDeltaToggleLabel}
+                                            variant="brand-outline"
+                                            icon-name="utility:preview"
+                                            onclick={handleToggleRecallDelta}>
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                                <template if:true={showRecallDelta}>
+                                    <div class="slds-m-top_small">
+                                        <div class="slds-grid slds-gutters_x-small slds-text-body_small slds-m-bottom_x-small">
+                                            <template if:true={recallDeltaSnapshotAtDisplay}>
+                                                <div class="slds-col">
+                                                    <span class="slds-text-color_weak">Recalled at: </span>
+                                                    <span>{recallDeltaSnapshotAtDisplay}</span>
+                                                </div>
+                                            </template>
+                                            <template if:true={recallDeltaResubmittedAtDisplay}>
+                                                <div class="slds-col">
+                                                    <span class="slds-text-color_weak">Resubmitted at: </span>
+                                                    <span>{recallDeltaResubmittedAtDisplay}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <table class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_fixed-layout">
+                                            <thead>
+                                                <tr class="slds-line-height_reset">
+                                                    <th scope="col" style="width: 25%;">Field</th>
+                                                    <th scope="col" style="width: 37.5%;">Before Recall</th>
+                                                    <th scope="col" style="width: 37.5%;">After Resubmit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={recallDeltaRows} for:item="row">
+                                                    <tr key={row.field}>
+                                                        <td><strong>{row.label}</strong></td>
+                                                        <td class="slds-text-color_weak slds-cell-wrap">{row.before}</td>
+                                                        <td class="slds-cell-wrap">{row.after}</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
                         <!-- Document Available -->
                         <template if:true={noteData.documentId}>
                             <div class="slds-m-bottom_medium">

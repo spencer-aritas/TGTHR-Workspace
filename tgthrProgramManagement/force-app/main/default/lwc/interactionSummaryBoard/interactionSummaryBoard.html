@@ -426,26 +426,8 @@
                     </div>
                   </div>
                   
-                  <!-- Interaction Purpose -->
-                  <div class="slds-form-element slds-m-bottom_x-small">
-                    <label class="slds-form-element__label" for="interaction-purpose">
-                      <abbr class="slds-required" title="required">*</abbr>
-                      Interaction Purpose
-                    </label>
-                    <div class="slds-form-element__control">
-                      <lightning-combobox
-                        name="interaction-purpose"
-                        label="Interaction Purpose"
-                        value={interactionPurpose}
-                        options={purposeOptions}
-                        onchange={handleFieldChange}
-                        variant="label-hidden"
-                        class="purpose-combobox"
-                        required>
-                      </lightning-combobox>
-                    </div>
-                  </div>
-                  
+                  <!-- Interaction Purpose is stamped server-side as 'Communication Log'. -->
+
                   <!-- Interaction Notes (Rich Text) -->
                   <div class="slds-form-element">
                     <label class="slds-form-element__label" for="meeting-notes">Interaction Notes</label>

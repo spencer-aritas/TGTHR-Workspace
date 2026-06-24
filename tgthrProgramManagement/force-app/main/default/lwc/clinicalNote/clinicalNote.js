@@ -1,6 +1,7 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
+import USER_ID from '@salesforce/user/Id';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
 import initClinicalNote from '@salesforce/apex/ClinicalNoteController.initClinicalNote';
@@ -100,6 +101,7 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     @track managerInfo = null;
     @track signingAuthorityOptions = [];
     @track selectedApproverId = null;
+    currentUserId = USER_ID;
     @track isReapprovalScenario = false; // True when editing a rejected note that's already awaiting re-approval
     @track reapprovalManagerName = null; // Name of manager who will re-approve
     @track isResubmissionScenario = false; // True for recalled/rejected edits where routing policy is preserved server-side
@@ -136,10 +138,12 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     @wire(getSigningAuthorities)
     wiredSigningAuthorities({ data, error }) {
         if (data) {
-            this.signingAuthorityOptions = data.map(user => ({
-                label: user.Name,
-                value: user.Id
-            }));
+            this.signingAuthorityOptions = data
+                .filter(user => user?.Id && user.Id !== this.currentUserId)
+                .map(user => ({
+                    label: user.Name,
+                    value: user.Id
+                }));
         } else if (error) {
             console.error('Error getting signing authorities:', error);
             this.signingAuthorityOptions = [];
@@ -329,6 +333,10 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     }
 
     get managerApprovalHelpText() {
+        if (this.isReapprovalScenario && this.existingNote?.managerApproverId === this.currentUserId) {
+            return 'This note was previously routed to yourself for manager co-sign. Select another Signing Authority approver to continue.';
+        }
+
         if (this.isReapprovalScenario) {
             return `This recalled or rejected note will return to ${this.reapprovalManagerName || this.managerName} under the original signing policy.`;
         }
@@ -358,6 +366,9 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
 
     get effectiveManagerApproverId() {
         if (this.isReapprovalScenario && this.existingNote?.managerApproverId) {
+            if (this.existingNote.managerApproverId === this.currentUserId) {
+                return this.selectedApproverId;
+            }
             return this.existingNote.managerApproverId;
         }
 
@@ -373,6 +384,15 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
     }
 
     handleApproverChange(event) {
+        if (event.detail.value === this.currentUserId) {
+            this.selectedApproverId = null;
+            this._showToast(
+                'Invalid Approver Selection',
+                'You cannot select yourself as the manager co-sign approver. Please select another Signing Authority user.',
+                'error'
+            );
+            return;
+        }
         this.selectedApproverId = event.detail.value;
     }
 
@@ -383,6 +403,16 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 this.isLateEntryManagerApprovalRequired
                     ? 'This note was entered outside the 72-hour reporting window. Select a Signing Authority approver before saving.'
                     : 'Please select an approver from the Signing Authority list before saving.',
+                'error'
+            );
+            return false;
+        }
+
+        if (this.managerApprovalChecked && this.effectiveManagerApproverId === this.currentUserId) {
+            this.selectedApproverId = null;
+            this._showToast(
+                'Approver Required',
+                'You cannot select yourself as the manager co-sign approver. Select another Signing Authority approver before saving.',
                 'error'
             );
             return false;
@@ -724,7 +754,9 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 this.isReapprovalScenario = true; // Disable checkbox, show message
                 this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
                 if (existingNote.managerApproverId) {
-                    this.selectedApproverId = existingNote.managerApproverId;
+                    this.selectedApproverId = existingNote.managerApproverId === this.currentUserId
+                        ? null
+                        : existingNote.managerApproverId;
                 }
             }
             
@@ -739,7 +771,9 @@ export default class ClinicalNote extends NavigationMixin(LightningElement) {
                 this.reapprovalManagerName = existingNote.managerApproverName || 'Manager';
                 // Ensure approver ID is set so notification goes to the right person
                 if (existingNote.managerApproverId) {
-                    this.selectedApproverId = existingNote.managerApproverId;
+                    this.selectedApproverId = existingNote.managerApproverId === this.currentUserId
+                        ? null
+                        : existingNote.managerApproverId;
                 }
             }
             

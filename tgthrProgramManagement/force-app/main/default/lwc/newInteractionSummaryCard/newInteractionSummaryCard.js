@@ -105,7 +105,6 @@ export default class NewInteractionSummaryCard extends NavigationMixin(Lightning
             this.saveError = 'Interaction Time is required.';
             return;
         }
-
         this.saving = true;
 
         const requestJson = JSON.stringify({

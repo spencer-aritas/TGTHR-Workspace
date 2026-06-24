@@ -1,8 +1,9 @@
 import { LightningElement, track } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
-import getActivePrograms from '@salesforce/apex/ProgramManagersDashboardController.getActivePrograms';
-import getProgramUsers   from '@salesforce/apex/ProgramManagersDashboardController.getProgramUsers';
-import getActivity       from '@salesforce/apex/ProgramManagersDashboardController.getActivity';
+import getActivePrograms           from '@salesforce/apex/ProgramManagersDashboardController.getActivePrograms';
+import getProgramUsersForPrograms  from '@salesforce/apex/ProgramManagersDashboardController.getProgramUsersForPrograms';
+import getActivity                 from '@salesforce/apex/ProgramManagersDashboardController.getActivity';
+import getContentVersionId         from '@salesforce/apex/ProgramManagersDashboardController.getContentVersionId';
 
 // 3 surface categories matching Case Manager Home (Interactions / Documentation / Incidents).
 // Documentation bundles Notes + Interviews server-side.
@@ -26,6 +27,36 @@ const PAGE_SIZE_OPTIONS = [
 ];
 
 const ALL_TYPES = [TYPE_INTERACTION, TYPE_DOCUMENTATION, TYPE_INCIDENT];
+
+// ── localStorage persistence ──
+const STATE_KEY = 'pmDashboard_v2';
+
+function saveState(state) {
+  try { window.localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadSavedState() {
+  try {
+    const raw = window.localStorage.getItem(STATE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+// Derives start/end ISO strings for a given preset key.
+// Returns { start, end } where either may be '' (meaning no bound).
+function datesForPreset(key) {
+  const today = new Date();
+  switch (key) {
+    case 'today':     return { start: isoToday(0),  end: isoToday(0) };
+    case 'yesterday': return { start: isoToday(-1), end: isoToday(-1) };
+    case 'last7':     return { start: isoToday(-7), end: isoToday(0) };
+    case 'last30':    return { start: isoToday(-30), end: isoToday(0) };
+    case 'thisWeek':  return { start: isoDate(startOfWeek(today)), end: isoToday(0) };
+    case 'thisMonth': return { start: isoDate(new Date(today.getFullYear(), today.getMonth(), 1)), end: isoToday(0) };
+    case 'all':       return { start: '', end: '' };
+    default:          return { start: isoToday(-7), end: isoToday(0) };
+  }
+}
 
 function isoToday(offsetDays = 0) {
   const d = new Date();
@@ -95,8 +126,15 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
   totalRecords = 0;
   totalPages   = 1;
 
-  selectedProgramId = null;
+  selectedProgramIds = [];
   loading = false;
+
+  // Modal state
+  @track showDetailModal = false;
+  @track modalRow = null;
+  @track activeModalTab = 'details';
+  @track modalPdfVersionId = null;
+  _pdfVersionCache = {}; // contentDocumentId → contentVersionId
 
   typeOptions = TYPE_OPTIONS;
   pageSizeOptions = PAGE_SIZE_OPTIONS;
@@ -104,7 +142,7 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
   // ── lifecycle ──
   async connectedCallback() {
     await this.loadPrograms();
-    if (this.selectedProgramId) {
+    if (this.selectedProgramIds.length) {
       await Promise.all([this.loadUsers(), this.loadActivity()]);
     }
   }
@@ -114,8 +152,35 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
     try {
       const data = await getActivePrograms();
       this.programs = data || [];
-      if (this.programs.length && !this.selectedProgramId) {
-        this.selectedProgramId = this.programs[0].id;
+      if (!this.programs.length) return;
+
+      const saved = loadSavedState();
+
+      // Restore selected programs — validate IDs still exist in this org
+      if (saved && saved.selectedProgramIds && saved.selectedProgramIds.length) {
+        const validIds = saved.selectedProgramIds.filter(id => this.programs.some(p => p.id === id));
+        this.selectedProgramIds = validIds.length ? validIds : [this.programs[0].id];
+      } else {
+        // First visit: default to first active program only
+        this.selectedProgramIds = [this.programs[0].id];
+      }
+
+      // Restore other filters
+      if (saved) {
+        const preset = (saved.activePreset && saved.activePreset !== 'custom')
+          ? saved.activePreset : 'last7';
+        this.activePreset = preset;
+        // For 'custom' we saved raw dates; for all other presets recalculate fresh
+        const dates = saved.activePreset === 'custom' && saved.startDate != null
+          ? { start: saved.startDate, end: saved.endDate }
+          : datesForPreset(preset);
+        this.filters = {
+          startDate: dates.start,
+          endDate:   dates.end,
+          userId:    saved.userId  || '',
+          types:     saved.types   || [...ALL_TYPES]
+        };
+        if (saved.pageSize) this.pageSize = saved.pageSize;
       }
     } catch (e) {
       console.error('loadPrograms', e);
@@ -125,7 +190,7 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
 
   async loadUsers() {
     try {
-      const data = await getProgramUsers({ programId: this.selectedProgramId });
+      const data = await getProgramUsersForPrograms({ programIds: this.selectedProgramIds });
       const opts = [{ label: 'All users', value: '' }];
       (data || []).forEach(u => opts.push({ label: u.name, value: u.id }));
       this.userOptions = opts;
@@ -150,11 +215,15 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
   }
 
   async loadActivity() {
-    if (!this.selectedProgramId) return;
+    if (!this.selectedProgramIds || !this.selectedProgramIds.length) {
+      this.rows = []; this.totalRecords = 0; this.totalPages = 1;
+      return;
+    }
     this.loading = true;
     try {
       const payload = {
-        programId:  this.selectedProgramId,
+        programIds: this.selectedProgramIds,
+        programId:  this.selectedProgramIds[0] || null,
         startDate:  this.filters.startDate || null,
         endDate:    this.filters.endDate || null,
         userId:     this.filters.userId || null,
@@ -184,22 +253,25 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
   }
 
   // ── derived getters ──
-  get programTabs() {
+  get programPills() {
     return this.programs.map(p => ({
       id: p.id,
       name: p.name,
-      cssClass: p.id === this.selectedProgramId
+      cssClass: this.selectedProgramIds.includes(p.id)
         ? 'pm-program-tab pm-program-tab_active'
         : 'pm-program-tab'
     }));
   }
 
   // Decorate raw rows with display category / classes / formatted date.
+  // When multiple programs are selected, inserts program group-header pseudo-rows.
   get displayRows() {
-    return this.rows.map(r => {
+    const decorated = this.rows.map(r => {
       const category = categoryFor(r.recordType);
       return {
         ...r,
+        isDataRow:    true,
+        isGroupHeader: false,
         category,
         rowClass:     rowClassFor(category),
         chipClass:    chipClassFor(category),
@@ -211,6 +283,41 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
         previewText:  r.preview || ''
       };
     });
+
+    if (this.selectedProgramIds.length <= 1) return decorated;
+
+    // Build program name lookup
+    const nameMap = {};
+    this.programs.forEach(p => { nameMap[p.id] = p.name; });
+
+    // Group rows by programId, maintaining server date-sort within each group
+    const groups = new Map();
+    const order = [];
+    for (const row of decorated) {
+      const key = row.programId || '__none__';
+      if (!groups.has(key)) { groups.set(key, []); order.push(key); }
+      groups.get(key).push(row);
+    }
+
+    const result = [];
+    order.sort((a, b) => {
+      const na = nameMap[a] || 'Unknown Program';
+      const nb = nameMap[b] || 'Unknown Program';
+      return na.localeCompare(nb);
+    });
+    for (const key of order) {
+      const groupRows = groups.get(key);
+      result.push({
+        isGroupHeader: true,
+        isDataRow:     false,
+        recordId:      `__group__${key}`,
+        rowClass:      'pm-group-header',
+        programName:   nameMap[key] || 'Unknown Program',
+        rowCount:      groupRows.length
+      });
+      result.push(...groupRows);
+    }
+    return result;
   }
 
   get hasData() {
@@ -243,7 +350,8 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
   get hasActiveFilters() {
     return this.filters.userId
       || (this.filters.types && this.filters.types.length < ALL_TYPES.length)
-      || this.activePreset !== 'last7';
+      || this.activePreset !== 'last7'
+      || (this.programs.length > 0 && this.selectedProgramIds.length < this.programs.length);
   }
 
   get filterSummary() {
@@ -264,22 +372,50 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
     if (this.filters.types && this.filters.types.length < ALL_TYPES.length) {
       parts.push(`types: ${this.filters.types.join(', ')}`);
     }
+    if (this.programs.length > 0 && this.selectedProgramIds.length < this.programs.length) {
+      const names = this.programs
+        .filter(p => this.selectedProgramIds.includes(p.id))
+        .map(p => p.name);
+      parts.push(`programs: ${names.join(', ')}`);
+    }
     return parts.join(' · ');
   }
 
+  _saveState() {
+    saveState({
+      selectedProgramIds: this.selectedProgramIds,
+      activePreset:       this.activePreset,
+      startDate:          this.filters.startDate,
+      endDate:            this.filters.endDate,
+      userId:             this.filters.userId,
+      types:              this.filters.types,
+      pageSize:           this.pageSize
+    });
+  }
+
   // ── handlers ──
-  async handleProgramClick(evt) {
+  handleProgramPillToggle(evt) {
     const id = evt.currentTarget.dataset.id;
-    if (id === this.selectedProgramId) return;
-    this.selectedProgramId = id;
+    const isSelected = this.selectedProgramIds.includes(id);
+    let next;
+    if (isSelected) {
+      next = this.selectedProgramIds.filter(p => p !== id);
+      if (!next.length) return; // keep at least one selected
+    } else {
+      next = [...this.selectedProgramIds, id];
+    }
+    this.selectedProgramIds = next;
     this.pageNumber = 1;
-    await Promise.all([this.loadUsers(), this.loadActivity()]);
+    this._saveState();
+    this.loadUsers();
+    this.loadActivity();
   }
 
   handleStartDateChange(evt) {
     this.filters = { ...this.filters, startDate: evt.target.value };
     this.activePreset = 'custom';
     this.pageNumber = 1;
+    this._saveState();
     this.loadActivity();
   }
 
@@ -287,18 +423,21 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
     this.filters = { ...this.filters, endDate: evt.target.value };
     this.activePreset = 'custom';
     this.pageNumber = 1;
+    this._saveState();
     this.loadActivity();
   }
 
   handleUserChange(evt) {
     this.filters = { ...this.filters, userId: evt.detail.value };
     this.pageNumber = 1;
+    this._saveState();
     this.loadActivity();
   }
 
   handleTypeChange(evt) {
     this.filters = { ...this.filters, types: evt.detail.value };
     this.pageNumber = 1;
+    this._saveState();
     this.loadActivity();
   }
 
@@ -311,6 +450,9 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
     };
     this.activePreset = 'last7';
     this.pageNumber = 1;
+    this.selectedProgramIds = this.programs.map(p => p.id);
+    this._saveState();
+    this.loadUsers();
     this.loadActivity();
   }
 
@@ -321,27 +463,17 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
   handlePresetClick(evt) {
     const key = evt.currentTarget.dataset.key;
     this.activePreset = key;
-    const today = new Date();
-    let start = null;
-    let end = isoToday(0);
-    switch (key) {
-      case 'today':     start = isoToday(0); break;
-      case 'yesterday': start = isoToday(-1); end = isoToday(-1); break;
-      case 'last7':     start = isoToday(-7); break;
-      case 'last30':    start = isoToday(-30); break;
-      case 'thisWeek':  start = isoDate(startOfWeek(today)); break;
-      case 'thisMonth': start = isoDate(new Date(today.getFullYear(), today.getMonth(), 1)); break;
-      case 'all':       start = ''; end = ''; break;
-      default: break;
-    }
-    this.filters = { ...this.filters, startDate: start, endDate: end };
+    const dates = datesForPreset(key);
+    this.filters = { ...this.filters, startDate: dates.start, endDate: dates.end };
     this.pageNumber = 1;
+    this._saveState();
     this.loadActivity();
   }
 
   handlePageSizeChange(evt) {
     this.pageSize = parseInt(evt.detail.value, 10) || 50;
     this.pageNumber = 1;
+    this._saveState();
     this.loadActivity();
   }
 
@@ -367,7 +499,12 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
 
   handleRowClick(evt) {
     const id = evt.currentTarget.dataset.id;
-    this.navigateToRecord(id, false);
+    if (!id || id.startsWith('__group__')) return;
+    const row = this.displayRows.find(r => r.recordId === id);
+    if (!row || row.isGroupHeader) return;
+    this.modalRow = row;
+    this.activeModalTab = 'details';
+    this.showDetailModal = true;
   }
 
   handleOpenInNewTab(evt) {
@@ -375,4 +512,95 @@ export default class ProgramManagersDashboard extends NavigationMixin(LightningE
     const id = evt.currentTarget.dataset.id;
     this.navigateToRecord(id, true);
   }
+
+  handleCloseModal() {
+    this.showDetailModal = false;
+    this.modalRow = null;
+  }
+
+  handleModalTabClick(evt) {
+    evt.preventDefault();
+    const tab = evt.currentTarget.dataset.tab;
+    if (!tab) return;
+    this.activeModalTab = tab;
+    if (tab === 'document' && this.modalRow && this.modalRow.pdfFileId) {
+      this._loadPdfVersionId(this.modalRow.pdfFileId);
+    }
+  }
+
+  async _loadPdfVersionId(contentDocumentId) {
+    if (!contentDocumentId) return;
+    if (this._pdfVersionCache[contentDocumentId]) {
+      this.modalPdfVersionId = this._pdfVersionCache[contentDocumentId];
+      return;
+    }
+    this.modalPdfVersionId = null;
+    try {
+      const versionId = await getContentVersionId({ contentDocumentId });
+      this._pdfVersionCache[contentDocumentId] = versionId;
+      this.modalPdfVersionId = versionId;
+    } catch (e) {
+      console.error('getContentVersionId', e);
+    }
+  }
+
+  handleDownloadPdf() {
+    if (!this.modalRow || !this.modalRow.pdfFileId) return;
+    window.open(
+      `/sfc/servlet.shepherd/document/download/${this.modalRow.pdfFileId}?operationContext=S1`,
+      '_blank'
+    );
+  }
+
+  handleOpenInSalesforce() {
+    if (!this.modalRow) return;
+    this.navigateToRecord(this.modalRow.recordId, true);
+  }
+
+  // ── Modal derived getters ──
+  get isModalDetailTab()   { return this.activeModalTab === 'details'; }
+  get isModalDocumentTab() { return this.activeModalTab === 'document'; }
+
+  // Incidents (PublicComplaint) have no document viewer support.
+  get modalIsIncident() {
+    return this.modalRow && this.modalRow.recordType === 'Incident';
+  }
+
+  // Show the Document tab only when pdfFileId is populated on the row.
+  get modalHasDocumentTab() {
+    return !!(this.modalRow && this.modalRow.pdfFileId);
+  }
+
+  // noteDetailDisplay expects 'Interaction' for InteractionSummary-based rows,
+  // and 'Interview' for Interview__c rows.
+  get modalNoteRecordType() {
+    if (!this.modalRow) return 'Interaction';
+    return this.modalRow.recordType === 'Interview' ? 'Interview' : 'Interaction';
+  }
+
+  // Inline-renderable PDF URL — uses ContentVersionId + renditionDownload which
+  // does NOT force Content-Disposition:attachment (unlike /document/download/).
+  get modalPdfPreviewUrl() {
+    if (!this.modalPdfVersionId) return null;
+    return `/sfc/servlet.shepherd/version/renditionDownload?rendition=ORIGINAL_Pdf&versionId=${this.modalPdfVersionId}&operationContext=CHATTER`;
+  }
+
+  get modalPdfLoading() {
+    return !!(this.modalRow && this.modalRow.pdfFileId && !this.modalPdfVersionId);
+  }
+
+  get modalChipClass() {
+    return this.modalRow ? chipClassFor(this.modalRow.category) : 'pm-chip';
+  }
+
+  get detailTabClass() {
+    return 'slds-tabs_default__item' + (this.activeModalTab === 'details' ? ' slds-is-active' : '');
+  }
+
+  get documentTabClass() {
+    return 'slds-tabs_default__item' + (this.activeModalTab === 'document' ? ' slds-is-active' : '');
+  }
+
+  // completedView=true tells noteDetailDisplay to render in read-only review mode.
+  get modalCompletedView() { return true; }
 }
