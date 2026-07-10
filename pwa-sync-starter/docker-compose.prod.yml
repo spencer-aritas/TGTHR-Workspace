@@ -10,7 +10,7 @@ services:
     networks:
       - app_net
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5173/80"]
       interval: 30s
       timeout: 10s
       retries: 3
