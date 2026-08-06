@@ -10,7 +10,11 @@
 	}
 	
 	handle_path /docgen/* {
-		reverse_proxy docgen:8000
+		reverse_proxy docgen:8000 {
+			header_down Cache-Control "no-store, private, max-age=0"
+			header_down Pragma "no-cache"
+			header_down Expires "0"
+		}
 	}
 	
 	handle {
@@ -30,6 +34,9 @@ docgen.aritasconsulting.com {
 		header_up X-Real-IP {http.request.remote.host}
 		header_up X-Forwarded-For {http.request.remote.host}
 		header_up X-Forwarded-Proto {http.request.scheme}
+		header_down Cache-Control "no-store, private, max-age=0"
+		header_down Pragma "no-cache"
+		header_down Expires "0"
 	}
 }
 
@@ -60,6 +67,9 @@ outreachintake.aritasconsulting.com {
 				response_header_timeout 120s
 				read_timeout 300s
 			}
+			header_down Cache-Control "no-store, private, max-age=0"
+			header_down Pragma "no-cache"
+			header_down Expires "0"
 		}
 	}
 	

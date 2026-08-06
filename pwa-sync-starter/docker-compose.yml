@@ -28,6 +28,10 @@ services:
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
       - DEBUG_SETTINGS=1
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - ALL_PROXY=
+      - NO_PROXY=localhost,127.0.0.1,::1,.salesforce.com,.force.com,.lightning.force.com,api,docgen,gotenberg
     ports:
       - "8001:8000"
     volumes:
@@ -59,16 +63,25 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
-      - DUCKDB_PATH=/app/data/tgthr_program_data.duckdb
       - SF_ENV=sandbox
       - GOTENBERG_URL=http://gotenberg:3000
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - ALL_PROXY=
+      - NO_PROXY=localhost,127.0.0.1,::1,.salesforce.com,.force.com,.lightning.force.com,api,docgen,gotenberg
     ports:
       - "8002:8000"
     volumes:
-      - ../tgthr-docgen:/app
-      - ../tgthr-docgen/data:/app/data
+      - ../tgthr-docgen:/app:ro
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=268435456,mode=1777
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
-    command: uvicorn serve:app --host 0.0.0.0 --port 8000
+    command: uvicorn serve:app --host 0.0.0.0 --port 8000 --no-access-log
     networks:
       - default
       - internal

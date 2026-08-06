@@ -40,6 +40,10 @@ services:
       - DB_PATH=/app/data/app.duckdb
       - SQLITE_DB_PATH=/app/data/server.db
       - PYTHONPATH=/app
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - ALL_PROXY=
+      - NO_PROXY=localhost,127.0.0.1,::1,.salesforce.com,.force.com,.lightning.force.com,api,docgen,gotenberg
     volumes:
       - type: bind
         source: ./server/data
@@ -73,21 +77,29 @@ services:
       - SF_ENV=prod
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
-      - DUCKDB_PATH=/app/data/tgthr_program_data.duckdb
       - GOTENBERG_URL=http://gotenberg:3000
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - ALL_PROXY=
+      - NO_PROXY=localhost,127.0.0.1,::1,.salesforce.com,.force.com,.lightning.force.com,api,docgen,gotenberg
     depends_on:
       - gotenberg
     volumes:
       - type: bind
-        source: ../tgthr-docgen/data
-        target: /app/data
-      - type: bind
         source: ../tgthr-docgen/documents
         target: /app/documents
+        read_only: true
       - type: bind
         source: ./jwt_private.key
         target: /app/jwt_private.key
         read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=268435456,mode=1777
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     networks:
       - app_net
     restart: unless-stopped
@@ -127,6 +139,10 @@ services:
     networks:
       - app_net
     restart: unless-stopped
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=536870912,mode=1777
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
