@@ -33,6 +33,7 @@ services:
       - no-new-privileges:true
     networks:
       - docgen_sandbox
+      - egress
     restart: "no"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
@@ -63,3 +64,5 @@ services:
 networks:
   docgen_sandbox:
     internal: true
+  egress:
+    driver: bridge
