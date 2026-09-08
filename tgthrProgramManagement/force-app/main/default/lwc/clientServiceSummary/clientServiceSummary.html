@@ -1,0 +1,54 @@
+<template>
+    <lightning-card title="Client Service Summary" icon-name="standard:document">
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <p class="slds-text-body_small slds-m-bottom_small">
+                Generate a PDF summarizing case management contacts, benefits, and goal
+                progress for this Client over a date range.
+            </p>
+
+            <div class="slds-grid slds-gutters slds-wrap">
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-input
+                        type="date"
+                        label="Since"
+                        value={startDate}
+                        onchange={handleStartDateChange}>
+                    </lightning-input>
+                </div>
+                <div class="slds-col slds-size_1-of-2">
+                    <lightning-input
+                        type="date"
+                        label="Through"
+                        value={endDate}
+                        onchange={handleEndDateChange}>
+                    </lightning-input>
+                </div>
+            </div>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    variant="brand"
+                    label="Generate Client Service Summary"
+                    disabled={generateDisabled}
+                    onclick={handleGenerate}>
+                </lightning-button>
+                <template if:true={generating}>
+                    <lightning-spinner alternative-text="Generating..." size="small"></lightning-spinner>
+                </template>
+            </div>
+
+            <template if:true={error}>
+                <div class="slds-m-top_medium slds-text-color_error">{error}</div>
+            </template>
+
+            <template if:true={hasResult}>
+                <div class="slds-m-top_medium">
+                    <lightning-icon icon-name="utility:success" size="x-small" variant="success"></lightning-icon>
+                    <a href={downloadUrl} target="_blank" class="slds-m-left_xx-small">
+                        Download {filename}
+                    </a>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
