@@ -33,6 +33,20 @@ public with sharing class NewInteractionController {
     /**
      * Return InteractionPurpose picklist options for a combobox.
      */
+    // Purposes that require the full Note/Interview modal (mandatory Start/End Time
+    // there) must not be offered here — this quick-log card only ever writes
+    // Interaction_Time__c, never Start_Time__c/End_Time__c, so allowing these
+    // values here silently produces documentation-purpose records with no duration.
+    private static final Set<String> DOCUMENTATION_ONLY_PURPOSES = new Set<String>{
+        'Clinical Note',
+        'Case Note',
+        'Case Notes',
+        'Peer Note',
+        'Case Management',
+        'Case Management Note',
+        'Interview'
+    };
+
     @AuraEnabled(cacheable=true)
     public static List<Map<String, String>> getInteractionPurposes() {
         try {
@@ -45,7 +59,7 @@ public with sharing class NewInteractionController {
 
             List<Map<String, String>> options = new List<Map<String, String>>();
             for (Schema.PicklistEntry entry : field.getPicklistValues()) {
-                if (entry.isActive()) {
+                if (entry.isActive() && !DOCUMENTATION_ONLY_PURPOSES.contains(entry.getValue())) {
                     options.add(new Map<String, String>{
                         'label' => entry.getLabel(),
                         'value' => entry.getValue()
@@ -67,6 +81,12 @@ public with sharing class NewInteractionController {
 
         if (String.isBlank(req.accountId)) throw new AuraHandledException('Participant is required.');
         if (String.isBlank(req.interactionTime)) throw new AuraHandledException('Interaction Time is required.');
+        if (String.isNotBlank(req.purpose) && DOCUMENTATION_ONLY_PURPOSES.contains(req.purpose)) {
+            throw new AuraHandledException(
+                req.purpose + ' requires the full Note/Interview form so a Start and End Time can be captured. ' +
+                'Please use that form instead of the quick-entry card.'
+            );
+        }
 
         InteractionResult result = new InteractionResult();
 
@@ -143,8 +163,10 @@ public with sharing class NewInteractionController {
             }
             if (caseId != null) interaction.put('RelatedRecordId', caseId);
 
-            if (String.isNotBlank(req.purpose) && fields.containsKey('interactionpurpose')) {
-                interaction.put('InteractionPurpose', req.purpose);
+            if (fields.containsKey('interactionpurpose')) {
+                // Match InteractionSummaryService's convention: an interaction with
+                // no explicit purpose is a Communication Log, not left blank.
+                interaction.put('InteractionPurpose', String.isNotBlank(req.purpose) ? req.purpose : 'Communication Log');
             }
             if (String.isNotBlank(req.notes) && fields.containsKey('meetingnotes')) {
                 interaction.put('MeetingNotes', req.notes);

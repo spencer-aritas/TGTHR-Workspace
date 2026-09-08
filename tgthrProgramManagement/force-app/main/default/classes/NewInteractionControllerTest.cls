@@ -98,6 +98,38 @@ public class NewInteractionControllerTest {
     }
 
     @isTest
+    static void testCreateInteraction_RejectsDocumentationPurpose() {
+        Case c = getTestCase();
+        Map<String, Object> request = new Map<String, Object>{
+            'accountId' => String.valueOf(c.AccountId),
+            'purpose' => 'Case Note',
+            'interactionTime' => '14:30'
+        };
+
+        Test.startTest();
+        try {
+            NewInteractionController.createInteraction(JSON.serialize(request));
+            System.assert(false, 'Should have thrown for a documentation-only purpose');
+        } catch (AuraHandledException e) {
+            System.assert(true, 'Caught expected exception');
+        }
+        Test.stopTest();
+    }
+
+    @isTest
+    static void testGetInteractionPurposes_ExcludesDocumentationPurposes() {
+        Test.startTest();
+        List<Map<String, String>> purposes = NewInteractionController.getInteractionPurposes();
+        Test.stopTest();
+
+        for (Map<String, String> option : purposes) {
+            System.assertNotEquals('Case Note', option.get('value'), 'Case Note should not be offered here');
+            System.assertNotEquals('Case Notes', option.get('value'), 'Case Notes should not be offered here');
+            System.assertNotEquals('Clinical Note', option.get('value'), 'Clinical Note should not be offered here');
+        }
+    }
+
+    @isTest
     static void testCreateInteraction_NoPurpose() {
         Case c = getTestCase();
         Map<String, Object> request = new Map<String, Object>{
@@ -115,6 +147,28 @@ public class NewInteractionControllerTest {
         }
         Test.stopTest();
     }
+
+    @isTest
+    static void testCreateInteraction_NoPurpose_DefaultsToCommunicationLog() {
+        Case c = getTestCase();
+        Map<String, Object> request = new Map<String, Object>{
+            'accountId' => String.valueOf(c.AccountId),
+            'interactionTime' => '09:00',
+            'notes' => 'Quick note'
+        };
+
+        Test.startTest();
+        NewInteractionController.InteractionResult result =
+            NewInteractionController.createInteraction(JSON.serialize(request));
+        Test.stopTest();
+
+        System.assertEquals(true, result.success);
+        InteractionSummary created = [
+            SELECT InteractionPurpose FROM InteractionSummary WHERE Id = :result.recordId LIMIT 1
+        ];
+        System.assertEquals('Communication Log', created.InteractionPurpose);
+    }
+
 
     @isTest
     static void testCreateInteraction_NoDate() {
