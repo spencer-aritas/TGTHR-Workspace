@@ -39,3 +39,29 @@ tgthrProgramManagement/.sfdx/
 *.log
 .DS_Store
 .vscode/settings.json
+# Local client exports and diagnostic artifacts (privacy cleanup 2026-10-06)
+/.tmp-*
+/.tmp_*
+/recovery/case-*/
+/pwa-sync-starter/case_trace_*.json
+/pwa-sync-starter/newDataSchemaFiles/Person Account Building/
+/pwa-sync-starter/server.db*
+/pwa-sync-starter/server/server.db*
+/tgthrProgramManagement/*-records.csv
+/tgthrProgramManagement/stale_goals*.csv
+/tgthrProgramManagement/maggie_records.*
+/tgthrProgramManagement/all_related.xml
+/tgthrProgramManagement/null_notes.xml
+/tgthrProgramManagement/.tmp*/
+/tgthrProgramManagement/.tmp*
+/tgthrProgramManagement/test-results/
+/tgthrProgramManagement/temp_retrieve/
+/tgthrProgramManagement/temp_permsets/
+/tgthrProgramManagement/temp_tgthr_benefits/
+/tgthrProgramManagement/retrieved-metadata/
+/tgthrProgramManagement/scripts/data/*enrollment*.csv
+/tgthrProgramManagement/scripts/data/*assignment*.csv
+/tgthrProgramManagement/scripts/data/*disbursement*.csv
+/tgthrProgramManagement/scripts/data/case_*.csv
+/tgthrProgramManagement/scripts/data/*housing_cases*.csv
+/tgthrProgramManagement/scripts/interview-migration/*-records.csv
